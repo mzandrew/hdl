@@ -1,0 +1,66 @@
+# originally from http://svn.clifford.at/handicraft/2015/ringosc/icestick.pcf
+# modified to change LED0-4 to match silkscreen (D1-5=LED1-5)
+#
+# Arachne-PNR PCF file for the iCEstick evaluation board
+# ------------------------------------------------------
+#
+# This is free and unencumbered software released into the public domain.
+#
+# Anyone is free to copy, modify, publish, use, compile, sell, or
+# distribute this software, either in source code form or as a compiled
+# binary, for any purpose, commercial or non-commercial, and by any
+# means.
+
+set_io CLK 21 --warn-no-port
+
+# LEDs
+set_io LED1 99 --warn-no-port
+set_io LED2 98 --warn-no-port
+set_io LED3 97 --warn-no-port
+set_io LED4 96 --warn-no-port
+set_io LED5 95 --warn-no-port
+
+# RS232
+set_io DCDn 1 --warn-no-port
+set_io DSRn 2 --warn-no-port
+set_io DTRn 3 --warn-no-port
+set_io CTSn 4 --warn-no-port
+set_io RTSn 7 --warn-no-port
+set_io TX   8 --warn-no-port
+set_io RX   9 --warn-no-port
+
+# IrDA Transceiver
+set_io IR_TX 105 --warn-no-port
+set_io IR_RX 106 --warn-no-port
+set_io IR_SD 107 --warn-no-port
+
+# J1 Connector  (Pin 1 = 3.3V, Pin 2 = Gnd)
+set_io J1_3  112 --warn-no-port
+set_io J1_4  113 --warn-no-port
+set_io J1_5  114 --warn-no-port
+set_io J1_6  115 --warn-no-port
+set_io J1_7  116 --warn-no-port
+set_io J1_8  117 --warn-no-port
+set_io J1_9  118 --warn-no-port
+set_io J1_10 119 --warn-no-port
+
+# J2 PMOD  (Pin 5 & 11 = Gnd, Pin 6 & 12 = 3.3V)
+set_io J2_1  78 --warn-no-port
+set_io J2_2  79 --warn-no-port
+set_io J2_3  80 --warn-no-port
+set_io J2_4  81 --warn-no-port
+set_io J2_7  87 --warn-no-port
+set_io J2_8  88 --warn-no-port
+set_io J2_9  90 --warn-no-port
+set_io J2_10 91 --warn-no-port
+
+# J3 Connector  (Pin 1 = 3.3V, Pin 2 = Gnd)
+set_io J3_3  62 --warn-no-port
+set_io J3_4  61 --warn-no-port
+set_io J3_5  60 --warn-no-port
+set_io J3_6  56 --warn-no-port
+set_io J3_7  48 --warn-no-port
+set_io J3_8  47 --warn-no-port
+set_io J3_9  45 --warn-no-port
+set_io J3_10 44 --warn-no-port
+
