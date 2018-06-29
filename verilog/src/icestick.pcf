@@ -11,6 +11,7 @@
 # binary, for any purpose, commercial or non-commercial, and by any
 # means.
 
+# 12 MHz
 set_io CLK 21 --warn-no-port
 
 # LEDs
