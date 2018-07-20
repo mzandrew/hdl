@@ -24,9 +24,9 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	assign J3_6  = segment_g;
 	assign J3_4 = 1; // dp/colon
 	assign J3_7 = 1; // connected via resistor to anode0001 for least significant digit
-	assign J1_7 = 1; // connected via resistor to anode0010
-	assign J1_6 = 1; // connected via resistor to anode0100
-	assign J1_3 = 1; // connected via resistor to anode1000 for most significant digit
+	assign J1_7 = 0; // connected via resistor to anode0010
+	assign J1_6 = 0; // connected via resistor to anode0100
+	assign J1_3 = 0; // connected via resistor to anode1000 for most significant digit
 	reg [31:0] raw_counter;
 	reg dot_clock;
 	reg [3:0] dot_counter;
@@ -49,8 +49,8 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 		raw_counter++;
 	end
 	always begin
-		dot_clock <= raw_counter[12];
-		dot_counter <= raw_counter[16:13];
+		dot_clock <= raw_counter[11];
+		dot_counter <= raw_counter[15:12];
 	end
 	always begin
 		clock_1Hz <= raw_counter[23];
