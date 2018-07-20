@@ -72,9 +72,9 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 		counter_1Hz <= raw_counter[27:24];
 	end
 	always @(posedge clock_1Hz) begin
-		sequence0010 <= 7'b1111111;
-		sequence0100 <= 7'b1111111;
-		sequence1000 <= 7'b1111111;
+		sequence1000 <= sequence0100;
+		sequence0100 <= sequence0010;
+		sequence0010 <= sequence0001;
 		case(counter_1Hz[3:0])
 			4'h0    : sequence0001 <= 7'b0000001;
 			4'h1    : sequence0001 <= 7'b1001111;
@@ -85,7 +85,13 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 			4'h6    : sequence0001 <= 7'b0100000;
 			4'h7    : sequence0001 <= 7'b0001111;
 			4'h8    : sequence0001 <= 7'b0000000;
-			default : sequence0001 <= 7'b0000100;
+			4'h9    : sequence0001 <= 7'b0000100;
+			4'ha    : sequence0001 <= 7'b0001000;
+			4'hb    : sequence0001 <= 7'b1100000;
+			4'hc    : sequence0001 <= 7'b1110010;
+			4'hd    : sequence0001 <= 7'b1000010;
+			4'he    : sequence0001 <= 7'b0110000;
+			default : sequence0001 <= 7'b0111000;
 		endcase
 	end
 	always @(posedge digit_clock) begin
