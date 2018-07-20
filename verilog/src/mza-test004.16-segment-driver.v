@@ -4,26 +4,26 @@
 module top(input CLK, 
 output LED1, LED2, LED3, LED4, LED5,
 J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
-J2_1, J2_2,       J2_4, J2_7, J2_8, J2_9, J2_10,
+J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
 J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 );
-	wire segment_a;
-	wire segment_b;
-	wire segment_c;
-	wire segment_d;
-	wire segment_e;
-	wire segment_f;
-	wire segment_g;
-	wire segment_h;
-	wire segment_k;
-	wire segment_m;
-	wire segment_n;
-	wire segment_u;
-	wire segment_p;
-	wire segment_t;
-	wire segment_s;
-	wire segment_r;
-	wire segment_dp;
+	reg segment_a;
+	reg segment_b;
+	reg segment_c;
+	reg segment_d;
+	reg segment_e;
+	reg segment_f;
+	reg segment_g;
+	reg segment_h;
+	reg segment_k;
+	reg segment_m;
+	reg segment_n;
+	reg segment_u;
+	reg segment_p;
+	reg segment_t;
+	reg segment_s;
+	reg segment_r;
+	reg segment_dp;
 	assign J2_7  = segment_a;
 	assign J2_2  = segment_b;
 	assign J2_4  = segment_c;
@@ -43,7 +43,7 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	assign J1_8  = segment_dp;
 	assign J2_9  = 1; // res+pot connected to anode
 	assign J1_9  = 1; // res+pot connected to anode
-//	assign J2_3  = 1; // directly connected to anode; will draw 12.5 mA if driven high
+	assign J2_3  = 1; // not connected
 	assign J1_10 = 1; // not connected
 	assign J2_8  = 1; // not connected
 	assign J3_9  = 1; // not connected
@@ -56,17 +56,15 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	reg [15:0] sequence;
 	reg reset;
 	always @(posedge CLK) begin
-		if (raw_counter[31:12]==0) begin
+		if (raw_counter[31:12]==0) begin // reset active for 4096 cycles
 			reset <= 1;
-			//sequence <= {2'b00,2'b11,2'b00,2'b11,3'b111,2'b00,3'b111};
-			//sequence <= {2'b11,2'b11,2'b11,2'b11,3'b111,2'b11,3'b111};
 			LED1 <= 0;
 			LED2 <= 0;
 			LED3 <= 0;
 			LED4 <= 0;
-			//LED5 <= 0;
+			LED5 <= 0;
 		end else begin
-			//LED1 <= dot_clock;
+			LED5 <= dot_clock;
 			reset <= 0;
 		end
 		raw_counter++;
@@ -80,8 +78,6 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 		counter_1Hz <= raw_counter[27:24];
 	end
 	always @(posedge clock_1Hz) begin
-		//case(counter[27:24])
-		//case(raw_counter[31:27])
 		case(counter_1Hz[3:0])
 			4'h0    : sequence <= 16'b0000000011111111;
 			4'h1    : sequence <= 16'b1100111111111111;
@@ -102,10 +98,6 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 		endcase
 	end
 	always @(posedge dot_clock) begin
-//		LED1 <= dot_counter[0];
-//		LED2 <= dot_counter[1];
-//		LED3 <= dot_counter[2];
-//		LED4 <= dot_counter[3];
 		if (reset==1) begin
 			segment_a  <= 1; // clear segment a
 			segment_b  <= 1; // clear segment b
@@ -126,8 +118,8 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 			segment_dp <= 1; // clear segment dp
 		end else begin
 			case(dot_counter)
-				4'h0    : begin segment_a <= sequence[15]; segment_r <= 1; LED5 <= 1; end // set or clear segment a as appropriate; clear segment r
-				4'h1    : begin segment_b <= sequence[14]; segment_a <= 1; LED5 <= 0; end // set or clear segment b as appropriate; clear segment a
+				4'h0    : begin segment_a <= sequence[15]; segment_r <= 1; end // set or clear segment a as appropriate; clear segment r
+				4'h1    : begin segment_b <= sequence[14]; segment_a <= 1; end // set or clear segment b as appropriate; clear segment a
 				4'h2    : begin segment_c <= sequence[13]; segment_b <= 1; end // set or clear segment c as appropriate; clear segment b
 				4'h3    : begin segment_d <= sequence[12]; segment_c <= 1; end // set or clear segment d as appropriate; clear segment c
 				4'h4    : begin segment_e <= sequence[11]; segment_d <= 1; end // set or clear segment e as appropriate; clear segment d
