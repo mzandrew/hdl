@@ -35,7 +35,7 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	reg digit_clock;
 	reg [1:0] digit_counter;
 	reg dot_clock;
-	reg [3:0] dot_counter;
+	reg [2:0] dot_counter;
 	reg clock_1Hz;
 	reg [3:0] counter_1Hz;
 	wire [6:0] sequence;
@@ -65,7 +65,7 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	end
 	always begin
 		dot_clock <= raw_counter[09];
-		dot_counter <= raw_counter[13:10];
+		dot_counter <= raw_counter[12:10];
 	end
 	always begin
 		clock_1Hz <= raw_counter[23];
@@ -120,13 +120,13 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 			segment_g <= 1; // clear segment g
 		end else begin
 			case(dot_counter)
-				4'h0    : begin segment_a <= sequence[6];                 end // set or clear segment a as appropriate
-				4'h1    : begin segment_b <= sequence[5]; segment_a <= 1; end // set or clear segment b as appropriate; clear segment a
-				4'h2    : begin segment_c <= sequence[4]; segment_b <= 1; end // set or clear segment c as appropriate; clear segment b
-				4'h3    : begin segment_d <= sequence[3]; segment_c <= 1; end // set or clear segment d as appropriate; clear segment c
-				4'h4    : begin segment_e <= sequence[2]; segment_d <= 1; end // set or clear segment e as appropriate; clear segment d
-				4'h5    : begin segment_f <= sequence[1]; segment_e <= 1; end // set or clear segment f as appropriate; clear segment e
-				4'h6    : begin segment_g <= sequence[0]; segment_f <= 1; end // set or clear segment g as appropriate; clear segment f
+				3'b000  : begin segment_a <= sequence[6];                 end // set or clear segment a as appropriate
+				3'b001  : begin segment_b <= sequence[5]; segment_a <= 1; end // set or clear segment b as appropriate; clear segment a
+				3'b010  : begin segment_c <= sequence[4]; segment_b <= 1; end // set or clear segment c as appropriate; clear segment b
+				3'b011  : begin segment_d <= sequence[3]; segment_c <= 1; end // set or clear segment d as appropriate; clear segment c
+				3'b100  : begin segment_e <= sequence[2]; segment_d <= 1; end // set or clear segment e as appropriate; clear segment d
+				3'b101  : begin segment_f <= sequence[1]; segment_e <= 1; end // set or clear segment f as appropriate; clear segment e
+				3'b110  : begin segment_g <= sequence[0]; segment_f <= 1; end // set or clear segment g as appropriate; clear segment f
 				default : begin                           segment_g <= 1; end // clear segment g
 			endcase
 		end
