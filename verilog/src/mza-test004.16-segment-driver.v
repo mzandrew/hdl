@@ -1,5 +1,5 @@
 // written 2018-07-06 by mza
-// last updated 2018-07-06 by mza
+// last updated 2018-07-20 by mza
 
 module top(input CLK, 
 output LED1, LED2, LED3, LED4, LED5,
@@ -7,30 +7,45 @@ J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
 J2_1, J2_2,       J2_4, J2_7, J2_8, J2_9, J2_10,
 J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 );
-//	assign J1_3  = 1; // segment p
-//	assign J1_4  = 1; // segment u
-//	assign J1_5  = 1; // segment d
-//	assign J1_6  = 1; // segment r
-//	assign J1_7  = 1; // segment s
-	assign J1_8  = 1; // segment dp
-	assign J1_9  = 1; // not connected
+	wire segment_a;
+	wire segment_b;
+	wire segment_c;
+	wire segment_d;
+	wire segment_e;
+	wire segment_f;
+	wire segment_g;
+	wire segment_h;
+	wire segment_k;
+	wire segment_m;
+	wire segment_n;
+	wire segment_u;
+	wire segment_p;
+	wire segment_t;
+	wire segment_s;
+	wire segment_r;
+	wire segment_dp;
+	assign J2_7  = segment_a;
+	assign J2_2  = segment_b;
+	assign J2_4  = segment_c;
+	assign J1_5  = segment_d;
+	assign J3_8  = segment_e;
+	assign J3_7  = segment_f;
+	assign J3_5  = segment_g;
+	assign J3_4  = segment_h;
+	assign J3_3  = segment_k;
+	assign J2_1  = segment_m;
+	assign J2_10 = segment_n;
+	assign J1_4  = segment_u;
+	assign J1_3  = segment_p;
+	assign J3_6  = segment_t;
+	assign J1_7  = segment_s;
+	assign J1_6  = segment_r;
+	assign J1_8  = segment_dp;
+	assign J2_9  = 1; // res+pot connected to anode
+	assign J1_9  = 1; // res+pot connected to anode
+//	assign J2_3  = 1; // directly connected to anode; will draw 12.5 mA if driven high
 	assign J1_10 = 1; // not connected
-
-//	assign J2_1  = 1; // segment m
-//	assign J2_2  = 1; // segment b
-//	assign J2_3  = 0; // anode; DO NOT DRIVE
-//	assign J2_4  = 1; // segment c
-//	assign J2_7  = 1; // segment a
 	assign J2_8  = 1; // not connected
-	assign J2_9  = 1; // not connected
-//	assign J2_10 = 1; // segment n
-
-//	assign J3_3  = 1; // segment k
-//	assign J3_4  = 1; // segment h
-//	assign J3_5  = 1; // segment g
-//	assign J3_6  = 1; // segment t
-//	assign J3_7  = 1; // segment f
-//	assign J3_8  = 1; // segment e
 	assign J3_9  = 1; // not connected
 	assign J3_10 = 1; // not connected
 	reg [31:0] raw_counter;
@@ -92,40 +107,41 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 //		LED3 <= dot_counter[2];
 //		LED4 <= dot_counter[3];
 		if (reset==1) begin
-			J2_7  <= 1; // clear segment a
-			J2_2  <= 1; // clear segment b
-			J2_4  <= 1; // clear segment c
-			J1_5  <= 1; // clear segment d
-			J3_8  <= 1; // clear segment e
-			J3_7  <= 1; // clear segment f
-			J3_5  <= 1; // clear segment g
-			J3_4  <= 1; // clear segment h
-			J3_3  <= 1; // clear segment k
-			J2_1  <= 1; // clear segment m
-			J2_10 <= 1; // clear segment n
-			J1_4  <= 1; // clear segment u
-			J1_3  <= 1; // clear segment p
-			J3_6  <= 1; // clear segment t
-			J1_7  <= 1; // clear segment s
-			J1_6  <= 1; // clear segment r
+			segment_a  <= 1; // clear segment a
+			segment_b  <= 1; // clear segment b
+			segment_c  <= 1; // clear segment c
+			segment_d  <= 1; // clear segment d
+			segment_e  <= 1; // clear segment e
+			segment_f  <= 1; // clear segment f
+			segment_g  <= 1; // clear segment g
+			segment_h  <= 1; // clear segment h
+			segment_k  <= 1; // clear segment k
+			segment_m  <= 1; // clear segment m
+			segment_n  <= 1; // clear segment n
+			segment_u  <= 1; // clear segment u
+			segment_p  <= 1; // clear segment p
+			segment_t  <= 1; // clear segment t
+			segment_s  <= 1; // clear segment s
+			segment_r  <= 1; // clear segment r
+			segment_dp <= 1; // clear segment dp
 		end else begin
 			case(dot_counter)
-				4'h0 : begin J2_7  <= sequence[15]; J1_6  <= 1; LED5 <= 1; end // set or clear segment a as appropriate; clear segment r
-				4'h1 : begin J2_2  <= sequence[14]; J2_7  <= 1; LED5 <= 0; end // set or clear segment b as appropriate; clear segment a
-				4'h2 : begin J2_4  <= sequence[13]; J2_2  <= 1; end // set or clear segment c as appropriate; clear segment b
-				4'h3 : begin J1_5  <= sequence[12]; J2_4  <= 1; end // set or clear segment d as appropriate; clear segment c
-				4'h4 : begin J3_8  <= sequence[11]; J1_5  <= 1; end // set or clear segment e as appropriate; clear segment d
-				4'h5 : begin J3_7  <= sequence[10]; J3_8  <= 1; end // set or clear segment f as appropriate; clear segment e
-				4'h6 : begin J3_5  <= sequence[09]; J3_7  <= 1; end // set or clear segment g as appropriate; clear segment f
-				4'h7 : begin J3_4  <= sequence[08]; J3_5  <= 1; end // set or clear segment h as appropriate; clear segment g
-				4'h8 : begin J3_3  <= sequence[07]; J3_4  <= 1; end // set or clear segment k as appropriate; clear segment h
-				4'h9 : begin J2_1  <= sequence[06]; J3_3  <= 1; end // set or clear segment m as appropriate; clear segment k
-				4'ha : begin J2_10 <= sequence[05]; J2_1  <= 1; end // set or clear segment n as appropriate; clear segment m
-				4'hb : begin J1_4  <= sequence[04]; J2_10 <= 1; end // set or clear segment u as appropriate; clear segment n
-				4'hc : begin J1_3  <= sequence[03]; J1_4  <= 1; end // set or clear segment p as appropriate; clear segment u
-				4'hd : begin J3_6  <= sequence[02]; J1_3  <= 1; end // set or clear segment t as appropriate; clear segment p
-				4'he : begin J1_7  <= sequence[01]; J3_6  <= 1; end // set or clear segment s as appropriate; clear segment t
-				default : begin J1_6  <= sequence[00]; J1_7  <= 1; end // set or clear segment r as appropriate; clear segment s
+				4'h0    : begin segment_a <= sequence[15]; segment_r <= 1; LED5 <= 1; end // set or clear segment a as appropriate; clear segment r
+				4'h1    : begin segment_b <= sequence[14]; segment_a <= 1; LED5 <= 0; end // set or clear segment b as appropriate; clear segment a
+				4'h2    : begin segment_c <= sequence[13]; segment_b <= 1; end // set or clear segment c as appropriate; clear segment b
+				4'h3    : begin segment_d <= sequence[12]; segment_c <= 1; end // set or clear segment d as appropriate; clear segment c
+				4'h4    : begin segment_e <= sequence[11]; segment_d <= 1; end // set or clear segment e as appropriate; clear segment d
+				4'h5    : begin segment_f <= sequence[10]; segment_e <= 1; end // set or clear segment f as appropriate; clear segment e
+				4'h6    : begin segment_g <= sequence[09]; segment_f <= 1; end // set or clear segment g as appropriate; clear segment f
+				4'h7    : begin segment_h <= sequence[08]; segment_g <= 1; end // set or clear segment h as appropriate; clear segment g
+				4'h8    : begin segment_k <= sequence[07]; segment_h <= 1; end // set or clear segment k as appropriate; clear segment h
+				4'h9    : begin segment_m <= sequence[06]; segment_k <= 1; end // set or clear segment m as appropriate; clear segment k
+				4'ha    : begin segment_n <= sequence[05]; segment_m <= 1; end // set or clear segment n as appropriate; clear segment m
+				4'hb    : begin segment_u <= sequence[04]; segment_n <= 1; end // set or clear segment u as appropriate; clear segment n
+				4'hc    : begin segment_p <= sequence[03]; segment_u <= 1; end // set or clear segment p as appropriate; clear segment u
+				4'hd    : begin segment_t <= sequence[02]; segment_p <= 1; end // set or clear segment t as appropriate; clear segment p
+				4'he    : begin segment_s <= sequence[01]; segment_t <= 1; end // set or clear segment s as appropriate; clear segment t
+				default : begin segment_r <= sequence[00]; segment_s <= 1; end // set or clear segment r as appropriate; clear segment s
 			endcase
 		end
 	end
