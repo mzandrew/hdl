@@ -65,7 +65,6 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	end
 	always begin
 		dot_clock <= raw_counter[09];
-		//dot_counter <= raw_counter[12:10];
 	end
 	always begin
 		clock_1Hz <= raw_counter[23];
