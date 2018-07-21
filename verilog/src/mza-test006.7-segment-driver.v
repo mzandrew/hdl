@@ -8,13 +8,13 @@ J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
 J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
 J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 );
-	reg segment_a;
-	reg segment_b;
-	reg segment_c;
-	reg segment_d;
-	reg segment_e;
-	reg segment_f;
-	reg segment_g;
+	wire segment_a;
+	wire segment_b;
+	wire segment_c;
+	wire segment_d;
+	wire segment_e;
+	wire segment_f;
+	wire segment_g;
 	assign J1_4  = segment_a;
 	assign J3_8  = segment_b;
 	assign J3_5  = segment_c;
@@ -23,27 +23,27 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	assign J1_5  = segment_f;
 	assign J3_6  = segment_g;
 	assign J3_4 = 1; // dp/colon
-	reg anode0001;
-	reg anode0010;
-	reg anode0100;
-	reg anode1000;
+	wire anode0001;
+	wire anode0010;
+	wire anode0100;
+	wire anode1000;
 	assign J3_7 = anode0001; // connected via resistor to anode0001 for least significant digit
 	assign J1_7 = anode0010; // connected via resistor to anode0010
 	assign J1_6 = anode0100; // connected via resistor to anode0100
 	assign J1_3 = anode1000; // connected via resistor to anode1000 for most significant digit
 	reg [31:0] raw_counter;
-	reg digit_clock;
-	reg [1:0] digit_counter;
-	reg dot_clock;
+	wire digit_clock;
+	wire [1:0] digit_counter;
+	wire dot_clock;
 	reg [6:0] dot_token;
-	reg clock_1Hz;
-	reg [3:0] counter_1Hz;
+	wire clock_1Hz;
+	wire [3:0] counter_1Hz;
 	wire [6:0] sequence;
 	reg [6:0] sequence0001;
 	reg [6:0] sequence0010;
 	reg [6:0] sequence0100;
 	reg [6:0] sequence1000;
-	reg reset;
+	wire reset;
 	always @(posedge CLK) begin
 		if (raw_counter[31:12]==0) begin // reset active for 4096 cycles
 			reset <= 1;
@@ -59,12 +59,14 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 		end
 		raw_counter++;
 	end
+	localparam dot_clock_pickoff = 3;
+	localparam digit_clock_pickoff = dot_clock_pickoff + 4;
 	always begin
-		digit_clock <= raw_counter[14];
-		digit_counter <= raw_counter[16:15];
+		digit_clock <= raw_counter[digit_clock_pickoff];
+		digit_counter <= raw_counter[digit_clock_pickoff+2:digit_clock_pickoff+1];
 	end
 	always begin
-		dot_clock <= raw_counter[09];
+		dot_clock <= raw_counter[dot_clock_pickoff];
 	end
 	always begin
 		clock_1Hz <= raw_counter[23];
