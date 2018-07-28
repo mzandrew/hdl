@@ -1,14 +1,14 @@
 // written 2018-07-26 by mza
 // based on mza-test006.7-segment-driver.v
-// last updated 2018-07-26 by mza
+// last updated 2018-07-27 by mza
 
 module seven_segment_display_driver__4(input clock, input [15:0] data, output [6:0] cathode, output [3:0] anode);
 	localparam dot_clock_pickoff = 3;
-	localparam number_of_segments = 7;
-	localparam overestimate_of_log2_of_number_of_segments = 3; // 7~16 dots
+	localparam number_of_segments = 7; // 7~16 dots
+	localparam overestimate_of_log2_of_number_of_segments = $clog2(number_of_segments);
 	localparam nybble_clock_pickoff = dot_clock_pickoff + overestimate_of_log2_of_number_of_segments + 1;
 	localparam number_of_nybbles = 4;
-	localparam log2_of_number_of_nybbles = 2;
+	localparam log2_of_number_of_nybbles = $clog2(number_of_nybbles);
 	localparam update_clock_pickoff = nybble_clock_pickoff + log2_of_number_of_nybbles + 1;
 	localparam raw_counter_size = update_clock_pickoff + 3; // just for the hell of it
 	localparam log2_of_reset_duration = 10;
