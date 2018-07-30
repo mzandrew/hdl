@@ -1,9 +1,9 @@
 // written 2018-07-27 by mza
 // based on mza-test004.16-segment-driver.v
-// last updated 2018-07-27 by mza
+// last updated 2018-07-30 by mza
 
 module debounce(input clock, input polarity, input raw_button_input, output button_active);
-	localparam timeout = 240; // 20.000 us
+	localparam timeout = 120000; // 10ms
 	reg [$clog2(timeout)+1:0] counter;
 	reg old_status = 0;
 	reg new_status = 0;
@@ -28,34 +28,23 @@ module debounce(input clock, input polarity, input raw_button_input, output butt
 		end
 		old_status <= new_status;
 	end
-endmodule
+endmodule // debounce
 
-module shitty_debounce(input clock, input polarity, input raw_button, output debounced);
-	reg [7:0] counter;
-	localparam timeout = 250; // about 21 us
-	localparam mode = 0; // 0 means follow; 1 means one cycle only
+module edge_to_pulse(input clock, input polarity, input raw_input, output processed_output);
+// .polarity(1) means use positive logic (detect rising edge)
+	reg state;
 	always @(posedge clock) begin
-		if (counter==0) begin
-			if (raw_button==polarity) begin
-				counter <= timeout;
-				debounced <= 1;
-			end else begin
-				debounced <= 0;
+		processed_output <= ! polarity;
+		if (raw_input==polarity) begin
+			if (state!=polarity) begin
+				processed_output <= polarity;
+				state <= polarity;
 			end
 		end else begin
-			counter--;
-			if (mode == 0) begin // output follows input
-				if (raw_button==polarity) begin
-					debounced <= 1;
-				end else begin
-					debounced <= 0;
-				end
-			end else begin // output immediately goes back to inactive state after first cycle of clock
-				debounced <= 0;
-			end
+			state <= ! polarity;
 		end
 	end
-endmodule
+endmodule // edge_to_pulse
 
 module top(input CLK, 
 input J3_10, 
@@ -82,10 +71,12 @@ output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9
 	reg segment_r;
 	reg segment_dp;
 	assign J3_9 = button;
-	assign J1_10 = button;
+	assign J1_10 = pulse;
 	reg button;
 	assign LED1 = button;
 	debounce my_debounce_instance (.clock(CLK), .polarity(0), .raw_button_input(J3_10), .button_active(button));
+	wire pulse;
+	edge_to_pulse my_e2p_instance (.clock(CLK), .polarity(1), .raw_input(button), .processed_output(pulse));
 	assign J2_7  = segment_a;
 	assign J2_2  = segment_b;
 	assign J2_4  = segment_c;
@@ -112,6 +103,7 @@ output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9
 	reg dot_clock;
 	reg [3:0] dot_counter;
 	reg clock_1Hz;
+	reg clock_10Hz;
 	reg [3:0] counter_1Hz;
 	reg [15:0] sequence;
 	reg reset;
@@ -120,9 +112,12 @@ output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9
 //	assign nybble = counter_1Hz[3:0];
 	assign nybble = counter[3:0];
 	always @(posedge CLK) begin
-		if (button==1) begin
+		//if (button==1) begin // measures durations
+		if (pulse==1) begin // counts button presses
 			counter++;
 		end
+	end
+	always @(posedge CLK) begin
 		if (raw_counter[31:12]==0) begin // reset active for 4096 cycles
 			reset <= 1;
 //			LED1 <= 0;
@@ -144,7 +139,10 @@ output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9
 		clock_1Hz <= raw_counter[23];
 		counter_1Hz <= raw_counter[27:24];
 	end
-	always @(posedge clock_1Hz) begin
+	always begin
+		clock_10Hz <= raw_counter[21];
+	end
+	always @(posedge clock_10Hz) begin
 		case(nybble)
 			4'h0    : sequence <= 16'b0000000011111111;
 			4'h1    : sequence <= 16'b1100111111111111;
