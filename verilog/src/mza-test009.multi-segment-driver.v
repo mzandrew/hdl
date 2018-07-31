@@ -1,4 +1,5 @@
-// written 2018-06-29 by mza
+// written 2018-07-31 by mza
+// based on mza-test007.7-segment-driver.v and mza-test003.double-dabble.v
 // last updated 2018-07-31 by mza
 
 `include "lib/hex2bcd.v"
@@ -10,33 +11,6 @@ J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
 J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
 J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 );
-	reg [39:0] counter;
-	wire reset;
-	always @(posedge CLK) begin
-		if (counter[39:10]==0) begin
-			reset <= 1;
-		end else begin
-			reset <= 0;
-		end
-		counter++;
-	end
-	reg [23:0] bcd;
-	reg [15:0] data;
-	assign data = counter[39:24];
-	hex2bcd #(.input_size_in_nybbles(4)) h2binst ( .clock(CLK), .reset(reset), .hex_in(data), .bcd_out(bcd) );
-	if (1) begin
-		assign LED5 = bcd[4];
-		assign LED4 = bcd[3];
-		assign LED3 = bcd[2];
-		assign LED2 = bcd[1];
-		assign LED1 = bcd[0];
-	end else begin
-		assign LED5 = 0;
-		assign LED4 = bcd[7];
-		assign LED3 = bcd[6];
-		assign LED2 = bcd[5];
-		assign LED1 = bcd[4];
-	end
 	if (1) begin
 		// for an HDSP-B04E mounted pin7=pin14 justified on an icestick-test revA ZIF-socket board (IDL_18_027)
 		wire [6:0] segment;
@@ -74,10 +48,44 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 		assign J1_7  = segment[14];
 		assign J1_6  = segment[15];
 		assign J1_8  = 1; // dp/colon
-		wire [1:0] anode;
 		assign J2_9  = anode[0]; // res+pot connected to anode
 		assign J1_9  = anode[0]; // res+pot connected to anode
+		wire [1:0] anode;
 		segmented_display_driver #(.number_of_segments(16), .number_of_nybbles(2)) my_instance_name (.clock(CLK), .data(bcd[7:0]), .cathode(segment), .anode(anode));
 	end
+	wire [23:0] bcd;
+	wire [15:0] data;
+	wire reset;
+	assign reset = 0;
+	hex2bcd #(.input_size_in_nybbles(4)) h2binst ( .clock(CLK), .reset(reset), .hex_in(data), .bcd_out(bcd) );
+
+	reg [40:0] raw_counter;
+	reg [40:0] alternate_counter;
+	//wire clock_1Hz;
+	wire [15:0] counter_1000Hz;
+	wire [15:0] counter_100Hz;
+	wire [15:0] counter_10Hz;
+	wire [15:0] counter_1Hz;
+	reg [2:0] clock_token;
+	always @(posedge CLK) begin
+		if (raw_counter[40:10]==0) begin
+			clock_token <= 3'b001;
+		end else begin
+			clock_token <= { clock_token[1:0], clock_token[2] }; // barrel shifter
+		end
+		if (clock_token == 3'b001) begin
+			alternate_counter++;
+		end
+		raw_counter++;
+	end
+	always begin
+//		counter_1Hz <= raw_counter[39:24]; // really about 1.34 Hz
+//		counter_10Hz <= raw_counter[35:20]; // really about 11.444 Hz
+//		counter_1000Hz <= alternate_counter[26:12]; // really about 1.024 kHz
+		counter_10Hz <= alternate_counter[34:19]; // really about 7.629 Hz
+//		counter_1Hz <= alternate_counter[37:22]; // really about 1.048576 Hz
+		data <= counter_10Hz;
+	end
+
 endmodule // top
 

@@ -1,6 +1,6 @@
 // written 2018-07-26 by mza
 // based on mza-test006.7-segment-driver.v
-// last updated 2018-07-30 by mza
+// last updated 2018-07-31 by mza
 
 `include "lib/segmented_display_driver.v"
 
@@ -53,7 +53,7 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 //		counter_1Hz <= alternate_counter[37:22]; // really about 1.048576 Hz
 		data <= counter_10Hz;
 	end
-	seven_segment_display_driver__4 my_instance_name (.clock(CLK), .data(data), .cathode(segment), .anode(anode));
+	segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(4)) my_instance_name (.clock(CLK), .data(data), .cathode(segment), .anode(anode));
 
 endmodule // top
 
