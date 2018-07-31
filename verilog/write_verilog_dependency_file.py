@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # written 2018-07-31 by mza
+# writes out a .d (dependency) file that can be included in makefiles
+# last updated 2018-07-31 by mza
 
-import os # os.path.isfile()
+import os # os.path.isfile(), os.stat(), os.utime()
 import sys # sys.argv
 import re # re.search()
 
@@ -9,6 +11,14 @@ src = "src"
 work = "work"
 input_dirname = src
 output_dirname = work
+
+def touch(filename, referrent=None):
+	if not referrent==None:
+		stats = os.stat(referrent)
+		time = (stats.st_atime, stats.st_mtime)
+	else:
+		time = None
+	os.utime(filename, time)
 
 def run_file(filename):
 	includes = []
@@ -20,7 +30,7 @@ def run_file(filename):
 		return # not a .v file
 	depfilename = "work/" + basename + ".d"
 	#print depfilename
-	binfilename = "work/" + basename + ".bin"
+	bliffilename = "work/" + basename + ".blif"
 	for line in open(filename):
 		#line = line.rstrip("\n\r")
 		match = re.search("`include \"(.*)\"", line)
@@ -29,13 +39,15 @@ def run_file(filename):
 			includes.append(input_dirname + "/" + match.group(1))
 	#includes.append(depfilename)
 	depfile = open(depfilename, 'w')
-	string = binfilename + " " + depfilename + " : " + filename
+	string = bliffilename + " " + depfilename + " : " + filename
 	for include in includes:
 		string += " " + include
 	string += "\n"
 	#print string
 	#print(depfilename, file=depfile)
 	print >>depfile, string
+	depfile.close()
+	touch(depfilename, filename)
 
 if __name__ == "__main__":
 	if not os.path.isdir(output_dirname):
