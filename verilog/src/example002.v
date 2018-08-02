@@ -13,7 +13,7 @@ module testbench;
 	always
 		#41.7 CLK = ~CLK;
 	always @(posedge CLK) begin
-		counter++;
+		counter <= counter + 1;
 	end
 	initial begin
 		#0
