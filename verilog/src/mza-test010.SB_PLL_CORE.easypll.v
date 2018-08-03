@@ -1,7 +1,6 @@
 // written 2018-08-01 by mza
 // last updated 2018-08-03 by mza
 
-//`include "lib/icestick.v"
 `include "lib/easypll.v"
 
 module mypll (input clock, output fast_clock, pll_is_locked, divided_clock, output reg [31:0] counter);
