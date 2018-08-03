@@ -14,13 +14,7 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	if (1) begin
 		// for an HDSP-B04E mounted pin7=pin14 justified on an icestick-test revA ZIF-socket board (IDL_18_027)
 		wire [6:0] segment;
-		assign J1_4  = segment[0];
-		assign J3_8  = segment[1];
-		assign J3_5  = segment[2];
-		assign J3_3  = segment[3];
-		assign J2_1  = segment[4];
-		assign J1_5  = segment[5];
-		assign J3_6  = segment[6];
+		assign { J3_6, J1_5, J2_1, J3_3, J3_5, J3_8, J1_4 } = segment;
 		assign J3_4 = 1; // dp/colon
 		wire [3:0] anode;
 		assign J3_7 = anode[0]; // connected via resistor to anode0001 for least significant digit
@@ -31,22 +25,7 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	end else begin
 		// for an LTP587HR mounted pin16=pin14 justified on an icestick-test revA ZIF-socket board (IDL_18_027)
 		wire [15:0] segment;
-		assign J2_7  = segment[00];
-		assign J2_2  = segment[01];
-		assign J2_4  = segment[02];
-		assign J1_5  = segment[03];
-		assign J3_8  = segment[04];
-		assign J3_7  = segment[05];
-		assign J3_5  = segment[06];
-		assign J3_4  = segment[07];
-		assign J3_3  = segment[08];
-		assign J2_1  = segment[09];
-		assign J2_10 = segment[10];
-		assign J1_4  = segment[11];
-		assign J1_3  = segment[12];
-		assign J3_6  = segment[13];
-		assign J1_7  = segment[14];
-		assign J1_6  = segment[15];
+		assign { J1_6, J1_7, J1_7, J3_6, J1_3, J1_4, J2_10, J2_1, J3_3, J3_4, J3_5, J3_5, J3_7, J3_8, J1_5, J2_4, J2_2, J2_7 } = segment;
 		assign J1_8  = 1; // dp/colon
 		assign J2_9  = anode[0]; // res+pot connected to anode
 		assign J1_9  = anode[0]; // res+pot connected to anode
@@ -58,7 +37,6 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	wire reset;
 	assign reset = 0;
 	hex2bcd #(.input_size_in_nybbles(4)) h2binst ( .clock(CLK), .reset(reset), .hex_in(data), .bcd_out(bcd) );
-
 	reg [40:0] raw_counter;
 	reg [40:0] alternate_counter;
 	//wire clock_1Hz;
