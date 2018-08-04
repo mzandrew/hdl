@@ -35,7 +35,7 @@ output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9
 	assign LED1 = button;
 	debounce my_debounce_instance (.clock(CLK), .polarity(0), .raw_button_input(J3_10), .button_active(button));
 	wire pulse;
-	edge_to_pulse my_e2p_instance (.clock(CLK), .polarity(1), .raw_input(button), .processed_output(pulse));
+	edge_to_pulse #(.polarity(1)) my_e2p_instance (.clock(CLK), .i(button), .o(pulse));
 	assign J2_7  = segment_a;
 	assign J2_2  = segment_b;
 	assign J2_4  = segment_c;
