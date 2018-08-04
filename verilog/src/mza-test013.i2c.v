@@ -15,7 +15,7 @@ input sda_in
 	assign J2[5] = scl;
 	assign J2[4:0] = 0;
 	assign LED[5] = scl;
-	assign LED[4] = 0;
+	assign LED[4] = nack;
 	assign LED[3] = sda_dir;
 	assign LED[2] = sda_in;
 	assign LED[1] = sda_out;
@@ -32,33 +32,87 @@ input sda_in
 	assign i2c_clock = counter[7];
 //	assign scl = i2c_clock;
 	reg [7:0] bit_counter;
+	reg nack;
 	always @(posedge i2c_clock) begin
 		if (bit_counter>0) begin
 			case(bit_counter)
-				14 : begin
+				31 : begin
 					sda_out <= 0;
+				end
+				30 : begin
 					sda_dir <= 1;
 				end
-				13 : begin
+				29 : begin
 					scl <= 0;
 				end
-				12 : begin
-					sda_out <= i2c_address[0];
+				28 : begin
+					sda_out <= i2c_address[6];
 				end
-				11 : begin
-					scl <= ~scl;
+				27 : begin
+					scl <= 1;
 				end
-				10 : begin
-					sda_out <= i2c_address[1];
+				26 : begin
+					scl <= 0;
 				end
-				09 : begin
-					scl <= ~scl;
+				25 : begin
+					sda_out <= i2c_address[5];
 				end
-				08 : begin
+				24 : begin
+					scl <= 1;
+				end
+				23 : begin
+					scl <= 0;
+				end
+				22 : begin
+					sda_out <= i2c_address[4];
+				end
+				21 : begin
+					scl <= 1;
+				end
+				20 : begin
+					scl <= 0;
+				end
+				19 : begin
+					sda_out <= i2c_address[3];
+				end
+				18 : begin
+					scl <= 1;
+				end
+				17 : begin
+					scl <= 0;
+				end
+				16 : begin
 					sda_out <= i2c_address[2];
 				end
+				15 : begin
+					scl <= 1;
+				end
+				14 : begin
+					scl <= 0;
+				end
+				13 : begin
+					sda_out <= i2c_address[1];
+				end
+				12 : begin
+					scl <= 1;
+				end
+				11 : begin
+					scl <= 0;
+				end
+				10 : begin
+					sda_out <= i2c_address[0];
+				end
+				09 : begin
+					scl <= 1;
+				end
+				08 : begin
+					scl <= 0;
+				end
 				07 : begin
-					scl <= ~scl;
+					sda_dir <= 0;
+				end
+				06 : begin
+					nack <= sda_in;
 				end
 				default : begin
 					sda_dir <= 0;
@@ -68,7 +122,7 @@ input sda_in
 			endcase
 			bit_counter--;
 		end else begin
-			bit_counter <= 16;
+			bit_counter <= 32;
 		end
 	end
 endmodule // mytop
