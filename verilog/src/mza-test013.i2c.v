@@ -36,97 +36,39 @@ input sda_in
 	always @(posedge i2c_clock) begin
 		if (bit_counter>0) begin
 			case(bit_counter)
-				31 : begin
-					sda_out <= 0;
-				end
-				29 : begin
-					scl <= 0;
-				end
-				28 : begin
-					sda_out <= i2c_address[6];
-				end
-				27 : begin
-					scl <= 1;
-				end
-				26 : begin
-					scl <= 0;
-				end
-				25 : begin
-					sda_out <= i2c_address[5];
-				end
-				24 : begin
-					scl <= 1;
-				end
-				23 : begin
-					scl <= 0;
-				end
-				22 : begin
-					sda_out <= i2c_address[4];
-				end
-				21 : begin
-					scl <= 1;
-				end
-				20 : begin
-					scl <= 0;
-				end
-				19 : begin
-					sda_out <= i2c_address[3];
-				end
-				18 : begin
-					scl <= 1;
-				end
-				17 : begin
-					scl <= 0;
-				end
-				16 : begin
-					sda_out <= i2c_address[2];
-				end
-				15 : begin
-					scl <= 1;
-				end
-				14 : begin
-					scl <= 0;
-				end
-				13 : begin
-					sda_out <= i2c_address[1];
-				end
-				12 : begin
-					scl <= 1;
-				end
-				11 : begin
-					scl <= 0;
-				end
-				10 : begin
-					sda_out <= i2c_address[0];
-				end
-				09 : begin
-					scl <= 1;
-				end
-				08 : begin
-					scl <= 0;
-				end
-				07 : begin
-					sda_dir <= 0;
-				end
-				06 : begin
-					scl <= 1;
-				end
-				05 : begin
-					sda_out <= 0;
-					nack <= sda_in;
-				end
-				04 : begin
-					sda_dir <= 1;
-				end
-				03 : begin
-					scl <= 1;
-				end
-				02 : begin
-					scl <= 0;
-				end
-				01 : begin
-					sda_out <= 1;
-				end
+				50 : begin sda_out <= 0; end // start condition
+				49 : begin scl <= 0; end
+				48 : begin sda_out <= i2c_address[6]; end // data[7]
+				47 : begin scl <= 1; end
+				46 : begin scl <= 0; end
+				45 : begin sda_out <= i2c_address[5]; end // data[6]
+				44 : begin scl <= 1; end
+				43 : begin scl <= 0; end
+				42 : begin sda_out <= i2c_address[4]; end // data[5]
+				41 : begin scl <= 1; end
+				40 : begin scl <= 0; end
+				39 : begin sda_out <= i2c_address[3]; end // data[4]
+				38 : begin scl <= 1; end
+				37 : begin scl <= 0; end
+				36 : begin sda_out <= i2c_address[2]; end // data[3]
+				35 : begin scl <= 1; end
+				34 : begin scl <= 0; end
+				33 : begin sda_out <= i2c_address[1]; end // data[2]
+				32 : begin scl <= 1; end
+				31 : begin scl <= 0; end
+				30 : begin sda_out <= i2c_address[0]; end // data[1]
+				29 : begin scl <= 1; end
+				28 : begin scl <= 0; end
+				27 : begin sda_out <= 0; end // data[0] = read
+				26 : begin scl <= 1; end
+				25 : begin scl <= 0; end
+				24 : begin sda_dir <= 0; end
+				23 : begin scl <= 1; end
+				22 : begin sda_out <= 0; nack <= sda_in; end // nack
+				21 : begin sda_dir <= 1; end
+				20 : begin scl <= 1; end
+				19 : begin scl <= 0; end
+				18 : begin sda_out <= 1; end
 				default : begin
 					sda_dir <= 1;
 					scl <= 1;
@@ -135,7 +77,7 @@ input sda_in
 			endcase
 			bit_counter--;
 		end else begin
-			bit_counter <= 32;
+			bit_counter <= 60;
 		end
 	end
 endmodule // mytop
