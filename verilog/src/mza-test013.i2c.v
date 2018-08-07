@@ -11,11 +11,11 @@ input sda_in
 	wire [6:0] i2c_address = 7'h27; // honeywell HIH6121 i2c humidity sensor
 	reg scl;
 //	assign J2[7] = sda_dir ? sda_out : 1'bz; // Warning: Yosys has only limited support for tri-state logic at the moment.
-	assign J2[6] = 0;
-	assign J2[5] = scl;
-	assign J2[4:0] = 0;
+	assign J2[2] = scl;
+	assign J2[7:4] = 0;
+	assign J2[1:0] = 0;
 	assign LED[5] = scl;
-	assign LED[4] = nack;
+	assign LED[4] = ack;
 	assign LED[3] = sda_dir;
 	assign LED[2] = sda_in;
 	assign LED[1] = sda_out;
@@ -32,7 +32,7 @@ input sda_in
 	assign i2c_clock = counter[5];
 //	assign scl = i2c_clock;
 	reg [7:0] bit_counter;
-	reg nack;
+	reg ack;
 	always @(posedge i2c_clock) begin
 		if (bit_counter>0) begin
 			case(bit_counter)
@@ -69,10 +69,10 @@ input sda_in
 				086 : scl <= 1;
 				085 : scl <= 0;
 				// end of data word
-				// get nack
+				// get ack
 				084 : sda_dir <= 0; // input
 				083 : scl <= 1;
-				082 : nack <= sda_in; // nack
+				082 : ack <= sda_in; // ack
 				081 : scl <= 0;
 				080 : sda_dir <= 1; // output
 				// send stop
@@ -97,8 +97,8 @@ input CLK,
 output LED1, LED2, LED3, LED4, LED5,
 output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
 //inout J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
-inout J2_10,
-output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9,
+inout J2_4,
+output J2_1, J2_2, J2_3, J2_7, J2_8, J2_9, J2_10,
 output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
 output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
 input DTRn, RTSn, RX, IR_RX
@@ -111,16 +111,18 @@ input DTRn, RTSn, RX, IR_RX
 	assign { IR_TX, IR_SD } = 0;
 	assign J1 = 0;
 	assign TX = 1;
+	//wire sda_dir_fake;
+	//assign sda_dir_fake = 1;
 	wire sda_dir;
 	wire sda_in;
 	wire sda_out;
 	mytop mytop_instance (.clock(CLK), .LED(LED), .J2(J2), .J3(J3),
 		.sda_out(sda_out), .sda_in(sda_in), .sda_dir(sda_dir));
 	SB_IO #(
-		.PIN_TYPE(6'b 1010_01),
-		.PULLUP(1'b 1)
+		.PIN_TYPE(6'b 1010_01), // 1010 = output is tristated; 01 = input is normal
+		.PULLUP(1'b 0)
 	) my_i2c_data_pin (
-		.PACKAGE_PIN(J2[7]),
+		.PACKAGE_PIN(J2[3]),
 		.OUTPUT_ENABLE(sda_dir),
 		.D_OUT_0(sda_out),
 		.D_IN_0(sda_in)
