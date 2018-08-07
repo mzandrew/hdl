@@ -29,7 +29,7 @@ input sda_in
 		counter++;
 	end
 	wire i2c_clock;
-	assign i2c_clock = counter[7];
+	assign i2c_clock = counter[5];
 //	assign scl = i2c_clock;
 	reg [7:0] bit_counter;
 	reg nack;
@@ -38,9 +38,6 @@ input sda_in
 			case(bit_counter)
 				31 : begin
 					sda_out <= 0;
-				end
-				30 : begin
-					sda_dir <= 1;
 				end
 				29 : begin
 					scl <= 0;
@@ -112,10 +109,26 @@ input sda_in
 					sda_dir <= 0;
 				end
 				06 : begin
+					scl <= 1;
+				end
+				05 : begin
+					sda_out <= 0;
 					nack <= sda_in;
 				end
+				04 : begin
+					sda_dir <= 1;
+				end
+				03 : begin
+					scl <= 1;
+				end
+				02 : begin
+					scl <= 0;
+				end
+				01 : begin
+					sda_out <= 1;
+				end
 				default : begin
-					sda_dir <= 0;
+					sda_dir <= 1;
 					scl <= 1;
 					sda_out <= 1;
 				end
