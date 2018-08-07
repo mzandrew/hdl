@@ -8,7 +8,7 @@ output sda_out,
 output reg sda_dir,
 input sda_in
 );
-	wire [6:0] i2c_address = 7'd27; // honeywell HIH6121 i2c humidity sensor
+	wire [6:0] i2c_address = 7'h27; // honeywell HIH6121 i2c humidity sensor
 	reg scl;
 //	assign J2[7] = sda_dir ? sda_out : 1'bz; // Warning: Yosys has only limited support for tri-state logic at the moment.
 	assign J2[6] = 0;
@@ -59,7 +59,7 @@ input sda_in
 				30 : begin sda_out <= i2c_address[0]; end // data[1]
 				29 : begin scl <= 1; end
 				28 : begin scl <= 0; end
-				27 : begin sda_out <= 0; end // data[0] = read
+				27 : begin sda_out <= 1; end // data[0] = read
 				26 : begin scl <= 1; end
 				25 : begin scl <= 0; end
 				24 : begin sda_dir <= 0; end
