@@ -37,40 +37,48 @@ input sda_in
 		if (bit_counter>0) begin
 			case(bit_counter)
 				// send start or repeated start
-				113 : begin sda_out <= 1; end
-				112 : begin scl <= 1; end
-				111 : begin sda_out <= 0; end // start condition
-				110 : begin scl <= 0; end
+				113 : sda_out <= 1;
+				112 : scl <= 1;
+				111 : sda_out <= 0; // start condition
+				110 : scl <= 0;
 				// beginning of data word
-				109 : begin scl <= 0; sda_out <= i2c_address[6]; end // data[7]
-				108 : begin scl <= 1; end
-				107 : begin scl <= 0; sda_out <= i2c_address[5]; end // data[6]
-				106 : begin scl <= 1; end
-				105 : begin scl <= 0; sda_out <= i2c_address[4]; end // data[5]
-				104 : begin scl <= 1; end
-				103 : begin scl <= 0; sda_out <= i2c_address[3]; end // data[4]
-				102 : begin scl <= 1; end
-				101 : begin scl <= 0; sda_out <= i2c_address[2]; end // data[3]
-				100 : begin scl <= 1; end
-				099 : begin scl <= 0; sda_out <= i2c_address[1]; end // data[2]
-				098 : begin scl <= 1; end
-				097 : begin scl <= 0; sda_out <= i2c_address[0]; end // data[1]
-				096 : begin scl <= 1; end
-				095 : begin scl <= 0; sda_out <= 0; end // data[0] = 0; write
-				//095 : begin scl <= 0; sda_out <= 1; end // data[0] = 1; read
-				094 : begin scl <= 1; end
-				093 : begin scl <= 0; end
-				092 : begin sda_dir <= 0; end
-				091 : begin scl <= 1; end
-				090 : begin sda_out <= 0; nack <= sda_in; end // nack
-				089 : begin sda_dir <= 1; end
-				088 : begin scl <= 1; end
+				109 : scl <= 0;
+				108 : sda_out <= i2c_address[6]; // data[7]
+				107 : scl <= 1;
+				106 : scl <= 0;
+				105 : sda_out <= i2c_address[5]; // data[6]
+				104 : scl <= 1;
+				103 : scl <= 0;
+				102 : sda_out <= i2c_address[4]; // data[5]
+				101 : scl <= 1;
+				100 : scl <= 0;
+				099 : sda_out <= i2c_address[3]; // data[4]
+				098 : scl <= 1;
+				097 : scl <= 0;
+				096 : sda_out <= i2c_address[2]; // data[3]
+				095 : scl <= 1;
+				094 : scl <= 0;
+				093 : sda_out <= i2c_address[1]; // data[2]
+				092 : scl <= 1;
+				091 : scl <= 0;
+				090 : sda_out <= i2c_address[0]; // data[1]
+				089 : scl <= 1;
+				088 : scl <= 0;
+				087 : sda_out <= 0; // data[0] = 0; write
+				//087 : sda_out <= 1; // data[0] = 1; read
+				086 : scl <= 1;
+				085 : scl <= 0;
 				// end of data word
+				// get nack
+				084 : sda_dir <= 0; // input
+				083 : scl <= 1;
+				082 : nack <= sda_in; // nack
+				081 : scl <= 0;
+				080 : sda_dir <= 1; // output
 				// send stop
-				087 : begin `scl <= 0; end
-				086 : begin sda_out <= 1; end
-
-
+				079 : sda_out <= 0;
+				078 : scl <= 1;
+				077 : sda_out <= 1;
 				default : begin
 					sda_dir <= 1;
 					scl <= 1;
@@ -110,7 +118,7 @@ input DTRn, RTSn, RX, IR_RX
 		.sda_out(sda_out), .sda_in(sda_in), .sda_dir(sda_dir));
 	SB_IO #(
 		.PIN_TYPE(6'b 1010_01),
-		.PULLUP(1'b 0)
+		.PULLUP(1'b 1)
 	) my_i2c_data_pin (
 		.PACKAGE_PIN(J2[7]),
 		.OUTPUT_ENABLE(sda_dir),
