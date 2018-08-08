@@ -15,7 +15,7 @@ input sda_in
 	assign J2[7:4] = 0;
 	assign J2[1:0] = 0;
 	assign LED[5] = scl;
-	assign LED[4] = ack;
+	assign LED[4] = ~ack;
 	assign LED[3] = sda_dir;
 	assign LED[2] = sda_in;
 	assign LED[1] = sda_out;
@@ -36,58 +36,64 @@ input sda_in
 	always @(posedge i2c_clock) begin
 		if (bit_counter>0) begin
 			case(bit_counter)
-				// send start or repeated start
-				113 : sda_out <= 1;
-				112 : scl <= 1;
-				111 : sda_out <= 0; // start condition
-				110 : scl <= 0;
-				// beginning of data word
-				109 : scl <= 0;
-				108 : sda_out <= i2c_address[6]; // data[7]
-				107 : scl <= 1;
-				106 : scl <= 0;
-				105 : sda_out <= i2c_address[5]; // data[6]
-				104 : scl <= 1;
-				103 : scl <= 0;
-				102 : sda_out <= i2c_address[4]; // data[5]
-				101 : scl <= 1;
-				100 : scl <= 0;
-				099 : sda_out <= i2c_address[3]; // data[4]
-				098 : scl <= 1;
-				097 : scl <= 0;
-				096 : sda_out <= i2c_address[2]; // data[3]
-				095 : scl <= 1;
-				094 : scl <= 0;
-				093 : sda_out <= i2c_address[1]; // data[2]
-				092 : scl <= 1;
-				091 : scl <= 0;
-				090 : sda_out <= i2c_address[0]; // data[1]
-				089 : scl <= 1;
-				088 : scl <= 0;
-				087 : sda_out <= 0; // data[0] = 0; write
-				//087 : sda_out <= 1; // data[0] = 1; read
-				086 : scl <= 1;
-				085 : scl <= 0;
-				// end of data word
-				// get ack
-				084 : sda_dir <= 0; // input
-				083 : scl <= 1;
-				082 : ack <= sda_in; // ack
-				081 : scl <= 0;
-				080 : sda_dir <= 1; // output
-				// send stop
-				079 : sda_out <= 0;
-				078 : scl <= 1;
-				077 : sda_out <= 1;
-				default : begin
+				250 : begin
 					sda_dir <= 1;
 					scl <= 1;
 					sda_out <= 1;
 				end
+				// send start or repeated start
+				239 : sda_out <= 1;
+				238 : scl <= 1;
+				237 : sda_out <= 0; // start condition
+				236 : scl <= 0;
+				// beginning of data word
+				228 : sda_out <= i2c_address[6]; // data[7]
+				227 : scl <= 1;
+				226 : scl <= 0;
+				225 : sda_out <= i2c_address[5]; // data[6]
+				224 : scl <= 1;
+				223 : scl <= 0;
+				222 : sda_out <= i2c_address[4]; // data[5]
+				221 : scl <= 1;
+				220 : scl <= 0;
+				219 : sda_out <= i2c_address[3]; // data[4]
+				218 : scl <= 1;
+				217 : scl <= 0;
+				216 : sda_out <= i2c_address[2]; // data[3]
+				215 : scl <= 1;
+				214 : scl <= 0;
+				213 : sda_out <= i2c_address[1]; // data[2]
+				212 : scl <= 1;
+				211 : scl <= 0;
+				210 : sda_out <= i2c_address[0]; // data[1]
+				209 : scl <= 1;
+				208 : scl <= 0;
+				207 : sda_out <= 0; // data[0] = 0; write
+				//207 : sda_out <= 1; // data[0] = 1; read
+				206 : scl <= 1;
+				// end of data word
+				// get ack
+				199 : scl <= 0;
+				198 : sda_dir <= 0; // input
+				197 : scl <= 1;
+				196 : ack <= sda_in; // ack
+				195 : scl <= 0;
+				194 : sda_dir <= 1; // output
+				// send stop
+				190 : sda_out <= 1;
+				189 : sda_out <= 0;
+				188 : scl <= 1;
+				187 : sda_out <= 1;
+				1 : begin
+					sda_dir <= 1;
+					scl <= 1;
+					sda_out <= 1;
+				end
+				default : ;
 			endcase
 			bit_counter--;
 		end else begin
-			bit_counter <= 120;
+			bit_counter <= 250;
 		end
 	end
 endmodule // mytop
@@ -124,6 +130,7 @@ input DTRn, RTSn, RX, IR_RX
 	) my_i2c_data_pin (
 		.PACKAGE_PIN(J2[3]),
 		.OUTPUT_ENABLE(sda_dir),
+//		.D_OUT_0(sda_out ? 1'b1 : 1'bz),
 		.D_OUT_0(sda_out),
 		.D_IN_0(sda_in)
 	);
