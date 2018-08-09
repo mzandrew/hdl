@@ -273,7 +273,7 @@ input sda_in
 
 				// send ack
 				019 : sda_dir <= 1; // output
-				018 : sda_out <= 0; // ack
+				018 : sda_out <= 1; // nack
 				017 : scl <= 1;
 				016 : scl <= 0;
 
