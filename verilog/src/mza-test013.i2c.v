@@ -17,13 +17,13 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 	output reg busy,
 	output reg ack,
 	output reg error,
-	output [7:0] byte0,
-	output [7:0] byte1,
-	output [7:0] byte2,
-	output [7:0] byte3
-//	output [3:0] [7:0] bytes
+	output [7:0] byte_a,
+	output [7:0] byte_b,
+	output [7:0] byte_c,
+	output [7:0] byte_d
 );
 	reg [8:0] bit_counter;
+	reg [7:0] byte [3:0];
 	reg [7:0] data;
 	always @(posedge clock) begin
 		if (bit_counter>0) begin
@@ -151,7 +151,7 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				145 : scl <= 0;
 				// end of data word
 				//144 : immediate_humidity[13:8] <= data[6:0];
-				144 : byte0 <= data;
+				144 : byte_a <= data;
 
 				// send ack
 				139 : sda_dir <= 1; // output
@@ -187,7 +187,7 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				105 : scl <= 0;
 				// end of data word
 				//104 : immediate_humidity[7:0] <= data;
-				104 : byte1 <= data;
+				104 : byte_b <= data;
 
 				// send ack
 				099 : sda_dir <= 1; // output
@@ -223,7 +223,7 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				065 : scl <= 0;
 				// end of data word
 				//064 : immediate_temperature[13:6] <= data;
-				064 : byte2 <= data;
+				064 : byte_c <= data;
 
 				// send ack
 				059 : sda_dir <= 1; // output
@@ -259,7 +259,7 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				025 : scl <= 0;
 				// end of data word
 				//024 : immediate_temperature[5:0] <= data[7:2];
-				024 : byte3 <= data;
+				024 : byte_d <= data;
 
 				// send ack
 				019 : sda_dir <= 1; // output
@@ -278,6 +278,10 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 					sda_dir <= 1;
 					scl <= 1;
 					sda_out <= 1;
+					//byte_a <= byte[0];
+					//byte_b <= byte[1];
+					//byte_c <= byte[2];
+					//byte_d <= byte[3];
 				end
 				default : ;
 			endcase
@@ -287,6 +291,10 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 			if (start_transfer==1) begin
 				bit_counter <= 300;
 				busy <= 1;
+				byte_a <= 8'h01;
+				byte_b <= 8'h23;
+				byte_c <= 8'h45;
+				byte_d <= 8'h67;
 			end
 		end
 	end
@@ -324,22 +332,57 @@ output TX
 	wire scl;
 	assign J3[0] = scl;
 	reg [31:0] counter;
-	localparam length_of_line = 13;
+	localparam length_of_line = 6+6+6+2;
 	reg [7:0] uart_character_counter = length_of_line - 1;
+	reg uart_transfers_are_allowed;
+	localparam i2c_clock_pickoff = 5; // yields 187.5 kHz
+	localparam uart_character_pickoff = 11; // this is already close to the limit for 115200
+	localparam uart_line_pickoff = 22;
+	localparam slow_clock_pickoff = uart_line_pickoff;
+	reg [15:0] uart_line_counter;
+	reg uart_resetb = 0;
 	always @(posedge clock) begin
 		counter++;
-		if (counter[31:15]==0) begin
-			uart_resetb <= 0;
-			uart_character_counter <= 0;
-		end else begin
-			uart_resetb <= 1;
-		end
-		if (counter[uart_character_pickoff:0]==0) begin
-			start_uart_transfer <= 1;
-			if (uart_character_counter<=length_of_line) begin
-				uart_character_counter++;
+		if (~uart_resetb) begin
+			if (counter[31:15]==0) begin
+				uart_line_counter <= 0;
+				uart_resetb <= 0;
+				uart_character_counter <= 0;
+				uart_transfers_are_allowed <= 0;
 			end else begin
-				uart_character_counter = 0;
+				uart_resetb <= 1;
+			end
+		end
+		if (counter[slow_clock_pickoff:0]==0) begin
+			buffered_bcd1 <= bcd1;
+			buffered_bcd2 <= bcd2;
+			buffered_bcd3 <= bcd3;
+		end else if (counter[slow_clock_pickoff:0]==1) begin
+			//value1 <= { byte_b, byte_a };
+			//value2 <= { byte_d, byte_c };
+			value1 <= uart_line_counter;
+			value2 <= 16'd054321;
+			value3 <= 16'd012345;
+		end else begin
+			if (busy==1) begin
+				start_i2c_transfer <= 0;
+			end else begin
+				start_i2c_transfer <= 1;
+			end
+		end
+		if (counter[uart_line_pickoff:0]==0) begin // less frequent
+			uart_transfers_are_allowed <= 1;
+			uart_line_counter++;
+		end
+		if (counter[uart_character_pickoff:0]==1) begin // more frequent
+			if (uart_transfers_are_allowed==1) begin
+				if (uart_character_counter<=length_of_line) begin
+					start_uart_transfer <= 1;
+					uart_character_counter++;
+				end else begin
+					uart_transfers_are_allowed <= 0;
+					uart_character_counter = 0;
+				end
 			end
 		end else begin
 			start_uart_transfer <= 0;
@@ -348,59 +391,73 @@ output TX
 			byte_to_send <= 8'h0d; // cr
 		end else if (uart_character_counter==length_of_line+1) begin
 			byte_to_send <= 8'h0a; // nl
-		end else if (uart_character_counter==0) begin
-			byte_to_send <= { 4'h3, bcd1[23:20] };
 		end else if (uart_character_counter==1) begin
-			byte_to_send <= { 4'h3, bcd1[19:16] };
+			byte_to_send <= { 4'h3, buffered_bcd1[23:20] };
 		end else if (uart_character_counter==2) begin
-			byte_to_send <= { 4'h3, bcd1[15:12] };
+			byte_to_send <= { 4'h3, buffered_bcd1[19:16] };
 		end else if (uart_character_counter==3) begin
-			byte_to_send <= { 4'h3, bcd1[11:08] };
+			byte_to_send <= { 4'h3, buffered_bcd1[15:12] };
 		end else if (uart_character_counter==4) begin
-			byte_to_send <= { 4'h3, bcd1[07:04] };
+			byte_to_send <= { 4'h3, buffered_bcd1[11:08] };
 		end else if (uart_character_counter==5) begin
-			byte_to_send <= { 4'h3, bcd1[03:00] };
+			byte_to_send <= { 4'h3, buffered_bcd1[07:04] };
 		end else if (uart_character_counter==6) begin
-			byte_to_send <= 8'h20;
+			byte_to_send <= { 4'h3, buffered_bcd1[03:00] };
 		end else if (uart_character_counter==7) begin
-			byte_to_send <= { 4'h3, bcd2[23:20] };
+			byte_to_send <= 8'h20;
 		end else if (uart_character_counter==8) begin
-			byte_to_send <= { 4'h3, bcd2[19:16] };
+			byte_to_send <= { 4'h3, buffered_bcd2[23:20] };
 		end else if (uart_character_counter==9) begin
-			byte_to_send <= { 4'h3, bcd2[15:12] };
+			byte_to_send <= { 4'h3, buffered_bcd2[19:16] };
 		end else if (uart_character_counter==10) begin
-			byte_to_send <= { 4'h3, bcd2[11:08] };
+			byte_to_send <= { 4'h3, buffered_bcd2[15:12] };
 		end else if (uart_character_counter==11) begin
-			byte_to_send <= { 4'h3, bcd2[07:04] };
+			byte_to_send <= { 4'h3, buffered_bcd2[11:08] };
 		end else if (uart_character_counter==12) begin
-			byte_to_send <= { 4'h3, bcd2[03:00] };
+			byte_to_send <= { 4'h3, buffered_bcd2[07:04] };
+		end else if (uart_character_counter==13) begin
+			byte_to_send <= { 4'h3, buffered_bcd2[03:00] };
+//		end else if (uart_character_counter==14) begin
+//			byte_to_send <= 8'h20;
+//		end else if (uart_character_counter==15) begin
+//			byte_to_send <= { 4'h3, buffered_bcd3[23:20] };
+//		end else if (uart_character_counter==16) begin
+//			byte_to_send <= { 4'h3, buffered_bcd3[19:16] };
+//		end else if (uart_character_counter==17) begin
+//			byte_to_send <= { 4'h3, buffered_bcd3[15:12] };
+//		end else if (uart_character_counter==18) begin
+//			byte_to_send <= { 4'h3, buffered_bcd3[11:08] };
+//		end else if (uart_character_counter==19) begin
+//			byte_to_send <= { 4'h3, buffered_bcd3[07:04] };
+//		end else if (uart_character_counter==20) begin
+//			byte_to_send <= { 4'h3, buffered_bcd3[03:00] };
 		end else begin
 			byte_to_send <= 8'h20;
 		end
 	end
-	wire [23:0] bcd1;
-	wire [23:0] bcd2;
-	wire [15:0] value1;
-	wire [15:0] value2;
-	assign value1 = { 2'b00, immediate_humidity };
-	assign value2 = { 2'b00, immediate_temperature };
-//	assign value1 = { byte[1], byte[0] };
-//	assign value2 = { byte[3], byte[2] };
+	reg [23:0] bcd1;
+	reg [23:0] bcd2;
+	reg [23:0] bcd3;
+	reg [23:0] buffered_bcd1;
+	reg [23:0] buffered_bcd2;
+	reg [23:0] buffered_bcd3;
+	reg [15:0] value1;
+	reg [15:0] value2;
+	reg [15:0] value3;
+	//assign value1 = { 2'b00, immediate_humidity };
+	//assign value2 = { 2'b00, immediate_temperature };
+	//assign value1 = 16'h1234;
+	//assign value2 = 16'h5678;
+	//assign value1 = { byte[1], byte[0] };
+	//assign value2 = { byte[3], byte[2] };
+	//assign value1 = { byte_b, byte_a };
+	//assign value2 = { byte_d, byte_c };
 	hex2bcd #(.input_size_in_nybbles(4)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1) );
 	hex2bcd #(.input_size_in_nybbles(4)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
+	hex2bcd #(.input_size_in_nybbles(4)) h2binst3 ( .clock(clock), .reset(~uart_resetb), .hex_in(value3), .bcd_out(bcd3) );
 	wire i2c_clock;
-	localparam i2c_clock_pickoff = 5;
 	assign i2c_clock = counter[i2c_clock_pickoff];
 	wire slow_clock;
-	localparam slow_clock_pickoff = i2c_clock_pickoff + 15;
-	assign slow_clock = counter[slow_clock_pickoff];
-	always @(posedge slow_clock) begin
-		if (busy==1) begin
-			start_i2c_transfer <= 0;
-		end else begin
-			start_i2c_transfer <= 1;
-		end
-	end
 	reg [13:0] immediate_humidity;
 	reg [13:0] immediate_temperature;
 	reg [13:0] previous_humidity;
@@ -414,10 +471,14 @@ output TX
 	assign counter_for_accumulating = counter[accumulation_clock_pickoff];
 	wire accumulation_clock = counter[accumulation_clock_pickoff-1];
 	always @(posedge accumulation_clock) begin
-		immediate_humidity[13:8] <= byte[0][5:0];
-		immediate_humidity[7:0] <= byte[1];
-		immediate_temperature[13:6] <= byte[2];
-		immediate_temperature[5:0] <= byte[3][7:2];
+		//immediate_humidity[13:8] <= byte[0][5:0];
+		//immediate_humidity[7:0] <= byte[1];
+		//immediate_temperature[13:6] <= byte[2];
+		//immediate_temperature[5:0] <= byte[3][7:2];
+		immediate_humidity[13:8] <= byte_a[5:0];
+		immediate_humidity[7:0] <= byte_b;
+		immediate_temperature[13:6] <= byte_c;
+		immediate_temperature[5:0] <= byte_d[7:2];
 		if (counter_for_accumulating==0) begin
 			accumulated_humidity = 0;
 			accumulated_temperature = 0;
@@ -426,7 +487,11 @@ output TX
 			accumulated_temperature = accumulated_temperature + previous_temperature;
 		end
 	end
-	reg [7:0] byte [3:0];
+	//reg [7:0] byte [3:0];
+	reg [7:0] byte_a;
+	reg [7:0] byte_b;
+	reg [7:0] byte_c;
+	reg [7:0] byte_d;
 	wire i2c_busy;
 	reg start_i2c_transfer;
 	i2c_send_one_byte_and_read_one_plus_four_bytes_back myinstance(
@@ -440,16 +505,14 @@ output TX
 		.busy(busy),
 		.ack(ack),
 		.error(error),
-		.byte0(byte[0]),
-		.byte1(byte[1]),
-		.byte2(byte[2]),
-		.byte3(byte[3])
+		.byte_a(byte_a),
+		.byte_b(byte_b),
+		.byte_c(byte_c),
+		.byte_d(byte_d)
 	);
-	reg uart_resetb;
 	reg uart_busy;
 	reg start_uart_transfer;
 	reg [7:0] byte_to_send;
-	localparam uart_character_pickoff = 20;
 	wire uart_character_clock;
 	assign uart_character_clock = counter[uart_character_pickoff];
 	//assign byte_to_send = immediate_humidity[13:6];
