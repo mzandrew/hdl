@@ -1,5 +1,5 @@
 // written 2018-08-06 by mza
-// last updated 2018-08-08 by mza
+// last updated 2018-08-09 by mza
 
 module mytop (input clock, output [5:1] LED, 
 output [7:0] J1,
@@ -31,14 +31,34 @@ input sda_in
 		counter++;
 	end
 	wire i2c_clock;
-	assign i2c_clock = counter[5];
+	localparam i2c_clock_pickoff = 5;
+	assign i2c_clock = counter[i2c_clock_pickoff];
 //	assign scl = i2c_clock;
 	reg [8:0] bit_counter;
 	reg ack;
 	reg error;
 	reg [7:0] data;
-	reg [13:0] humidity;
-	reg [13:0] temperature;
+	reg [13:0] immediate_humidity;
+	reg [13:0] immediate_temperature;
+	reg [13:0] previous_humidity;
+	reg [13:0] previous_temperature;
+	localparam number_of_samples_to_accumulate = 8;
+	localparam log2_of_number_of_samples_to_accumulate = $clog2(number_of_samples_to_accumulate);
+	reg [13+log2_of_number_of_samples_to_accumulate:0] accumulated_humidity;
+	reg [13+log2_of_number_of_samples_to_accumulate:0] accumulated_temperature;
+	reg [log2_of_number_of_samples_to_accumulate-1:0] counter_for_accumulating;
+	localparam accumulation_clock_pickoff = i2c_clock_pickoff + log2_of_number_of_samples_to_accumulate + 1;
+	assign counter_for_accumulating = counter[accumulation_clock_pickoff];
+	wire accumulation_clock = counter[accumulation_clock_pickoff-1];
+	always @(posedge accumulation_clock) begin
+		if (counter_for_accumulating==0) begin
+			accumulated_humidity = 0;
+			accumulated_temperature = 0;
+		end else begin
+			accumulated_humidity = accumulated_humidity + previous_humidity;
+			accumulated_temperature = accumulated_temperature + previous_temperature;
+		end
+	end
 	always @(posedge i2c_clock) begin
 		if (bit_counter>0) begin
 			case(bit_counter)
@@ -164,7 +184,7 @@ input sda_in
 				146 : data[0] <= sda_in;
 				145 : scl <= 0;
 				// end of data word
-				144 : humidity[13:8] <= data[6:0];
+				144 : immediate_humidity[13:8] <= data[6:0];
 
 				// send ack
 				139 : sda_dir <= 1; // output
@@ -199,7 +219,7 @@ input sda_in
 				106 : data[0] <= sda_in;
 				105 : scl <= 0;
 				// end of data word
-				104 : humidity[7:0] <= data;
+				104 : immediate_humidity[7:0] <= data;
 
 				// send ack
 				099 : sda_dir <= 1; // output
@@ -234,7 +254,7 @@ input sda_in
 				066 : data[0] <= sda_in;
 				065 : scl <= 0;
 				// end of data word
-				064 : temperature[13:6] <= data;
+				064 : immediate_temperature[13:6] <= data;
 
 				// send ack
 				059 : sda_dir <= 1; // output
@@ -269,7 +289,7 @@ input sda_in
 				026 : data[0] <= sda_in;
 				025 : scl <= 0;
 				// end of data word
-				024 : temperature[5:0] <= data[7:2];
+				024 : immediate_temperature[5:0] <= data[7:2];
 
 				// send ack
 				019 : sda_dir <= 1; // output
@@ -288,6 +308,8 @@ input sda_in
 					sda_dir <= 1;
 					scl <= 1;
 					sda_out <= 1;
+					previous_humidity <= immediate_humidity;
+					previous_temperature <= immediate_temperature;
 				end
 				default : ;
 			endcase
