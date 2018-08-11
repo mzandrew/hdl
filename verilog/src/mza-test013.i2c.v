@@ -1,5 +1,8 @@
 // written 2018-08-06 by mza
-// last updated 2018-08-10 by mza
+// last updated 2018-08-14 by mza
+
+`include "lib/hex2bcd.v"
+`include "lib/uart.v"
 
 //module i2c_send_single_byte #(parameter number_of_bytes=1, ) (input [6:0] address);
 //input read_not_write, 
@@ -148,7 +151,7 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				145 : scl <= 0;
 				// end of data word
 				//144 : immediate_humidity[13:8] <= data[6:0];
-				144 : byte3 <= data[6:0];
+				144 : byte0 <= data;
 
 				// send ack
 				139 : sda_dir <= 1; // output
@@ -184,7 +187,7 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				105 : scl <= 0;
 				// end of data word
 				//104 : immediate_humidity[7:0] <= data;
-				104 : byte2 <= data;
+				104 : byte1 <= data;
 
 				// send ack
 				099 : sda_dir <= 1; // output
@@ -220,7 +223,7 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				065 : scl <= 0;
 				// end of data word
 				//064 : immediate_temperature[13:6] <= data;
-				064 : byte1 <= data;
+				064 : byte2 <= data;
 
 				// send ack
 				059 : sda_dir <= 1; // output
@@ -256,7 +259,7 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				025 : scl <= 0;
 				// end of data word
 				//024 : immediate_temperature[5:0] <= data[7:2];
-				024 : byte0 <= data[7:2];
+				024 : byte3 <= data;
 
 				// send ack
 				019 : sda_dir <= 1; // output
@@ -295,13 +298,15 @@ output [7:0] J2,
 output [7:0] J3,
 output sda_out,
 output reg sda_dir,
-input sda_in
+input sda_in,
+input RX,
+output TX
 );
 	wire [6:0] i2c_address = 7'h27; // honeywell HIH6121 i2c humidity sensor
 //	assign J2[7] = sda_dir ? sda_out : 1'bz; // Warning: Yosys has only limited support for tri-state logic at the moment.
 	wire ack;
 	wire error;
-	reg start_transfer;
+	reg start_i2c_transfer;
 	wire busy;
 	assign J1 = 0;
 	assign J2[2] = scl;
@@ -309,9 +314,9 @@ input sda_in
 	assign J2[1:0] = 0;
 	assign LED[5] = ~error;
 	assign LED[4] = ack;
-	assign LED[3] = 0;
+	assign LED[3] = uart_busy;
 	assign LED[2] = busy;
-	assign LED[1] = start_transfer;
+	assign LED[1] = start_i2c_transfer;
 	assign J3[7:4] = 0;
 	assign J3[3] = sda_dir;
 	assign J3[2] = sda_in;
@@ -319,9 +324,70 @@ input sda_in
 	wire scl;
 	assign J3[0] = scl;
 	reg [31:0] counter;
+	localparam length_of_line = 13;
+	reg [7:0] uart_character_counter = length_of_line - 1;
 	always @(posedge clock) begin
 		counter++;
+		if (counter[31:15]==0) begin
+			uart_resetb <= 0;
+			uart_character_counter <= 0;
+		end else begin
+			uart_resetb <= 1;
+		end
+		if (counter[uart_character_pickoff:0]==0) begin
+			start_uart_transfer <= 1;
+			if (uart_character_counter<=length_of_line) begin
+				uart_character_counter++;
+			end else begin
+				uart_character_counter = 0;
+			end
+		end else begin
+			start_uart_transfer <= 0;
+		end
+		if (uart_character_counter==length_of_line) begin
+			byte_to_send <= 8'h0d; // cr
+		end else if (uart_character_counter==length_of_line+1) begin
+			byte_to_send <= 8'h0a; // nl
+		end else if (uart_character_counter==0) begin
+			byte_to_send <= { 4'h3, bcd1[23:20] };
+		end else if (uart_character_counter==1) begin
+			byte_to_send <= { 4'h3, bcd1[19:16] };
+		end else if (uart_character_counter==2) begin
+			byte_to_send <= { 4'h3, bcd1[15:12] };
+		end else if (uart_character_counter==3) begin
+			byte_to_send <= { 4'h3, bcd1[11:08] };
+		end else if (uart_character_counter==4) begin
+			byte_to_send <= { 4'h3, bcd1[07:04] };
+		end else if (uart_character_counter==5) begin
+			byte_to_send <= { 4'h3, bcd1[03:00] };
+		end else if (uart_character_counter==6) begin
+			byte_to_send <= 8'h20;
+		end else if (uart_character_counter==7) begin
+			byte_to_send <= { 4'h3, bcd2[23:20] };
+		end else if (uart_character_counter==8) begin
+			byte_to_send <= { 4'h3, bcd2[19:16] };
+		end else if (uart_character_counter==9) begin
+			byte_to_send <= { 4'h3, bcd2[15:12] };
+		end else if (uart_character_counter==10) begin
+			byte_to_send <= { 4'h3, bcd2[11:08] };
+		end else if (uart_character_counter==11) begin
+			byte_to_send <= { 4'h3, bcd2[07:04] };
+		end else if (uart_character_counter==12) begin
+			byte_to_send <= { 4'h3, bcd2[03:00] };
+		end else begin
+			byte_to_send <= 8'h20;
+		end
 	end
+	wire [23:0] bcd1;
+	wire [23:0] bcd2;
+	wire [15:0] value1;
+	wire [15:0] value2;
+	assign value1 = { 2'b00, immediate_humidity };
+	assign value2 = { 2'b00, immediate_temperature };
+//	assign value1 = { byte[1], byte[0] };
+//	assign value2 = { byte[3], byte[2] };
+	hex2bcd #(.input_size_in_nybbles(4)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1) );
+	hex2bcd #(.input_size_in_nybbles(4)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
 	wire i2c_clock;
 	localparam i2c_clock_pickoff = 5;
 	assign i2c_clock = counter[i2c_clock_pickoff];
@@ -330,12 +396,11 @@ input sda_in
 	assign slow_clock = counter[slow_clock_pickoff];
 	always @(posedge slow_clock) begin
 		if (busy==1) begin
-			start_transfer <= 0;
+			start_i2c_transfer <= 0;
 		end else begin
-			start_transfer <= 1;
+			start_i2c_transfer <= 1;
 		end
 	end
-//	assign scl = i2c_clock;
 	reg [13:0] immediate_humidity;
 	reg [13:0] immediate_temperature;
 	reg [13:0] previous_humidity;
@@ -349,6 +414,10 @@ input sda_in
 	assign counter_for_accumulating = counter[accumulation_clock_pickoff];
 	wire accumulation_clock = counter[accumulation_clock_pickoff-1];
 	always @(posedge accumulation_clock) begin
+		immediate_humidity[13:8] <= byte[0][5:0];
+		immediate_humidity[7:0] <= byte[1];
+		immediate_temperature[13:6] <= byte[2];
+		immediate_temperature[5:0] <= byte[3][7:2];
 		if (counter_for_accumulating==0) begin
 			accumulated_humidity = 0;
 			accumulated_temperature = 0;
@@ -367,7 +436,7 @@ input sda_in
 		.sda_out(sda_out),
 		.sda_dir(sda_dir),
 		.sda_in(sda_in),
-		.start_transfer(start_transfer),
+		.start_transfer(start_i2c_transfer),
 		.busy(busy),
 		.ack(ack),
 		.error(error),
@@ -376,6 +445,15 @@ input sda_in
 		.byte2(byte[2]),
 		.byte3(byte[3])
 	);
+	reg uart_resetb;
+	reg uart_busy;
+	reg start_uart_transfer;
+	reg [7:0] byte_to_send;
+	localparam uart_character_pickoff = 20;
+	wire uart_character_clock;
+	assign uart_character_clock = counter[uart_character_pickoff];
+	//assign byte_to_send = immediate_humidity[13:6];
+	uart my_uart_instance (.clk(clock), .resetq(uart_resetb), .uart_busy(uart_busy), .uart_tx(TX), .uart_wr_i(start_uart_transfer), .uart_dat_i(byte_to_send));
 endmodule // mytop
 
 module icestick (
@@ -395,14 +473,13 @@ input DTRn, RTSn, RX, IR_RX
 	wire [5:1] LED = { LED5, LED4, LED3, LED2, LED1 };
 	assign { DCDn, DSRn, CTSn } = 1;
 	assign { IR_TX, IR_SD } = 0;
-	assign TX = 1;
 	//wire sda_dir_fake;
 	//assign sda_dir_fake = 1;
 	wire sda_dir;
 	wire sda_in;
 	wire sda_out;
 	mytop mytop_instance (.clock(CLK), .LED(LED), .J1(J1), .J2(J2), .J3(J3),
-		.sda_out(sda_out), .sda_in(sda_in), .sda_dir(sda_dir));
+		.sda_out(sda_out), .sda_in(sda_in), .sda_dir(sda_dir), .TX(TX), .RX(RX));
 	SB_IO #(
 		.PIN_TYPE(6'b 1010_01), // 1010 = output is tristated; 01 = input is normal
 		.PULLUP(1'b 0)
