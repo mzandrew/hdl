@@ -1,5 +1,5 @@
 // written 2018-08-06 by mza
-// last updated 2018-08-14 by mza
+// last updated 2018-08-16 by mza
 
 `include "lib/hex2bcd.v"
 `include "lib/uart.v"
@@ -150,7 +150,6 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				146 : data[0] <= sda_in;
 				145 : scl <= 0;
 				// end of data word
-				//144 : immediate_humidity[13:8] <= data[6:0];
 				144 : byte_a <= data;
 
 				// send ack
@@ -186,7 +185,6 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				106 : data[0] <= sda_in;
 				105 : scl <= 0;
 				// end of data word
-				//104 : immediate_humidity[7:0] <= data;
 				104 : byte_b <= data;
 
 				// send ack
@@ -222,7 +220,6 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				066 : data[0] <= sda_in;
 				065 : scl <= 0;
 				// end of data word
-				//064 : immediate_temperature[13:6] <= data;
 				064 : byte_c <= data;
 
 				// send ack
@@ -258,7 +255,6 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				026 : data[0] <= sda_in;
 				025 : scl <= 0;
 				// end of data word
-				//024 : immediate_temperature[5:0] <= data[7:2];
 				024 : byte_d <= data;
 
 				// send ack
@@ -278,10 +274,6 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 					sda_dir <= 1;
 					scl <= 1;
 					sda_out <= 1;
-					//byte_a <= byte[0];
-					//byte_b <= byte[1];
-					//byte_c <= byte[2];
-					//byte_d <= byte[3];
 				end
 				default : ;
 			endcase
@@ -291,10 +283,6 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 			if (start_transfer==1) begin
 				bit_counter <= 300;
 				busy <= 1;
-				//byte_a <= 8'h01;
-				//byte_b <= 8'h23;
-				//byte_c <= 8'h45;
-				//byte_d <= 8'h67;
 			end
 		end
 	end
@@ -311,7 +299,6 @@ input RX,
 output TX
 );
 	wire [6:0] i2c_address = 7'h27; // honeywell HIH6121 i2c humidity sensor
-//	assign J2[7] = sda_dir ? sda_out : 1'bz; // Warning: Yosys has only limited support for tri-state logic at the moment.
 	wire ack;
 	wire error;
 	reg start_i2c_transfer;
@@ -333,7 +320,7 @@ output TX
 	assign J3[0] = scl;
 	reg [31:0] counter;
 	localparam length_of_line = 6+6+6+2;
-	reg [7:0] uart_character_counter = length_of_line - 1;
+	reg [7:0] uart_character_counter;
 	reg uart_transfers_are_allowed;
 	localparam i2c_clock_pickoff = 5; // yields 187.5 kHz
 	localparam uart_character_pickoff = 11; // this is already close to the limit for 115200
@@ -342,13 +329,14 @@ output TX
 	reg [15:0] uart_line_counter;
 	reg uart_resetb = 0;
 	reg [7:0] relative_humidity;
+	reg [7:0] temperature;
 	always @(posedge clock) begin
 		counter++;
 		if (~uart_resetb) begin
 			if (counter[31:15]==0) begin
 				uart_line_counter <= 0;
 				uart_resetb <= 0;
-				uart_character_counter <= 0;
+				uart_character_counter <= length_of_line - 1;
 				uart_transfers_are_allowed <= 0;
 			end else begin
 				uart_resetb <= 1;
@@ -371,16 +359,15 @@ output TX
 			// multiply by 100
 			// (shift-left-by-2+shift-left-by-5+shift-left-by-6)
 			// and then divide by 2^14 (shift-right-by-14)
-			relative_humidity = immediate_humidity[13:8] + immediate_humidity[13:9];
+			//relative_humidity = immediate_humidity[13:8] + immediate_humidity[13:9];
+			// temp = value/(2^14-2)*165-40 ~= value/100-40
+			temperature = immediate_temperature[13:7] + immediate_temperature[13:9] - 40;
 		end else if (counter[slow_clock_pickoff:0]==3) begin
 			value1 <= uart_line_counter;
-			//value2 <= { byte_b, byte_a };
-			//value3 <= { byte_d, byte_c };
-			value2 <= { 2'b00, immediate_humidity };
-			value3 <= { 8'h00, relative_humidity };
-			//value3 <= { 2'b00, immediate_temperature };
-			//value2 <= 16'd054321;
-			//value3 <= 16'd012345;
+			//value2 <= { 2'b00, immediate_humidity };
+			//value3 <= { 8'h00, relative_humidity };
+			value2 <= { 2'b00, immediate_temperature };
+			value3 <= { 8'h00, temperature };
 		end else begin
 			if (busy==1) begin
 				start_i2c_transfer <= 0;
@@ -437,12 +424,6 @@ output TX
 			byte_to_send <= { 4'h3, buffered_bcd2[03:00] };
 		end else if (uart_character_counter==14) begin
 			byte_to_send <= 8'h20;
-//		end else if (uart_character_counter==15) begin
-//			byte_to_send <= { 4'h3, buffered_bcd3[23:20] };
-//		end else if (uart_character_counter==16) begin
-//			byte_to_send <= { 4'h3, buffered_bcd3[19:16] };
-//		end else if (uart_character_counter==17) begin
-//			byte_to_send <= { 4'h3, buffered_bcd3[15:12] };
 		end else if (uart_character_counter==15) begin
 			byte_to_send <= { 4'h3, buffered_bcd3[11:08] };
 		end else if (uart_character_counter==16) begin
@@ -453,6 +434,8 @@ output TX
 			byte_to_send <= 8'h20;
 		end
 	end
+	reg [13:0] immediate_humidity;
+	reg [13:0] immediate_temperature;
 	reg [23:0] bcd1;
 	reg [23:0] bcd2;
 	reg [11:0] bcd3;
@@ -462,20 +445,9 @@ output TX
 	reg [15:0] value1;
 	reg [15:0] value2;
 	reg [7:0] value3;
-	//assign value1 = 16'h1234;
-	//assign value2 = 16'h5678;
-	//assign value1 = { byte[1], byte[0] };
-	//assign value2 = { byte[3], byte[2] };
-	//assign value1 = { byte_b, byte_a };
-	//assign value2 = { byte_d, byte_c };
 	hex2bcd #(.input_size_in_nybbles(4)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1) );
 	hex2bcd #(.input_size_in_nybbles(4)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
 	hex2bcd #(.input_size_in_nybbles(2)) h2binst3 ( .clock(clock), .reset(~uart_resetb), .hex_in(value3), .bcd_out(bcd3) );
-	wire i2c_clock;
-	assign i2c_clock = counter[i2c_clock_pickoff];
-//	wire slow_clock;
-	reg [13:0] immediate_humidity;
-	reg [13:0] immediate_temperature;
 //	reg [13:0] previous_humidity;
 //	reg [13:0] previous_temperature;
 //	localparam number_of_samples_to_accumulate = 8;
@@ -499,11 +471,12 @@ output TX
 //			accumulated_temperature = accumulated_temperature + previous_temperature;
 //		end
 //	end
-	//reg [7:0] byte [3:0];
 	reg [7:0] byte_a;
 	reg [7:0] byte_b;
 	reg [7:0] byte_c;
 	reg [7:0] byte_d;
+	wire i2c_clock;
+	assign i2c_clock = counter[i2c_clock_pickoff];
 	wire i2c_busy;
 	reg start_i2c_transfer;
 	i2c_send_one_byte_and_read_one_plus_four_bytes_back myinstance(
@@ -527,7 +500,6 @@ output TX
 	reg [7:0] byte_to_send;
 	wire uart_character_clock;
 	assign uart_character_clock = counter[uart_character_pickoff];
-	//assign byte_to_send = immediate_humidity[13:6];
 	uart my_uart_instance (.clk(clock), .resetq(uart_resetb), .uart_busy(uart_busy), .uart_tx(TX), .uart_wr_i(start_uart_transfer), .uart_dat_i(byte_to_send));
 endmodule // mytop
 
@@ -548,8 +520,6 @@ input DTRn, RTSn, RX, IR_RX
 	wire [5:1] LED = { LED5, LED4, LED3, LED2, LED1 };
 	assign { DCDn, DSRn, CTSn } = 1;
 	assign { IR_TX, IR_SD } = 0;
-	//wire sda_dir_fake;
-	//assign sda_dir_fake = 1;
 	wire sda_dir;
 	wire sda_in;
 	wire sda_out;
