@@ -291,10 +291,10 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 			if (start_transfer==1) begin
 				bit_counter <= 300;
 				busy <= 1;
-				byte_a <= 8'h01;
-				byte_b <= 8'h23;
-				byte_c <= 8'h45;
-				byte_d <= 8'h67;
+				//byte_a <= 8'h01;
+				//byte_b <= 8'h23;
+				//byte_c <= 8'h45;
+				//byte_d <= 8'h67;
 			end
 		end
 	end
@@ -341,6 +341,7 @@ output TX
 	localparam slow_clock_pickoff = uart_line_pickoff;
 	reg [15:0] uart_line_counter;
 	reg uart_resetb = 0;
+	reg [7:0] relative_humidity;
 	always @(posedge clock) begin
 		counter++;
 		if (~uart_resetb) begin
@@ -358,11 +359,28 @@ output TX
 			buffered_bcd2 <= bcd2;
 			buffered_bcd3 <= bcd3;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
-			//value1 <= { byte_b, byte_a };
-			//value2 <= { byte_d, byte_c };
+			immediate_humidity[13:8] <= byte_a[5:0];
+			immediate_humidity[7:0] <= byte_b;
+			immediate_temperature[13:6] <= byte_c;
+			immediate_temperature[5:0] <= byte_d[7:2];
+		end else if (counter[slow_clock_pickoff:0]==2) begin
+			// datasheet says to divide the raw number by (2^14-2)
+			// to get the % relative humidity
+			// but to get just the ##% value, can just divide by
+			// 163.82, but a fair approximation to this is to
+			// multiply by 100
+			// (shift-left-by-2+shift-left-by-5+shift-left-by-6)
+			// and then divide by 2^14 (shift-right-by-14)
+			relative_humidity = immediate_humidity[13:8] + immediate_humidity[13:9];
+		end else if (counter[slow_clock_pickoff:0]==3) begin
 			value1 <= uart_line_counter;
-			value2 <= 16'd054321;
-			value3 <= 16'd012345;
+			//value2 <= { byte_b, byte_a };
+			//value3 <= { byte_d, byte_c };
+			value2 <= { 2'b00, immediate_humidity };
+			value3 <= { 8'h00, relative_humidity };
+			//value3 <= { 2'b00, immediate_temperature };
+			//value2 <= 16'd054321;
+			//value3 <= 16'd012345;
 		end else begin
 			if (busy==1) begin
 				start_i2c_transfer <= 0;
@@ -417,35 +435,33 @@ output TX
 			byte_to_send <= { 4'h3, buffered_bcd2[07:04] };
 		end else if (uart_character_counter==13) begin
 			byte_to_send <= { 4'h3, buffered_bcd2[03:00] };
-//		end else if (uart_character_counter==14) begin
-//			byte_to_send <= 8'h20;
+		end else if (uart_character_counter==14) begin
+			byte_to_send <= 8'h20;
 //		end else if (uart_character_counter==15) begin
 //			byte_to_send <= { 4'h3, buffered_bcd3[23:20] };
 //		end else if (uart_character_counter==16) begin
 //			byte_to_send <= { 4'h3, buffered_bcd3[19:16] };
 //		end else if (uart_character_counter==17) begin
 //			byte_to_send <= { 4'h3, buffered_bcd3[15:12] };
-//		end else if (uart_character_counter==18) begin
-//			byte_to_send <= { 4'h3, buffered_bcd3[11:08] };
-//		end else if (uart_character_counter==19) begin
-//			byte_to_send <= { 4'h3, buffered_bcd3[07:04] };
-//		end else if (uart_character_counter==20) begin
-//			byte_to_send <= { 4'h3, buffered_bcd3[03:00] };
+		end else if (uart_character_counter==15) begin
+			byte_to_send <= { 4'h3, buffered_bcd3[11:08] };
+		end else if (uart_character_counter==16) begin
+			byte_to_send <= { 4'h3, buffered_bcd3[07:04] };
+		end else if (uart_character_counter==17) begin
+			byte_to_send <= { 4'h3, buffered_bcd3[03:00] };
 		end else begin
 			byte_to_send <= 8'h20;
 		end
 	end
 	reg [23:0] bcd1;
 	reg [23:0] bcd2;
-	reg [23:0] bcd3;
+	reg [11:0] bcd3;
 	reg [23:0] buffered_bcd1;
 	reg [23:0] buffered_bcd2;
-	reg [23:0] buffered_bcd3;
+	reg [11:0] buffered_bcd3;
 	reg [15:0] value1;
 	reg [15:0] value2;
-	reg [15:0] value3;
-	//assign value1 = { 2'b00, immediate_humidity };
-	//assign value2 = { 2'b00, immediate_temperature };
+	reg [7:0] value3;
 	//assign value1 = 16'h1234;
 	//assign value2 = 16'h5678;
 	//assign value1 = { byte[1], byte[0] };
@@ -454,39 +470,35 @@ output TX
 	//assign value2 = { byte_d, byte_c };
 	hex2bcd #(.input_size_in_nybbles(4)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1) );
 	hex2bcd #(.input_size_in_nybbles(4)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
-	hex2bcd #(.input_size_in_nybbles(4)) h2binst3 ( .clock(clock), .reset(~uart_resetb), .hex_in(value3), .bcd_out(bcd3) );
+	hex2bcd #(.input_size_in_nybbles(2)) h2binst3 ( .clock(clock), .reset(~uart_resetb), .hex_in(value3), .bcd_out(bcd3) );
 	wire i2c_clock;
 	assign i2c_clock = counter[i2c_clock_pickoff];
-	wire slow_clock;
+//	wire slow_clock;
 	reg [13:0] immediate_humidity;
 	reg [13:0] immediate_temperature;
-	reg [13:0] previous_humidity;
-	reg [13:0] previous_temperature;
-	localparam number_of_samples_to_accumulate = 8;
-	localparam log2_of_number_of_samples_to_accumulate = $clog2(number_of_samples_to_accumulate);
-	reg [13+log2_of_number_of_samples_to_accumulate:0] accumulated_humidity;
-	reg [13+log2_of_number_of_samples_to_accumulate:0] accumulated_temperature;
-	reg [log2_of_number_of_samples_to_accumulate-1:0] counter_for_accumulating;
-	localparam accumulation_clock_pickoff = i2c_clock_pickoff + log2_of_number_of_samples_to_accumulate + 1;
-	assign counter_for_accumulating = counter[accumulation_clock_pickoff];
-	wire accumulation_clock = counter[accumulation_clock_pickoff-1];
-	always @(posedge accumulation_clock) begin
+//	reg [13:0] previous_humidity;
+//	reg [13:0] previous_temperature;
+//	localparam number_of_samples_to_accumulate = 8;
+//	localparam log2_of_number_of_samples_to_accumulate = $clog2(number_of_samples_to_accumulate);
+//	reg [13+log2_of_number_of_samples_to_accumulate:0] accumulated_humidity;
+//	reg [13+log2_of_number_of_samples_to_accumulate:0] accumulated_temperature;
+//	reg [log2_of_number_of_samples_to_accumulate-1:0] counter_for_accumulating;
+//	localparam accumulation_clock_pickoff = i2c_clock_pickoff + log2_of_number_of_samples_to_accumulate + 1;
+//	assign counter_for_accumulating = counter[accumulation_clock_pickoff];
+//	wire accumulation_clock = counter[accumulation_clock_pickoff-1];
+//	always @(posedge accumulation_clock) begin
 		//immediate_humidity[13:8] <= byte[0][5:0];
 		//immediate_humidity[7:0] <= byte[1];
 		//immediate_temperature[13:6] <= byte[2];
 		//immediate_temperature[5:0] <= byte[3][7:2];
-		immediate_humidity[13:8] <= byte_a[5:0];
-		immediate_humidity[7:0] <= byte_b;
-		immediate_temperature[13:6] <= byte_c;
-		immediate_temperature[5:0] <= byte_d[7:2];
-		if (counter_for_accumulating==0) begin
-			accumulated_humidity = 0;
-			accumulated_temperature = 0;
-		end else begin
-			accumulated_humidity = accumulated_humidity + previous_humidity;
-			accumulated_temperature = accumulated_temperature + previous_temperature;
-		end
-	end
+//		if (counter_for_accumulating==0) begin
+//			accumulated_humidity = 0;
+//			accumulated_temperature = 0;
+//		end else begin
+//			accumulated_humidity = accumulated_humidity + previous_humidity;
+//			accumulated_temperature = accumulated_temperature + previous_temperature;
+//		end
+//	end
 	//reg [7:0] byte [3:0];
 	reg [7:0] byte_a;
 	reg [7:0] byte_b;
