@@ -1,65 +1,28 @@
 // written 2018-08-06 by mza
-// last updated 2018-08-09 by mza
+// last updated 2018-08-10 by mza
 
-module mytop (input clock, output [5:1] LED, 
-output [7:0] J1,
-output [7:0] J2,
-output [7:0] J3,
-output sda_out,
-output reg sda_dir,
-input sda_in
+//module i2c_send_single_byte #(parameter number_of_bytes=1, ) (input [6:0] address);
+//input read_not_write, 
+module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
+	input clock,
+	input [6:0] address,
+	output reg scl,
+	output reg sda_out,
+	output reg sda_dir,
+	input sda_in,
+	input start_transfer,
+	output reg busy,
+	output reg ack,
+	output reg error,
+	output [7:0] byte0,
+	output [7:0] byte1,
+	output [7:0] byte2,
+	output [7:0] byte3
+//	output [3:0] [7:0] bytes
 );
-	wire [6:0] i2c_address = 7'h27; // honeywell HIH6121 i2c humidity sensor
-	reg scl;
-//	assign J2[7] = sda_dir ? sda_out : 1'bz; // Warning: Yosys has only limited support for tri-state logic at the moment.
-	assign J1 = data;
-	assign J2[2] = scl;
-	assign J2[7:4] = 0;
-	assign J2[1:0] = 0;
-	assign LED[5] = ~ack;
-	assign LED[4] = error;
-	assign LED[3] = sda_dir;
-	assign LED[2] = sda_in;
-	assign LED[1] = sda_out;
-	assign J3[7:4] = 0;
-	assign J3[3] = sda_dir;
-	assign J3[2] = sda_in;
-	assign J3[1] = sda_out;
-	assign J3[0] = scl;
-	reg [31:0] counter;
-	always @(posedge clock) begin
-		counter++;
-	end
-	wire i2c_clock;
-	localparam i2c_clock_pickoff = 5;
-	assign i2c_clock = counter[i2c_clock_pickoff];
-//	assign scl = i2c_clock;
 	reg [8:0] bit_counter;
-	reg ack;
-	reg error;
 	reg [7:0] data;
-	reg [13:0] immediate_humidity;
-	reg [13:0] immediate_temperature;
-	reg [13:0] previous_humidity;
-	reg [13:0] previous_temperature;
-	localparam number_of_samples_to_accumulate = 8;
-	localparam log2_of_number_of_samples_to_accumulate = $clog2(number_of_samples_to_accumulate);
-	reg [13+log2_of_number_of_samples_to_accumulate:0] accumulated_humidity;
-	reg [13+log2_of_number_of_samples_to_accumulate:0] accumulated_temperature;
-	reg [log2_of_number_of_samples_to_accumulate-1:0] counter_for_accumulating;
-	localparam accumulation_clock_pickoff = i2c_clock_pickoff + log2_of_number_of_samples_to_accumulate + 1;
-	assign counter_for_accumulating = counter[accumulation_clock_pickoff];
-	wire accumulation_clock = counter[accumulation_clock_pickoff-1];
-	always @(posedge accumulation_clock) begin
-		if (counter_for_accumulating==0) begin
-			accumulated_humidity = 0;
-			accumulated_temperature = 0;
-		end else begin
-			accumulated_humidity = accumulated_humidity + previous_humidity;
-			accumulated_temperature = accumulated_temperature + previous_temperature;
-		end
-	end
-	always @(posedge i2c_clock) begin
+	always @(posedge clock) begin
 		if (bit_counter>0) begin
 			case(bit_counter)
 				300 : begin
@@ -75,25 +38,25 @@ input sda_in
 				286 : scl <= 0;
 
 				// send address word
-				278 : sda_out <= i2c_address[6]; // byte[7]
+				278 : sda_out <= address[6]; // byte[7]
 				277 : scl <= 1;
 				276 : scl <= 0;
-				275 : sda_out <= i2c_address[5]; // byte[6]
+				275 : sda_out <= address[5]; // byte[6]
 				274 : scl <= 1;
 				273 : scl <= 0;
-				272 : sda_out <= i2c_address[4]; // byte[5]
+				272 : sda_out <= address[4]; // byte[5]
 				271 : scl <= 1;
 				270 : scl <= 0;
-				269 : sda_out <= i2c_address[3]; // byte[4]
+				269 : sda_out <= address[3]; // byte[4]
 				268 : scl <= 1;
 				267 : scl <= 0;
-				266 : sda_out <= i2c_address[2]; // byte[3]
+				266 : sda_out <= address[2]; // byte[3]
 				265 : scl <= 1;
 				264 : scl <= 0;
-				263 : sda_out <= i2c_address[1]; // byte[2]
+				263 : sda_out <= address[1]; // byte[2]
 				262 : scl <= 1;
 				261 : scl <= 0;
-				260 : sda_out <= i2c_address[0]; // byte[1]
+				260 : sda_out <= address[0]; // byte[1]
 				259 : scl <= 1;
 				258 : scl <= 0;
 				257 : sda_out <= 0; // byte[0] = 0; write
@@ -106,7 +69,7 @@ input sda_in
 				247 : ack <= sda_in; // ack
 				246 : scl <= 0;
 				245 : sda_dir <= 1; // output
-				244 : if (ack==1) begin bit_counter <= 10; error <= 1; end
+				244 : if (ack==1) begin bit_counter <= 10; error <= 1; end else begin error <= 0; end
 
 				// send stop
 				230 : sda_out <= 1;
@@ -121,25 +84,25 @@ input sda_in
 				226 : scl <= 0;
 
 				// send address word
-				219 : sda_out <= i2c_address[6]; // byte[7]
+				219 : sda_out <= address[6]; // byte[7]
 				218 : scl <= 1;
 				217 : scl <= 0;
-				216 : sda_out <= i2c_address[5]; // byte[6]
+				216 : sda_out <= address[5]; // byte[6]
 				215 : scl <= 1;
 				214 : scl <= 0;
-				213 : sda_out <= i2c_address[4]; // byte[5]
+				213 : sda_out <= address[4]; // byte[5]
 				212 : scl <= 1;
 				211 : scl <= 0;
-				210 : sda_out <= i2c_address[3]; // byte[4]
+				210 : sda_out <= address[3]; // byte[4]
 				209 : scl <= 1;
 				208 : scl <= 0;
-				207 : sda_out <= i2c_address[2]; // byte[3]
+				207 : sda_out <= address[2]; // byte[3]
 				206 : scl <= 1;
 				205 : scl <= 0;
-				204 : sda_out <= i2c_address[1]; // byte[2]
+				204 : sda_out <= address[1]; // byte[2]
 				203 : scl <= 1;
 				202 : scl <= 0;
-				201 : sda_out <= i2c_address[0]; // byte[1]
+				201 : sda_out <= address[0]; // byte[1]
 				200 : scl <= 1;
 				199 : scl <= 0;
 				198 : sda_out <= 1; // byte[0] = 1; read
@@ -152,7 +115,7 @@ input sda_in
 				187 : ack <= sda_in; // ack
 				186 : scl <= 0;
 				185 : sda_dir <= 1; // output
-				184 : if (ack==1) begin bit_counter <= 10; error <= 1; end
+				184 : if (ack==1) begin bit_counter <= 10; error <= 1; end else begin error <= 0; end
 
 				179 : sda_out <= 1;
 				178 : sda_out <= 0;
@@ -184,7 +147,8 @@ input sda_in
 				146 : data[0] <= sda_in;
 				145 : scl <= 0;
 				// end of data word
-				144 : immediate_humidity[13:8] <= data[6:0];
+				//144 : immediate_humidity[13:8] <= data[6:0];
+				144 : byte3 <= data[6:0];
 
 				// send ack
 				139 : sda_dir <= 1; // output
@@ -219,7 +183,8 @@ input sda_in
 				106 : data[0] <= sda_in;
 				105 : scl <= 0;
 				// end of data word
-				104 : immediate_humidity[7:0] <= data;
+				//104 : immediate_humidity[7:0] <= data;
+				104 : byte2 <= data;
 
 				// send ack
 				099 : sda_dir <= 1; // output
@@ -254,7 +219,8 @@ input sda_in
 				066 : data[0] <= sda_in;
 				065 : scl <= 0;
 				// end of data word
-				064 : immediate_temperature[13:6] <= data;
+				//064 : immediate_temperature[13:6] <= data;
+				064 : byte1 <= data;
 
 				// send ack
 				059 : sda_dir <= 1; // output
@@ -289,7 +255,8 @@ input sda_in
 				026 : data[0] <= sda_in;
 				025 : scl <= 0;
 				// end of data word
-				024 : immediate_temperature[5:0] <= data[7:2];
+				//024 : immediate_temperature[5:0] <= data[7:2];
+				024 : byte0 <= data[7:2];
 
 				// send ack
 				019 : sda_dir <= 1; // output
@@ -308,17 +275,107 @@ input sda_in
 					sda_dir <= 1;
 					scl <= 1;
 					sda_out <= 1;
-					previous_humidity <= immediate_humidity;
-					previous_temperature <= immediate_temperature;
 				end
 				default : ;
 			endcase
 			bit_counter--;
 		end else begin
-			bit_counter <= 300;
-			error <= 0;
+			busy <= 0;
+			if (start_transfer==1) begin
+				bit_counter <= 300;
+				busy <= 1;
+			end
 		end
 	end
+endmodule
+
+module mytop (input clock, output [5:1] LED, 
+output [7:0] J1,
+output [7:0] J2,
+output [7:0] J3,
+output sda_out,
+output reg sda_dir,
+input sda_in
+);
+	wire [6:0] i2c_address = 7'h27; // honeywell HIH6121 i2c humidity sensor
+//	assign J2[7] = sda_dir ? sda_out : 1'bz; // Warning: Yosys has only limited support for tri-state logic at the moment.
+	wire ack;
+	wire error;
+	reg start_transfer;
+	wire busy;
+	assign J1 = 0;
+	assign J2[2] = scl;
+	assign J2[7:4] = 0;
+	assign J2[1:0] = 0;
+	assign LED[5] = ~error;
+	assign LED[4] = ack;
+	assign LED[3] = 0;
+	assign LED[2] = busy;
+	assign LED[1] = start_transfer;
+	assign J3[7:4] = 0;
+	assign J3[3] = sda_dir;
+	assign J3[2] = sda_in;
+	assign J3[1] = sda_out;
+	wire scl;
+	assign J3[0] = scl;
+	reg [31:0] counter;
+	always @(posedge clock) begin
+		counter++;
+	end
+	wire i2c_clock;
+	localparam i2c_clock_pickoff = 5;
+	assign i2c_clock = counter[i2c_clock_pickoff];
+	wire slow_clock;
+	localparam slow_clock_pickoff = i2c_clock_pickoff + 15;
+	assign slow_clock = counter[slow_clock_pickoff];
+	always @(posedge slow_clock) begin
+		if (busy==1) begin
+			start_transfer <= 0;
+		end else begin
+			start_transfer <= 1;
+		end
+	end
+//	assign scl = i2c_clock;
+	reg [13:0] immediate_humidity;
+	reg [13:0] immediate_temperature;
+	reg [13:0] previous_humidity;
+	reg [13:0] previous_temperature;
+	localparam number_of_samples_to_accumulate = 8;
+	localparam log2_of_number_of_samples_to_accumulate = $clog2(number_of_samples_to_accumulate);
+	reg [13+log2_of_number_of_samples_to_accumulate:0] accumulated_humidity;
+	reg [13+log2_of_number_of_samples_to_accumulate:0] accumulated_temperature;
+	reg [log2_of_number_of_samples_to_accumulate-1:0] counter_for_accumulating;
+	localparam accumulation_clock_pickoff = i2c_clock_pickoff + log2_of_number_of_samples_to_accumulate + 1;
+	assign counter_for_accumulating = counter[accumulation_clock_pickoff];
+	wire accumulation_clock = counter[accumulation_clock_pickoff-1];
+	always @(posedge accumulation_clock) begin
+		if (counter_for_accumulating==0) begin
+			accumulated_humidity = 0;
+			accumulated_temperature = 0;
+		end else begin
+			accumulated_humidity = accumulated_humidity + previous_humidity;
+			accumulated_temperature = accumulated_temperature + previous_temperature;
+		end
+	end
+	reg [7:0] byte [3:0];
+	wire i2c_busy;
+	reg start_i2c_transfer;
+	i2c_send_one_byte_and_read_one_plus_four_bytes_back myinstance(
+		.clock(i2c_clock),
+		.address(i2c_address),
+		.scl(scl),
+		.sda_out(sda_out),
+		.sda_dir(sda_dir),
+		.sda_in(sda_in),
+		.start_transfer(start_transfer),
+		.busy(busy),
+		.ack(ack),
+		.error(error),
+		.byte0(byte[0]),
+		.byte1(byte[1]),
+		.byte2(byte[2]),
+		.byte3(byte[3])
+	);
 endmodule // mytop
 
 module icestick (
