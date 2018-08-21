@@ -1,6 +1,6 @@
 // written 2018-08-16 by mza
 // based on mza-test013.i2c.v and mza-test003.double-dabble.v
-// last updated 2018-08-20 by mza
+// last updated 2018-08-21 by mza
 
 `include "lib/hex2bcd.v"
 `include "lib/uart.v"
@@ -12,13 +12,15 @@ output [7:0] J3,
 input RX,
 output TX
 );
-	reg trigger_active = 0;
+//	reg trigger_active = 0;
+	wire trigger_active;
 	reg [2:0] trigger_stream;
+	reg [31:0] accumulated_trigger_duration;
 	reg [31:0] trigger_duration;
 	reg [31:0] previous_trigger_duration;
 	assign J1 = 0;
 	assign J2[7:6] = 0;
-//	assign J2[5] = trigger_active;
+	assign J2[5] = trigger_active;
 //	assign trigger_active = counter[10];
 	assign J2[4:0] = 0;
 	assign J3 = 0;
@@ -46,28 +48,30 @@ output TX
 				uart_character_counter <= length_of_line - 1;
 				uart_transfers_are_allowed <= 0;
 				trigger_duration <= 0;
+				accumulated_trigger_duration <= 0;
 				previous_trigger_duration <= 0;
 				trigger_stream <= 0;
 			end else begin
-				trigger_duration++;
 				reset <= 0;
 			end
 		end else begin
 			//if (counter[31:0]>1500 & counter[31:0]<2000) begin
-			if (counter[31:0]>5*2**22) begin
-				if (counter[31:0]<5*2**22+817) begin
-					trigger_active <= 1;
-				end else begin
-					trigger_active <= 0;
-				end
-			end else begin
-				trigger_active <= 0;
-			end
+//			if (counter[31:0]>5*2**22) begin
+//				if (counter[31:0]<5*2**22+817) begin
+//					trigger_active <= 1;
+//				end else begin
+//					trigger_active <= 0;
+//				end
+//			end else begin
+//				trigger_active <= 0;
+//			end
 			if (trigger_active==1) begin
 				trigger_duration++;
 			end else begin
 				if (trigger_stream==3'b110) begin
 					previous_trigger_duration <= trigger_duration;
+					accumulated_trigger_duration <= accumulated_trigger_duration + trigger_duration;
+					trigger_duration <= 0;
 //					//previous_trigger_duration <= { 13'h0, trigger_stream };
 				end
 			end
