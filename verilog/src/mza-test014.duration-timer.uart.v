@@ -1,9 +1,11 @@
 // written 2018-08-16 by mza
 // based on mza-test013.i2c.v and mza-test003.double-dabble.v
-// last updated 2018-08-21 by mza
+// last updated 2018-08-22 by mza
 
 `include "lib/hex2bcd.v"
 `include "lib/uart.v"
+`include "lib/easypll.v"
+`include "lib/segmented_display_driver.v"
 
 module mytop (input clock, output [5:1] LED, 
 output [7:0] J1,
@@ -12,18 +14,25 @@ output [7:0] J3,
 input RX,
 output TX
 );
+	// for an HDSP-B04E mounted pin7=pin14 justified on an icestick-test revA ZIF-socket board (IDL_18_027)
+	wire [6:0] segment;
+	assign { J3[3], J1[2], J2[0], J3[0], J3[2], J3[5], J1[1] } = segment;
+	assign J3[1] = 1; // dp/colon
+	wire [3:0] anode;
+	assign { J1[0], J1[3], J1[4], J3[4] } = anode;
+	segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(4)) my_instance_name (.clock(clock), .data(buffered_bcd2[15:0]), .cathode(segment), .anode(anode));
 //	reg trigger_active = 0;
 	wire trigger_active;
 	reg [2:0] trigger_stream;
 	reg [31:0] accumulated_trigger_duration;
 	reg [31:0] trigger_duration;
 	reg [31:0] previous_trigger_duration;
-	assign J1 = 0;
+	assign J3[7:6] = 0;
 	assign J2[7:6] = 0;
 	assign J2[5] = trigger_active;
 //	assign trigger_active = counter[10];
-	assign J2[4:0] = 0;
-	assign J3 = 0;
+	assign J2[4:1] = 0;
+	assign J1[7:5] = 0;
 	assign LED[5] = uart_busy;
 	assign LED[4] = reset;
 	assign LED[3] = trigger_stream[2];
