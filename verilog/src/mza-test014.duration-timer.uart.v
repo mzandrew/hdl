@@ -30,10 +30,10 @@ output TX
 	reg [31:0] previous_trigger_duration;
 	assign J3[7] = 0;
 	reg signal_output;
-//	assign signal_output = J3[6];
-	assign signal_output = trigger_active;
+	assign signal_output = J3[6];
+//	assign signal_output = trigger_active; // use this for internal loopback
 	assign J2[7:6] = 0;
-//	assign J2[5] = trigger_active;
+	assign J2[5] = trigger_active;
 	assign J2[4:1] = 0;
 	assign J1[7:5] = 0;
 	assign LED[5] = uart_busy;
