@@ -64,7 +64,7 @@ output TX
 				uart_transfers_are_allowed <= 0;
 				trigger_duration <= 0;
 				accumulated_trigger_duration <= 0;
-				previous_trigger_duration <= 1716;
+				previous_trigger_duration <= 0;
 				trigger_stream <= 0;
 				signal_output <= 0;
 			end else begin
