@@ -1,5 +1,5 @@
-// written 2018-08-16 by mza
-// based on mza-test013.i2c.v and mza-test003.double-dabble.v
+// written 2018-08-22 by mza
+// based on mza-test014.duration-timer.uart.v
 // last updated 2018-08-22 by mza
 
 `include "lib/hex2bcd.v"
@@ -52,9 +52,7 @@ output TX
 	reg uart_resetb;
 	reg reset = 1;
 	assign uart_resetb = ~reset;
-	localparam log2_of_function_generator_period = uart_line_pickoff;
-	//localparam function_generator_start = 2**(log2_of_function_generator_period-1);
-	localparam function_generator_start = 0;
+	localparam log2_of_function_generator_period = 25;
 	always @(posedge clock) begin
 		counter++;
 		if (reset) begin
@@ -72,8 +70,8 @@ output TX
 			end
 		end else begin
 			//if (counter[31:0]>1500 & counter[31:0]<2000) begin
-			if (counter[log2_of_function_generator_period:0]>function_generator_start) begin
-				if (counter[log2_of_function_generator_period:0]<function_generator_start+buffered_rand[15:0]) begin
+			if (counter[log2_of_function_generator_period:0]>5*2**22) begin
+				if (counter[log2_of_function_generator_period:0]<5*2**22+817) begin
 					signal_output <= 1;
 				end else begin
 					signal_output <= 0;
@@ -99,7 +97,8 @@ output TX
 			buffered_rand <= rand;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
 			value1 <= uart_line_counter;
-			value2 <= previous_trigger_duration;
+			//value2 <= previous_trigger_duration;
+			value2 <= buffered_rand[15:0];
 //		end else if (counter[slow_clock_pickoff:0]==2) begin
 		end
 		if (counter[uart_line_pickoff:0]==0) begin // less frequent
