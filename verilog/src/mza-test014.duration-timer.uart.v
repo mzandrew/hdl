@@ -26,8 +26,8 @@ output TX
 	wire trigger_active;
 	reg [2:0] trigger_stream;
 	reg [31:0] accumulated_trigger_duration;
-	reg [31:0] trigger_duration;
-	reg [31:0] previous_trigger_duration;
+	reg [31:0] trigger_duration; // live
+	reg [31:0] previous_trigger_duration; // updated after pulse ends
 	assign J3[7] = 0;
 	reg signal_output;
 	assign signal_output = J3[6];
@@ -49,16 +49,18 @@ output TX
 	localparam uart_line_pickoff = 22;
 	localparam slow_clock_pickoff = uart_line_pickoff;
 	reg [15:0] uart_line_counter;
-	reg uart_resetb;
+	wire uart_resetb;
 	reg reset = 1;
 	assign uart_resetb = ~reset;
 	localparam log2_of_function_generator_period = uart_line_pickoff;
 	//localparam function_generator_start = 2**(log2_of_function_generator_period-1);
 	localparam function_generator_start = 0;
+	reg [12:0] pulse_duration;
+	reg [31:0] number_of_pulses;
 	always @(posedge clock) begin
 		counter++;
 		if (reset) begin
-			if (counter[31:10]==0) begin
+			if (counter[10]==0) begin
 				uart_line_counter <= 0;
 				uart_character_counter <= length_of_line - 1;
 				uart_transfers_are_allowed <= 0;
@@ -67,13 +69,14 @@ output TX
 				previous_trigger_duration <= 0;
 				trigger_stream <= 0;
 				signal_output <= 0;
+				number_of_pulses <= 0;
 			end else begin
 				reset <= 0;
 			end
 		end else begin
 			//if (counter[31:0]>1500 & counter[31:0]<2000) begin
 			if (counter[log2_of_function_generator_period:0]>function_generator_start) begin
-				if (counter[log2_of_function_generator_period:0]<function_generator_start+buffered_rand[15:0]) begin
+				if (counter[log2_of_function_generator_period:0]<function_generator_start+pulse_duration) begin
 					signal_output <= 1;
 				end else begin
 					signal_output <= 0;
@@ -85,6 +88,7 @@ output TX
 				trigger_duration++;
 			end else begin
 				if (trigger_stream==3'b110) begin
+					number_of_pulses++;
 					previous_trigger_duration <= trigger_duration;
 					accumulated_trigger_duration <= accumulated_trigger_duration + trigger_duration;
 					trigger_duration <= 0;
@@ -99,7 +103,9 @@ output TX
 			buffered_rand <= rand;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
 			value1 <= uart_line_counter;
-			value2 <= previous_trigger_duration;
+			//value2 <= previous_trigger_duration;
+			value2 <= number_of_pulses;
+			pulse_duration <= buffered_rand[12:0];
 //		end else if (counter[slow_clock_pickoff:0]==2) begin
 		end
 		if (counter[uart_line_pickoff:0]==0) begin // less frequent
