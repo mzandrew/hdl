@@ -1,10 +1,10 @@
 // written 2018-08-16 by mza
 // based on mza-test013.i2c.v and mza-test003.double-dabble.v
-// last updated 2018-08-22 by mza
+// last updated 2018-08-29 by mza
 
 `include "lib/hex2bcd.v"
 `include "lib/uart.v"
-//`include "lib/easypll.v"
+`include "lib/easypll.v"
 `include "lib/segmented_display_driver.v"
 `include "lib/prbs.v"
 
@@ -15,6 +15,35 @@ output [7:0] J3,
 input RX,
 output TX
 );
+	wire fast_clock;
+	wire pll_is_locked;
+	//easypll #(.DIVR(0), .DIVF(63), .DIVQ(3), .FILTER_RANGE(1)) my_pll_instance (.clock_input(CLK), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 96 MHz
+	easypll my_96MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 96 MHz
+	//easypll #(.DIVR(0), .DIVF(53), .DIVQ(2), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 162 MHz
+	reg [31:0] fast_clock_counter;
+	always @(posedge fast_clock) begin
+		if (reset) begin
+			trigger_duration <= 0;
+			trigger_stream <= 0;
+			number_of_pulses <= 0;
+			accumulated_trigger_duration <= 0;
+			previous_trigger_duration <= 0;
+		end else if (pll_is_locked) begin
+			fast_clock_counter++;
+			if (trigger_active==1) begin
+				trigger_duration++;
+			end else begin
+				if (trigger_stream==3'b110) begin
+					number_of_pulses++;
+					previous_trigger_duration <= trigger_duration;
+					accumulated_trigger_duration <= accumulated_trigger_duration + trigger_duration;
+					trigger_duration <= 0;
+//					//previous_trigger_duration <= { 13'h0, trigger_stream };
+				end
+			end
+			trigger_stream <= { trigger_stream[1:0], trigger_active }; // 110, 100, 000 or 001, 011, 111
+		end
+	end
 	// for an HDSP-B04E mounted pin7=pin14 justified on an icestick-test revA ZIF-socket board (IDL_18_027)
 	wire [6:0] segment;
 	assign { J3[3], J1[2], J2[0], J3[0], J3[2], J3[5], J1[1] } = segment;
@@ -55,22 +84,16 @@ output TX
 	localparam log2_of_function_generator_period = uart_line_pickoff;
 	//localparam function_generator_start = 2**(log2_of_function_generator_period-1);
 	localparam function_generator_start = 0;
-	reg [12:0] pulse_duration;
+	reg [9:0] pulse_duration;
 	reg [31:0] number_of_pulses;
 	always @(posedge clock) begin
 		counter++;
 		if (reset) begin
-			if (counter[10]==0) begin
-				uart_line_counter <= 0;
-				uart_character_counter <= length_of_line - 1;
-				uart_transfers_are_allowed <= 0;
-				trigger_duration <= 0;
-				accumulated_trigger_duration <= 0;
-				previous_trigger_duration <= 0;
-				trigger_stream <= 0;
-				signal_output <= 0;
-				number_of_pulses <= 0;
-			end else begin
+			uart_line_counter <= 0;
+			uart_character_counter <= length_of_line - 1;
+			uart_transfers_are_allowed <= 0;
+			signal_output <= 0;
+			if (counter[10]==1) begin
 				reset <= 0;
 			end
 		end else begin
@@ -84,18 +107,6 @@ output TX
 			end else begin
 				signal_output <= 0;
 			end
-			if (trigger_active==1) begin
-				trigger_duration++;
-			end else begin
-				if (trigger_stream==3'b110) begin
-					number_of_pulses++;
-					previous_trigger_duration <= trigger_duration;
-					accumulated_trigger_duration <= accumulated_trigger_duration + trigger_duration;
-					trigger_duration <= 0;
-//					//previous_trigger_duration <= { 13'h0, trigger_stream };
-				end
-			end
-			trigger_stream <= { trigger_stream[1:0], trigger_active }; // 110, 100, 000 or 001, 011, 111
 		end
 		if (counter[slow_clock_pickoff:0]==0) begin
 			buffered_bcd1 <= bcd1;
@@ -103,9 +114,9 @@ output TX
 			buffered_rand <= rand;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
 			value1 <= uart_line_counter;
-			//value2 <= previous_trigger_duration;
-			value2 <= number_of_pulses;
-			pulse_duration <= buffered_rand[12:0];
+			value2 <= previous_trigger_duration; // TDC mode
+			//value2 <= number_of_pulses; // scaler mode
+			pulse_duration <= buffered_rand[9:0];
 //		end else if (counter[slow_clock_pickoff:0]==2) begin
 		end
 		if (counter[uart_line_pickoff:0]==0) begin // less frequent
