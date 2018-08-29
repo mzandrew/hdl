@@ -17,9 +17,10 @@ output TX
 );
 	wire fast_clock;
 	wire pll_is_locked;
-	//easypll #(.DIVR(0), .DIVF(63), .DIVQ(3), .FILTER_RANGE(1)) my_pll_instance (.clock_input(CLK), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 96 MHz
-	easypll my_96MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 96 MHz
+	//easypll my_96MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 96 MHz
 	//easypll #(.DIVR(0), .DIVF(53), .DIVQ(2), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 162 MHz
+	//easypll #(.DIVR(0), .DIVF(44), .DIVQ(1), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 270 MHz
+	easypll #(.DIVR(0), .DIVF(49), .DIVQ(2), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 150 MHz
 	reg [31:0] fast_clock_counter;
 	always @(posedge fast_clock) begin
 		if (reset) begin
@@ -116,7 +117,7 @@ output TX
 			value1 <= uart_line_counter;
 			value2 <= previous_trigger_duration; // TDC mode
 			//value2 <= number_of_pulses; // scaler mode
-			pulse_duration <= buffered_rand[9:0];
+			pulse_duration <= buffered_rand[8:0]; // when doing loopback, this depends on pll frequency
 //		end else if (counter[slow_clock_pickoff:0]==2) begin
 		end
 		if (counter[uart_line_pickoff:0]==0) begin // less frequent
