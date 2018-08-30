@@ -18,8 +18,8 @@ output TX
 	wire fast_clock;
 	wire pll_is_locked;
 	//easypll my_96MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 96 MHz
-	//easypll #(.DIVR(0), .DIVF(49), .DIVQ(2), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 150 MHz
-	easypll #(.DIVR(0), .DIVF(53), .DIVQ(2), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 162 MHz
+	easypll #(.DIVR(0), .DIVF(49), .DIVQ(2), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 150 MHz
+	//easypll #(.DIVR(0), .DIVF(53), .DIVQ(2), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 162 MHz
 	//easypll #(.DIVR(0), .DIVF(55), .DIVQ(2), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 168 MHz
 	//easypll #(.DIVR(0), .DIVF(57), .DIVQ(2), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 174 MHz
 	//easypll #(.DIVR(0), .DIVF(66), .DIVQ(2), .FILTER_RANGE(1)) my_162MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 201 MHz
@@ -89,6 +89,7 @@ output TX
 	//localparam function_generator_start = 2**(log2_of_function_generator_period-1);
 	localparam function_generator_start = 0;
 	reg [9:0] pulse_duration;
+	reg [31:0] previous_number_of_pulses;
 	reg [31:0] number_of_pulses;
 	always @(posedge clock) begin
 		counter++;
@@ -117,15 +118,18 @@ output TX
 			buffered_bcd2 <= bcd2;
 			buffered_rand <= rand;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
-			value1 <= uart_line_counter;
+			//value1 <= uart_line_counter;
 			value2 <= previous_trigger_duration; // TDC mode
-			//value2 <= number_of_pulses; // scaler mode
-			pulse_duration <= buffered_rand[8:0]; // when doing loopback, this depends on pll frequency
+			value1 <= number_of_pulses; // scaler mode
+			pulse_duration <= buffered_rand[8:0]; // when doing loopback, this should depend on pll frequency
 //		end else if (counter[slow_clock_pickoff:0]==2) begin
 		end
 		if (counter[uart_line_pickoff:0]==0) begin // less frequent
-			uart_transfers_are_allowed <= 1;
-			uart_line_counter++;
+			if (previous_number_of_pulses!=number_of_pulses) begin
+				uart_transfers_are_allowed <= 1;
+				uart_line_counter++;
+				previous_number_of_pulses <= number_of_pulses;
+			end
 		end
 		if (counter[uart_character_pickoff:0]==1) begin // more frequent
 			if (uart_transfers_are_allowed==1) begin
