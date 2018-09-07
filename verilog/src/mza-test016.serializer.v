@@ -13,17 +13,20 @@ output [7:0] J3
 );
 	reg reset = 1;
 	wire fast_clock;
-	reg half_fast_clock = 0;
 	wire pll_is_locked;
-	easypll #(.DIVR(0), .DIVF(56), .DIVQ(4), .FILTER_RANGE(1)) my_42MHz_pll_instance (.clock_input(clock), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 42.750 MHz
+	easypll #(.DIVR(0), .DIVF(56), .DIVQ(4), .FILTER_RANGE(1)) my_42MHz_pll_instance (.clock_input(clock), .reset_active_low(~reset), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 42.750 MHz
 	reg [31:0] fast_clock_counter;
+	localparam pickoff = 0;
 	always @(posedge fast_clock) begin
 		if (reset) begin
 			fast_clock_counter <= 0;
-		//	half_fast_clock = 0;
 		end else if (pll_is_locked) begin
 			fast_clock_counter++;
-			half_fast_clock = ~half_fast_clock;
+			if (fast_clock_counter[pickoff:0]==0) begin
+				buffered_rand <= rand;
+			end else if (fast_clock_counter[pickoff:0]==1) begin
+				data_bus <= buffered_rand[7:0];
+			end
 		end
 	end
 	reg [31:0] counter;
@@ -32,12 +35,6 @@ output [7:0] J3
 		if (reset) begin
 			if (counter[10]==1) begin
 				reset <= 0;
-			end
-		end else begin
-			if (counter[22:0]==0) begin
-				buffered_rand <= rand;
-			end else if (counter[22:0]==1) begin
-				data_bus <= buffered_rand;
 			end
 		end
 	end
@@ -85,9 +82,6 @@ output [7:0] J3
 	assign J2[3] = serial_stream_p; // 
 	assign J2[7] = serial_stream_n; // 
 	assign J3[5] = fast_clock; // tclk
-//	assign J3[5] = half_fast_clock; // tclk
-//	assign DIP28[14] = half_fast_clock; // tclk
-//	assign half_fast_clock = DIP28[14]; // tclk
 	wire serial_stream_p;
 	wire serial_stream_n;
 	wire [9:0] data_bus;
@@ -102,9 +96,10 @@ output [7:0] J3
 	assign LED[3] = 0;
 	assign LED[2] = 0;
 	assign LED[1] = 0;
-	reg [127:0] rand;
-	reg [127:0] buffered_rand;
-	prbs myprbs(.clock(clock), .reset(reset), .word(rand));
+	localparam PRBSWIDTH = 64;
+	reg [PRBSWIDTH-1:0] rand;
+	reg [PRBSWIDTH-1:0] buffered_rand;
+	prbs #(.WIDTH(PRBSWIDTH)) myprbs (.clock(clock), .reset(reset), .word(rand));
 endmodule // mytop
 
 module icestick (
