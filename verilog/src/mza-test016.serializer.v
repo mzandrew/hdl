@@ -16,7 +16,7 @@ output [7:0] J3
 	wire pll_is_locked;
 	easypll #(.DIVR(0), .DIVF(56), .DIVQ(4), .FILTER_RANGE(1)) my_42MHz_pll_instance (.clock_input(clock), .reset_active_low(~reset), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 42.750 MHz
 	reg [31:0] fast_clock_counter;
-	localparam pickoff = 0;
+	localparam pickoff = 4;
 	always @(posedge fast_clock) begin
 		if (reset) begin
 			fast_clock_counter <= 0;
@@ -26,6 +26,8 @@ output [7:0] J3
 				buffered_rand <= rand;
 			end else if (fast_clock_counter[pickoff:0]==1) begin
 				data_bus <= buffered_rand[7:0];
+			end else begin
+				data_bus <= 0;
 			end
 		end
 	end
@@ -96,7 +98,7 @@ output [7:0] J3
 	assign LED[3] = 0;
 	assign LED[2] = 0;
 	assign LED[1] = 0;
-	localparam PRBSWIDTH = 64;
+	localparam PRBSWIDTH = 128;
 	reg [PRBSWIDTH-1:0] rand;
 	reg [PRBSWIDTH-1:0] buffered_rand;
 	prbs #(.WIDTH(PRBSWIDTH)) myprbs (.clock(clock), .reset(reset), .word(rand));
