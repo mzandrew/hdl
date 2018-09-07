@@ -1,7 +1,7 @@
 // written 2018-09-06 by mza
 // to drive a SN65LV1023 serializer IC
 // based on mza-test014.duration-timer.uart.v
-// last updated 2018-09-06 by mza
+// last updated 2018-09-07 by mza
 
 `include "lib/easypll.v"
 `include "lib/prbs.v"
@@ -17,16 +17,42 @@ output [7:0] J3
 	easypll #(.DIVR(0), .DIVF(56), .DIVQ(4), .FILTER_RANGE(1)) my_42MHz_pll_instance (.clock_input(clock), .reset_active_low(~reset), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 42.750 MHz
 	reg [31:0] fast_clock_counter;
 	localparam pickoff = 4;
+	reg sync;
 	always @(posedge fast_clock) begin
+		sync <= 0;
 		if (reset) begin
 			fast_clock_counter <= 0;
 		end else if (pll_is_locked) begin
 			fast_clock_counter++;
 			if (fast_clock_counter[pickoff:0]==0) begin
-				buffered_rand <= rand;
+				sync <= 1;
+				data_bus <= 10'b0000000000;
 			end else if (fast_clock_counter[pickoff:0]==1) begin
-				data_bus <= buffered_rand[7:0];
+				data_bus <= 10'b1000000000;
+			end else if (fast_clock_counter[pickoff:0]==2) begin
+				data_bus <= 10'b1100000000;
+			end else if (fast_clock_counter[pickoff:0]==3) begin
+				data_bus <= 10'b1110000000;
+			end else if (fast_clock_counter[pickoff:0]==4) begin
+				data_bus <= 10'b1111000000;
+			end else if (fast_clock_counter[pickoff:0]==5) begin
+				data_bus <= 10'b1111100000;
+			end else if (fast_clock_counter[pickoff:0]==6) begin
+				data_bus <= 10'b1111110000;
+			end else if (fast_clock_counter[pickoff:0]==7) begin
+				data_bus <= 10'b1111111000;
+			end else if (fast_clock_counter[pickoff:0]==8) begin
+				data_bus <= 10'b1111111100;
+			end else if (fast_clock_counter[pickoff:0]==9) begin
+				data_bus <= 10'b1111111110;
+			end else if (fast_clock_counter[pickoff:0]==10) begin
+				data_bus <= 10'b1111111111;
+			end else if (fast_clock_counter[pickoff:0]==11) begin
+				data_bus <= 10'b0101010101;
+			end else if (fast_clock_counter[pickoff:0]==12) begin
+				data_bus <= buffered_rand[9:0];
 			end else begin
+				buffered_rand <= rand;
 				data_bus <= 0;
 			end
 		end
@@ -40,36 +66,6 @@ output [7:0] J3
 			end
 		end
 	end
-//	wire [28:1] DIP28 = { 1, 1, 
-//	                      J1[7], J1[6], J2[6], J2[2],
-//	                      J2[7], J2[3], J1[0], J1[1],
-//	                      J1[2], J1[3], J1[4], J1[5],
-//	                      0, J3[4], 0, 0,
-//	                      0, 0, 0, 0,
-//	                      0, 0
-//	};
-//	wire [28:1] DIP28 = { 1, 1, 
-//	                      J1[7], J1[6], J2[6], J2[2], // 26,25,24,23
-//	                      J2[7], J2[3], J1[0], J1[1], // 22,21,20,19
-//	                      J1[2], J1[3], J1[4], J1[5], // 18,17,16,15
-//	                      J3[5], J3[4], J3[3], J3[2], // 14,13,12,11
-//	                      J3[1], J3[0], J2[0], J2[4], // 10,09,08,07
-//	                      J2[1], J2[5], J3[6], J3[7], // 06,05,04,03
-//	                      0, 0
-//	};
-//	assign DIP28[26] = 1; // vcc
-//	assign DIP28[17] = 1; // vcc
-//	assign DIP28[15] = 0; // gnd
-//	assign DIP28[16] = 0; // gnd
-//	assign DIP28[18] = 0; // gnd
-//	assign DIP28[20] = 0; // gnd
-//	assign DIP28[23] = 0; // gnd
-//	assign DIP28[25] = 0; // gnd
-//	assign DIP28[24] = 1; // powerdown_active_low
-//	assign DIP28[13] = 1; // use_tclk_rising_edge
-//	assign DIP28[19] = 1; // data_enable
-//	assign DIP28[21] = serial_stream_p; // 
-//	assign DIP28[22] = serial_stream_n; // 
 	assign J1[7] = 1; // vcc
 	assign J1[3] = 1; // vcc
 	assign J2[6] = 1; // powerdown_active_low
@@ -90,10 +86,7 @@ output [7:0] J3
 	assign data_bus = { J3[3], J3[2],
 	                    J3[1], J3[0], J2[0], J2[4],
 	                    J2[1], J2[5], J3[6], J3[7] };
-//	assign data_bus = { DIP28[12], DIP28[11], DIP28[10], DIP28[9],
-//	                    DIP28[8], DIP28[7], DIP28[6], DIP28[5],
-//	                    DIP28[4], DIP28[3] };
-	assign LED[5] = 0;
+	assign LED[5] = sync;
 	assign LED[4] = 0;
 	assign LED[3] = 0;
 	assign LED[2] = 0;

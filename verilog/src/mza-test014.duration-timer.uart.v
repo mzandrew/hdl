@@ -7,6 +7,7 @@
 `include "lib/easypll.v"
 `include "lib/segmented_display_driver.v"
 `include "lib/prbs.v"
+`include "lib/fifo.v"
 
 module mytop (input clock, output [5:1] LED, 
 output [7:0] J1,
@@ -192,9 +193,15 @@ output TX
 	reg uart_busy;
 	reg start_uart_transfer;
 	reg [7:0] byte_to_send;
+//	syn_fifo myfifo (.clk(clock), .rst(reset), .empty(), .full(),
+//		.wr_cs(), .wr_en(), .data_in(),
+//		.rd_cs(), .rd_en(), .data_out()
+//	);
+	reg [7:0] byte_we_are_sending;
+	assign byte_we_are_sending = byte_to_send;
 	wire uart_character_clock;
 	assign uart_character_clock = counter[uart_character_pickoff];
-	uart my_uart_instance (.clk(clock), .resetq(uart_resetb), .uart_busy(uart_busy), .uart_tx(TX), .uart_wr_i(start_uart_transfer), .uart_dat_i(byte_to_send));
+	uart my_uart_instance (.clk(clock), .resetq(uart_resetb), .uart_busy(uart_busy), .uart_tx(TX), .uart_wr_i(start_uart_transfer), .uart_dat_i(byte_we_are_sending));
 endmodule // mytop
 
 module icestick (
