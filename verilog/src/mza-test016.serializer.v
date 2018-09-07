@@ -16,7 +16,7 @@ output [7:0] J3
 	wire pll_is_locked;
 	easypll #(.DIVR(0), .DIVF(56), .DIVQ(4), .FILTER_RANGE(1)) my_42MHz_pll_instance (.clock_input(clock), .reset_active_low(~reset), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 42.750 MHz
 	reg [31:0] fast_clock_counter;
-	localparam pickoff = 4;
+	localparam pickoff = 3;
 	reg sync;
 	always @(posedge fast_clock) begin
 		sync <= 0;
@@ -26,34 +26,34 @@ output [7:0] J3
 			fast_clock_counter++;
 			if (fast_clock_counter[pickoff:0]==0) begin
 				sync <= 1;
-				data_bus <= 10'b0000000000;
-			end else if (fast_clock_counter[pickoff:0]==1) begin
-				data_bus <= 10'b1000000000;
-			end else if (fast_clock_counter[pickoff:0]==2) begin
-				data_bus <= 10'b1100000000;
-			end else if (fast_clock_counter[pickoff:0]==3) begin
-				data_bus <= 10'b1110000000;
-			end else if (fast_clock_counter[pickoff:0]==4) begin
-				data_bus <= 10'b1111000000;
-			end else if (fast_clock_counter[pickoff:0]==5) begin
-				data_bus <= 10'b1111100000;
-			end else if (fast_clock_counter[pickoff:0]==6) begin
-				data_bus <= 10'b1111110000;
-			end else if (fast_clock_counter[pickoff:0]==7) begin
-				data_bus <= 10'b1111111000;
-			end else if (fast_clock_counter[pickoff:0]==8) begin
-				data_bus <= 10'b1111111100;
-			end else if (fast_clock_counter[pickoff:0]==9) begin
-				data_bus <= 10'b1111111110;
-			end else if (fast_clock_counter[pickoff:0]==10) begin
 				data_bus <= 10'b1111111111;
+			end else if (fast_clock_counter[pickoff:0]==1) begin
+				data_bus <= 10'b0111111111;
+			end else if (fast_clock_counter[pickoff:0]==2) begin
+				data_bus <= 10'b0011111111;
+			end else if (fast_clock_counter[pickoff:0]==3) begin
+				data_bus <= 10'b0001111111;
+			end else if (fast_clock_counter[pickoff:0]==4) begin
+				data_bus <= 10'b0000111111;
+			end else if (fast_clock_counter[pickoff:0]==5) begin
+				data_bus <= 10'b0000011111;
+			end else if (fast_clock_counter[pickoff:0]==6) begin
+				data_bus <= 10'b0000001111;
+			end else if (fast_clock_counter[pickoff:0]==7) begin
+				data_bus <= 10'b0000000111;
+			end else if (fast_clock_counter[pickoff:0]==8) begin
+				data_bus <= 10'b0000000011;
+			end else if (fast_clock_counter[pickoff:0]==9) begin
+				data_bus <= 10'b0000000001;
+			end else if (fast_clock_counter[pickoff:0]==10) begin
+				data_bus <= 10'b0000000000;
 			end else if (fast_clock_counter[pickoff:0]==11) begin
 				data_bus <= 10'b0101010101;
 			end else if (fast_clock_counter[pickoff:0]==12) begin
 				data_bus <= buffered_rand[9:0];
 			end else begin
 				buffered_rand <= rand;
-				data_bus <= 0;
+				data_bus <= 10'b1111111111;
 			end
 		end
 	end
