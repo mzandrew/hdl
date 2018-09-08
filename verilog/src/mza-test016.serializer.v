@@ -16,7 +16,7 @@ output [7:0] J3
 	wire pll_is_locked;
 	easypll #(.DIVR(0), .DIVF(56), .DIVQ(4), .FILTER_RANGE(1)) my_42MHz_pll_instance (.clock_input(clock), .reset_active_low(~reset), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 42.750 MHz
 	reg [31:0] fast_clock_counter;
-	localparam pickoff = 3;
+	localparam pickoff = 4;
 	reg sync;
 	always @(posedge fast_clock) begin
 		sync <= 0;
