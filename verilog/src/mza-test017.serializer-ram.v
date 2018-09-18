@@ -24,36 +24,10 @@ output [7:0] J3
 			fast_clock_counter <= 0;
 		end else if (pll_is_locked) begin
 			fast_clock_counter++;
+			data_bus <= read_data[9:0];
+			read_address <= fast_clock_counter[10:0];
 			if (fast_clock_counter[pickoff:0]==0) begin
 				sync <= 1;
-				data_bus <= 10'b1111111111;
-			end else if (fast_clock_counter[pickoff:0]==1) begin
-				data_bus <= 10'b0111111111;
-			end else if (fast_clock_counter[pickoff:0]==2) begin
-				data_bus <= 10'b0011111111;
-			end else if (fast_clock_counter[pickoff:0]==3) begin
-				data_bus <= 10'b0001111111;
-			end else if (fast_clock_counter[pickoff:0]==4) begin
-				data_bus <= 10'b0000111111;
-			end else if (fast_clock_counter[pickoff:0]==5) begin
-				data_bus <= 10'b0000011111;
-			end else if (fast_clock_counter[pickoff:0]==6) begin
-				data_bus <= 10'b0000001111;
-			end else if (fast_clock_counter[pickoff:0]==7) begin
-				data_bus <= 10'b0000000111;
-			end else if (fast_clock_counter[pickoff:0]==8) begin
-				data_bus <= 10'b0000000011;
-			end else if (fast_clock_counter[pickoff:0]==9) begin
-				data_bus <= 10'b0000000001;
-			end else if (fast_clock_counter[pickoff:0]==10) begin
-				data_bus <= 10'b0000000000;
-			end else if (fast_clock_counter[pickoff:0]==11) begin
-				data_bus <= 10'b0101010101;
-			end else if (fast_clock_counter[pickoff:0]==12) begin
-				data_bus <= read_data[9:0];
-			end else begin
-				read_address <= fast_clock_counter[pickoff+10:pickoff];
-				data_bus <= 10'b1111111111;
 			end
 		end
 	end
