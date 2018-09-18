@@ -1,0 +1,23 @@
+# written 2018-09-17 by mza
+# based off of boardstack-v2-with-SCROD-revA3.ucf
+# last updated 2018-09-17 by mza
+
+# 250 MHz local oscillator:
+net clock_p loc=u25 | iostandard = lvds_25 | diff_term = true;
+net clock_n loc=u26 | iostandard = lvds_25 | diff_term = true;
+
+net "clock" tnm_net = clock;
+timespec "ts_clock" = period "clock" 4 ns high 50%;
+
+# remote clock/trigger (FTSW):
+#net rj45_trg_p loc=ab14 | iostandard=lvds_25 | diff_term=true;
+#net rj45_trg_n loc=ac14 | iostandard=lvds_25 | diff_term=true;
+#net rj45_clk_p loc=ae13 | iostandard=lvds_25 | diff_term=true;
+#net rj45_clk_n loc=af13 | iostandard=lvds_25 | diff_term=true;
+#net rj45_rsv_p loc=ae15 | iostandard=lvds_25;
+#net rj45_rsv_n loc=af15 | iostandard=lvds_25;
+#net rj45_ack_p loc=ad14 | iostandard=lvds_25;
+#net rj45_ack_n loc=af14 | iostandard=lvds_25;
+
+net ttl_trig_output loc=d21 | iostandard=lvcmos33;
+
