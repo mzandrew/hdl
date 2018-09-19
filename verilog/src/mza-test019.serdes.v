@@ -12,7 +12,7 @@ module mza_test019_serdes (
 	//output lvds_trig_output_p,
 	//output lvds_trig_output_n
 );
-	localparam WIDTH = 4;
+	localparam WIDTH = 8;
 	wire clock;
 	reg [31:0] counter = 0;
 	assign led0 = counter[27-$clog2(WIDTH)]; // ~ 1 Hz
@@ -31,39 +31,26 @@ module mza_test019_serdes (
 	wire cascade_to;
 	wire cascade_di;
 	wire cascade_ti;
-	assign cascade_do = 1'b1;
-	assign cascade_to = 1'b1;
 	wire [WIDTH-1:0] word;
-//	assign word = counter[WIDTH-1:0];
-	assign word = { 1'b0, counter[WIDTH-1:1] };
-//	assign word = { 2'b0, counter[WIDTH-1:2] };
+	assign word = { 4'b0, counter[WIDTH-1-4:0] };
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("NONE"))
-	         osirus_none
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
+	         osirus_master
 	         (.OQ(ttl_trig_output), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
-	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
+	         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
 	         .IOCE(IOCE), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
 	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do), .SHIFTIN4(cascade_to), 
 	         .SHIFTOUT1(cascade_di), .SHIFTOUT2(cascade_ti), .SHIFTOUT3(), .SHIFTOUT4(), 
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-//	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
-//	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-//	         osirus_master
-//	         (.OQ(ttl_trig_output), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
-//	         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
-//	         .IOCE(IOCE), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-//	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do), .SHIFTIN4(cascade_to), 
-//	         .SHIFTOUT1(cascade_di), .SHIFTOUT2(cascade_ti), .SHIFTOUT3(), .SHIFTOUT4(), 
-//	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-//	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
-//	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-//	         osirus_slave
-//	         (.OQ(), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
-//	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
-//	         .IOCE(IOCE), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-//	         .SHIFTIN1(cascade_di), .SHIFTIN2(cascade_ti), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-//	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do), .SHIFTOUT4(cascade_to),
-//	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
+	         osirus_slave
+	         (.OQ(), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
+	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
+	         .IOCE(IOCE), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(cascade_di), .SHIFTIN2(cascade_ti), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do), .SHIFTOUT4(cascade_to),
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	always @(posedge clock) begin
 		if (reset) begin
 			if (counter[10]) begin
@@ -72,6 +59,5 @@ module mza_test019_serdes (
 		end
 		counter <= counter + 1;
 	end
-//	ODDR2 ogre (.Q(ttl_trig_output), .C0(other_clock_p), .C1(other_clock_n), .D0(1'b0), .D1(1'b1), .S(1'b0), .R(reset), .CE(1'b1));
 //	assign ttl_trig_output = counter[0];
 endmodule
