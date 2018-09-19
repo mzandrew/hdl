@@ -1,6 +1,6 @@
 # written 2018-09-17 by mza
 # based off of boardstack-v2-with-SCROD-revA3.ucf
-# last updated 2018-09-17 by mza
+# last updated 2018-09-18 by mza
 
 # 250 MHz local oscillator:
 net clock_p loc=u25 | iostandard = lvds_25 | diff_term = true;
@@ -20,4 +20,21 @@ timespec "ts_clock" = period "clock" 4 ns high 50%;
 #net rj45_ack_n loc=af14 | iostandard=lvds_25;
 
 net ttl_trig_output loc=d21 | iostandard=lvcmos33;
+
+net led0  loc=f18 | iostandard=lvcmos33;
+net led1  loc=e18 | iostandard=lvcmos33;
+net led2  loc=g16 | iostandard=lvcmos33;
+#net led3  loc=f17 | iostandard=lvcmos33;
+#net led4  loc=f20 | iostandard=lvcmos33;
+#net led5  loc=e20 | iostandard=lvcmos33;
+#net led6  loc=h17 | iostandard=lvcmos33;
+#net led7  loc=g17 | iostandard=lvcmos33;
+#net led8  loc=c21 | iostandard=lvcmos33;
+#net led9  loc=b21 | iostandard=lvcmos33;
+#net led10 loc=h18 | iostandard=lvcmos33;
+#net led11 loc=h19 | iostandard=lvcmos33;
+#net led12 loc=b22 | iostandard=lvcmos33;
+#net led13 loc=a22 | iostandard=lvcmos33;
+#net led14 loc=g19 | iostandard=lvcmos33;
+#net led15 loc=f19 | iostandard=lvcmos33;
 
