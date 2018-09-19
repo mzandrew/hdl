@@ -19,7 +19,8 @@ timespec "ts_clock" = period "clock" 4 ns high 50%;
 #net rj45_ack_p loc=ad14 | iostandard=lvds_25;
 #net rj45_ack_n loc=af14 | iostandard=lvds_25;
 
-net ttl_trig_output loc=d21 | iostandard=lvcmos33 | slew=fast | drive=24;
+#net ttl_trig_output loc=d21 | iostandard=lvcmos33 | slew=fast | drive=24;
+net ttl_trig_output loc=t24 | iostandard=lvcmos33 | slew=fast | drive=24; // must be on the same BUFIO2 clocking region as the clock
 
 net led0  loc=f18 | iostandard=lvcmos33;
 net led1  loc=e18 | iostandard=lvcmos33;
