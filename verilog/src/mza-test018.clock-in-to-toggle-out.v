@@ -2,7 +2,7 @@
 // written 2018-09-17 by mza
 // last updated 2018-09-18 by mza
 
-module mytop(
+module mza_test018_clock_in_to_toggle_out (
 	input clock_p,
 	input clock_n,
 	output ttl_trig_output,

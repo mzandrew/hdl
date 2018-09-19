@@ -2,6 +2,6 @@ source contrib/digilent-hs1-spartan6.cfg
 
 init
 xc6s_program xc6s.tap
-pld load 0 mza-test018.clock-in-to-toggle-out/mytop.bit
+pld load 0 mza-test018.clock-in-to-toggle-out/mza_test018_clock_in_to_toggle_out.bit
 exit
 
