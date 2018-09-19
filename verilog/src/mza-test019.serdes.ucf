@@ -1,6 +1,6 @@
 # written 2018-09-17 by mza
 # based off of boardstack-v2-with-SCROD-revA3.ucf
-# last updated 2018-09-18 by mza
+# last updated 2018-09-19 by mza
 
 # 250 MHz local oscillator:
 #net clock_p loc=u25 | iostandard=lvds_25 | diff_term=true;
@@ -9,7 +9,7 @@
 net clock_p loc=b12 | iostandard=lvds_25 | diff_term=true;
 net clock_n loc=a12 | iostandard=lvds_25 | diff_term=true;
 
-net "clock" tnm_net = clock;
+net "clock_p" tnm_net = clock;
 #timespec "ts_clock" = period "clock" 4 ns high 50%; # 250 MHz
 timespec "ts_clock" = period "clock" 6.4 ns high 50%; # 156.25 MHz
 
