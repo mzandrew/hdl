@@ -16,9 +16,9 @@ module mza_test019_serdes (
 	//assign ttl_trig_output = trigout;
 	wire clock;
 	reg [31:0] counter;
-	assign led0 = counter[28];
+	assign led0 = counter[27];
 	assign led1 = reset;
-	assign led2 = ~reset;
+	assign led2 = 0;
 	reg reset = 1;
 //	wire clock_inverted;
 //	assign clock_inverted = ~ clock;
