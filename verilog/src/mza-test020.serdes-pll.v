@@ -88,7 +88,7 @@ endmodule
 module oserdes_pll (input clock_in, input reset, output fabric_clock_out, output serializer_clock_out, output serializer_strobe_output, output locked);
 // from clock_generator_pll_s8_diff.v from XAPP1064 example code
 parameter integer PLLD = 3; // Parameter to set the division factor in the PLL
-parameter integer PLLX = 8; // Parameter to set the multiplication factor in the PLL
+parameter integer PLLX = 10; // Parameter to set the multiplication factor in the PLL
 // frequency of VCO after div and mult must be in range [400,1080] MHz
 parameter integer S = 8; // Parameter to set the serdes factor 1..8
 parameter real CLKIN_PERIOD = 6.4; // clock period (ns) of input clock on clkin_p
