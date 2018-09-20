@@ -5,6 +5,6 @@ source [find cpld/xilinx-xc6s.cfg]
 
 init
 xc6s_program xc6s.tap
-pld load 0 mza-test018.clock-in-to-toggle-out/mza_test018_clock_in_to_toggle_out.bit
+pld load 0 mza-test019.serdes/mza_test019_serdes.bit
 exit
 
