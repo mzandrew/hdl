@@ -80,21 +80,21 @@ module mza_test020_serdes_pll (
 		word <= 8'b00000000;
 		if (counter[pickoff:0]==0) begin
 			         if (counter[pickoff+3:pickoff+1]==3'b000) begin
-				word <= 8'b10000001;
+				word <= 8'b11111111;
 			end else if (counter[pickoff+3:pickoff+1]==3'b001) begin
-				word <= 8'b11000001;
+				word <= 8'b11111110;
 			end else if (counter[pickoff+3:pickoff+1]==3'b010) begin
-				word <= 8'b10100001;
+				word <= 8'b11111100;
 			end else if (counter[pickoff+3:pickoff+1]==3'b011) begin
-				word <= 8'b10010001;
+				word <= 8'b11111000;
 			end else if (counter[pickoff+3:pickoff+1]==3'b100) begin
-				word <= 8'b10001001;
+				word <= 8'b11110000;
 			end else if (counter[pickoff+3:pickoff+1]==3'b101) begin
-				word <= 8'b10000101;
+				word <= 8'b11100000;
 			end else if (counter[pickoff+3:pickoff+1]==3'b110) begin
-				word <= 8'b10000011;
+				word <= 8'b11000000;
 			end else if (counter[pickoff+3:pickoff+1]==3'b111) begin
-				word <= 8'b10000001;
+				word <= 8'b10000000;
 			end
 		end
 		counter <= counter + 1;
