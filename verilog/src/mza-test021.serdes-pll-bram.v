@@ -24,7 +24,7 @@ module mza_test021_serdes_pll_bram (
 	localparam WIDTH = 8;
 	reg reset1 = 1;
 	reg reset2 = 1;
-	wire clock;
+	wire clock; // 125 MHz
 	reg [31:0] counter = 0;
 	assign led_8 = counter[27-$clog2(WIDTH)]; // ~ 1 Hz
 	assign led_9 = reset1;
@@ -41,8 +41,9 @@ module mza_test021_serdes_pll_bram (
 	wire cascade_to;
 	wire cascade_di;
 	wire cascade_ti;
-	wire [WIDTH-1:0] word;
-	assign word = { 4'b0, counter[WIDTH-1-4:0] };
+	reg [WIDTH-1:0] word;
+	localparam pickoff = 27;
+//	assign word = { 6'b0, counter[WIDTH-7]&counter[pickoff], counter[WIDTH-8]&counter[pickoff] };
 	wire [7:0] led_byte;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = led_byte;
 	assign led_byte = word;
@@ -68,7 +69,7 @@ module mza_test021_serdes_pll_bram (
 	always @(posedge other_clock) begin
 		if (reset1) begin
 			if (reset1_counter[10]) begin
-				reset1 = 0;
+				reset1 <= 0;
 			end
 		end
 		reset1_counter <= reset1_counter + 1;
@@ -76,8 +77,18 @@ module mza_test021_serdes_pll_bram (
 	always @(posedge clock) begin
 		if (reset2) begin
 			if (counter[10]) begin
-				reset2 = 0;
+				reset2 <= 0;
 			end
+		end
+		if (counter[pickoff:0]==0) begin
+			word <= 8'b00000001;
+//		end else if (counter[pickoff:0]==1) begin
+//			word <= 8'b00000000;
+//		end else if (counter[pickoff:0]==2) begin
+//			word <= 8'b00000000;
+//		end else if (counter[pickoff:0]==3) begin
+		end else begin
+			word <= 8'b00000000;
 		end
 		counter <= counter + 1;
 	end

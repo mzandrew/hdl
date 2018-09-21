@@ -1,4 +1,5 @@
 *
 !*.xise
 !.gitignore
+!*.openocd-cfg
 
