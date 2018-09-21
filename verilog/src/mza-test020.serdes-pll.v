@@ -26,7 +26,9 @@ module mza_test020_serdes_pll (
 	reg reset2 = 1;
 	wire clock; // 125 MHz
 	reg [31:0] counter = 0;
-	assign led_8 = counter[27-$clog2(WIDTH)]; // ~ 1 Hz
+	reg sync;
+//	assign led_8 = counter[27-$clog2(WIDTH)]; // ~ 1 Hz
+	assign led_8 = sync;
 	assign led_9 = reset1;
 	assign led_a = reset2;
 	wire other_clock;
@@ -39,7 +41,7 @@ module mza_test020_serdes_pll (
 	wire cascade_di;
 	wire cascade_ti;
 	reg [WIDTH-1:0] word;
-	localparam pickoff = 26;
+	localparam pickoff = 24;
 	wire [7:0] led_byte;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = led_byte;
 	assign led_byte = word;
@@ -79,21 +81,15 @@ module mza_test020_serdes_pll (
 		end
 		word <= 8'b00000000;
 		if (counter[pickoff:0]==0) begin
-			         if (counter[pickoff+3:pickoff+1]==3'b000) begin
+			         if (counter[pickoff+2:pickoff+1]==2'b00) begin
+				sync <= 1;
 				word <= 8'b11111111;
-			end else if (counter[pickoff+3:pickoff+1]==3'b001) begin
+			end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
+				sync <= 0;
 				word <= 8'b11111110;
-			end else if (counter[pickoff+3:pickoff+1]==3'b010) begin
-				word <= 8'b11111100;
-			end else if (counter[pickoff+3:pickoff+1]==3'b011) begin
-				word <= 8'b11111000;
-			end else if (counter[pickoff+3:pickoff+1]==3'b100) begin
-				word <= 8'b11110000;
-			end else if (counter[pickoff+3:pickoff+1]==3'b101) begin
-				word <= 8'b11100000;
-			end else if (counter[pickoff+3:pickoff+1]==3'b110) begin
+			end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
 				word <= 8'b11000000;
-			end else if (counter[pickoff+3:pickoff+1]==3'b111) begin
+			end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
 				word <= 8'b10000000;
 			end
 		end
