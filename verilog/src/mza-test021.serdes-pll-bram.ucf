@@ -1,0 +1,44 @@
+# written 2018-09-17 by mza
+# based off of boardstack-v2-with-SCROD-revA3.ucf
+# last updated 2018-09-19 by mza
+
+# 250 MHz local oscillator:
+#net clock_p loc=u25 | iostandard=lvds_25 | diff_term=true;
+#net clock_n loc=u26 | iostandard=lvds_25 | diff_term=true;
+# 156.25 MHz local oscillator:
+net clock_p loc=b12 | iostandard=lvds_25 | diff_term=true;
+net clock_n loc=a12 | iostandard=lvds_25 | diff_term=true;
+
+net "clock_p" tnm_net = clock_p;
+#timespec "ts_clock_p" = period "clock_p" 4 ns high 50%; # 250 MHz
+timespec "ts_clock_p" = period "clock_p" 6.4 ns high 50%; # 156.25 MHz
+
+# remote clock/trigger (FTSW):
+#net rj45_trg_p loc=ab14 | iostandard=lvds_25 | diff_term=true;
+#net rj45_trg_n loc=ac14 | iostandard=lvds_25 | diff_term=true;
+#net rj45_clk_p loc=ae13 | iostandard=lvds_25 | diff_term=true;
+#net rj45_clk_n loc=af13 | iostandard=lvds_25 | diff_term=true;
+#net rj45_rsv_p loc=ae15 | iostandard=lvds_25;
+#net rj45_rsv_n loc=af15 | iostandard=lvds_25;
+#net rj45_ack_p loc=ad14 | iostandard=lvds_25;
+#net rj45_ack_n loc=af14 | iostandard=lvds_25;
+
+net ttl_trig_output loc=d21 | iostandard=lvcmos33 | slew=fast | drive=24;
+#net ttl_trig_output loc=t24 | iostandard=lvcmos33 | slew=fast | drive=24; // must be on the same BUFIO2 clocking region as the clock
+
+net led_0 loc=f18 | iostandard=lvcmos33;
+net led_1 loc=e18 | iostandard=lvcmos33;
+net led_2 loc=g16 | iostandard=lvcmos33;
+net led_3 loc=f17 | iostandard=lvcmos33;
+net led_4 loc=f20 | iostandard=lvcmos33;
+net led_5 loc=e20 | iostandard=lvcmos33;
+net led_6 loc=h17 | iostandard=lvcmos33;
+net led_7 loc=g17 | iostandard=lvcmos33;
+net led_8 loc=c21 | iostandard=lvcmos33;
+net led_9 loc=b21 | iostandard=lvcmos33;
+net led_a loc=h18 | iostandard=lvcmos33;
+net led_b loc=h19 | iostandard=lvcmos33;
+#net led_c loc=b22 | iostandard=lvcmos33;
+#net led_d loc=a22 | iostandard=lvcmos33;
+#net led_e loc=g19 | iostandard=lvcmos33;
+#net led_f loc=f19 | iostandard=lvcmos33;

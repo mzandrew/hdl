@@ -1,0 +1,10 @@
+adapter_khz 10000
+source [find interface/ftdi/digilent-hs1.cfg]
+transport select jtag
+source [find cpld/xilinx-xc6s.cfg]
+
+init
+xc6s_program xc6s.tap
+pld load 0 mza_test021_serdes_pll_bram/mza_test021_serdes_pll_bram.bit
+exit
+
