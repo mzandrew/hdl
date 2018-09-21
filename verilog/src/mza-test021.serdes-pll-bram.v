@@ -80,15 +80,17 @@ module mza_test021_serdes_pll_bram (
 				reset2 <= 0;
 			end
 		end
+		word <= 8'b00000000;
 		if (counter[pickoff:0]==0) begin
-			word <= 8'b00000001;
-//		end else if (counter[pickoff:0]==1) begin
-//			word <= 8'b00000000;
-//		end else if (counter[pickoff:0]==2) begin
-//			word <= 8'b00000000;
-//		end else if (counter[pickoff:0]==3) begin
-		end else begin
-			word <= 8'b00000000;
+			if (counter[pickoff+2:pickoff+1]==2'b00) begin
+				word <= 8'b00000001;
+			end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
+				word <= 8'b00000011;
+			end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
+				word <= 8'b00000111;
+			end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
+				word <= 8'b00001111;
+			end
 		end
 		counter <= counter + 1;
 	end
