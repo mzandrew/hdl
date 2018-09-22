@@ -6,6 +6,12 @@ module mza_test020_serdes_pll (
 	input clock_p,
 	input clock_n,
 	output ttl_trig_output,
+	input self_triggered_mode_switch,
+	input lvds_trig_input_p,
+	output lvds_trig_input_n,
+	//output lvds_tr1ig_output_n,
+	//output lvds_trig_output_p,
+	//output lvds_tr1ig_output_n,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -18,8 +24,6 @@ module mza_test020_serdes_pll (
 	output led_9,
 	output led_a,
 	output led_b
-	//output lvds_trig_output_p,
-	//output lvds_tr1ig_output_n
 );
 	localparam WIDTH = 8;
 	reg reset1 = 1;
@@ -73,26 +77,53 @@ module mza_test020_serdes_pll (
 		end
 		reset1_counter <= reset1_counter + 1;
 	end
+	wire trigger_input;
+	assign trigger_input = lvds_trig_input_p;
+	assign lvds_trig_input_n = 1;
+	reg [1:0] token;
+	reg [2:0] trigger_stream;
 	always @(posedge clock) begin
 		if (reset2) begin
+			token <= 2'b00;
+			trigger_stream <= 0;
 			if (counter[10]) begin
 				reset2 <= 0;
 			end
 		end
 		word <= 8'b00000000;
-		if (counter[pickoff:0]==0) begin
-			         if (counter[pickoff+2:pickoff+1]==2'b00) begin
+		if (self_triggered_mode_switch) begin
+			if (counter[pickoff:0]==0) begin
+				         if (counter[pickoff+2:pickoff+1]==2'b00) begin
+					sync <= 1;
+					word <= 8'b11111111;
+				end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
+					sync <= 0;
+					word <= 8'b11111110;
+				end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
+					word <= 8'b11000000;
+				end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
+					word <= 8'b10000000;
+				end
+			end
+		end else if (trigger_stream==3'b001) begin
+			if (token==2'b00) begin
 				sync <= 1;
 				word <= 8'b11111111;
-			end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
+				token <= 2'b01;
+			end else if (token==2'b01) begin
 				sync <= 0;
 				word <= 8'b11111110;
-			end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
+				token <= 2'b10;
+			end else if (token==2'b10) begin
 				word <= 8'b11000000;
-			end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
+				token <= 2'b11;
+			//end else if (token==2'b11) begin
+			end else begin
 				word <= 8'b10000000;
+				token <= 2'b00;
 			end
 		end
+		trigger_stream <= { trigger_stream[1:0], trigger_input };
 		counter <= counter + 1;
 	end
 	oserdes_pll #(.WIDTH(WIDTH)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked(led_b));
