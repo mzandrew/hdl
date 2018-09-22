@@ -8,7 +8,7 @@ module mza_test020_serdes_pll (
 	output ttl_trig_output,
 	input self_triggered_mode_switch,
 	input lvds_trig_input_p,
-	output lvds_trig_input_n,
+	input lvds_trig_input_n,
 	//output lvds_tr1ig_output_n,
 	//output lvds_trig_output_p,
 	//output lvds_tr1ig_output_n,
@@ -78,8 +78,7 @@ module mza_test020_serdes_pll (
 		reset1_counter <= reset1_counter + 1;
 	end
 	wire trigger_input;
-	assign trigger_input = lvds_trig_input_p;
-	assign lvds_trig_input_n = 1;
+	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
 	reg [1:0] token;
 	reg [2:0] trigger_stream;
 	always @(posedge clock) begin

@@ -43,7 +43,7 @@ net led_a loc=h18 | iostandard=lvcmos33;
 #net led_e loc=g19 | iostandard=lvcmos33;
 #net led_f loc=f19 | iostandard=lvcmos33;
 
-net lvds_trig_input_p loc=ab14 | iostandard=lvcmos25 | pulldown=true;
-net lvds_trig_input_n loc=ac14 | iostandard=lvcmos25;
+net lvds_trig_input_p loc=ab14 | iostandard=lvds_25 | diff_term=true;
+net lvds_trig_input_n loc=ac14 | iostandard=lvds_25 | diff_term=true;
 net self_triggered_mode_switch loc=d22 | iostandard=lvcmos33;
 
