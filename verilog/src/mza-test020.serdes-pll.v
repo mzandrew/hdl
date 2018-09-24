@@ -94,14 +94,14 @@ module mza_test020_serdes_pll (
 			if (counter[pickoff:0]==0) begin
 				         if (counter[pickoff+2:pickoff+1]==2'b00) begin
 					sync <= 1;
-					word <= 8'b11111111;
+					word <= 8'b11111100;
 				end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
 					sync <= 0;
-					word <= 8'b11111110;
+					word <= 8'b11111000;
 				end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
-					word <= 8'b11000000;
+					word <= 8'b11100000;
 				end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
-					word <= 8'b10000000;
+					word <= 8'b11000000;
 				end
 			end
 		end else if (trigger_stream==3'b001) begin
