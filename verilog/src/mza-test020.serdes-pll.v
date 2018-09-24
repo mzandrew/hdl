@@ -81,6 +81,10 @@ module mza_test020_serdes_pll (
 	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
 	reg [1:0] token;
 	reg [2:0] trigger_stream;
+	localparam first  = 8'b11110000;
+	localparam second = 8'b11100000;
+	localparam third  = 8'b11000000;
+	localparam forth  = 8'b10000000;
 	always @(posedge clock) begin
 		if (reset2) begin
 			token <= 2'b00;
@@ -94,31 +98,31 @@ module mza_test020_serdes_pll (
 			if (counter[pickoff:0]==0) begin
 				         if (counter[pickoff+2:pickoff+1]==2'b00) begin
 					sync <= 1;
-					word <= 8'b11111100;
+					word <= first;
 				end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
 					sync <= 0;
-					word <= 8'b11111000;
+					word <= second;
 				end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
-					word <= 8'b11100000;
+					word <= third;
 				end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
-					word <= 8'b11000000;
+					word <= forth;
 				end
 			end
 		end else if (trigger_stream==3'b001) begin
 			if (token==2'b00) begin
 				sync <= 1;
-				word <= 8'b11111111;
+				word <= first;
 				token <= 2'b01;
 			end else if (token==2'b01) begin
 				sync <= 0;
-				word <= 8'b11111110;
+				word <= second;
 				token <= 2'b10;
 			end else if (token==2'b10) begin
-				word <= 8'b11000000;
+				word <= third;
 				token <= 2'b11;
 			//end else if (token==2'b11) begin
 			end else begin
-				word <= 8'b10000000;
+				word <= forth;
 				token <= 2'b00;
 			end
 		end
