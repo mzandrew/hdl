@@ -32,13 +32,13 @@ module mytop (
 	assign trigger_active = reference_clock_counter[log2_of_divide_ratio];
 	assign signal_output = trigger_active;
 	assign J1[0] = signal_output; // trigger_out on PCB
-	assign external_reference_clock = J2[0];
+	assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
 //	assign reference_clock = external_reference_clock;
 	assign reference_clock = clock;
 	always @(posedge reference_clock) begin
 		reference_clock_counter++;
 	end
-	assign external_clock_to_measure = J2[3];
+	assign external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
 	always @(posedge external_clock_to_measure) begin
 		counter_for_external_clock_to_measure++;	
 		if (trigger_active==1) begin
@@ -58,7 +58,7 @@ module mytop (
 	assign J3[2] = 1;
 	wire [7:0] anode;
 	assign { J2[7], J2[4], J2[5], J2[6], J3[6], J3[7], J3[3], J3[1] } = anode; // anodes 7,6,5,4,3,2,1,0
-	segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(8)) my_instance_name (.clock(clock), .data(buffered_bcd2[msb_of_counters:0]), .cathode(segment), .anode(anode));
+	segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(8)) my_instance_name (.clock(clock), .data(buffered_bcd1[msb_of_counters:0]), .cathode(segment), .anode(anode));
 	assign LED[5] = uart_busy;
 	assign LED[4] = signal_output;
 	assign LED[3] = trigger_stream[2];
