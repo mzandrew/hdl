@@ -27,14 +27,20 @@ module mytop (
 	reg [msb_of_counters:0] trigger_duration = 0; // live
 	reg [msb_of_counters:0] previous_trigger_duration = 0; // updated after pulse ends
 	reg [2:0] trigger_stream = 0;
-	reg [39:0] accumulator = 0;
+	localparam msb_of_accumulator = 41;
+	reg [msb_of_accumulator:0] accumulator = 0;
 	localparam log2_of_divide_ratio = 20;
+	assign J1[6] = 0;
+	assign J1[7] = 0;
+	assign J2[1] = signal_output; // 1,2 pair (ACK)
+	assign J2[2] = signal_output; // 5,4 pair (RSV)
 	assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
 	assign external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
 //	assign reference_clock = external_clock_to_measure; // 127216 kHz or unknown
-//	assign reference_clock = external_reference_clock; // 100000 kHz
-	assign reference_clock = clock; // 12000 kHz
-	localparam frequency_of_reference_clock_in_kHz = 12000;
+	assign reference_clock = external_reference_clock; // 100000 kHz
+	localparam frequency_of_reference_clock_in_kHz = 100000;
+//	assign reference_clock = clock; // 12000 kHz
+//	localparam frequency_of_reference_clock_in_kHz = 12000;
 //	assign trigger_active = counter_for_external_clock_to_measure[log2_of_divide_ratio];
 	assign trigger_active = reference_clock_counter[log2_of_divide_ratio];
 	assign signal_output = trigger_active;
@@ -120,7 +126,7 @@ module mytop (
 		end else if (counter[slow_clock_pickoff:0]==2) begin
 			accumulator = previous_trigger_duration * frequency_of_reference_clock_in_kHz;
 		end else if (counter[slow_clock_pickoff:0]==3) begin
-			accumulator = { 0, accumulator[39:log2_of_divide_ratio] };
+			accumulator = { 0, accumulator[msb_of_accumulator:log2_of_divide_ratio] };
 		end
 //		if (counter[uart_line_pickoff:0]==0) begin // less frequent
 //			if (previous_number_of_pulses!=number_of_pulses) begin
