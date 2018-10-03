@@ -22,16 +22,12 @@ module mytop (
 	wire trigger_active;
 	wire signal_output;
 	localparam msb_of_counters = 27;
-//	reg [msb_of_counters:0] counter_for_external_clock_to_measure = 0;
 	reg [msb_of_counters:0] reference_clock_counter;
 	reg [msb_of_counters:0] trigger_duration = 0; // live
 	reg [msb_of_counters:0] previous_trigger_duration = 0; // updated after pulse ends
 	reg [2:0] trigger_stream = 0;
-	localparam msb_of_accumulator = 41;
-	reg [msb_of_accumulator:0] accumulator = 0;
-	localparam log2_of_divide_ratio = 20;
-	assign J1[6] = 0;
-	assign J1[7] = 0;
+	localparam maximum_expected_frequency = 250000000;
+	localparam log2_of_maximum_expected_frequency = $clog2(maximum_expected_frequency); // ~28
 	assign J2[1] = signal_output; // 1,2 pair (ACK)
 	assign J2[2] = signal_output; // 5,4 pair (RSV)
 	assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
@@ -41,7 +37,13 @@ module mytop (
 	localparam frequency_of_reference_clock_in_kHz = 100000;
 //	assign reference_clock = clock; // 12000 kHz
 //	localparam frequency_of_reference_clock_in_kHz = 12000;
-//	assign trigger_active = counter_for_external_clock_to_measure[log2_of_divide_ratio];
+	localparam log2_of_frequency_of_reference_clock_in_kHz = $clog2(frequency_of_reference_clock_in_kHz); // ~17
+	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_kHz; // ~45
+	localparam log2_of_divide_ratio = 20;
+//	localparam log2_of_msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~25
+	reg [msb_of_accumulator:0] accumulator = 0;
+	assign J1[6] = 0;
+	assign J1[7] = 0;
 	assign trigger_active = reference_clock_counter[log2_of_divide_ratio];
 	assign signal_output = trigger_active;
 	assign J1[0] = signal_output; // trigger_out on PCB
@@ -49,7 +51,6 @@ module mytop (
 		reference_clock_counter++;
 	end
 	always @(posedge external_clock_to_measure) begin
-//		counter_for_external_clock_to_measure++;	
 		if (trigger_active==1) begin
 			trigger_duration++;
 		end else begin
@@ -80,12 +81,11 @@ module mytop (
 //	localparam uart_character_pickoff = 11; // this is already close to the limit for 115200
 	localparam uart_line_pickoff = 22;
 	localparam slow_clock_pickoff = uart_line_pickoff;
-//	reg [15:0] uart_line_counter//	wire uart_resetb;
+//	reg [15:0] uart_line_counter;
 	wire uart_resetb;
 	reg reset = 1;
 	assign uart_resetb = ~reset;
 //	localparam log2_of_function_generator_period = uart_line_pickoff;
-	//localparam function_generator_start = 2**(log2_of_function_generator_period-1);
 //	localparam function_generator_start = 0;
 //	reg [9:0] pulse_duration;
 //	reg [msb_of_counters:0] previous_number_of_pulses = 0;
@@ -120,7 +120,7 @@ module mytop (
 			//value1 <= uart_line_counter;
 //			value1 <= reference_clock_counter[23:0];
 //			value2 <= previous_trigger_duration; // TDC mode
-			//value2 <= accumulator[37:14]; // frequency counter mode
+//			value2 <= accumulator[msb_of_accumulator:log2_of_divide_ratio]; // frequency counter mode
 			value2 <= accumulator[23:0]; // frequency counter mode
 //			value1 <= number_of_pulses; // scaler mode
 		end else if (counter[slow_clock_pickoff:0]==2) begin
