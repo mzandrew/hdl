@@ -40,8 +40,9 @@ module mytop (
 	localparam log2_of_frequency_of_reference_clock_in_kHz = $clog2(frequency_of_reference_clock_in_kHz); // ~17
 	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_kHz; // ~45
 	localparam log2_of_divide_ratio = 20;
-//	localparam log2_of_msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~25
+	localparam msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~25
 	reg [msb_of_accumulator:0] accumulator = 0;
+	reg [msb_of_result:0] result = 0;
 	assign J1[6] = 0;
 	assign J1[7] = 0;
 	assign trigger_active = reference_clock_counter[log2_of_divide_ratio];
@@ -115,18 +116,18 @@ module mytop (
 		if (counter[slow_clock_pickoff:0]==0) begin
 //			buffered_bcd1 <= bcd1;
 			buffered_bcd2 <= bcd2;
-//			buffered_rand <= rand;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
+			accumulator = previous_trigger_duration * frequency_of_reference_clock_in_kHz;
+		end else if (counter[slow_clock_pickoff:0]==2) begin
+			result = { 0, accumulator[msb_of_accumulator:log2_of_divide_ratio] };
+		end else if (counter[slow_clock_pickoff:0]==3) begin
 			//value1 <= uart_line_counter;
 //			value1 <= reference_clock_counter[23:0];
 //			value2 <= previous_trigger_duration; // TDC mode
 //			value2 <= accumulator[msb_of_accumulator:log2_of_divide_ratio]; // frequency counter mode
-			value2 <= accumulator[23:0]; // frequency counter mode
+//			value2 <= accumulator[23:0]; // frequency counter mode
+			value2 <= result; // frequency counter mode
 //			value1 <= number_of_pulses; // scaler mode
-		end else if (counter[slow_clock_pickoff:0]==2) begin
-			accumulator = previous_trigger_duration * frequency_of_reference_clock_in_kHz;
-		end else if (counter[slow_clock_pickoff:0]==3) begin
-			accumulator = { 0, accumulator[msb_of_accumulator:log2_of_divide_ratio] };
 		end
 //		if (counter[uart_line_pickoff:0]==0) begin // less frequent
 //			if (previous_number_of_pulses!=number_of_pulses) begin
@@ -188,9 +189,6 @@ module mytop (
 	reg [35:0] buffered_bcd2;
 //	reg [23:0] value1;
 	reg [23:0] value2;
-//	reg [127:0] rand;
-//	reg [127:0] buffered_rand;
-//	prbs myprbs(.clock(clock), .reset(reset), .word(rand));
 //	hex2bcd #(.input_size_in_nybbles(6)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1) );
 //	hex2bcd #(.input_size_in_nybbles(6)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
 	assign bcd2 = { 0, value2 };
