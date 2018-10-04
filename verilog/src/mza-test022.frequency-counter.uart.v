@@ -41,8 +41,9 @@ module mytop (
 	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_100Hz; // ~45
 	localparam log2_of_divide_ratio = 20;
 	localparam msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~25
-	reg [msb_of_accumulator:0] accumulator = 0;
-	reg [msb_of_result:0] result = 0;
+	reg [msb_of_accumulator:0] accumulator;
+	reg [msb_of_accumulator:0] previous_accumulator;
+	reg [msb_of_result:0] result;
 	assign J1[6] = 0;
 	assign J1[7] = 0;
 	assign trigger_active = reference_clock_counter[log2_of_divide_ratio];
@@ -54,11 +55,14 @@ module mytop (
 	always @(posedge external_clock_to_measure) begin
 		if (trigger_active==1) begin
 			trigger_duration++;
+			accumulator <= accumulator + frequency_of_reference_clock_in_100Hz;
 		end else begin
 			if (trigger_stream==3'b110) begin
 //				number_of_pulses++;
 				previous_trigger_duration <= trigger_duration;
 				trigger_duration <= 0;
+				previous_accumulator <= accumulator;
+				accumulator <= 0;
 			end
 		end
 		trigger_stream <= { trigger_stream[1:0], trigger_active }; // 110, 100, 000 or 001, 011, 111
@@ -117,9 +121,9 @@ module mytop (
 //			buffered_bcd1 <= bcd1;
 			buffered_bcd2 <= bcd2;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
-			accumulator = previous_trigger_duration * frequency_of_reference_clock_in_100Hz;
+//			accumulator = previous_trigger_duration * frequency_of_reference_clock_in_100Hz;
 		end else if (counter[slow_clock_pickoff:0]==2) begin
-			result = { 0, accumulator[msb_of_accumulator:log2_of_divide_ratio] };
+			result = { 0, previous_accumulator[msb_of_accumulator:log2_of_divide_ratio] };
 		end else if (counter[slow_clock_pickoff:0]==3) begin
 			//value1 <= uart_line_counter;
 //			value1 <= reference_clock_counter[23:0];
@@ -190,8 +194,8 @@ module mytop (
 //	reg [23:0] value1;
 	reg [23:0] value2;
 //	hex2bcd #(.input_size_in_nybbles(6)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1) );
-//	hex2bcd #(.input_size_in_nybbles(6)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
-	assign bcd2 = { 0, value2 };
+	hex2bcd #(.input_size_in_nybbles(6)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
+//	assign bcd2 = { 0, value2 };
 //	reg uart_busy;
 //	reg start_uart_transfer;
 //	reg [7:0] byte_to_send;
