@@ -32,13 +32,13 @@ module mytop (
 	assign J2[2] = signal_output; // 5,4 pair (RSV)
 	assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
 	assign external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
-//	assign reference_clock = external_clock_to_measure; // 127216 kHz or unknown
-	assign reference_clock = external_reference_clock; // 100000 kHz
-	localparam frequency_of_reference_clock_in_kHz = 100000;
-//	assign reference_clock = clock; // 12000 kHz
-//	localparam frequency_of_reference_clock_in_kHz = 12000;
-	localparam log2_of_frequency_of_reference_clock_in_kHz = $clog2(frequency_of_reference_clock_in_kHz); // ~17
-	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_kHz; // ~45
+//	assign reference_clock = external_clock_to_measure; // 1272160 * 100Hz or unknown
+	assign reference_clock = external_reference_clock; // 100000 * 100Hz
+	localparam frequency_of_reference_clock_in_100Hz = 1000000;
+//	assign reference_clock = clock; // 120000 * 100Hz
+//	localparam frequency_of_reference_clock_in_100Hz = 120000;
+	localparam log2_of_frequency_of_reference_clock_in_100Hz = $clog2(frequency_of_reference_clock_in_100Hz); // ~17
+	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_100Hz; // ~45
 	localparam log2_of_divide_ratio = 20;
 	localparam msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~25
 	reg [msb_of_accumulator:0] accumulator = 0;
@@ -117,7 +117,7 @@ module mytop (
 //			buffered_bcd1 <= bcd1;
 			buffered_bcd2 <= bcd2;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
-			accumulator = previous_trigger_duration * frequency_of_reference_clock_in_kHz;
+			accumulator = previous_trigger_duration * frequency_of_reference_clock_in_100Hz;
 		end else if (counter[slow_clock_pickoff:0]==2) begin
 			result = { 0, accumulator[msb_of_accumulator:log2_of_divide_ratio] };
 		end else if (counter[slow_clock_pickoff:0]==3) begin
