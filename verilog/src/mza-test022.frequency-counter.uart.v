@@ -1,6 +1,6 @@
 // written 2018-09-27 by mza
 // based on mza-test014.duration-timer.uart.v
-// last updated 2018-10-03 by mza
+// last updated 2018-10-04 by mza
 
 `include "lib/hex2bcd.v"
 `include "lib/segmented_display_driver.v"

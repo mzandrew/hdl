@@ -1,6 +1,6 @@
 // written 2018-07-26 by mza
 // taken from mza-test007.7-segment-driver.v
-// last updated 2018-08-22 by mza
+// last updated 2018-10-04 by mza
 
 module segmented_display_driver #(parameter number_of_segments=7, number_of_nybbles=4) (input clock, input [number_of_nybbles*4-1:0] data, output reg [number_of_segments-1:0] cathode, output reg [number_of_nybbles-1:0] anode);
 	localparam dot_clock_pickoff = 10;
@@ -60,6 +60,27 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 						default : sequence[i] <= 16'b0011110011101111;
 					endcase
 				end
+			end else if (number_of_segments==8) begin
+				for (i=0; i<=number_of_nybbles-1; i=i+1) begin
+					case(nybble[i])
+						4'h0    : sequence[i] <= 8'b10000001;
+						4'h1    : sequence[i] <= 8'b11001111;
+						4'h2    : sequence[i] <= 8'b10010010;
+						4'h3    : sequence[i] <= 8'b10000110;
+						4'h4    : sequence[i] <= 8'b11001100;
+						4'h5    : sequence[i] <= 8'b10100100;
+						4'h6    : sequence[i] <= 8'b10100000;
+						4'h7    : sequence[i] <= 8'b10001111;
+						4'h8    : sequence[i] <= 8'b10000000;
+						4'h9    : sequence[i] <= 8'b10000100;
+						4'ha    : sequence[i] <= 8'b10001000;
+						4'hb    : sequence[i] <= 8'b11100000;
+						4'hc    : sequence[i] <= 8'b11110010;
+						4'hd    : sequence[i] <= 8'b11000010;
+						4'he    : sequence[i] <= 8'b10110000;
+						default : sequence[i] <= 8'b10111000;
+					endcase
+				end
 			end else begin
 				for (i=0; i<=number_of_nybbles-1; i=i+1) begin
 					case(nybble[i])
@@ -97,12 +118,17 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 	always @(posedge dot_clock) begin
 		if (number_of_segments==16) begin
 			cathode   <= 16'b1111111111111111;
+//		if the following two lines are uncommented, the compile trims this module's entire functionality away
+//		end else if (number_of_segments==8) begin
+//			cathode   <= 8'b11111111;
 		end else begin
 			cathode   <= 7'b1111111;
 		end
 		if (reset==1) begin
 			if (number_of_segments==16) begin
 				dot_token <= 16'b0000000000000001;
+			end else if (number_of_segments==8) begin
+				dot_token <= 8'b00000001;
 			end else begin
 				dot_token <= 7'b0000001;
 			end
@@ -125,6 +151,17 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 					16'b0010000000000000 : cathode[13] <= current_sequence[02]; // set or clear segment t as appropriate
 					16'b0100000000000000 : cathode[14] <= current_sequence[01]; // set or clear segment s as appropriate
 					default              : cathode[15] <= current_sequence[00]; // set or clear segment r as appropriate
+				endcase
+			end else if (number_of_segments==8) begin
+				case(dot_token)
+					8'b00000001 : cathode[0] <= current_sequence[7]; // set or clear segment a as appropriate
+					8'b00000010 : cathode[1] <= current_sequence[6]; // set or clear segment b as appropriate
+					8'b00000100 : cathode[2] <= current_sequence[5]; // set or clear segment c as appropriate
+					8'b00001000 : cathode[3] <= current_sequence[4]; // set or clear segment d as appropriate
+					8'b00010000 : cathode[4] <= current_sequence[3]; // set or clear segment e as appropriate
+					8'b00100000 : cathode[5] <= current_sequence[2]; // set or clear segment f as appropriate
+					8'b01000000 : cathode[6] <= current_sequence[1]; // set or clear segment g as appropriate
+					default     : cathode[7] <= current_sequence[0]; // set or clear segment dp as appropriate
 				endcase
 			end else begin
 				case(dot_token)
