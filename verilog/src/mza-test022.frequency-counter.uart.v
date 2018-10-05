@@ -47,7 +47,7 @@ module mytop (
 	assign J1[6] = 0;
 	assign J1[7] = 0;
 	assign trigger_active = reference_clock_counter[log2_of_divide_ratio];
-	assign signal_output = trigger_active;
+//	assign signal_output = trigger_active;
 	assign J1[0] = signal_output; // trigger_out on PCB
 	always @(posedge reference_clock) begin
 		reference_clock_counter++;
@@ -73,7 +73,7 @@ module mytop (
 	assign J3[2] = 1;
 	wire [7:0] anode;
 	assign { J2[7], J2[4], J2[5], J2[6], J3[6], J3[7], J3[3], J3[1] } = anode; // anodes 7,6,5,4,3,2,1,0
-	segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode));
+	segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_a(signal_output), .sync_c());
 	assign LED[5] = 0;
 	assign LED[4] = signal_output;
 	assign LED[3] = trigger_stream[2];
