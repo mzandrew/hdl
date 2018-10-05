@@ -22,9 +22,8 @@ module mytop (
 	wire trigger_active;
 	wire signal_output;
 	localparam msb_of_counters = 27;
+	localparam N = 10; // N for N_Hz calculations
 	reg [msb_of_counters:0] reference_clock_counter;
-	reg [msb_of_counters:0] trigger_duration = 0; // live
-	reg [msb_of_counters:0] previous_trigger_duration = 0; // updated after pulse ends
 	reg [2:0] trigger_stream = 0;
 	localparam maximum_expected_frequency = 250000000;
 	localparam log2_of_maximum_expected_frequency = $clog2(maximum_expected_frequency); // ~28
@@ -32,13 +31,13 @@ module mytop (
 	assign J2[2] = signal_output; // 5,4 pair (RSV)
 	assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
 	assign external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
-//	assign reference_clock = external_clock_to_measure; // 1272160 * 100Hz or unknown
-	assign reference_clock = external_reference_clock; // 100000 * 100Hz
-	localparam frequency_of_reference_clock_in_100Hz = 1000000;
-//	assign reference_clock = clock; // 120000 * 100Hz
-//	localparam frequency_of_reference_clock_in_100Hz = 120000;
-	localparam log2_of_frequency_of_reference_clock_in_100Hz = $clog2(frequency_of_reference_clock_in_100Hz); // ~17
-	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_100Hz; // ~45
+//	assign reference_clock = external_clock_to_measure; // 127216000 / N (or an unknown frequency)
+	assign reference_clock = external_reference_clock; // 100000000 / N
+	localparam frequency_of_reference_clock_in_N_Hz = 100000000 / N;
+//	assign reference_clock = clock; // 12000000 / N
+//	localparam frequency_of_reference_clock_in_N_Hz = 12000000 / N;
+	localparam log2_of_frequency_of_reference_clock_in_N_Hz = $clog2(frequency_of_reference_clock_in_N_Hz); // ~17
+	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_N_Hz; // ~45
 	localparam log2_of_divide_ratio = 20;
 	localparam msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~25
 	reg [msb_of_accumulator:0] accumulator;
@@ -54,14 +53,11 @@ module mytop (
 	end
 	always @(posedge external_clock_to_measure) begin
 		if (trigger_active==1) begin
-			trigger_duration++;
-			accumulator <= accumulator + frequency_of_reference_clock_in_100Hz;
+			accumulator <= accumulator + frequency_of_reference_clock_in_N_Hz;
 		end else begin
 			if (trigger_stream==3'b110) begin
-//				number_of_pulses++;
-				previous_trigger_duration <= trigger_duration;
-				trigger_duration <= 0;
 				previous_accumulator <= accumulator;
+			end else if (trigger_stream==3'b100) begin
 				accumulator <= 0;
 			end
 		end
@@ -76,7 +72,7 @@ module mytop (
 	wire [7:0] anode;
 	assign { J2[7], J2[4], J2[5], J2[6], J3[6], J3[7], J3[3], J3[1] } = anode; // anodes 7,6,5,4,3,2,1,0
 	//segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_a(signal_output), .sync_c(), .dp(0));
-	segmented_display_driver #(.number_of_segments(8), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_a(signal_output), .sync_c(), .dp(8'b00010000));
+	segmented_display_driver #(.number_of_segments(8), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_a(signal_output), .sync_c(), .dp(8'b00100000));
 	assign LED[5] = 0;
 	assign LED[4] = signal_output;
 	assign LED[3] = trigger_stream[2];
@@ -124,10 +120,10 @@ module mytop (
 //			buffered_bcd1 <= bcd1;
 			buffered_bcd2 <= bcd2;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
-//			accumulator = previous_trigger_duration * frequency_of_reference_clock_in_100Hz;
-		end else if (counter[slow_clock_pickoff:0]==2) begin
+//			accumulator = previous_trigger_duration * frequency_of_reference_clock_in_N_Hz;
 			result = { 0, previous_accumulator[msb_of_accumulator:log2_of_divide_ratio] };
-		end else if (counter[slow_clock_pickoff:0]==3) begin
+		end else if (counter[slow_clock_pickoff:0]==2) begin
+//		end else if (counter[slow_clock_pickoff:0]==3) begin
 			//value1 <= uart_line_counter;
 //			value1 <= reference_clock_counter[23:0];
 //			value2 <= previous_trigger_duration; // TDC mode
