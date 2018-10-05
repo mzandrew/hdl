@@ -2,7 +2,7 @@
 // taken from mza-test007.7-segment-driver.v
 // last updated 2018-10-05 by mza
 
-module segmented_display_driver #(parameter number_of_segments=7, number_of_nybbles=4) (input clock, input [number_of_nybbles*4-1:0] data, output reg [number_of_segments-1:0] cathode, output reg [number_of_nybbles-1:0] anode, output sync_a, output sync_c);
+module segmented_display_driver #(parameter number_of_segments=7, number_of_nybbles=4) (input clock, input [number_of_nybbles*4-1:0] data, output reg [number_of_segments-1:0] cathode, output reg [number_of_nybbles-1:0] anode, output sync_a, output sync_c, input [number_of_nybbles-1:0] dp);
 	localparam dot_clock_pickoff = 4;
 	localparam log2_of_number_of_segments = $clog2(number_of_segments);
 	localparam nybble_clock_pickoff = dot_clock_pickoff + log2_of_number_of_segments + 7; // the +7 makes the bug much less noticable
@@ -59,22 +59,22 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 			end else if (number_of_segments==8) begin
 				for (i=0; i<=number_of_nybbles-1; i=i+1) begin
 					case(nybble[i])
-						4'h0    : sequence[i] <= 8'b10000001;
-						4'h1    : sequence[i] <= 8'b11001111;
-						4'h2    : sequence[i] <= 8'b10010010;
-						4'h3    : sequence[i] <= 8'b10000110;
-						4'h4    : sequence[i] <= 8'b11001100;
-						4'h5    : sequence[i] <= 8'b10100100;
-						4'h6    : sequence[i] <= 8'b10100000;
-						4'h7    : sequence[i] <= 8'b10001111;
-						4'h8    : sequence[i] <= 8'b10000000;
-						4'h9    : sequence[i] <= 8'b10000100;
-						4'ha    : sequence[i] <= 8'b10001000;
-						4'hb    : sequence[i] <= 8'b11100000;
-						4'hc    : sequence[i] <= 8'b11110010;
-						4'hd    : sequence[i] <= 8'b11000010;
-						4'he    : sequence[i] <= 8'b10110000;
-						default : sequence[i] <= 8'b10111000;
+						4'h0    : sequence[i] <= { ~dp[i], 7'b0000001 };
+						4'h1    : sequence[i] <= { ~dp[i], 7'b1001111 };
+						4'h2    : sequence[i] <= { ~dp[i], 7'b0010010 };
+						4'h3    : sequence[i] <= { ~dp[i], 7'b0000110 };
+						4'h4    : sequence[i] <= { ~dp[i], 7'b1001100 };
+						4'h5    : sequence[i] <= { ~dp[i], 7'b0100100 };
+						4'h6    : sequence[i] <= { ~dp[i], 7'b0100000 };
+						4'h7    : sequence[i] <= { ~dp[i], 7'b0001111 };
+						4'h8    : sequence[i] <= { ~dp[i], 7'b0000000 };
+						4'h9    : sequence[i] <= { ~dp[i], 7'b0000100 };
+						4'ha    : sequence[i] <= { ~dp[i], 7'b0001000 };
+						4'hb    : sequence[i] <= { ~dp[i], 7'b1100000 };
+						4'hc    : sequence[i] <= { ~dp[i], 7'b1110010 };
+						4'hd    : sequence[i] <= { ~dp[i], 7'b1000010 };
+						4'he    : sequence[i] <= { ~dp[i], 7'b0110000 };
+						default : sequence[i] <= { ~dp[i], 7'b0111000 };
 					endcase
 				end
 			end else begin
