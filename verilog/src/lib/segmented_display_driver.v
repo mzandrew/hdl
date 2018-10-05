@@ -14,7 +14,8 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 	reg [raw_counter_size-1:0] raw_counter;
 	always @(posedge clock) begin
 		if (reset) begin
-			if (raw_counter[log2_of_reset_duration]==1) begin
+			if (raw_counter[raw_counter_size-1:log2_of_reset_duration]>0) begin
+			//if (raw_counter[log2_of_reset_duration]==1) begin
 				reset <= 0;
 			end
 		end

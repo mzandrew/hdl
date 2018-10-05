@@ -21,7 +21,7 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 		assign J1_7 = anode[1]; // connected via resistor to anode0010
 		assign J1_6 = anode[2]; // connected via resistor to anode0100
 		assign J1_3 = anode[3]; // connected via resistor to anode1000 for most significant digit
-		segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(4)) my_instance_name (.clock(CLK), .data(bcd[15:0]), .cathode(segment), .anode(anode));
+		segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(4)) my_instance_name (.clock(CLK), .data(bcd[15:0]), .cathode(segment), .anode(anode), .sync(), .sync_a(), .sync_c());
 	end else begin
 		// for an LTP587HR mounted pin16=pin14 justified on an icestick-test revA ZIF-socket board (IDL_18_027)
 		wire [15:0] segment;
