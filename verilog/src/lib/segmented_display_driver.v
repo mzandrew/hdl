@@ -2,7 +2,7 @@
 // taken from mza-test007.7-segment-driver.v
 // last updated 2018-10-04 by mza
 
-module segmented_display_driver #(parameter number_of_segments=7, number_of_nybbles=4) (input clock, input [number_of_nybbles*4-1:0] data, output reg [number_of_segments-1:0] cathode, output reg [number_of_nybbles-1:0] anode);
+module segmented_display_driver #(parameter number_of_segments=7, number_of_nybbles=4) (input clock, input [number_of_nybbles*4-1:0] data, output reg [number_of_segments-1:0] cathode, output reg [number_of_nybbles-1:0] anode, output reg sync, output sync_a, output sync_c);
 	localparam dot_clock_pickoff = 10;
 	localparam log2_of_number_of_segments = $clog2(number_of_segments);
 	localparam nybble_clock_pickoff = dot_clock_pickoff + log2_of_number_of_segments;
@@ -11,10 +11,10 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 	localparam raw_counter_size = update_clock_pickoff + 9; // just for the hell of it
 	localparam log2_of_reset_duration = 10;
 	reg reset = 1;
-	reg [raw_counter_size-1:0] raw_counter = 0;
+	reg [raw_counter_size-1:0] raw_counter;
 	always @(posedge clock) begin
 		if (reset) begin
-			if (raw_counter[raw_counter_size-1:log2_of_reset_duration]>0) begin
+			if (raw_counter[log2_of_reset_duration]==1) begin
 				reset <= 0;
 			end
 		end
@@ -34,7 +34,9 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 	reg [number_of_segments-1:0] sequence [number_of_nybbles-1:0];
 	integer i=0;
 	always @(posedge update_clock) begin
+		sync <= 0;
 		if (update_counter==0) begin
+			sync <= 1;
 			for (i=0; i<number_of_nybbles; i=i+1) begin
 				nybble[i] <= data[4*i+3:4*i];
 			end
@@ -105,6 +107,7 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 			end
 		end
 	end
+	assign sync_a = anode[0];
 	reg [number_of_segments-1:0] current_sequence;
 	genvar j;
 	always @(posedge nybble_clock) begin
@@ -114,6 +117,7 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 			current_sequence <= sequence[nybble_counter];
 		end
 	end
+	assign sync_c = dot_token[0];
 	reg [number_of_segments-1:0] dot_token;
 	always @(posedge dot_clock) begin
 		if (number_of_segments==16) begin
