@@ -21,7 +21,8 @@ module mytop (
 	wire reference_clock;
 	wire trigger_active;
 	wire signal_output;
-	localparam msb_of_counters = 27;
+	localparam log2_of_divide_ratio = 23;
+	localparam msb_of_counters = log2_of_divide_ratio + 8; // 31
 	localparam N = 10; // N for N_Hz calculations
 	reg [msb_of_counters:0] reference_clock_counter;
 	reg [2:0] trigger_stream = 0;
@@ -36,10 +37,9 @@ module mytop (
 	localparam frequency_of_reference_clock_in_N_Hz = 100000000 / N;
 //	assign reference_clock = clock; // 12000000 / N
 //	localparam frequency_of_reference_clock_in_N_Hz = 12000000 / N;
-	localparam log2_of_frequency_of_reference_clock_in_N_Hz = $clog2(frequency_of_reference_clock_in_N_Hz); // ~17
-	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_N_Hz; // ~45
-	localparam log2_of_divide_ratio = 20;
-	localparam msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~25
+	localparam log2_of_frequency_of_reference_clock_in_N_Hz = $clog2(frequency_of_reference_clock_in_N_Hz); // ~24
+	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_N_Hz + 8; // ~59
+	localparam msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~28
 	reg [msb_of_accumulator:0] accumulator;
 	reg [msb_of_accumulator:0] previous_accumulator;
 	reg [msb_of_result:0] result;
