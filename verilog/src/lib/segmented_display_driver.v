@@ -1,21 +1,19 @@
 // written 2018-07-26 by mza
 // taken from mza-test007.7-segment-driver.v
-// last updated 2018-10-04 by mza
+// last updated 2018-10-05 by mza
 
-module segmented_display_driver #(parameter number_of_segments=7, number_of_nybbles=4) (input clock, input [number_of_nybbles*4-1:0] data, output reg [number_of_segments-1:0] cathode, output reg [number_of_nybbles-1:0] anode, output reg sync, output sync_a, output sync_c);
-	localparam dot_clock_pickoff = 10;
+module segmented_display_driver #(parameter number_of_segments=7, number_of_nybbles=4) (input clock, input [number_of_nybbles*4-1:0] data, output reg [number_of_segments-1:0] cathode, output reg [number_of_nybbles-1:0] anode, output sync_a, output sync_c);
+	localparam dot_clock_pickoff = 4;
 	localparam log2_of_number_of_segments = $clog2(number_of_segments);
-	localparam nybble_clock_pickoff = dot_clock_pickoff + log2_of_number_of_segments;
+	localparam nybble_clock_pickoff = dot_clock_pickoff + log2_of_number_of_segments + 7; // the +7 makes the bug much less noticable
 	localparam log2_of_number_of_nybbles = $clog2(number_of_nybbles);
-	localparam update_clock_pickoff = nybble_clock_pickoff + log2_of_number_of_nybbles + 4; // how often to update what gets displayed
-	localparam raw_counter_size = update_clock_pickoff + 9; // just for the hell of it
-	localparam log2_of_reset_duration = 10;
+	localparam raw_counter_size = 32;
+	localparam log2_of_reset_duration = dot_clock_pickoff; // otherwise, the dot_token never gets set properly
 	reg reset = 1;
 	reg [raw_counter_size-1:0] raw_counter;
 	always @(posedge clock) begin
 		if (reset) begin
-			if (raw_counter[raw_counter_size-1:log2_of_reset_duration]>0) begin
-			//if (raw_counter[log2_of_reset_duration]==1) begin
+			if (raw_counter[log2_of_reset_duration]==1) begin
 				reset <= 0;
 			end
 		end
@@ -23,25 +21,20 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 	end
 	wire dot_clock;
 	wire nybble_clock;
-	wire update_clock;
 	reg [log2_of_number_of_nybbles-1:0] nybble_counter;
 	assign dot_clock = raw_counter[dot_clock_pickoff];
 	assign nybble_clock = raw_counter[nybble_clock_pickoff];
 	assign nybble_counter = raw_counter[log2_of_number_of_nybbles+nybble_clock_pickoff+1:nybble_clock_pickoff+1];
-	assign update_clock = raw_counter[update_clock_pickoff];
-	reg update_counter;
-	assign update_counter = raw_counter[update_clock_pickoff+1];
 	reg [3:0] nybble [number_of_nybbles-1:0];
 	reg [number_of_segments-1:0] sequence [number_of_nybbles-1:0];
+	assign sync_a = anode[0];
+	reg [number_of_segments-1:0] current_sequence;
 	integer i=0;
-	always @(posedge update_clock) begin
-		sync <= 0;
-		if (update_counter==0) begin
-			sync <= 1;
-			for (i=0; i<number_of_nybbles; i=i+1) begin
-				nybble[i] <= data[4*i+3:4*i];
-			end
-		end else begin
+	always @(posedge nybble_clock) begin
+		anode <= 0;
+		if (reset==0) begin
+			anode[nybble_counter] <= 1;
+			current_sequence <= sequence[nybble_counter];
 			if (number_of_segments==16) begin
 				for (i=0; i<=number_of_nybbles-1; i=i+1) begin
 					case(nybble[i])
@@ -106,29 +99,21 @@ module segmented_display_driver #(parameter number_of_segments=7, number_of_nybb
 					endcase
 				end
 			end
-		end
-	end
-	assign sync_a = anode[0];
-	reg [number_of_segments-1:0] current_sequence;
-	genvar j;
-	always @(posedge nybble_clock) begin
-		anode <= 0;
-		if (reset==0) begin
-			anode[nybble_counter] <= 1;
-			current_sequence <= sequence[nybble_counter];
+			for (i=0; i<number_of_nybbles; i=i+1) begin
+				nybble[i] <= data[4*i+3:4*i];
+			end
 		end
 	end
 	assign sync_c = dot_token[0];
 	reg [number_of_segments-1:0] dot_token;
 	always @(posedge dot_clock) begin
-		if (number_of_segments==16) begin
-			cathode   <= 16'b1111111111111111;
-//		if the following two lines are uncommented, the compile trims this module's entire functionality away
+//		if (number_of_segments==16) begin
+//			cathode   <= 16'b1111111111111111;
 //		end else if (number_of_segments==8) begin
 //			cathode   <= 8'b11111111;
-		end else begin
-			cathode   <= 7'b1111111;
-		end
+//		end else begin
+//			cathode   <= 7'b1111111;
+//		end
 		if (reset==1) begin
 			if (number_of_segments==16) begin
 				dot_token <= 16'b0000000000000001;
