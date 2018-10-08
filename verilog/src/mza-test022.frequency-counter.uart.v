@@ -1,6 +1,6 @@
 // written 2018-09-27 by mza
 // based on mza-test014.duration-timer.uart.v
-// last updated 2018-10-05 by mza
+// last updated 2018-10-08 by mza
 
 `include "lib/hex2bcd.v"
 `include "lib/segmented_display_driver.v"
@@ -21,9 +21,9 @@ module mytop (
 	wire reference_clock;
 	wire trigger_active;
 	wire signal_output;
-	localparam log2_of_divide_ratio = 23;
-	localparam msb_of_counters = log2_of_divide_ratio + 8; // 31
-	localparam N = 10; // N for N_Hz calculations
+	localparam log2_of_divide_ratio = 27;
+	localparam msb_of_counters = log2_of_divide_ratio + 8; // 36
+	localparam N = 1; // N for N_Hz calculations
 	reg [msb_of_counters:0] reference_clock_counter;
 	reg [2:0] trigger_stream = 0;
 	localparam maximum_expected_frequency = 250000000;
@@ -37,9 +37,9 @@ module mytop (
 	localparam frequency_of_reference_clock_in_N_Hz = 100000000 / N;
 //	assign reference_clock = clock; // 12000000 / N
 //	localparam frequency_of_reference_clock_in_N_Hz = 12000000 / N;
-	localparam log2_of_frequency_of_reference_clock_in_N_Hz = $clog2(frequency_of_reference_clock_in_N_Hz); // ~24
-	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_N_Hz + 8; // ~59
-	localparam msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~28
+	localparam log2_of_frequency_of_reference_clock_in_N_Hz = $clog2(frequency_of_reference_clock_in_N_Hz); // ~27
+	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_N_Hz + 8; // ~63
+	localparam msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~35
 	reg [msb_of_accumulator:0] accumulator;
 	reg [msb_of_accumulator:0] previous_accumulator;
 	reg [msb_of_result:0] result;
@@ -68,7 +68,15 @@ module mytop (
 	assign { J1[4], J1[1], J3[4], J3[5], J1[2], J1[5], J1[3], J3[2] } = segment; // segments g,f,e,d,c,b,a,dp
 	wire [7:0] anode;
 	assign { J2[7], J2[4], J2[5], J2[6], J3[6], J3[7], J3[3], J3[1] } = anode; // anodes 7,6,5,4,3,2,1,0
-	segmented_display_driver #(.number_of_segments(8), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), .dp(8'b00100000)); // need to change dp based on N
+	segmented_display_driver #(.number_of_segments(8), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), .dp(dp));
+	wire [7:0] dp;
+	if (N==1) begin
+		assign dp = 8'b01000000;
+	end else if (N==10) begin
+		assign dp = 8'b00100000;
+	end else if (N==100) begin
+		assign dp = 8'b00010000;
+	end
 	assign LED[5] = 0;
 	assign LED[4] = signal_output;
 	assign LED[3] = trigger_stream[2];
