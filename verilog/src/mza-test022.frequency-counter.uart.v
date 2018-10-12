@@ -1,6 +1,6 @@
 // written 2018-09-27 by mza
 // based on mza-test014.duration-timer.uart.v
-// last updated 2018-10-08 by mza
+// last updated 2018-10-09 by mza
 
 `include "lib/hex2bcd.v"
 `include "lib/segmented_display_driver.v"
@@ -22,8 +22,8 @@ module mytop (
 	wire trigger_active;
 	wire signal_output;
 	localparam log2_of_divide_ratio = 27;
-	localparam msb_of_counters = log2_of_divide_ratio + 8; // 36
-	localparam N = 1; // N for N_Hz calculations
+	localparam msb_of_counters = log2_of_divide_ratio + 8; // 35
+	localparam N = 100; // N for N_Hz calculations
 	reg [msb_of_counters:0] reference_clock_counter;
 	reg [2:0] trigger_stream = 0;
 	localparam maximum_expected_frequency = 250000000;
