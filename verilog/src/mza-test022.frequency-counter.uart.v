@@ -1,6 +1,6 @@
 // written 2018-09-27 by mza
 // based on mza-test014.duration-timer.uart.v
-// last updated 2018-10-09 by mza
+// last updated 2018-10-11 by mza
 
 `include "lib/hex2bcd.v"
 `include "lib/segmented_display_driver.v"
@@ -17,6 +17,7 @@ module mytop (
 	output TX
 );
 	wire external_reference_clock;
+	wire raw_external_clock_to_measure;
 	wire external_clock_to_measure;
 	wire reference_clock;
 	wire trigger_active;
@@ -31,7 +32,7 @@ module mytop (
 	assign J2[1] = signal_output; // 1,2 pair (ACK)
 	assign J2[2] = signal_output; // 5,4 pair (RSV)
 	assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
-	assign external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
+	assign raw_external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
 //	assign reference_clock = external_clock_to_measure; // 127216000 / N (or an unknown frequency)
 	assign reference_clock = external_reference_clock; // 100000000 / N
 	localparam frequency_of_reference_clock_in_N_Hz = 100000000 / N;
@@ -51,9 +52,12 @@ module mytop (
 	always @(posedge reference_clock) begin
 		reference_clock_counter++;
 	end
+	always @(posedge raw_external_clock_to_measure) begin
+		external_clock_to_measure <= ~external_clock_to_measure;
+	end
 	always @(posedge external_clock_to_measure) begin
 		if (trigger_active==1) begin
-			accumulator <= accumulator + frequency_of_reference_clock_in_N_Hz;
+			accumulator <= accumulator + {frequency_of_reference_clock_in_N_Hz,1'b0};
 		end else begin
 			if (trigger_stream==3'b110) begin
 				previous_accumulator <= accumulator;
