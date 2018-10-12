@@ -82,9 +82,9 @@ module mza_test020_serdes_pll (
 	reg [1:0] token;
 	reg [2:0] trigger_stream;
 	localparam first  = 8'b11110000;
-	localparam second = 8'b11100000;
-	localparam third  = 8'b11000000;
-	localparam forth  = 8'b10000000;
+	localparam second = 8'b10000001;
+	localparam third  = 8'b10001000;
+	localparam forth  = 8'b10101010;
 	always @(posedge clock) begin
 		if (reset2) begin
 			token <= 2'b00;
