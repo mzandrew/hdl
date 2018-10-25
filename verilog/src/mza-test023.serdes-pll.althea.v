@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2018-10-24 by mza
+// last updated 2018-10-25 by mza
 
 module mza_test020_serdes_pll (
 	input clock_p,
@@ -125,6 +125,6 @@ module mza_test020_serdes_pll (
 		trigger_stream <= { trigger_stream[1:0], trigger_input };
 		counter <= counter + 1;
 	end
-	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(6.4), .PLLD(5), .PLLX(32)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked());
-//	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(20), .PLLD(2), .PLLX(40)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked());
+//	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(6.4), .PLLD(5), .PLLX(32)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked());
+	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(20), .PLLD(2), .PLLX(40)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked());
 endmodule
