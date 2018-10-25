@@ -37,4 +37,5 @@ net led_7 loc=p40 | iostandard=lvcmos25;
 
 net lvds_trig_input_p loc=p2 | iostandard=lvds_25 | diff_term=true; // D+
 net lvds_trig_input_n loc=p1 | iostandard=lvds_25 | diff_term=true; // D-
-net self_triggered_mode_switch loc=p8 | iostandard=lvcmos25 | pullup = true; // S
+net self_triggered_mode_switch loc=p74 | iostandard=lvcmos25 | pullup = true; // H-
+
