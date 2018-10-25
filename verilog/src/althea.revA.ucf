@@ -1,0 +1,48 @@
+# written 2018-10-25 by mza
+# based off of mza_test023_serdes_pll.althea.ucf
+# last updated 2018-10-25 by mza
+
+# 50 MHz local oscillator:
+net clock_p loc=p17 | iostandard=lvds_25 | diff_term=true; // CLOCK+
+net clock_n loc=p16 | iostandard=lvds_25 | diff_term=true; // CLOCK-
+
+net "clock_p" tnm_net = clock_p;
+timespec "ts_clock_p" = period "clock_p" 20 ns high 50%; # 50 MHz
+
+net a_p loc=p33  | iostandard=lvds_25 | diff_term=true; // A+
+net a_n loc=p32  | iostandard=lvds_25 | diff_term=true; // A-
+net b_p loc=p24  | iostandard=lvds_25 | diff_term=true; // B+ GCLK
+net b_n loc=p23  | iostandard=lvds_25 | diff_term=true; // B- GCLK
+net c_p loc=p15  | iostandard=lvds_25 | diff_term=true; // C+ GCLK
+net c_n loc=p14  | iostandard=lvds_25 | diff_term=true; // C- GCLK
+net d_p loc=p2   | iostandard=lvds_25 | diff_term=true; // D+
+net d_n loc=p1   | iostandard=lvds_25 | diff_term=true; // D-
+
+net e_p loc=p105 | iostandard=lvds_25 | diff_term=true; // E+
+net e_n loc=p104 | iostandard=lvds_25 | diff_term=true; // E-
+net f_p loc=p95  | iostandard=lvds_25 | diff_term=true; // F+ GCLK
+net f_n loc=p94  | iostandard=lvds_25 | diff_term=true; // F- GCLK
+net g_p loc=p85  | iostandard=lvds_25 | diff_term=true; // G+ GCLK
+net g_n loc=p84  | iostandard=lvds_25 | diff_term=true; // G- GCLK
+net h_p loc=p75  | iostandard=lvds_25 | diff_term=true; // H+
+net h_n loc=p74  | iostandard=lvds_25 | diff_term=true; // H-
+
+net p loc=27  | iostandard=lvcmos25; // P
+net q loc=22  | iostandard=lvcmos25; // Q
+net r loc=10  | iostandard=lvcmos25; // R
+net s loc=8   | iostandard=lvcmos25; // S
+
+net w loc=100 | iostandard=lvcmos25; // W
+net x loc=93  | iostandard=lvcmos25; // X
+net y loc=88  | iostandard=lvcmos25; // Y
+net z loc=81  | iostandard=lvcmos25; // Z
+
+net led_0 loc=p59 | iostandard=lvcmos25;
+net led_1 loc=p51 | iostandard=lvcmos25;
+net led_2 loc=p50 | iostandard=lvcmos25;
+net led_3 loc=p48 | iostandard=lvcmos25;
+net led_4 loc=p47 | iostandard=lvcmos25;
+net led_5 loc=p46 | iostandard=lvcmos25;
+net led_6 loc=p41 | iostandard=lvcmos25;
+net led_7 loc=p40 | iostandard=lvcmos25;
+
