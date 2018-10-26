@@ -1,7 +1,7 @@
 # written 2018-10-24 by mza
 # based off of mza_test020_serdes_pll.ucf
 # and altered for althea revA
-# last updated 2018-10-25 by mza
+# last updated 2018-10-26 by mza
 
 # 50 MHz local oscillator:
 net clock_p loc=p127 | iostandard=lvds_25 | diff_term=true; // CLOCK+
@@ -35,7 +35,11 @@ net led_7 loc=p1  | iostandard=lvcmos25;
 net lvds_trig_input_p loc=p117 | iostandard=lvds_25 | diff_term=true; // C+
 net lvds_trig_input_n loc=p116 | iostandard=lvds_25 | diff_term=true; // C-
 
-net ttl_trig_output loc=p93 | iostandard=lvcmos25 | slew=fast | drive=24; // TRIG; must be on the same BUFIO2 clocking region as the clock
+net lvds_trig_output_1_p loc=p115 | iostandard=lvds_25; // B+; must be on the same BUFIO2 clocking region as the clock
+net lvds_trig_output_1_n loc=p114 | iostandard=lvds_25; // B-; must be on the same BUFIO2 clocking region as the clock
+
+net lvds_trig_output_2_p loc=p112 | iostandard=lvds_25; // A+; must be on the same BUFIO2 clocking region as the clock
+net lvds_trig_output_2_n loc=p111 | iostandard=lvds_25; // A-; must be on the same BUFIO2 clocking region as the clock
 
 net self_triggered_mode_switch loc=p138 | iostandard=lvcmos25 | pullup = true; // E+
 

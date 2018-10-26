@@ -2,16 +2,16 @@
 // written 2018-09-17 by mza
 // last updated 2018-10-25 by mza
 
-module mza_test023_serdes_pll_althea (
+module mza_test024_serdes_pll_differential_althea (
 	input clock_p,
 	input clock_n,
-	output ttl_trig_output,
 	input self_triggered_mode_switch,
 	input lvds_trig_input_p,
 	input lvds_trig_input_n,
-	//output lvds_tr1ig_output_n,
-	//output lvds_trig_output_p,
-	//output lvds_tr1ig_output_n,
+	output lvds_trig_output_1_p,
+	output lvds_trig_output_1_n,
+	output lvds_trig_output_2_p,
+	output lvds_trig_output_2_n,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -27,19 +27,23 @@ module mza_test023_serdes_pll_althea (
 	wire clock; // 125 MHz
 	reg [31:0] counter = 0;
 	reg sync;
-//	assign led_8 = counter[27-$clog2(WIDTH)]; // ~ 1 Hz
-//	assign led_8 = sync;
-//	assign led_9 = reset1;
-//	assign led_a = reset2;
 	wire other_clock;
 	IBUFGDS coolcool (.I(clock_p), .IB(clock_n), .O(other_clock)); // 156.25 MHz
+	wire lvds_trig_output_1;
+	OBUFDS catcat1 (.I(lvds_trig_output_1), .O(lvds_trig_output_1_p), .OB(lvds_trig_output_1_n));
+	wire lvds_trig_output_2;
+	OBUFDS catcat2 (.I(lvds_trig_output_2), .O(lvds_trig_output_2_p), .OB(lvds_trig_output_2_n));
 	wire IOCLK0;
 	wire IOCE;
 	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
-	wire cascade_do;
-	wire cascade_to;
-	wire cascade_di;
-	wire cascade_ti;
+	wire cascade_do1;
+	wire cascade_to1;
+	wire cascade_di1;
+	wire cascade_ti1;
+	wire cascade_do2;
+	wire cascade_to2;
+	wire cascade_di2;
+	wire cascade_ti2;
 	reg [WIDTH-1:0] word;
 	localparam pickoff = 24;
 	wire [7:0] led_byte;
@@ -48,21 +52,39 @@ module mza_test023_serdes_pll_althea (
 	// want MSB of word to come out first
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master
-	         (.OQ(ttl_trig_output), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
+	         osirus_master_1
+	         (.OQ(lvds_trig_output_1), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
 	         .IOCE(IOCE), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
-	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do), .SHIFTIN4(cascade_to), 
-	         .SHIFTOUT1(cascade_di), .SHIFTOUT2(cascade_ti), .SHIFTOUT3(), .SHIFTOUT4(), 
+	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do1), .SHIFTIN4(cascade_to1), 
+	         .SHIFTOUT1(cascade_di1), .SHIFTOUT2(cascade_ti1), .SHIFTOUT3(), .SHIFTOUT4(), 
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave
+	         osirus_slave_1
 	         (.OQ(), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
 	         .IOCE(IOCE), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
-	         .SHIFTIN1(cascade_di), .SHIFTIN2(cascade_ti), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do), .SHIFTOUT4(cascade_to),
+	         .SHIFTIN1(cascade_di1), .SHIFTIN2(cascade_ti1), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do1), .SHIFTOUT4(cascade_to1),
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
+	         osirus_master_2
+	         (.OQ(lvds_trig_output_2), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
+	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
+	         .IOCE(IOCE), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
+	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2), 
+	         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
+	         osirus_slave_2
+	         (.OQ(), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
+	         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
+	         .IOCE(IOCE), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
+	         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	reg [12:0] reset1_counter = 0;
 	always @(posedge other_clock) begin
