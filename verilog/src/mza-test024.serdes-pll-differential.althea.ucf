@@ -35,11 +35,11 @@ net led_7 loc=p1  | iostandard=lvcmos25;
 net lvds_trig_input_p loc=p117 | iostandard=lvds_25 | diff_term=true; // C+
 net lvds_trig_input_n loc=p116 | iostandard=lvds_25 | diff_term=true; // C-
 
-net lvds_trig_output_1_p loc=p115 | iostandard=lvds_25; // B+; must be on the same BUFIO2 clocking region as the clock
-net lvds_trig_output_1_n loc=p114 | iostandard=lvds_25; // B-; must be on the same BUFIO2 clocking region as the clock
+net lvds_trig_output_1_p loc=p142 | iostandard=lvds_25; // F+;
+net lvds_trig_output_1_n loc=p141 | iostandard=lvds_25; // F-;
 
-net lvds_trig_output_2_p loc=p112 | iostandard=lvds_25; // A+; must be on the same BUFIO2 clocking region as the clock
-net lvds_trig_output_2_n loc=p111 | iostandard=lvds_25; // A-; must be on the same BUFIO2 clocking region as the clock
+net lvds_trig_output_2_p loc=p112 | iostandard=lvds_25; // A+;
+net lvds_trig_output_2_n loc=p111 | iostandard=lvds_25; // A-;
 
-net self_triggered_mode_switch loc=p138 | iostandard=lvcmos25 | pullup = true; // E+
+net self_triggered_mode_switch loc=p56 | iostandard=lvcmos25 | pullup = true; // K+
 
