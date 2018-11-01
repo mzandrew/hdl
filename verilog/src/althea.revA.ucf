@@ -8,8 +8,8 @@
 #net "clock_p" tnm_net = clock_p;
 #timespec "ts_clock_p" = period "clock_p" 20 ns high 50%; # 50 MHz
 
-#net "ftsw_clock_p" tnm_net = ftsw_clock_p;
-#timespec "ts_ftsw_clock_p" = period "ftsw_clock_p" 7.860 ns high 50%; # 127.221875 MHz
+net "d_p" tnm_net = ftsw_p;
+timespec "ts_ftsw_p" = period "ftsw_p" 7.860 ns high 50%; # 127.221875 MHz
 
 net a_p loc=p112 | iostandard=lvds_25; // A+ bank0 TR
 net a_n loc=p111 | iostandard=lvds_25; // A- bank0 TR
@@ -25,8 +25,8 @@ net d_n loc=p123 | iostandard=lvds_25 | diff_term=true; // D- bank0 TR GCLK
 net f_p loc=p142 | iostandard=lvds_25; // F+ bank0 TL
 net f_n loc=p141 | iostandard=lvds_25; // F- bank0 TL
 
-net g_p loc=p41  | iostandard=lvds_25; // G+ bank3 BL
-net g_n loc=p40  | iostandard=lvds_25; // G- bank3 BL
+net g_p loc=p41  | iostandard=lvcmos25; // G+ bank3 BL
+net g_n loc=p40  | iostandard=lvcmos25; // G- bank3 BL
 #net h_p loc=p48  | iostandard=lvds_25 | diff_term=true; // H+ bank3 BL
 #net h_n loc=p47  | iostandard=lvds_25 | diff_term=true; // H- bank3 BL
 #net j_p loc=p51  | iostandard=lvds_25 | diff_term=true; // J+ bank3 BL GCLK
