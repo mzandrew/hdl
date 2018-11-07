@@ -1,11 +1,17 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2018-09-21 by mza
+// last updated 2018-10-25 by mza
 
-module mza_test021_serdes_pll_bram (
+module mza_test023_serdes_pll_althea (
 	input clock_p,
 	input clock_n,
 	output ttl_trig_output,
+	input self_triggered_mode_switch,
+	input lvds_trig_input_p,
+	input lvds_trig_input_n,
+	//output lvds_tr1ig_output_n,
+	//output lvds_trig_output_p,
+	//output lvds_tr1ig_output_n,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -13,13 +19,7 @@ module mza_test021_serdes_pll_bram (
 	output led_4,
 	output led_5,
 	output led_6,
-	output led_7,
-	output led_8,
-	output led_9,
-	output led_a,
-	output led_b
-	//output lvds_trig_output_p,
-	//output lvds_tr1ig_output_n
+	output led_7
 );
 	localparam WIDTH = 8;
 	reg reset1 = 1;
@@ -28,9 +28,9 @@ module mza_test021_serdes_pll_bram (
 	reg [31:0] counter = 0;
 	reg sync;
 //	assign led_8 = counter[27-$clog2(WIDTH)]; // ~ 1 Hz
-	assign led_8 = sync;
-	assign led_9 = reset1;
-	assign led_a = reset2;
+//	assign led_8 = sync;
+//	assign led_9 = reset1;
+//	assign led_a = reset2;
 	wire other_clock;
 	IBUFGDS coolcool (.I(clock_p), .IB(clock_n), .O(other_clock)); // 156.25 MHz
 	wire IOCLK0;
@@ -73,28 +73,58 @@ module mza_test021_serdes_pll_bram (
 		end
 		reset1_counter <= reset1_counter + 1;
 	end
+	wire trigger_input;
+	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
+	reg [1:0] token;
+	reg [2:0] trigger_stream;
+	localparam first  = 8'b11110000;
+	localparam second = 8'b10000001;
+	localparam third  = 8'b10001000;
+	localparam forth  = 8'b10101010;
 	always @(posedge clock) begin
 		if (reset2) begin
+			token <= 2'b00;
+			trigger_stream <= 0;
 			if (counter[10]) begin
 				reset2 <= 0;
 			end
 		end
 		word <= 8'b00000000;
-		if (counter[pickoff:0]==0) begin
-			         if (counter[pickoff+2:pickoff+1]==2'b00) begin
+		if (self_triggered_mode_switch) begin
+			if (counter[pickoff:0]==0) begin
+				         if (counter[pickoff+2:pickoff+1]==2'b00) begin
+					sync <= 1;
+					word <= first;
+				end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
+					sync <= 0;
+					word <= second;
+				end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
+					word <= third;
+				end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
+					word <= forth;
+				end
+			end
+		end else if (trigger_stream==3'b001) begin
+			if (token==2'b00) begin
 				sync <= 1;
-				word <= 8'b11111111;
-			end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
+				word <= first;
+				token <= 2'b01;
+			end else if (token==2'b01) begin
 				sync <= 0;
-				word <= 8'b11111110;
-			end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
-				word <= 8'b11000000;
-			end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
-				word <= 8'b10000000;
+				word <= second;
+				token <= 2'b10;
+			end else if (token==2'b10) begin
+				word <= third;
+				token <= 2'b11;
+			//end else if (token==2'b11) begin
+			end else begin
+				word <= forth;
+				token <= 2'b00;
 			end
 		end
+		trigger_stream <= { trigger_stream[1:0], trigger_input };
 		counter <= counter + 1;
 	end
-	oserdes_pll #(.WIDTH(WIDTH)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked(led_b));
+//	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(6.4), .PLLD(5), .PLLX(32)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked());
+	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(20), .PLLD(2), .PLLX(40)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked());
 endmodule
-

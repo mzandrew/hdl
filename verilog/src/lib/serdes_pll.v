@@ -1,15 +1,14 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2018-09-21 by mza
+// last updated 2018-10-24 by mza
 
 // 156.25 / 8.0 * 61.875 / 2.375 = 508.840461
 // 156.25 / 5 * 32 = 1000
-module oserdes_pll #(parameter WIDTH=8) (input clock_in, input reset, output fabric_clock_out, output serializer_clock_out, output serializer_strobe_output, output locked);
+module oserdes_pll #(parameter WIDTH=8, parameter CLKIN_PERIOD=6.4, parameter PLLD=5, parameter PLLX=32) (input clock_in, input reset, output fabric_clock_out, output serializer_clock_out, output serializer_strobe_output, output locked);
 	// from clock_generator_pll_s8_diff.v from XAPP1064 example code
-	parameter integer PLLD = 5; // 1 to 52 on a spartan6
-	parameter integer PLLX = 32; // 1 to 64 on a spartan6
+//	localparam integer PLLD = 5; // 1 to 52 on a spartan6
+//	localparam integer PLLX = 32; // 1 to 64 on a spartan6
 	// frequency of VCO after div and mult must be in range [400,1080] MHz
-	parameter real CLKIN_PERIOD = 6.4; // clock period (ns) of input clock on clkin_p
 	wire pllout_x1; // pll generated x1 clock
 	wire pllout_xn; // pll generated xn clock
 	wire dummy; // feedback net

@@ -1,0 +1,41 @@
+# written 2018-10-24 by mza
+# based off of mza_test020_serdes_pll.ucf
+# and altered for althea revA
+# last updated 2018-10-25 by mza
+
+# 50 MHz local oscillator:
+net clock_p loc=p127 | iostandard=lvds_25 | diff_term=true; // CLOCK+
+net clock_n loc=p126 | iostandard=lvds_25 | diff_term=true; // CLOCK-
+# off-board oscillator:
+#net clock_p loc=p124 | iostandard=lvds_25 | diff_term=true; // D+
+#net clock_n loc=p123 | iostandard=lvds_25 | diff_term=true; // D-
+
+net "clock_p" tnm_net = clock_p;
+timespec "ts_clock_p" = period "clock_p" 20 ns high 50%; # 50 MHz
+
+# remote clock/trigger (FTSW):
+#net rj45_trg_p loc=ab14 | iostandard=lvds_25 | diff_term=true;
+#net rj45_trg_n loc=ac14 | iostandard=lvds_25 | diff_term=true;
+#net rj45_clk_p loc=ae13 | iostandard=lvds_25 | diff_term=true;
+#net rj45_clk_n loc=af13 | iostandard=lvds_25 | diff_term=true;
+#net rj45_rsv_p loc=ae15 | iostandard=lvds_25;
+#net rj45_rsv_n loc=af15 | iostandard=lvds_25;
+#net rj45_ack_p loc=ad14 | iostandard=lvds_25;
+#net rj45_ack_n loc=af14 | iostandard=lvds_25;
+
+net led_0 loc=p12 | iostandard=lvcmos25;
+net led_1 loc=p11 | iostandard=lvcmos25;
+net led_2 loc=p10 | iostandard=lvcmos25;
+net led_3 loc=p9  | iostandard=lvcmos25;
+net led_4 loc=p7  | iostandard=lvcmos25;
+net led_5 loc=p6  | iostandard=lvcmos25;
+net led_6 loc=p2  | iostandard=lvcmos25;
+net led_7 loc=p1  | iostandard=lvcmos25;
+
+net lvds_trig_input_p loc=p117 | iostandard=lvds_25 | diff_term=true; // C+
+net lvds_trig_input_n loc=p116 | iostandard=lvds_25 | diff_term=true; // C-
+
+net ttl_trig_output loc=p93 | iostandard=lvcmos25 | slew=fast | drive=24; // TRIG; must be on the same BUFIO2 clocking region as the clock
+
+net self_triggered_mode_switch loc=p138 | iostandard=lvcmos25 | pullup = true; // E+
+
