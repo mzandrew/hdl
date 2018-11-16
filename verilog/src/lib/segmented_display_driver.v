@@ -1,11 +1,11 @@
 // written 2018-07-26 by mza
 // taken from mza-test007.7-segment-driver.v
-// last updated 2018-10-05 by mza
+// last updated 2018-10-08 by mza
 
 module segmented_display_driver #(parameter number_of_segments=7, number_of_nybbles=4) (input clock, input [number_of_nybbles*4-1:0] data, output reg [number_of_segments-1:0] cathode, output reg [number_of_nybbles-1:0] anode, output sync_a, output sync_c, input [number_of_nybbles-1:0] dp);
 	localparam dot_clock_pickoff = 4;
 	localparam log2_of_number_of_segments = $clog2(number_of_segments);
-	localparam nybble_clock_pickoff = dot_clock_pickoff + log2_of_number_of_segments + 7; // the +7 makes the bug much less noticable
+	localparam nybble_clock_pickoff = dot_clock_pickoff + log2_of_number_of_segments + 6; // the +6 makes the bug much less noticable
 	localparam log2_of_number_of_nybbles = $clog2(number_of_nybbles);
 	localparam raw_counter_size = 32;
 	localparam log2_of_reset_duration = dot_clock_pickoff; // otherwise, the dot_token never gets set properly

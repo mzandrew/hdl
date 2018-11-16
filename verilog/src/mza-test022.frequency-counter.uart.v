@@ -1,6 +1,7 @@
 // written 2018-09-27 by mza
 // based on mza-test014.duration-timer.uart.v
-// last updated 2018-10-08 by mza
+// updated for icestick-frequency-counter revB
+// last updated 2018-11-06 by mza
 
 `include "lib/hex2bcd.v"
 `include "lib/segmented_display_driver.v"
@@ -10,31 +11,34 @@
 module mytop (
 	input clock,
 	output [5:1] LED, 
-	input [7:0] J1,
+	inout [7:0] J1,
 	inout [7:0] J2,
-	input [7:0] J3,
+	output [7:0] J3,
 	input RX,
 	output TX
 );
 	wire external_reference_clock;
+	wire raw_external_clock_to_measure;
 	wire external_clock_to_measure;
 	wire reference_clock;
 	wire trigger_active;
 	wire signal_output;
 	localparam log2_of_divide_ratio = 27;
-	localparam msb_of_counters = log2_of_divide_ratio + 8; // 36
-	localparam N = 1; // N for N_Hz calculations
+	localparam msb_of_counters = log2_of_divide_ratio + 8; // 35
+	localparam N = 10; // N for N_Hz calculations
 	reg [msb_of_counters:0] reference_clock_counter;
 	reg [2:0] trigger_stream = 0;
 	localparam maximum_expected_frequency = 250000000;
 	localparam log2_of_maximum_expected_frequency = $clog2(maximum_expected_frequency); // ~28
 	assign J2[1] = signal_output; // 1,2 pair (ACK)
 	assign J2[2] = signal_output; // 5,4 pair (RSV)
-	assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
-	assign external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
+	//assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
+	assign external_reference_clock = J1[6]; // clipped sine wave oscillator
+	assign raw_external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
 //	assign reference_clock = external_clock_to_measure; // 127216000 / N (or an unknown frequency)
 	assign reference_clock = external_reference_clock; // 100000000 / N
-	localparam frequency_of_reference_clock_in_N_Hz = 100000000 / N;
+	//localparam frequency_of_reference_clock_in_N_Hz = 100000000 / N;
+	localparam frequency_of_reference_clock_in_N_Hz = 25000000 / N;
 //	assign reference_clock = clock; // 12000000 / N
 //	localparam frequency_of_reference_clock_in_N_Hz = 12000000 / N;
 	localparam log2_of_frequency_of_reference_clock_in_N_Hz = $clog2(frequency_of_reference_clock_in_N_Hz); // ~27
@@ -43,17 +47,18 @@ module mytop (
 	reg [msb_of_accumulator:0] accumulator;
 	reg [msb_of_accumulator:0] previous_accumulator;
 	reg [msb_of_result:0] result;
-	assign J1[6] = 0;
-	assign J1[7] = 0;
 	assign trigger_active = reference_clock_counter[log2_of_divide_ratio];
 	assign signal_output = trigger_active;
 	assign J1[0] = signal_output; // trigger_out on PCB
 	always @(posedge reference_clock) begin
 		reference_clock_counter++;
 	end
+	always @(posedge raw_external_clock_to_measure) begin
+		external_clock_to_measure <= ~external_clock_to_measure;
+	end
 	always @(posedge external_clock_to_measure) begin
 		if (trigger_active==1) begin
-			accumulator <= accumulator + frequency_of_reference_clock_in_N_Hz;
+			accumulator <= accumulator + {frequency_of_reference_clock_in_N_Hz,1'b0};
 		end else begin
 			if (trigger_stream==3'b110) begin
 				previous_accumulator <= accumulator;
@@ -193,10 +198,10 @@ endmodule // mytop
 module icestick (
 input CLK,
 output LED1, LED2, LED3, LED4, LED5,
-output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
+output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8,
 output       J2_2, J2_3,       J2_7, J2_8, J2_9, J2_10,
 output       J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
-input J3_3, J2_4, J2_1,
+input J3_3, J2_4, J2_1, J1_9, J1_10,
 output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
 input DTRn, RTSn, RX, IR_RX
 );
