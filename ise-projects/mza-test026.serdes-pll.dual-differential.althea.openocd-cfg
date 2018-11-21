@@ -1,0 +1,12 @@
+#source [find interface/ftdi/digilent-hs1.cfg]
+#source [find interface/ftdi/digilent-hs2.cfg]
+source [find interface/ftdi/digilent_jtag_hs3.cfg]
+adapter_khz 10000
+transport select jtag
+source [find cpld/xilinx-xc6s.cfg]
+
+init
+xc6s_program xc6s.tap
+pld load 0 mza_test026_serdes_pll_dual_differential_althea/mza_test026_serdes_pll_dual_differential_althea.bit
+exit
+

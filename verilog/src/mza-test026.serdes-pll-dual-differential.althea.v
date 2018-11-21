@@ -52,7 +52,7 @@ module mza_test026_serdes_pll_dual_differential_althea (
 	localparam pickoff = 24;
 	wire [7:0] led_byte;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = led_byte;
-	assign led_byte = ~ word;
+	assign led_byte = word;
 	// want MSB of word to come out first
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
@@ -103,10 +103,10 @@ module mza_test026_serdes_pll_dual_differential_althea (
 	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
 	reg [1:0] token;
 	reg [2:0] trigger_stream;
-	localparam first  = ~ 8'b11110000;
-	localparam second = ~ 8'b10000001;
-	localparam third  = ~ 8'b10001000;
-	localparam forth  = ~ 8'b10101010;
+	localparam first  = 8'b11110000;
+	localparam second = 8'b10000001;
+	localparam third  = 8'b10001000;
+	localparam forth  = 8'b10101010;
 	always @(posedge clock) begin // 125.0 MHz
 		if (reset2) begin
 			token <= 2'b00;
@@ -115,7 +115,7 @@ module mza_test026_serdes_pll_dual_differential_althea (
 				reset2 <= 0;
 			end
 		end
-		word <= ~ 8'b00000000;
+		word <= 8'b00000000;
 		if (self_triggered_mode_switch) begin
 			if (counter[pickoff:0]==0) begin
 				         if (counter[pickoff+2:pickoff+1]==2'b00) begin
