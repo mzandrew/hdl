@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-11-01 by mza
-// last updated 2018-11-02 by mza
+// last updated 2018-11-20 by mza
 
 module mza_test025_b2tt (
 	output b_p, b_n,
