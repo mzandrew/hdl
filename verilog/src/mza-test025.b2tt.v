@@ -3,10 +3,11 @@
 // last updated 2018-11-02 by mza
 
 module mza_test025_b2tt (
-	output a_p, a_n,
+	output b_p, b_n,
+	output e_p, e_n,
 	output m_p, m_n,
 	output l_p, l_n,
-	output j_p, j_n,
+	input j_p, j_n,
 	input clock_p, clock_n,
 	input trg_p, trg_n,
 	output ack_p, ack_n,
@@ -23,9 +24,10 @@ module mza_test025_b2tt (
 //	IBUFDS triggy (.I(trg_p), .IB(trg_n), .O(trg));
 //	OBUFDS acky (.I(ack), .O(ack_p), .OB(ack_n));
 //	OBUFDS rsvy (.I(rsv), .O(rsv_p), .OB(rsv_n));
-	OBUFDS laserblaster (.I(trg), .O(a_p), .OB(a_n));
+	OBUFDS laserblaster1 (.I(trg), .O(b_p), .OB(b_n));
+	OBUFDS laserblaster2 (.I(trg), .O(e_p), .OB(e_n));
 	OBUFDS trigout (.I(trg), .O(m_p), .OB(m_n));
-	OBUFDS trgin (.I(trig_in), .O(j_p), .OB(j_n));
+	IBUFDS trgin (.I(j_p), .IB(j_n), .O(trig_in));
 	OBUFDS framingham9 (.I(frame9), .O(l_p), .OB(l_n));
 	b2tt myb2tt (
 		.clkp(clock_p), .clkn(clock_n),
@@ -49,17 +51,19 @@ module mza_test025_b2tt (
 endmodule
 
 module mza_test025_b2tt_althea (
-	output a_p, a_n,
+	output b_p, b_n,
+	output e_p, e_n,
 	output m_p, m_n,
 	output l_p, l_n,
-	output j_p, j_n,
+	input j_p, j_n,
 	input d_p, d_n,
 	input c_p, c_n,
 	output f_p, f_n,
 	output g_p, g_n
 );
 	mza_test025_b2tt myinstance (
-		.a_p(a_p), .a_n(a_n),
+		.b_p(b_p), .b_n(b_n),
+		.e_p(e_p), .e_n(e_n),
 		.m_p(m_p), .m_n(m_n),
 		.l_p(l_p), .l_n(l_n),
 		.j_p(j_p), .j_n(j_n),
