@@ -104,8 +104,8 @@ module mza_test024_serdes_pll_differential_althea (
 	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
 	reg [1:0] token;
 	reg [2:0] trigger_stream;
-	localparam first  = ~ 8'b11110000;
-	localparam second = ~ 8'b10000001;
+	localparam first  = ~ 8'b11111111;
+	localparam second = ~ 8'b11110001;
 	localparam third  = ~ 8'b10001000;
 	localparam forth  = ~ 8'b10101010;
 	always @(posedge clock) begin // 125.0 MHz
