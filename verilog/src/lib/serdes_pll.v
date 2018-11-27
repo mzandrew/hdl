@@ -37,7 +37,7 @@ module oserdes_pll #(parameter WIDTH=8, parameter CLKIN_PERIOD=6.4, parameter PL
 		.CLKOUT3_DIVIDE(8), // division factor for clkout3 (1 to 128)
 		.CLKOUT4_DIVIDE(8), // division factor for clkout4 (1 to 128)
 		.CLKOUT5_DIVIDE(8), // division factor for clkout5 (1 to 128)
-		.CLKOUT0_PHASE(0.0), // phase shift (degrees) for clkout0 (0.0 to 360.0)
+		.CLKOUT0_PHASE(7.2), // phase shift (degrees) for clkout0 (0.0 to 360.0)
 		.CLKOUT1_PHASE(0.0), // phase shift (degrees) for clkout1 (0.0 to 360.0)
 		.CLKOUT2_PHASE(0.0), // phase shift (degrees) for clkout2 (0.0 to 360.0)
 		.CLKOUT3_PHASE(0.0), // phase shift (degrees) for clkout3 (0.0 to 360.0)
