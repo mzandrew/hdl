@@ -108,8 +108,8 @@ module mza_test026_serdes_pll_dual_differential_althea (
 	reg [2:0] trigger_stream;
 	localparam first_a  = 8'b11111111;
 	localparam first_b  = 8'b11111111;
-	localparam second_a = 8'b11110111;
-	localparam second_b = 8'b01101000;
+	localparam second_a = 8'b11110011;
+	localparam second_b = 8'b10011001;
 	localparam third_a  = 8'b10000000;
 	localparam third_b  = 8'b00000001;
 	localparam forth_a  = 8'b11001100;
