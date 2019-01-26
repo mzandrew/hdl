@@ -126,5 +126,8 @@ module mza_test023_serdes_pll_althea (
 		counter <= counter + 1;
 	end
 //	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(6.4), .PLLD(5), .PLLX(32)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked());
-	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(20), .PLLD(2), .PLLX(40)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked());
+	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(20.0), .PLLD(2), .PLLX(40)) difficult_pll (
+		.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), 
+		.serializer_clock_out_1(IOCLK0), .serializer_strobe_out_1(IOCE), .locked_1()
+	);
 endmodule

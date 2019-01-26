@@ -1,8 +1,8 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2018-11-16 by mza
+// last updated 2018-11-26 by mza
 
-module mza_test024_serdes_pll_differential_althea (
+module mza_test026_serdes_pll_dual_differential_althea (
 	input clock_p,
 	input clock_n,
 	input self_triggered_mode_switch,
@@ -31,11 +31,12 @@ module mza_test024_serdes_pll_differential_althea (
 	wire other_clock; // 50.0 MHz
 	IBUFGDS coolcool (.I(clock_p), .IB(clock_n), .O(other_clock)); // 50.0 MHz
 	wire lvds_trig_output_R;
-//	OBUFDS catcat1 (.I(lvds_trig_output_R), .O(lvds_trig_output_1_p), .OB(lvds_trig_output_1_n));
 	wire lvds_trig_output_T;
+	OBUFDS catcat1 (.I(lvds_trig_output_R), .O(lvds_trig_output_1_p), .OB(lvds_trig_output_1_n));
 	OBUFDS catcat2 (.I(lvds_trig_output_T), .O(lvds_trig_output_2_p), .OB(lvds_trig_output_2_n));
-//	assign lemo_output = sync;
-	assign lemo_output = lvds_trig_output_R;
+//	OBUFDS catcat1 (.I(sync), .O(lvds_trig_output_1_p), .OB(lvds_trig_output_1_n));
+//	OBUFDS catcat2 (.I(sync), .O(lvds_trig_output_2_p), .OB(lvds_trig_output_2_n));
+	assign lemo_output = sync;
 	wire ioclk_T; // 1000 MHz
 	wire ioclk_R; // 1000 MHz
 	wire ioce_T;
@@ -50,10 +51,11 @@ module mza_test024_serdes_pll_differential_althea (
 	wire cascade_di2;
 	wire cascade_ti2;
 	reg [WIDTH-1:0] word;
-	localparam pickoff = 24;
+	//localparam pickoff = 24; // ~ 336ms
+	localparam pickoff = 6; // ~ 1.3us
 	wire [7:0] led_byte;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = led_byte;
-	assign led_byte = ~ word;
+	assign led_byte = word;
 	// want MSB of word to come out first
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
@@ -104,49 +106,80 @@ module mza_test024_serdes_pll_differential_althea (
 	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
 	reg [1:0] token;
 	reg [2:0] trigger_stream;
-	localparam first  = ~ 8'b11111111;
-	localparam second = ~ 8'b11110001;
-	localparam third  = ~ 8'b10001000;
-	localparam forth  = ~ 8'b10101010;
+	localparam first_a  = 8'b11111111;
+	localparam first_b  = 8'b11111111;
+	localparam second_a = 8'b11110011;
+	localparam second_b = 8'b10011001;
+	localparam third_a  = 8'b10000000;
+	localparam third_b  = 8'b00000001;
+	localparam forth_a  = 8'b11001100;
+	localparam forth_b  = 8'b10101010;
 	always @(posedge clock) begin // 125.0 MHz
 		if (reset2) begin
-			token <= 2'b00;
+			token <= 3'b000;
 			trigger_stream <= 0;
 			if (counter[10]) begin
 				reset2 <= 0;
 			end
 		end
-		word <= ~ 8'b00000000;
+		word <= 8'b00000000;
 		if (self_triggered_mode_switch) begin
-			if (counter[pickoff:0]==0) begin
+			if (counter[pickoff:1]==0) begin
 				         if (counter[pickoff+2:pickoff+1]==2'b00) begin
 					sync <= 1;
-					word <= first;
+					if (counter[0]==0) begin
+						word <= first_a;
+					end else begin
+						word <= first_b;
+					end
 				end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
 					sync <= 0;
-					word <= second;
+					if (counter[0]==0) begin
+						word <= second_a;
+					end else begin
+						word <= second_b;
+					end
 				end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
-					word <= third;
+					if (counter[0]==0) begin
+						word <= third_a;
+					end else begin
+						word <= third_b;
+					end
 				end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
-					word <= forth;
+					if (counter[0]==0) begin
+						word <= forth_a;
+					end else begin
+						word <= forth_b;
+					end
 				end
 			end
 		end else if (trigger_stream==3'b001) begin
-			if (token==2'b00) begin
+			if (token==3'b000) begin
 				sync <= 1;
-				word <= first;
-				token <= 2'b01;
-			end else if (token==2'b01) begin
+				word <= first_a;
+				token <= 3'b001;
+			end else if (token==3'b001) begin
 				sync <= 0;
-				word <= second;
-				token <= 2'b10;
-			end else if (token==2'b10) begin
-				word <= third;
-				token <= 2'b11;
-			//end else if (token==2'b11) begin
+				word <= first_b;
+				token <= 3'b010;
+			end else if (token==3'b010) begin
+				word <= second_a;
+				token <= 3'b011;
+			end else if (token==3'b011) begin
+				word <= second_b;
+				token <= 3'b100;
+			end else if (token==3'b100) begin
+				word <= third_a;
+				token <= 3'b101;
+			end else if (token==3'b101) begin
+				word <= third_b;
+				token <= 3'b110;
+			end else if (token==3'b110) begin
+				word <= forth_a;
+				token <= 3'b111;
 			end else begin
-				word <= forth;
-				token <= 2'b00;
+				word <= forth_b;
+				token <= 3'b000;
 			end
 		end
 		trigger_stream <= { trigger_stream[1:0], trigger_input };
@@ -158,3 +191,4 @@ module mza_test024_serdes_pll_differential_althea (
 		.serializer_clock_out_2(ioclk_R), .serializer_strobe_out_2(ioce_R), .locked_2()
 	);
 endmodule
+
