@@ -1,7 +1,7 @@
 // written 2018-09-27 by mza
 // based on mza-test014.duration-timer.uart.v
 // updated for icestick-frequency-counter revB
-// last updated 2018-11-06 by mza
+// last updated 2019-01-25 by mza
 
 `include "lib/hex2bcd.v"
 `include "lib/segmented_display_driver.v"
@@ -13,7 +13,7 @@ module mytop (
 	output [5:1] LED, 
 	inout [7:0] J1,
 	inout [7:0] J2,
-	output [7:0] J3,
+	inout [7:0] J3,
 	input RX,
 	output TX
 );
@@ -23,9 +23,9 @@ module mytop (
 	wire reference_clock;
 	wire trigger_active;
 	wire signal_output;
-	localparam log2_of_divide_ratio = 27;
+	localparam log2_of_divide_ratio = 24; // 27 is good
 	localparam msb_of_counters = log2_of_divide_ratio + 8; // 35
-	localparam N = 10; // N for N_Hz calculations
+	localparam N = 100; // N for N_Hz calculations
 	reg [msb_of_counters:0] reference_clock_counter;
 	reg [2:0] trigger_stream = 0;
 	localparam maximum_expected_frequency = 250000000;
@@ -35,10 +35,10 @@ module mytop (
 	//assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
 	assign external_reference_clock = J1[6]; // clipped sine wave oscillator
 	assign raw_external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
-//	assign reference_clock = external_clock_to_measure; // 127216000 / N (or an unknown frequency)
-	assign reference_clock = external_reference_clock; // 100000000 / N
-	//localparam frequency_of_reference_clock_in_N_Hz = 100000000 / N;
-	localparam frequency_of_reference_clock_in_N_Hz = 25000000 / N;
+//	assign reference_clock = external_clock_to_measure; // 127216025 / N (or an unknown frequency)
+	assign reference_clock = external_reference_clock; // 100000280 / N
+	//localparam frequency_of_reference_clock_in_N_Hz = 100000280 / N;
+	localparam frequency_of_reference_clock_in_N_Hz = 24999936 / N;
 //	assign reference_clock = clock; // 12000000 / N
 //	localparam frequency_of_reference_clock_in_N_Hz = 12000000 / N;
 	localparam log2_of_frequency_of_reference_clock_in_N_Hz = $clog2(frequency_of_reference_clock_in_N_Hz); // ~27
