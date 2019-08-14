@@ -5,7 +5,7 @@
 module mza_test026_serdes_pll_dual_differential_althea (
 	input clock_p,
 	input clock_n,
-	input self_triggered_mode_switch,
+//	input self_triggered_mode_switch,
 	output lemo_output,
 	input lvds_trig_input_p,
 	input lvds_trig_input_n,
@@ -30,6 +30,9 @@ module mza_test026_serdes_pll_dual_differential_althea (
 	reg sync;
 	wire other_clock; // 50.0 MHz
 	IBUFGDS coolcool (.I(clock_p), .IB(clock_n), .O(other_clock)); // 50.0 MHz
+	wire self_triggered_mode;
+//	assign self_triggered_mode = self_triggered_mode_switch;
+	assign self_triggered_mode = 1;
 	wire lvds_trig_output_R;
 	wire lvds_trig_output_T;
 	OBUFDS catcat1 (.I(lvds_trig_output_R), .O(lvds_trig_output_1_p), .OB(lvds_trig_output_1_n));
@@ -123,7 +126,7 @@ module mza_test026_serdes_pll_dual_differential_althea (
 			end
 		end
 		word <= 8'b00000000;
-		if (self_triggered_mode_switch) begin
+		if (self_triggered_mode) begin
 			if (counter[pickoff:1]==0) begin
 				         if (counter[pickoff+2:pickoff+1]==2'b00) begin
 					sync <= 1;

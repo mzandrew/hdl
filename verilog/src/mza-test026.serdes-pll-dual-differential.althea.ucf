@@ -3,11 +3,11 @@
 # last updated 2018-11-21 by mza
 
 # 50 MHz local oscillator:
-net clock_p loc=p127 | iostandard=lvds_25 | diff_term=true; // CLOCK+
-net clock_n loc=p126 | iostandard=lvds_25 | diff_term=true; // CLOCK-
+net clock_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK+
+net clock_n loc=p126 | iostandard=lvds_25 | diff_term=true; # CLOCK-
 # off-board oscillator:
-#net clock_p loc=p124 | iostandard=lvds_25 | diff_term=true; // D+
-#net clock_n loc=p123 | iostandard=lvds_25 | diff_term=true; // D-
+#net clock_p loc=p124 | iostandard=lvds_25 | diff_term=true; # D+
+#net clock_n loc=p123 | iostandard=lvds_25 | diff_term=true; # D-
 
 net "clock_p" tnm_net = clock_p;
 timespec "ts_clock_p" = period "clock_p" 20 ns high 50%; # 50 MHz
@@ -35,14 +35,14 @@ net lemo_output loc=p93 | iostandard=lvcmos25 | slew=fast | drive=24;
 #net lemo_output loc=p79 | iostandard=lvcmos25 | slew=fast | drive=24;
 #net lemo_output loc=p119 | iostandard=lvcmos25 | slew=fast;
 
-net lvds_trig_input_p loc=p117 | iostandard=lvds_25 | diff_term=true; // C+
-net lvds_trig_input_n loc=p116 | iostandard=lvds_25 | diff_term=true; // C-
+net lvds_trig_input_p loc=p117 | iostandard=lvds_25 | diff_term=true; # C+
+net lvds_trig_input_n loc=p116 | iostandard=lvds_25 | diff_term=true; # C-
 
-net lvds_trig_output_1_p loc=p115 | iostandard=lvds_25; // B+;
-net lvds_trig_output_1_n loc=p114 | iostandard=lvds_25; // B-;
+net lvds_trig_output_1_p loc=p115 | iostandard=lvds_25; # B+;
+net lvds_trig_output_1_n loc=p114 | iostandard=lvds_25; # B-;
 
-net lvds_trig_output_2_p loc=p138 | iostandard=lvds_25; // E+;
-net lvds_trig_output_2_n loc=p137 | iostandard=lvds_25; // E-;
+net lvds_trig_output_2_p loc=p138 | iostandard=lvds_25; # E+;
+net lvds_trig_output_2_n loc=p137 | iostandard=lvds_25; # E-;
 
-net self_triggered_mode_switch loc=p56 | iostandard=lvcmos25 | pullup = true; // K+
+#net self_triggered_mode_switch loc=p56 | iostandard=lvcmos25 | pullup = true; # K+
 

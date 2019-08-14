@@ -12,7 +12,7 @@
 # means.
 
 # 12 MHz
-set_io CLK 21 --warn-no-port # GBIN6/PIO3_00/DP08A, but no PLL?!?
+set_io CLK 21 --warn-no-port; # GBIN6/PIO3_00/DP08A, but no PLL?!?
 
 # LEDs
 set_io LED1 99 --warn-no-port
