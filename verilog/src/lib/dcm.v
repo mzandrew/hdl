@@ -1,15 +1,82 @@
 // written 2019-08-14 by mza
+// last updated 2019-08-15 by mza
 // taken from info in ug382/ug615/ds162
 
-module simplepll #(parameter overall_divide=1, multiply=4, divide=1, period=10.0, compensation="SYSTEM_SYNCHRONOUS") (
+module simplepll_ADV #(parameter overall_divide=1, multiply=4, divide=1, period=10.0, compensation="SYSTEM_SYNCHRONOUS") (
 	input clockin,
 	input reset,
 	output clockout,
 	output locked
 );
-	wire CLKFBIN;
-	wire CLKFBOUT;
-	BUFG mybufg (.I(CLKFBOUT), .O(CLKFBIN));
+	wire fbdcm;
+	PLL_ADV #(
+		.SIM_DEVICE("SPARTAN6"),
+		.BANDWIDTH("OPTIMIZED"), // "high", "low" or "optimized"
+		.CLKFBOUT_PHASE(0.0), // phase shift (degrees) of all output clocks
+		.CLKIN1_PERIOD(period), // clock period (ns) of input clock on clkin1
+		.CLKIN2_PERIOD(period), // clock period (ns) of input clock on clkin2
+		.DIVCLK_DIVIDE(overall_divide), // division factor for all clocks (1 to 52)
+		.CLKFBOUT_MULT(multiply), // multiplication factor for all output clocks
+		.CLKOUT0_DIVIDE(divide), // division factor for clkout0 (1 to 128)
+		.CLKOUT1_DIVIDE(1), // division factor for clkout1 (1 to 128)
+		.CLKOUT2_DIVIDE(1), // division factor for clkout2 (1 to 128)
+		.CLKOUT3_DIVIDE(1), // division factor for clkout3 (1 to 128)
+		.CLKOUT4_DIVIDE(1), // division factor for clkout4 (1 to 128)
+		.CLKOUT5_DIVIDE(1), // division factor for clkout5 (1 to 128)
+		.CLKOUT0_PHASE(0.0), // phase shift (degrees) for clkout0 (0.0 to 360.0)
+		.CLKOUT1_PHASE(0.0), // phase shift (degrees) for clkout1 (0.0 to 360.0)
+		.CLKOUT2_PHASE(0.0), // phase shift (degrees) for clkout2 (0.0 to 360.0)
+		.CLKOUT3_PHASE(0.0), // phase shift (degrees) for clkout3 (0.0 to 360.0)
+		.CLKOUT4_PHASE(0.0), // phase shift (degrees) for clkout4 (0.0 to 360.0)
+		.CLKOUT5_PHASE(0.0), // phase shift (degrees) for clkout5 (0.0 to 360.0)
+		.CLKOUT0_DUTY_CYCLE(0.5), // duty cycle for clkout0 (0.01 to 0.99)
+		.CLKOUT1_DUTY_CYCLE(0.5), // duty cycle for clkout1 (0.01 to 0.99)
+		.CLKOUT2_DUTY_CYCLE(0.5), // duty cycle for clkout2 (0.01 to 0.99)
+		.CLKOUT3_DUTY_CYCLE(0.5), // duty cycle for clkout3 (0.01 to 0.99)
+		.CLKOUT4_DUTY_CYCLE(0.5), // duty cycle for clkout4 (0.01 to 0.99)
+		.CLKOUT5_DUTY_CYCLE(0.5), // duty cycle for clkout5 (0.01 to 0.99)
+		.COMPENSATION(compensation), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
+		.REF_JITTER(0.100) // input reference jitter (0.000 to 0.999 ui%)
+	) pll_adv_inst (
+		.RST(reset), // asynchronous pll reset
+		.LOCKED(locked), // active high pll lock signal
+		.CLKFBIN(fbdcm), // clock feedback input
+		.CLKFBOUT(), // general output feedback signal
+		.CLKIN1(clockin), // primary clock input
+		.CLKOUT0(),
+		.CLKOUT1(), //
+		.CLKOUT2(), //
+		.CLKOUT3(), // one of six general clock output signals
+		.CLKOUT4(), // one of six general clock output signals
+		.CLKOUT5(), // one of six general clock output signals
+		.CLKFBDCM(fbdcm), // output feedback signal used when pll feeds a dcm
+		.CLKOUTDCM0(clockout), // one of six clock outputs to connect to the dcm
+		.CLKOUTDCM1(), // one of six clock outputs to connect to the dcm
+		.CLKOUTDCM2(), // one of six clock outputs to connect to the dcm
+		.CLKOUTDCM3(), // one of six clock outputs to connect to the dcm
+		.CLKOUTDCM4(), // one of six clock outputs to connect to the dcm
+		.CLKOUTDCM5(), // one of six clock outputs to connect to the dcm
+		.DO(), // dynamic reconfig data output (16-bits)
+		.DRDY(), // dynamic reconfig ready output
+		.CLKIN2(1'b0), // secondary clock input
+		.CLKINSEL(1'b1), // selects '1' = clkin1, '0' = clkin2
+		.DADDR(5'b00000), // dynamic reconfig address input (5-bits)
+		.DCLK(1'b0), // dynamic reconfig clock input
+		.DEN(1'b0), // dynamic reconfig enable input
+		.DI(16'h0000), // dynamic reconfig data input (16-bits)
+		.DWE(1'b0), // dynamic reconfig write enable input
+		.REL(1'b0) // used to force the state of the PFD outputs (test only)
+	);
+endmodule
+
+module simplepll_BASE #(parameter overall_divide=1, multiply=4, divide=1, period=10.0, compensation="SYSTEM_SYNCHRONOUS") (
+	input clockin,
+	input reset,
+	output clockout,
+	output clockout180,
+	output locked
+);
+	wire fb;
 	PLL_BASE #(
 		.BANDWIDTH("OPTIMIZED"), // "HIGH", "LOW" or "OPTIMIZED"
 		.CLKFBOUT_MULT(multiply), // Multiplication factor for all output clocks
@@ -18,9 +85,9 @@ module simplepll #(parameter overall_divide=1, multiply=4, divide=1, period=10.0
 		.CLKOUT0_DIVIDE(divide), // Division factor for CLKOUT0 (1 to 128)
 		.CLKOUT0_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT0 (0.01 to 0.99)
 		.CLKOUT0_PHASE(0.0), // Phase shift (degrees) for CLKOUT0 (0.0 to 360.0)
-		.CLKOUT1_DIVIDE(1), // Division factor for CLKOUT1 (1 to 128)
+		.CLKOUT1_DIVIDE(divide), // Division factor for CLKOUT1 (1 to 128)
 		.CLKOUT1_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT1 (0.01 to 0.99)
-		.CLKOUT1_PHASE(0.0), // Phase shift (degrees) for CLKOUT1 (0.0 to 360.0)
+		.CLKOUT1_PHASE(180.0), // Phase shift (degrees) for CLKOUT1 (0.0 to 360.0)
 		.CLKOUT2_DIVIDE(1), // Division factor for CLKOUT2 (1 to 128)
 		.CLKOUT2_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT2 (0.01 to 0.99)
 		.CLKOUT2_PHASE(0.0), // Phase shift (degrees) for CLKOUT2 (0.0 to 360.0)
@@ -39,21 +106,21 @@ module simplepll #(parameter overall_divide=1, multiply=4, divide=1, period=10.0
 		.DIVCLK_DIVIDE(overall_divide), // Division factor for all clocks (1 to 52)
 		.REF_JITTER(0.100) // Input reference jitter (0.000 to 0.999 UI%)
 	) PLL_BASE_inst (
-		.CLKFBOUT(CLKFBOUT), // General output feedback signal
+		.CLKFBOUT(fb), // General output feedback signal
 		.CLKOUT0(clockout), // One of six general clock output signals
-		.CLKOUT1(), // One of six general clock output signals
+		.CLKOUT1(clockout180), // One of six general clock output signals
 		.CLKOUT2(), // One of six general clock output signals
 		.CLKOUT3(), // One of six general clock output signals
 		.CLKOUT4(), // One of six general clock output signals
 		.CLKOUT5(), // One of six general clock output signals
 		.LOCKED(locked), // Active high PLL lock signal
-		.CLKFBIN(CLKFBIN), // Clock feedback input
+		.CLKFBIN(fb), // Clock feedback input
 		.CLKIN(clockin), // Clock input
 		.RST(reset) // Asynchronous PLL reset
 	);
 endmodule
 
-module simpledcm #(parameter multiply=4, divide=1, period="10.0") (
+module simpledcm_CLKGEN #(parameter multiply=4, divide=1, period="10.0") (
 	input clockin,
 	input reset,
 	output clockout,
@@ -101,6 +168,54 @@ module simpledcm #(parameter multiply=4, divide=1, period="10.0") (
 	);
 endmodule
 
+module simpledcm_SP #(parameter multiply=4, divide=1, period=10.0) (
+	input clockin,
+	input reset,
+	output clockout,
+	output clockout180,
+	output locked
+);
+	wire clockfb_in;
+	wire clockfb_out;
+	BUFG mybufg (.I(clockfb_out), .O(clockfb_in));
+	DCM_SP #(
+		.CLKDV_DIVIDE(2.0), // Divide by: 1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5
+		// 7.0,7.5,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0 or 16.0
+		.CLKFX_DIVIDE(divide), // Can be any integer from 1 to 32
+		.CLKFX_MULTIPLY(multiply), // Can be any integer from 2 to 32
+		.CLKIN_DIVIDE_BY_2("FALSE"), // TRUE/FALSE to enable CLKIN divide by two feature
+		.CLKIN_PERIOD(period), // Specify period of input clock
+		.CLKOUT_PHASE_SHIFT("NONE"), // Specify phase shift of NONE, FIXED or VARIABLE
+		.CLK_FEEDBACK("1X"), // Specify clock feedback of NONE, 1X or 2X
+		.DESKEW_ADJUST("SYSTEM_SYNCHRONOUS"), // SOURCE_SYNCHRONOUS, SYSTEM_SYNCHRONOUS or
+		// an integer from 0 to 15
+		.DLL_FREQUENCY_MODE("LOW"), // HIGH or LOW frequency mode for DLL
+		.DUTY_CYCLE_CORRECTION("TRUE"), // Duty cycle correction, TRUE or FALSE
+		.PHASE_SHIFT(0), // Amount of fixed phase shift from -255 to 255
+		.STARTUP_WAIT("FALSE") // Delay configuration DONE until DCM LOCK, TRUE/FALSE
+	) DCM_SP_inst (
+		.CLK0(clockfb_out), // 0 degree DCM CLK output
+		.CLK180(), // 180 degree DCM CLK output
+		.CLK270(), // 270 degree DCM CLK output
+		.CLK2X(), // 2X DCM CLK output
+		.CLK2X180(), // 2X, 180 degree DCM CLK out
+		.CLK90(), // 90 degree DCM CLK output
+		.CLKDV(), // Divided DCM CLK out (CLKDV_DIVIDE)
+		.CLKFX(clockout), // DCM CLK synthesis out (M/D)
+		.CLKFX180(clockout180), // 180 degree CLK synthesis out
+		.LOCKED(locked), // DCM LOCK status output
+		.PSDONE(), // Dynamic phase adjust done output
+		.STATUS(), // 8-bit DCM status bits output
+		.CLKFB(clockfb_in), // DCM clock feedback
+		.CLKIN(clockin), // Clock input (from IBUFG, BUFG or DCM)
+		.PSCLK(1'b0), // Dynamic phase adjust clock input
+		.PSEN(1'b0), // Dynamic phase adjust enable input
+		.PSINCDEC(1'b0), // Dynamic phase adjust increment/decrement
+		.DSSEN(1'b0), // missing constraint in ug615
+		.RST(reset) // DCM asynchronous reset input
+	);
+endmodule
+
 module plldcm #(parameter overall_divide=1, pllmultiply=1, plldivide=1, pllperiod=10.0, dcmmultiply=1, dcmdivide=1, dcmperiod="10.0") (
 	input clockin,
 	input reset,
@@ -112,12 +227,12 @@ module plldcm #(parameter overall_divide=1, pllmultiply=1, plldivide=1, pllperio
 	wire dcmlocked;
 	wire plllocked;
 	assign locked = dcmlocked & plllocked;
-	simplepll #(.overall_divide(overall_divide), .multiply(pllmultiply), .divide(plldivide), .period(pllperiod), .compensation("PLL2DCM")) mypll (
+	simplepll_ADV #(.overall_divide(overall_divide), .multiply(pllmultiply), .divide(plldivide), .period(pllperiod), .compensation("PLL2DCM")) mypll (
 		.clockin(clockin),
 		.reset(reset),
 		.clockout(clockintermediate),
 		.locked(plllocked));
-	simpledcm #(.multiply(dcmmultiply), .divide(dcmdivide), .period(dcmperiod)) mydcm (
+	simpledcm_SP #(.multiply(dcmmultiply), .divide(dcmdivide), .period(dcmperiod)) mydcm (
 		.clockin(clockintermediate),
 		.reset(reset),
 		.clockout(clockout),
