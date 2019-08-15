@@ -22,11 +22,15 @@
     <file xil_pn:name="../verilog/src/mza-test028.pll_509divider_and_revo_encoder.althea.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
-    <file xil_pn:name="ipcore_dir/pll.xco" xil_pn:type="FILE_COREGEN">
+    <file xil_pn:name="mza-test028_pll_509divider_and_revo_encoder_althea/ipcore_dir/pll.xco" xil_pn:type="FILE_COREGEN">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="11"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
+    </file>
+    <file xil_pn:name="../verilog/src/lib/dcm.v" xil_pn:type="FILE_VERILOG">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="57"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="1"/>
     </file>
-    <file xil_pn:name="ipcore_dir/pll.xise" xil_pn:type="FILE_COREGENISE">
+    <file xil_pn:name="mza-test028_pll_509divider_and_revo_encoder_althea/ipcore_dir/pll.xise" xil_pn:type="FILE_ISE">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
   </files>
