@@ -92,19 +92,87 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 	OBUFDS out1 (.I(trg), .O(out1_p), .OB(out1_n));
 endmodule
 
+module mything_tb;
+	// Inputs
+	reg remote_clock509_in_p;
+	reg remote_clock509_in_n;
+	reg remote_revo_in_p;
+	reg remote_revo_in_n;
+	// Outputs
+	wire clock127_out_p;
+	wire clock127_out_n;
+	wire trg_out_p;
+	wire trg_out_n;
+	wire out1_p;
+	wire out1_n;
+	wire outa_p;
+	wire outa_n;
+	wire led_0;
+	wire led_1;
+	wire led_2;
+	wire led_3;
+	wire led_4;
+	wire led_5;
+	wire led_6;
+	wire led_7;
+	reg recovered_revo;
+	// Instantiate the Unit Under Test (UUT)
+	mza_test028_pll_509divider_and_revo_encoder_althea uut (
+		.remote_clock509_in_p(remote_clock509_in_p), 
+		.remote_clock509_in_n(remote_clock509_in_n), 
+		.remote_revo_in_p(remote_revo_in_p), 
+		.remote_revo_in_n(remote_revo_in_n), 
+		.clock127_out_p(clock127_out_p), 
+		.clock127_out_n(clock127_out_n), 
+		.trg_out_p(trg_out_p), 
+		.trg_out_n(trg_out_n), 
+		.out1_p(out1_p), 
+		.out1_n(out1_n), 
+		.outa_p(outa_p), 
+		.outa_n(outa_n), 
+		.led_0(led_0), 
+		.led_1(led_1), 
+		.led_2(led_2), 
+		.led_3(led_3), 
+		.led_4(led_4), 
+		.led_5(led_5), 
+		.led_6(led_6), 
+		.led_7(led_7)
+	);
+	initial begin
+		// Initialize Inputs
+		remote_clock509_in_p = 0; remote_clock509_in_n = 1;
+		remote_revo_in_p = 0; remote_revo_in_n = 1;
+		recovered_revo = 0;
+		// Wait 100 ns for global reset to finish
+		#100;
+		// Add stimulus here
+		#5000;
+		remote_revo_in_p = 1; remote_revo_in_n = 0;
+		#8;
+		remote_revo_in_p = 0; remote_revo_in_n = 1;
+	end
+	always begin
+		#1;
+		remote_clock509_in_p = ~ remote_clock509_in_p;
+		remote_clock509_in_n = ~ remote_clock509_in_n;
+	end
+	always @(posedge clock127_out_p) begin
+		if (trg_out_p) begin
+			recovered_revo = 0;
+		end else begin
+			recovered_revo = 1;
+		end
+	end
+endmodule
+
 module mza_test028_pll_509divider_and_revo_encoder_althea_top (
-	output a_p,
-	output a_n,
-	output b_p,
-	output b_n,
-	output d_p,
-	output d_n,
-	output e_p,
-	output e_n,
-	input k_p,
-	input k_n,
-	input m_p,
-	input m_n,
+	output a_p, a_n,
+	output b_p, b_n,
+	output d_p, d_n,
+	output e_p, e_n,
+	input k_p, k_n,
+	input m_p, m_n,
 	output led_0,
 	output led_1,
 	output led_2,
