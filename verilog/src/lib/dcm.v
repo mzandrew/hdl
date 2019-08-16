@@ -69,11 +69,13 @@ module simplepll_ADV #(parameter overall_divide=1, multiply=4, divide=1, period=
 	);
 endmodule
 
-module simplepll_BASE #(parameter overall_divide=1, multiply=4, divide=1, period=10.0, compensation="SYSTEM_SYNCHRONOUS") (
+module simplepll_BASE #(parameter overall_divide=1, multiply=4, divide1=1, divide2=2, period=10.0, compensation="SYSTEM_SYNCHRONOUS") (
 	input clockin,
 	input reset,
-	output clockout,
-	output clockout180,
+	output clock1out,
+	output clock1out180,
+	output clock2out,
+	output clock2out180,
 	output locked
 );
 	wire fb;
@@ -82,18 +84,18 @@ module simplepll_BASE #(parameter overall_divide=1, multiply=4, divide=1, period
 		.CLKFBOUT_MULT(multiply), // Multiplication factor for all output clocks
 		.CLKFBOUT_PHASE(0.0), // Phase shift (degrees) of all output clocks
 		.CLKIN_PERIOD(period), // Clock period (ns) of input clock on CLKIN
-		.CLKOUT0_DIVIDE(divide), // Division factor for CLKOUT0 (1 to 128)
+		.CLKOUT0_DIVIDE(divide1), // Division factor for CLKOUT0 (1 to 128)
 		.CLKOUT0_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT0 (0.01 to 0.99)
 		.CLKOUT0_PHASE(0.0), // Phase shift (degrees) for CLKOUT0 (0.0 to 360.0)
-		.CLKOUT1_DIVIDE(divide), // Division factor for CLKOUT1 (1 to 128)
+		.CLKOUT1_DIVIDE(divide1), // Division factor for CLKOUT1 (1 to 128)
 		.CLKOUT1_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT1 (0.01 to 0.99)
 		.CLKOUT1_PHASE(180.0), // Phase shift (degrees) for CLKOUT1 (0.0 to 360.0)
-		.CLKOUT2_DIVIDE(1), // Division factor for CLKOUT2 (1 to 128)
+		.CLKOUT2_DIVIDE(divide2), // Division factor for CLKOUT2 (1 to 128)
 		.CLKOUT2_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT2 (0.01 to 0.99)
 		.CLKOUT2_PHASE(0.0), // Phase shift (degrees) for CLKOUT2 (0.0 to 360.0)
-		.CLKOUT3_DIVIDE(1), // Division factor for CLKOUT3 (1 to 128)
+		.CLKOUT3_DIVIDE(divide2), // Division factor for CLKOUT3 (1 to 128)
 		.CLKOUT3_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT3 (0.01 to 0.99)
-		.CLKOUT3_PHASE(0.0), // Phase shift (degrees) for CLKOUT3 (0.0 to 360.0)
+		.CLKOUT3_PHASE(180.0), // Phase shift (degrees) for CLKOUT3 (0.0 to 360.0)
 		.CLKOUT4_DIVIDE(1), // Division factor for CLKOUT4 (1 to 128)
 		.CLKOUT4_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT4 (0.01 to 0.99)
 		.CLKOUT4_PHASE(0.0), // Phase shift (degrees) for CLKOUT4 (0.0 to 360.0)
@@ -107,10 +109,10 @@ module simplepll_BASE #(parameter overall_divide=1, multiply=4, divide=1, period
 		.REF_JITTER(0.100) // Input reference jitter (0.000 to 0.999 UI%)
 	) PLL_BASE_inst (
 		.CLKFBOUT(fb), // General output feedback signal
-		.CLKOUT0(clockout), // One of six general clock output signals
-		.CLKOUT1(clockout180), // One of six general clock output signals
-		.CLKOUT2(), // One of six general clock output signals
-		.CLKOUT3(), // One of six general clock output signals
+		.CLKOUT0(clock1out), // One of six general clock output signals
+		.CLKOUT1(clock1out180), // One of six general clock output signals
+		.CLKOUT2(clock2out), // One of six general clock output signals
+		.CLKOUT3(clock2out180), // One of six general clock output signals
 		.CLKOUT4(), // One of six general clock output signals
 		.CLKOUT5(), // One of six general clock output signals
 		.LOCKED(locked), // Active high PLL lock signal

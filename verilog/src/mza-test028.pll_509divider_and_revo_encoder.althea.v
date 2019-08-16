@@ -38,37 +38,63 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 	//reg [31:0] counter = 0;
 	reg reset = 1;
 	reg [12:0] reset_counter = 0;
+	wire rawtrg;
+	IBUFGDS trigger_input_instance (.I(remote_revo_in_p), .IB(remote_revo_in_n), .O(rawtrg));
+	parameter TRGSTREAM_WIDTH = 16;
+	parameter TRG_MAX_DURATION = 8;
+	reg [TRGSTREAM_WIDTH-1:0] trgstream = 0;
+	//reg [(TRGSTREAM_WIDTH>>2)-1:0] trgstreamquad = 0;
+	//wire [(TRGSTREAM_WIDTH>>2)-1:0] trgstreamquad;
 	always @(posedge clock509) begin
 		if (reset) begin
 			if (reset_counter[10]) begin
 				reset <= 0;
 			end
+			reset_counter <= reset_counter + 1'b1;
 		end
-		reset_counter <= reset_counter + 1'b1;
 	end
+//	assign trgstreamquad[0] = trgstream[ 3] || trgstream[ 2] || trgstream[ 1] || trgstream[ 0];
+//	assign trgstreamquad[1] = trgstream[ 7] || trgstream[ 6] || trgstream[ 5] || trgstream[ 4];
+//	assign trgstreamquad[2] = trgstream[11] || trgstream[10] || trgstream[ 9] || trgstream[ 8];
+//	assign trgstreamquad[3] = trgstream[15] || trgstream[14] || trgstream[13] || trgstream[12];
 	wire rawclock127;
 	wire rawclock127b;
+	wire rawclock254;
+	wire rawclock254b;
 	wire locked;
 	//pll pll_instance (.CLK_IN1_P(remote_clock509_p), .CLK_IN1_N(remote_clock509_n), .CLK_OUT1(clock127), .RESET(1'b0), .LOCKED(led_0));
 	//plldcm plldcm_instance #(.divide(4), .multiply(1), .period("1.965") (.clockin(clock509), .clockout(clock127), .clockout180(clock127b), .reset(reset), .locked(led_0));
 	//plldcm #(.overall_divide(2), .pllmultiply(4), .plldivide(8), .pllperiod(1.965), .dcmmultiply(2), .dcmdivide(2), .dcmperiod("7.86")) myplldcm (.clockin(clock509), .clockout(clock127), .clockout180(clock127b), .reset(reset), .locked(locked));
 	//plldcm #(.overall_divide(2), .pllmultiply(4), .plldivide(8), .pllperiod(1.965), .dcmmultiply(2), .dcmdivide(2), .dcmperiod(7.86)) myplldcm (.clockin(clock509), .clockout(clock127), .clockout180(clock127b), .reset(reset), .locked(locked));
-	//simplepll_BASE #(.overall_divide(2), .multiply(4), .divide(8), .period(1.965), .compensation("INTERNAL")) mypll (.clockin(clock509), .reset(reset), .clockout(clock127), .clockout180(clock127b), .locked(locked));
-	simplepll_BASE #(.overall_divide(2), .multiply(4), .divide(8), .period(1.965), .compensation("SYSTEM_SYNCHRONOUS")) mypll (.clockin(clock509), .reset(reset), .clockout(rawclock127), .clockout180(rawclock127b), .locked(locked));
+	simplepll_BASE #(.overall_divide(2), .multiply(4), .divide1(8), .divide2(4), .period(1.965), .compensation("INTERNAL")) mypll (.clockin(clock509), .reset(reset), .clock1out(rawclock127), .clock1out180(rawclock127b), .clock2out(rawclock254), .clock2out180(rawclock254b), .locked(locked));
+	//simplepll_BASE #(.overall_divide(2), .multiply(4), .divide(8), .period(1.965), .compensation("SYSTEM_SYNCHRONOUS")) mypll (.clockin(clock509), .reset(reset), .clockout(rawclock127), .clockout180(rawclock127b), .locked(locked));
 	wire clock127;
 	wire clock127b;
 	BUFG mybufg1 (.I(rawclock127), .O(clock127));
 	BUFG mybufg2 (.I(rawclock127b), .O(clock127b));
-	wire rawtrg;
-	IBUFGDS trigger_input_instance (.I(remote_revo_in_p), .IB(remote_revo_in_n), .O(rawtrg));
+	wire clock254;
+	wire clock254b;
+	BUFG mybufg3 (.I(rawclock254), .O(clock254));
+	BUFG mybufg4 (.I(rawclock254b), .O(clock254b));
 	reg trg = 0;
+	always @(posedge clock254) begin
+//		trgstreamquad[0] <= trgstream[ 3] || trgstream[ 2] || trgstream[ 1] || trgstream[ 0];
+//		trgstreamquad[1] <= trgstream[ 7] || trgstream[ 6] || trgstream[ 5] || trgstream[ 4];
+//		trgstreamquad[2] <= trgstream[11] || trgstream[10] || trgstream[ 9] || trgstream[ 8];
+//		trgstreamquad[3] <= trgstream[15] || trgstream[14] || trgstream[13] || trgstream[12];
+		trgstream <= { trgstream[TRGSTREAM_WIDTH-2:0], rawtrg };
+	end
 	always @(posedge clock127) begin
-		if (trg) begin
+		trg <= 0;
+		//if (trgstream[TRG_MAX_DURATION-1:0] != 0) begin
+		//	if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0) begin
+//		if (trgstreamquad[3:2] == 0 && trgstreamquad[1:0] != 0) begin
+//			trg <= 1;
+//		end
+		if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] != 0 || trgstream[TRG_MAX_DURATION-1:0] == 0) begin
 			trg <= 0;
 		end else begin
-			if (rawtrg) begin
-				trg <= 1;
-			end
+			trg <= 1;
 		end
 	end
 	wire clock127oddr1;
@@ -115,7 +141,6 @@ module mything_tb;
 	wire led_5;
 	wire led_6;
 	wire led_7;
-	reg recovered_revo;
 	// Instantiate the Unit Under Test (UUT)
 	mza_test028_pll_509divider_and_revo_encoder_althea uut (
 		.remote_clock509_in_p(remote_clock509_in_p), 
@@ -139,6 +164,9 @@ module mything_tb;
 		.led_6(led_6), 
 		.led_7(led_7)
 	);
+	wire raw_recovered_reco;
+	assign raw_recovered_reco = clock127_out_p ^ trg_out_p;
+	reg recovered_revo;
 	initial begin
 		// Initialize Inputs
 		remote_clock509_in_p = 0; remote_clock509_in_n = 1;
@@ -149,7 +177,15 @@ module mything_tb;
 		// Add stimulus here
 		#5000;
 		remote_revo_in_p = 1; remote_revo_in_n = 0;
+		#2;
+		remote_revo_in_p = 0; remote_revo_in_n = 1;
+		#50;
+		remote_revo_in_p = 1; remote_revo_in_n = 0;
 		#8;
+		remote_revo_in_p = 0; remote_revo_in_n = 1;
+		#50;
+		remote_revo_in_p = 1; remote_revo_in_n = 0;
+		#30;
 		remote_revo_in_p = 0; remote_revo_in_n = 1;
 	end
 	always begin
@@ -157,12 +193,8 @@ module mything_tb;
 		remote_clock509_in_p = ~ remote_clock509_in_p;
 		remote_clock509_in_n = ~ remote_clock509_in_n;
 	end
-	always @(posedge clock127_out_p) begin
-		if (trg_out_p) begin
-			recovered_revo = 0;
-		end else begin
-			recovered_revo = 1;
-		end
+	always @(negedge clock127_out_p) begin
+		recovered_revo <= raw_recovered_reco;
 	end
 endmodule
 
