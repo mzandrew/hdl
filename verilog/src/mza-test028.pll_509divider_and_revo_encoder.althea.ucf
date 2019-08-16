@@ -7,8 +7,10 @@
 #net clock_n loc=p126 | iostandard=lvds_25 | diff_term=true; # CLOCK-
 #net "clock_p" tnm_net = clock_p;
 #timespec "ts_clock_p" = period "clock_p" 20 ns high 50%; # 50 MHz
-net "k_p" tnm_net = clock_p;
-timespec "ts_clock_p" = period "clock_p" 1.965 ns high 50%; # 508.9 MHz
+net "k_p" tnm_net = remote_clock_p;
+timespec "ts_remote_clock_p" = period "remote_clock_p" 1.965 ns high 50%; # 508.9 MHz
+net "j_p" tnm_net = local_clock_p;
+timespec "ts_local_clock_p" = period "local_clock_p" 1.965 ns high 50%; # 508.9 MHz
 
 #net "d_p" tnm_net = ftsw_p;
 #timespec "ts_ftsw_p" = period "ftsw_p" 7.8 ns high 50%; # 128.205 MHz
@@ -33,8 +35,8 @@ net e_n loc=p137 | iostandard=lvds_25; # E- bank0 TL
 #net g_n loc=p40  | iostandard=lvcmos25; # G- bank3 BL
 #net h_p loc=p48  | iostandard=lvds_25 | diff_term=true; # H+ bank3 BL
 #net h_n loc=p47  | iostandard=lvds_25 | diff_term=true; # H- bank3 BL
-#net j_p loc=p51  | iostandard=lvds_25 | diff_term=true; # J+ bank3 BL GCLK
-#net j_n loc=p50  | iostandard=lvds_25 | diff_term=true; # J- bank3 BL GCLK
+net j_p loc=p51  | iostandard=lvds_25 | diff_term=true; # J+ bank3 BL GCLK
+net j_n loc=p50  | iostandard=lvds_25 | diff_term=true; # J- bank3 BL GCLK
 
 net k_p loc=p56  | iostandard=lvds_25 | diff_term=true; # K+ bank3 BR GCLK
 net k_n loc=p55  | iostandard=lvds_25 | diff_term=true; # K- bank3 BR GCLK

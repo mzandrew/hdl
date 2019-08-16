@@ -5,8 +5,8 @@
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
 module mza_test028_pll_509divider_and_revo_encoder_althea (
-//	input local_clock509_p,
-//	input local_clock509_n,
+	input local_clock509_in_p,
+	input local_clock509_in_n,
 	input remote_clock509_in_p,
 	input remote_clock509_in_n,
 	input remote_revo_in_p,
@@ -28,8 +28,12 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 	output led_6,
 	output led_7
 );
+	wire remote_clock509;
+	wire local_clock509;
 	wire clock509;
-	IBUFGDS input_clock_instance (.I(remote_clock509_in_p), .IB(remote_clock509_in_n), .O(clock509));
+	IBUFGDS remote_input_clock_instance (.I(remote_clock509_in_p), .IB(remote_clock509_in_n), .O(remote_clock509));
+	IBUFGDS local_input_clock_instance (.I(local_clock509_in_p), .IB(local_clock509_in_n), .O(local_clock509));
+	assign clock509 = remote_clock509;
 	reg reset = 1;
 	reg [12:0] reset_counter = 0;
 	wire rawtrg;
@@ -174,6 +178,7 @@ module mza_test028_pll_509divider_and_revo_encoder_althea_top (
 	output b_p, b_n,
 	output d_p, d_n,
 	output e_p, e_n,
+	input j_p, j_n,
 	input k_p, k_n,
 	input m_p, m_n,
 	output led_0,
@@ -186,8 +191,8 @@ module mza_test028_pll_509divider_and_revo_encoder_althea_top (
 	output led_7
 );
 	mza_test028_pll_509divider_and_revo_encoder_althea mything (
-	//	input local_clock509_p,
-	//	input local_clock509_n,
+		.local_clock509_in_p(j_p),
+		.local_clock509_in_n(j_n),
 		.remote_clock509_in_p(k_p),
 		.remote_clock509_in_n(k_n),
 		.remote_revo_in_p(m_p),
