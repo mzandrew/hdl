@@ -30,12 +30,6 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 );
 	wire clock509;
 	IBUFGDS input_clock_instance (.I(remote_clock509_in_p), .IB(remote_clock509_in_n), .O(clock509));
-	//assign clock509 = lemo;
-	//reg [WIDTH-1:0] word;
-	//wire [7:0] led_byte;
-	//assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = led_byte;
-	//assign led_byte = word;
-	//reg [31:0] counter = 0;
 	reg reset = 1;
 	reg [12:0] reset_counter = 0;
 	wire rawtrg;
@@ -43,8 +37,6 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 	parameter TRGSTREAM_WIDTH = 16;
 	parameter TRG_MAX_DURATION = 8;
 	reg [TRGSTREAM_WIDTH-1:0] trgstream = 0;
-	//reg [(TRGSTREAM_WIDTH>>2)-1:0] trgstreamquad = 0;
-	//wire [(TRGSTREAM_WIDTH>>2)-1:0] trgstreamquad;
 	always @(posedge clock509) begin
 		if (reset) begin
 			if (reset_counter[10]) begin
@@ -53,21 +45,12 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 			reset_counter <= reset_counter + 1'b1;
 		end
 	end
-//	assign trgstreamquad[0] = trgstream[ 3] || trgstream[ 2] || trgstream[ 1] || trgstream[ 0];
-//	assign trgstreamquad[1] = trgstream[ 7] || trgstream[ 6] || trgstream[ 5] || trgstream[ 4];
-//	assign trgstreamquad[2] = trgstream[11] || trgstream[10] || trgstream[ 9] || trgstream[ 8];
-//	assign trgstreamquad[3] = trgstream[15] || trgstream[14] || trgstream[13] || trgstream[12];
 	wire rawclock127;
 	wire rawclock127b;
 	wire rawclock254;
 	wire rawclock254b;
 	wire locked;
-	//pll pll_instance (.CLK_IN1_P(remote_clock509_p), .CLK_IN1_N(remote_clock509_n), .CLK_OUT1(clock127), .RESET(1'b0), .LOCKED(led_0));
-	//plldcm plldcm_instance #(.divide(4), .multiply(1), .period("1.965") (.clockin(clock509), .clockout(clock127), .clockout180(clock127b), .reset(reset), .locked(led_0));
-	//plldcm #(.overall_divide(2), .pllmultiply(4), .plldivide(8), .pllperiod(1.965), .dcmmultiply(2), .dcmdivide(2), .dcmperiod("7.86")) myplldcm (.clockin(clock509), .clockout(clock127), .clockout180(clock127b), .reset(reset), .locked(locked));
-	//plldcm #(.overall_divide(2), .pllmultiply(4), .plldivide(8), .pllperiod(1.965), .dcmmultiply(2), .dcmdivide(2), .dcmperiod(7.86)) myplldcm (.clockin(clock509), .clockout(clock127), .clockout180(clock127b), .reset(reset), .locked(locked));
 	simplepll_BASE #(.overall_divide(2), .multiply(4), .divide1(8), .divide2(4), .period(1.965), .compensation("INTERNAL")) mypll (.clockin(clock509), .reset(reset), .clock1out(rawclock127), .clock1out180(rawclock127b), .clock2out(rawclock254), .clock2out180(rawclock254b), .locked(locked));
-	//simplepll_BASE #(.overall_divide(2), .multiply(4), .divide(8), .period(1.965), .compensation("SYSTEM_SYNCHRONOUS")) mypll (.clockin(clock509), .reset(reset), .clockout(rawclock127), .clockout180(rawclock127b), .locked(locked));
 	wire clock127;
 	wire clock127b;
 	BUFG mybufg1 (.I(rawclock127), .O(clock127));
@@ -78,22 +61,11 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 	BUFG mybufg4 (.I(rawclock254b), .O(clock254b));
 	reg trg = 0;
 	always @(posedge clock254) begin
-//		trgstreamquad[0] <= trgstream[ 3] || trgstream[ 2] || trgstream[ 1] || trgstream[ 0];
-//		trgstreamquad[1] <= trgstream[ 7] || trgstream[ 6] || trgstream[ 5] || trgstream[ 4];
-//		trgstreamquad[2] <= trgstream[11] || trgstream[10] || trgstream[ 9] || trgstream[ 8];
-//		trgstreamquad[3] <= trgstream[15] || trgstream[14] || trgstream[13] || trgstream[12];
 		trgstream <= { trgstream[TRGSTREAM_WIDTH-2:0], rawtrg };
 	end
 	always @(posedge clock127) begin
 		trg <= 0;
-		//if (trgstream[TRG_MAX_DURATION-1:0] != 0) begin
-		//	if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0) begin
-//		if (trgstreamquad[3:2] == 0 && trgstreamquad[1:0] != 0) begin
-//			trg <= 1;
-//		end
-		if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] != 0 || trgstream[TRG_MAX_DURATION-1:0] == 0) begin
-			trg <= 0;
-		end else begin
+		if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
 			trg <= 1;
 		end
 	end
@@ -102,7 +74,6 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 	OBUFDS supercool (.I(clock127oddr1), .O(clock127_out_p), .OB(clock127_out_n));
 	wire clock127oddr2;
 	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(~trg),  .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(clock127oddr2));
-	//OBUFDS grouch1 (.I(trg), .O(trg_out_p), .OB(trg_out_n));
 	OBUFDS grouch2 (.I(clock127oddr2), .O(trg_out_p), .OB(trg_out_n));
 	assign led_7 = reset;
 	assign led_6 = 0;
