@@ -1,7 +1,7 @@
 # written 2018-10-24 by mza
 # based off of mza_test020_serdes_pll.ucf
 # and altered for althea revA
-# last updated 2018-11-15 by mza
+# last updated 2019-08-19 by mza
 
 # 50 MHz local oscillator:
 net clock_p loc=p127 | iostandard=lvds_25 | diff_term=true; // CLOCK+
@@ -10,8 +10,8 @@ net clock_n loc=p126 | iostandard=lvds_25 | diff_term=true; // CLOCK-
 #net clock_p loc=p124 | iostandard=lvds_25 | diff_term=true; // D+
 #net clock_n loc=p123 | iostandard=lvds_25 | diff_term=true; // D-
 
-net "clock_p" tnm_net = clock_p;
-timespec "ts_clock_p" = period "clock_p" 20 ns high 50%; # 50 MHz
+net "clock_p" tnm_net = tnm_clock_p;
+timespec "ts_clock_p" = period "tnm_clock_p" 20.0 ns high 50%; # 50 MHz
 
 # remote clock/trigger (FTSW):
 #net rj45_trg_p loc=ab14 | iostandard=lvds_25 | diff_term=true;
@@ -39,8 +39,8 @@ net lemo_output loc=p93 | iostandard=lvcmos25 | slew=fast | drive=24;
 net lvds_trig_input_p loc=p117 | iostandard=lvds_25 | diff_term=true; // C+
 net lvds_trig_input_n loc=p116 | iostandard=lvds_25 | diff_term=true; // C-
 
-#net lvds_trig_output_1_p loc=p142 | iostandard=lvds_25; // F+;
-#net lvds_trig_output_1_n loc=p141 | iostandard=lvds_25; // F-;
+net lvds_trig_output_1_p loc=p142 | iostandard=lvds_25; // F+;
+net lvds_trig_output_1_n loc=p141 | iostandard=lvds_25; // F-;
 
 net lvds_trig_output_2_p loc=p112 | iostandard=lvds_25; // A+;
 net lvds_trig_output_2_n loc=p111 | iostandard=lvds_25; // A-;
