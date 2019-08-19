@@ -7,10 +7,10 @@
 #net clock_n loc=p126 | iostandard=lvds_25 | diff_term=true; # CLOCK-
 #net "clock_p" tnm_net = clock_p;
 #timespec "ts_clock_p" = period "clock_p" 20 ns high 50%; # 50 MHz
-net "k_p" tnm_net = remote_clock_p;
-timespec "ts_remote_clock_p" = period "remote_clock_p" 1.965 ns high 50%; # 508.9 MHz
-net "j_p" tnm_net = local_clock_p;
-timespec "ts_local_clock_p" = period "local_clock_p" 1.965 ns high 50%; # 508.9 MHz
+net "k_p" tnm_net = tnm_remote_clock_p;
+timespec "ts_remote_clock_p" = period "tnm_remote_clock_p" 1.965 ns high 50%; # 508.9 MHz
+net "j_p" tnm_net = tnm_local_clock_p;
+timespec "ts_local_clock_p" = period "tnm_local_clock_p" 1.965 ns high 50%; # 508.9 MHz
 
 #net "d_p" tnm_net = ftsw_p;
 #timespec "ts_ftsw_p" = period "ftsw_p" 7.8 ns high 50%; # 128.205 MHz

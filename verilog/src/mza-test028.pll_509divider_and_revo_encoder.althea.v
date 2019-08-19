@@ -41,6 +41,8 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 	parameter TRGSTREAM_WIDTH = 16;
 	parameter TRG_MAX_DURATION = 8;
 	reg [TRGSTREAM_WIDTH-1:0] trgstream = 0;
+	reg [TRGSTREAM_WIDTH-TRG_MAX_DURATION-1:0] upper;
+	reg [TRG_MAX_DURATION-1:0] lower;
 	always @(posedge clock509) begin
 		if (reset) begin
 			if (reset_counter[10]) begin
@@ -66,12 +68,15 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 	reg trg = 0;
 	always @(posedge clock254) begin
 		trgstream <= { trgstream[TRGSTREAM_WIDTH-2:0], rawtrg };
-	end
-	always @(posedge clock127) begin
+//	end
+//	always @(posedge clock127) begin
 		trg <= 0;
-		if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
+//		if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
+		if (upper==0 & lower!=0) begin
 			trg <= 1;
 		end
+		upper <= trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION];
+		lower <= trgstream[TRG_MAX_DURATION-1:0];
 	end
 	wire clock127oddr1;
 	ODDR2 doughnut1 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(clock127oddr1));
