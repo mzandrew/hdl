@@ -1,0 +1,58 @@
+# written 2018-10-25 by mza
+# based off of mza_test023_serdes_pll.althea.ucf
+# last updated 2018-11-20 by mza
+
+# 50 MHz local oscillator:
+net clock_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK+
+net clock_n loc=p126 | iostandard=lvds_25 | diff_term=true; # CLOCK-
+net "clock_p" tnm_net = tnm_clock_p;
+timespec "ts_clock_p" = period "tnm_clock_p" 20.0 ns high 50%; # 50 MHz
+net "k_p" tnm_net = tnm_remote_clock_p;
+timespec "ts_remote_clock_p" = period "tnm_remote_clock_p" 1.965 ns high 50%; # 508.9 MHz
+net "j_p" tnm_net = tnm_local_clock_p;
+timespec "ts_local_clock_p" = period "tnm_local_clock_p" 1.965 ns high 50%; # 508.9 MHz
+
+#net "d_p" tnm_net = ftsw_p;
+#timespec "ts_ftsw_p" = period "ftsw_p" 7.8 ns high 50%; # 128.205 MHz
+
+net a_p loc=p112 | iostandard=lvds_25; # A+ bank0 TR
+net a_n loc=p111 | iostandard=lvds_25; # A- bank0 TR
+net b_p loc=p115 | iostandard=lvds_25; # B+ bank0 TR
+net b_n loc=p114 | iostandard=lvds_25; # B- bank0 TR
+#net c_p loc=p117 | iostandard=lvds_25 | diff_term=true; # C+ bank0 TR
+#net c_n loc=p116 | iostandard=lvds_25 | diff_term=true; # C- bank0 TR
+net d_p loc=p124 | iostandard=lvds_25; # D+ bank0 TR GCLK
+net d_n loc=p123 | iostandard=lvds_25; # D- bank0 TR GCLK
+#net clock_p loc=p124 | iostandard=lvds_25; # D+ bank0 TR GCLK
+#net clock_n loc=p123 | iostandard=lvds_25; # D- bank0 TR GCLK
+
+net e_p loc=p138 | iostandard=lvds_25; # E+ bank0 TL
+net e_n loc=p137 | iostandard=lvds_25; # E- bank0 TL
+#net f_p loc=p142 | iostandard=lvds_25 | diff_term=true; # F+ bank0 TL
+#net f_n loc=p141 | iostandard=lvds_25 | diff_term=true; # F- bank0 TL
+
+#net g_p loc=p41  | iostandard=lvcmos25; # G+ bank3 BL
+#net g_n loc=p40  | iostandard=lvcmos25; # G- bank3 BL
+#net h_p loc=p48  | iostandard=lvds_25 | diff_term=true; # H+ bank3 BL
+#net h_n loc=p47  | iostandard=lvds_25 | diff_term=true; # H- bank3 BL
+net j_p loc=p51  | iostandard=lvds_25 | diff_term=true; # J+ bank3 BL GCLK
+net j_n loc=p50  | iostandard=lvds_25 | diff_term=true; # J- bank3 BL GCLK
+
+net k_p loc=p56  | iostandard=lvds_25 | diff_term=true; # K+ bank3 BR GCLK
+net k_n loc=p55  | iostandard=lvds_25 | diff_term=true; # K- bank3 BR GCLK
+#net l_p loc=p58  | iostandard=lvds_25; # L+ bank3 BR
+#net l_n loc=p57  | iostandard=lvds_25; # L- bank3 BR
+net m_p loc=p67  | iostandard=lvds_25 | diff_term=true; # M+ bank3 BR
+net m_n loc=p66  | iostandard=lvds_25 | diff_term=true; # M- bank3 BR
+
+net led_0 loc=p12 | iostandard=lvcmos25;
+net led_1 loc=p11 | iostandard=lvcmos25;
+net led_2 loc=p10 | iostandard=lvcmos25;
+net led_3 loc=p9  | iostandard=lvcmos25;
+net led_4 loc=p7  | iostandard=lvcmos25;
+net led_5 loc=p6  | iostandard=lvcmos25;
+net led_6 loc=p2  | iostandard=lvcmos25;
+net led_7 loc=p1  | iostandard=lvcmos25;
+
+#net lemo loc=p93 | iostandard=lvcmos25;
+
