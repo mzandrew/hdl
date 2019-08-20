@@ -23,6 +23,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	output outa_n,
 	output rsv_p,
 	output rsv_n,
+	input lemo,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -69,10 +70,24 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire clock254b;
 	BUFG mybufg3 (.I(rawclock254), .O(clock254));
 	BUFG mybufg4 (.I(rawclock254b), .O(clock254b));
-	reg trg = 0;
+	reg dummy = 0;
+	always @(posedge local_clock509) begin
+		dummy <= 0;
+		if (trg) begin
+			dummy <= 1;
+		end
+	end
+	always @(posedge word_clock) begin
+		if (lemo) begin
+			word <= word0;
+		end else begin
+			word <= word1;
+		end
+	end
 	always @(posedge clock509) begin
 		trgstream <= { trgstream[TRGSTREAM_WIDTH-2:0], rawtrg };
 	end
+	reg trg = 0;
 	always @(posedge clock127) begin
 		trg <= 0;
 		//if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
@@ -90,7 +105,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	OBUFDS grouch2 (.I(clock127oddr2), .O(trg_out_p), .OB(trg_out_n));
 	assign led_7 = reset;
 	assign led_6 = 0;
-	assign led_5 = 0;
+	assign led_5 = dummy;
 	assign led_4 = trg;
 	assign led_3 = 0;
 	assign led_2 = reset_counter[12];
@@ -99,7 +114,9 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	OBUFDS out1 (.I(trg), .O(out1_p), .OB(out1_n));
 	wire D;
 	wire word_clock;
-	reg [7:0] word = 8'b11110100;
+	reg [7:0] word;
+	wire [7:0] word0 = 8'b11110100;
+	wire [7:0] word1 = 8'b11110010;
 	ocyrus_single8 #(.WIDTH(8), .PERIOD(3.93), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock254), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(D), .T_out(), .locked());
 	wire clock254oddr;
 	ODDR2 doughnut3 (.C0(clock254), .C1(clock254b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(clock254oddr));
@@ -125,6 +142,7 @@ module mything_tb;
 	wire outa_n;
 	wire rsv_p;
 	wire rsv_n;
+	wire lemo;
 	wire led_0;
 	wire led_1;
 	wire led_2;
@@ -149,6 +167,7 @@ module mything_tb;
 		.outa_n(outa_n), 
 		.rsv_p(rsv_p),
 		.rsv_n(rsv_n),
+		.lemo(lemo),
 		.led_0(led_0), 
 		.led_1(led_1), 
 		.led_2(led_2), 
@@ -202,6 +221,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	input j_p, j_n,
 	input k_p, k_n,
 	input m_p, m_n,
+	input lemo,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -230,6 +250,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		.outa_n(b_n),
 		.rsv_p(c_p),
 		.rsv_n(c_n),
+		.lemo(lemo),
 		.led_0(led_0),
 		.led_1(led_1),
 		.led_2(led_2),
