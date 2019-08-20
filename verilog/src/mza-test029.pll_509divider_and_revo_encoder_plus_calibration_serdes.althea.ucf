@@ -1,12 +1,13 @@
 # written 2018-10-25 by mza
 # based off of mza_test023_serdes_pll.althea.ucf
-# last updated 2018-11-20 by mza
+# last updated 2019-08-20 by mza
 
 # 50 MHz local oscillator:
-net clock_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK+
-net clock_n loc=p126 | iostandard=lvds_25 | diff_term=true; # CLOCK-
-net "clock_p" tnm_net = tnm_clock_p;
-timespec "ts_clock_p" = period "tnm_clock_p" 20.0 ns high 50%; # 50 MHz
+net clock50_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK50+
+net clock50_n loc=p126 | iostandard=lvds_25 | diff_term=true; # CLOCK50-
+net "clock50_p" tnm_net = tnm_clock50_p;
+timespec "ts_clock50_p" = period "tnm_clock50_p" 20.0 ns high 50%; # 50 MHz
+
 net "k_p" tnm_net = tnm_remote_clock_p;
 timespec "ts_remote_clock_p" = period "tnm_remote_clock_p" 1.965 ns high 50%; # 508.9 MHz
 net "j_p" tnm_net = tnm_local_clock_p;
@@ -19,12 +20,10 @@ net a_p loc=p112 | iostandard=lvds_25; # A+ bank0 TR
 net a_n loc=p111 | iostandard=lvds_25; # A- bank0 TR
 net b_p loc=p115 | iostandard=lvds_25; # B+ bank0 TR
 net b_n loc=p114 | iostandard=lvds_25; # B- bank0 TR
-#net c_p loc=p117 | iostandard=lvds_25 | diff_term=true; # C+ bank0 TR
-#net c_n loc=p116 | iostandard=lvds_25 | diff_term=true; # C- bank0 TR
+net c_p loc=p117 | iostandard=lvds_25; # C+ bank0 TR
+net c_n loc=p116 | iostandard=lvds_25; # C- bank0 TR
 net d_p loc=p124 | iostandard=lvds_25; # D+ bank0 TR GCLK
 net d_n loc=p123 | iostandard=lvds_25; # D- bank0 TR GCLK
-#net clock_p loc=p124 | iostandard=lvds_25; # D+ bank0 TR GCLK
-#net clock_n loc=p123 | iostandard=lvds_25; # D- bank0 TR GCLK
 
 net e_p loc=p138 | iostandard=lvds_25; # E+ bank0 TL
 net e_n loc=p137 | iostandard=lvds_25; # E- bank0 TL

@@ -21,6 +21,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	output out1_n,
 	output outa_p,
 	output outa_n,
+	output rsv_p,
+	output rsv_n,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -101,8 +103,9 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	ocyrus_single8 #(.WIDTH(8), .PERIOD(3.93), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock254), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(D), .T_out(), .locked());
 	wire clock127oddr3;
 	ODDR2 doughnut3 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(clock127oddr3));
-	//OBUFDS outa (.I(clock127oddr3), .O(outa_p), .OB(outa_n));
-	OBUFDS outa (.I(D), .O(outa_p), .OB(outa_n));
+	OBUFDS outa (.I(clock127oddr3), .O(outa_p), .OB(outa_n));
+	//OBUFDS outa (.I(D), .O(outa_p), .OB(outa_n));
+	OBUFDS out (.I(D), .O(rsv_p), .OB(rsv_n));
 endmodule
 
 module mything_tb;
@@ -120,6 +123,8 @@ module mything_tb;
 	wire out1_n;
 	wire outa_p;
 	wire outa_n;
+	wire rsv_p;
+	wire rsv_n;
 	wire led_0;
 	wire led_1;
 	wire led_2;
@@ -142,6 +147,8 @@ module mything_tb;
 		.out1_n(out1_n), 
 		.outa_p(outa_p), 
 		.outa_n(outa_n), 
+		.rsv_p(rsv_p),
+		.rsv_n(rsv_n),
 		.led_0(led_0), 
 		.led_1(led_1), 
 		.led_2(led_2), 
@@ -189,6 +196,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	input clock_p, clock_n,
 	output a_p, a_n,
 	output b_p, b_n,
+	output c_p, c_n,
 	output d_p, d_n,
 	output e_p, e_n,
 	input j_p, j_n,
@@ -220,6 +228,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		.out1_n(e_n),
 		.outa_p(b_p),
 		.outa_n(b_n),
+		.rsv_p(c_p),
+		.rsv_n(c_n),
 		.led_0(led_0),
 		.led_1(led_1),
 		.led_2(led_2),
