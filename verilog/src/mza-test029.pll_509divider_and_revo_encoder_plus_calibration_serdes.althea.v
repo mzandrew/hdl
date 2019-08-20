@@ -1,10 +1,10 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2019-08-19 by mza
+// last updated 2019-08-20 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
-module mza_test028_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea (
+module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea (
 	input local_clock50_in_p,
 	input local_clock50_in_n,
 	input local_clock509_in_p,
@@ -129,7 +129,7 @@ module mything_tb;
 	wire led_6;
 	wire led_7;
 	// Instantiate the Unit Under Test (UUT)
-	mza_test028_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea uut (
+	mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea uut (
 		.remote_clock509_in_p(remote_clock509_in_p), 
 		.remote_clock509_in_n(remote_clock509_in_n), 
 		.remote_revo_in_p(remote_revo_in_p), 
@@ -185,7 +185,7 @@ module mything_tb;
 	end
 endmodule
 
-module mza_test028_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea_top (
+module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea_top (
 	input clock_p, clock_n,
 	output a_p, a_n,
 	output b_p, b_n,
@@ -203,7 +203,7 @@ module mza_test028_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	output led_6,
 	output led_7
 );
-	mza_test028_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea mything (
+	mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea mything (
 		.local_clock50_in_p(clock_p),
 		.local_clock50_in_n(clock_n),
 		.local_clock509_in_p(j_p),
