@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2019-08-20 by mza
+// last updated 2019-08-21 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
@@ -24,6 +24,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	output rsv_p,
 	output rsv_n,
 	input lemo,
+	input ack_p,
+	input ack_n,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -33,6 +35,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	output led_6,
 	output led_7
 );
+	wire ack;
+	IBUFGDS ackbuf (.I(ack_p), .IB(ack_n), .O(ack));
 	wire remote_clock509;
 	wire local_clock50;
 	wire local_clock509;
@@ -85,10 +89,6 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 	end
 	always @(posedge clock509) begin
-		trgstream <= { trgstream[TRGSTREAM_WIDTH-2:0], rawtrg };
-	end
-	reg trg = 0;
-	always @(posedge clock127) begin
 		trg <= 0;
 		//if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
 		if (upper==0 & lower!=0) begin
@@ -96,7 +96,9 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 		upper <= trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION];
 		lower <= trgstream[TRG_MAX_DURATION-1:0];
+		trgstream <= { trgstream[TRGSTREAM_WIDTH-2:0], rawtrg };
 	end
+	reg trg = 0;
 	wire clock127oddr1;
 	ODDR2 doughnut1 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(clock127oddr1));
 	OBUFDS supercool (.I(clock127oddr1), .O(clock127_out_p), .OB(clock127_out_n));
@@ -143,6 +145,8 @@ module mything_tb;
 	wire rsv_p;
 	wire rsv_n;
 	wire lemo;
+	wire ack_p;
+	wire ack_n;
 	wire led_0;
 	wire led_1;
 	wire led_2;
@@ -168,6 +172,8 @@ module mything_tb;
 		.rsv_p(rsv_p),
 		.rsv_n(rsv_n),
 		.lemo(lemo),
+		.ack_p(ack_p),
+		.ack_n(ack_n),
 		.led_0(led_0), 
 		.led_1(led_1), 
 		.led_2(led_2), 
@@ -212,8 +218,8 @@ module mything_tb;
 endmodule
 
 module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea_top (
-	input clock_p, clock_n,
-	output a_p, a_n,
+	input clock50_p, clock50_n,
+	input a_p, a_n,
 	output b_p, b_n,
 	output c_p, c_n,
 	output d_p, d_n,
@@ -232,8 +238,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	output led_7
 );
 	mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea mything (
-		.local_clock50_in_p(clock_p),
-		.local_clock50_in_n(clock_n),
+		.local_clock50_in_p(clock50_p),
+		.local_clock50_in_n(clock50_n),
 		.local_clock509_in_p(j_p),
 		.local_clock509_in_n(j_n),
 		.remote_clock509_in_p(k_p),
@@ -251,6 +257,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		.rsv_p(c_p),
 		.rsv_n(c_n),
 		.lemo(lemo),
+		.ack_p(a_p),
+		.ack_n(a_n),
 		.led_0(led_0),
 		.led_1(led_1),
 		.led_2(led_2),
