@@ -1,6 +1,6 @@
 # written 2018-10-25 by mza
 # based off of mza_test023_serdes_pll.althea.ucf
-# last updated 2019-08-20 by mza
+# last updated 2019-08-21 by mza
 
 # 50 MHz local oscillator:
 net clock50_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK50+
@@ -32,8 +32,8 @@ net e_n loc=p137 | iostandard=lvds_25; # E- bank0 TL
 
 #net g_p loc=p41  | iostandard=lvcmos25; # G+ bank3 BL
 #net g_n loc=p40  | iostandard=lvcmos25; # G- bank3 BL
-#net h_p loc=p48  | iostandard=lvds_25 | diff_term=true; # H+ bank3 BL
-#net h_n loc=p47  | iostandard=lvds_25 | diff_term=true; # H- bank3 BL
+net h_p loc=p48  | iostandard=lvds_25 | diff_term=true; # H+ bank3 BL
+net h_n loc=p47  | iostandard=lvds_25 | diff_term=true; # H- bank3 BL
 net j_p loc=p51  | iostandard=lvds_25 | diff_term=true; # J+ bank3 BL GCLK
 net j_n loc=p50  | iostandard=lvds_25 | diff_term=true; # J- bank3 BL GCLK
 
@@ -41,8 +41,8 @@ net k_p loc=p56  | iostandard=lvds_25 | diff_term=true; # K+ bank3 BR GCLK
 net k_n loc=p55  | iostandard=lvds_25 | diff_term=true; # K- bank3 BR GCLK
 #net l_p loc=p58  | iostandard=lvds_25; # L+ bank3 BR
 #net l_n loc=p57  | iostandard=lvds_25; # L- bank3 BR
-net m_p loc=p67  | iostandard=lvds_25 | diff_term=true; # M+ bank3 BR
-net m_n loc=p66  | iostandard=lvds_25 | diff_term=true; # M- bank3 BR
+#net m_p loc=p67  | iostandard=lvds_25 | diff_term=true; # M+ bank3 BR
+#net m_n loc=p66  | iostandard=lvds_25 | diff_term=true; # M- bank3 BR
 
 net led_0 loc=p12 | iostandard=lvcmos25;
 net led_1 loc=p11 | iostandard=lvcmos25;
