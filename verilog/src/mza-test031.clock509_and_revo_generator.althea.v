@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-08-26 by mza
-// last updated 2019-08-26 by mza
+// last updated 2019-08-27 by mza
 
 module mza_test031_clock509_and_revo_generator_althea (
 	input local_clock50_in_p,
@@ -86,8 +86,8 @@ endmodule
 module mza_test031_clock509_and_revo_generator_althea_top (
 	input clock50_p, clock50_n,
 	output a_p, a_n,
-	output d_p, d_n,
-	input j_p, j_n,
+	output b_p, b_n,
+	input d_p, d_n,
 	output lemo,
 	output led_0,
 	output led_1,
@@ -101,12 +101,12 @@ module mza_test031_clock509_and_revo_generator_althea_top (
 	mza_test031_clock509_and_revo_generator_althea mything (
 		.local_clock50_in_p(clock50_p),
 		.local_clock50_in_n(clock50_n),
-		.local_clock509_in_p(j_p),
-		.local_clock509_in_n(j_n),
-		.clock509_out_p(d_p),
-		.clock509_out_n(d_n),
-		.revo_out_p(a_p),
-		.revo_out_n(a_n),
+		.local_clock509_in_p(d_p),
+		.local_clock509_in_n(d_n),
+		.clock509_out_p(a_p),
+		.clock509_out_n(a_n),
+		.revo_out_p(b_p),
+		.revo_out_n(b_n),
 		.lemo(lemo),
 		.led_0(led_0),
 		.led_1(led_1),
