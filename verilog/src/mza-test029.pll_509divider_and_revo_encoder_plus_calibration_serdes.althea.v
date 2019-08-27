@@ -26,6 +26,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	input lemo,
 	input ack_p,
 	input ack_n,
+	output reg led_revo,
+	output reg led_rfclock,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -59,6 +61,10 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			reset <= 0;
 		end
 		reset_counter <= reset_counter + 1'b1;
+		led_rfclock <= 0;
+		if (clock509) begin
+			led_rfclock <= 1;
+		end
 	end
 	wire rawclock127;
 	wire rawclock127b;
@@ -89,10 +95,12 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 	end
 	always @(posedge clock509) begin
+		led_revo <= 0;
 		trg <= 0;
 		//if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
 		if (upper==0 & lower!=0) begin
 			trg <= 1;
+			led_revo <= 1;
 		end
 		upper <= trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION];
 		lower <= trgstream[TRG_MAX_DURATION-1:0];
@@ -147,6 +155,8 @@ module mything_tb;
 	wire lemo;
 	wire ack_p;
 	wire ack_n;
+	wire led_revo;
+	wire led_rfclock;
 	wire led_0;
 	wire led_1;
 	wire led_2;
@@ -174,6 +184,8 @@ module mything_tb;
 		.lemo(lemo),
 		.ack_p(ack_p),
 		.ack_n(ack_n),
+		.led_revo(l_p),
+		.led_rfclock(l_n),
 		.led_0(led_0), 
 		.led_1(led_1), 
 		.led_2(led_2), 
@@ -228,6 +240,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	input j_p, j_n,
 	input k_p, k_n,
 	input lemo,
+	output l_p, l_n,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -259,6 +272,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		.lemo(lemo),
 		.ack_p(a_p),
 		.ack_n(a_n),
+		.led_revo(l_p),
+		.led_rfclock(l_n),
 		.led_0(led_0),
 		.led_1(led_1),
 		.led_2(led_2),

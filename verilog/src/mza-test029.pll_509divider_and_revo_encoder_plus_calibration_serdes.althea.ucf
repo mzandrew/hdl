@@ -41,6 +41,8 @@ net k_p loc=p56  | iostandard=lvds_25 | diff_term=true; # K+ bank3 BR GCLK
 net k_n loc=p55  | iostandard=lvds_25 | diff_term=true; # K- bank3 BR GCLK
 #net l_p loc=p58  | iostandard=lvds_25; # L+ bank3 BR
 #net l_n loc=p57  | iostandard=lvds_25; # L- bank3 BR
+net l_p loc=p58  | iostandard=lvcmos25; # L+ bank3 BR
+net l_n loc=p57  | iostandard=lvcmos25; # L- bank3 BR
 #net m_p loc=p67  | iostandard=lvds_25 | diff_term=true; # M+ bank3 BR
 #net m_n loc=p66  | iostandard=lvds_25 | diff_term=true; # M- bank3 BR
 
