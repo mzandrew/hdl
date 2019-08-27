@@ -1,6 +1,142 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2019-08-19 by mza
+// last updated 2019-08-26 by mza
+
+module ocyrus_double8 #(
+	parameter WIDTH = 8,
+	PERIOD = 20.0,
+	DIVIDE = 2,
+	MULTIPLY = 40
+) (
+	input clock_in,
+	output word_clock_out,
+	input reset,
+	input [WIDTH-1:0] word1_in,
+	input [WIDTH-1:0] word2_in,
+	output D1_out,
+	output D2_out,
+	output T1_out,
+	output T2_out,
+	output locked
+);
+	wire ioclk_T;
+	wire ioclk_T1; // 1000 MHz
+	wire ioclk_T2; // 1000 MHz
+	wire ioclk_D;
+	wire ioclk_D1; // 1000 MHz
+	wire ioclk_D2; // 1000 MHz
+	wire ioce_T1;
+	wire ioce_T2;
+	wire ioce_D1;
+	wire ioce_D2;
+	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
+	wire cascade_1do1;
+	wire cascade_1to1;
+	wire cascade_1di1;
+	wire cascade_1ti1;
+	wire cascade_1do2;
+	wire cascade_1to2;
+	wire cascade_1di2;
+	wire cascade_1ti2;
+	wire cascade_2do1;
+	wire cascade_2to1;
+	wire cascade_2di1;
+	wire cascade_2ti1;
+	wire cascade_2do2;
+	wire cascade_2to2;
+	wire cascade_2di2;
+	wire cascade_2ti2;
+	// want MSB of word to come out first
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
+	         osirus_master_T1
+	         (.OQ(T1_out), .TQ(), .CLK0(ioclk_T1), .CLK1(1'b0), .CLKDIV(word_clock_out),
+	         .D1(word1_in[3]), .D2(word1_in[2]), .D3(word1_in[1]), .D4(word1_in[0]),
+	         .IOCE(ioce_T1), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_1do1), .SHIFTIN4(cascade_1to1), 
+	         .SHIFTOUT1(cascade_1di1), .SHIFTOUT2(cascade_1ti1), .SHIFTOUT3(), .SHIFTOUT4(), 
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
+	         osirus_slave_T1
+	         (.OQ(), .TQ(), .CLK0(ioclk_T1), .CLK1(1'b0), .CLKDIV(word_clock_out),
+	         .D1(word1_in[7]), .D2(word1_in[6]), .D3(word1_in[5]), .D4(word1_in[4]),
+	         .IOCE(ioce_T1), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(cascade_1di1), .SHIFTIN2(cascade_1ti1), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_1do1), .SHIFTOUT4(cascade_1to1),
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
+	         osirus_master_D1
+	         (.OQ(D1_out), .TQ(), .CLK0(ioclk_D1), .CLK1(1'b0), .CLKDIV(word_clock_out),
+	         .D1(word1_in[3]), .D2(word1_in[2]), .D3(word1_in[1]), .D4(word1_in[0]),
+	         .IOCE(ioce_D1), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_1do2), .SHIFTIN4(cascade_1to2), 
+	         .SHIFTOUT1(cascade_1di2), .SHIFTOUT2(cascade_1ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
+	         osirus_slave_D1
+	         (.OQ(), .TQ(), .CLK0(ioclk_D1), .CLK1(1'b0), .CLKDIV(word_clock_out),
+	         .D1(word1_in[7]), .D2(word1_in[6]), .D3(word1_in[5]), .D4(word1_in[4]),
+	         .IOCE(ioce_D1), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(cascade_1di2), .SHIFTIN2(cascade_1ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_1do2), .SHIFTOUT4(cascade_1to2),
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	// ----------------------------------------------------------------------
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
+	         osirus_master_T2
+	         (.OQ(T2_out), .TQ(), .CLK0(ioclk_T2), .CLK1(1'b0), .CLKDIV(word_clock_out),
+	         .D1(word2_in[3]), .D2(word2_in[2]), .D3(word2_in[1]), .D4(word2_in[0]),
+	         .IOCE(ioce_T2), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_2do1), .SHIFTIN4(cascade_2to1), 
+	         .SHIFTOUT1(cascade_2di1), .SHIFTOUT2(cascade_2ti1), .SHIFTOUT3(), .SHIFTOUT4(), 
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
+	         osirus_slave_T2
+	         (.OQ(), .TQ(), .CLK0(ioclk_T2), .CLK1(1'b0), .CLKDIV(word_clock_out),
+	         .D1(word2_in[7]), .D2(word2_in[6]), .D3(word2_in[5]), .D4(word2_in[4]),
+	         .IOCE(ioce_T2), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(cascade_2di1), .SHIFTIN2(cascade_2ti1), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_2do1), .SHIFTOUT4(cascade_2to1),
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
+	         osirus_master_D2
+	         (.OQ(D2_out), .TQ(), .CLK0(ioclk_D2), .CLK1(1'b0), .CLKDIV(word_clock_out),
+	         .D1(word2_in[3]), .D2(word2_in[2]), .D3(word2_in[1]), .D4(word2_in[0]),
+	         .IOCE(ioce_D2), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_2do2), .SHIFTIN4(cascade_2to2), 
+	         .SHIFTOUT1(cascade_2di2), .SHIFTOUT2(cascade_2ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
+	         osirus_slave_D2
+	         (.OQ(), .TQ(), .CLK0(ioclk_D2), .CLK1(1'b0), .CLKDIV(word_clock_out),
+	         .D1(word2_in[7]), .D2(word2_in[6]), .D3(word2_in[5]), .D4(word2_in[4]),
+	         .IOCE(ioce_D2), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(cascade_2di2), .SHIFTIN2(cascade_2ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_2do2), .SHIFTOUT4(cascade_2to2),
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	wire locked_T;
+	wire locked_D;
+	assign ioclk_T1 = ioclk_T;
+	assign ioclk_T2 = ioclk_T;
+	assign ioclk_D1 = ioclk_D;
+	assign ioclk_D2 = ioclk_D;
+	assign ioce_T1 = ioce_T;
+	assign ioce_T2 = ioce_T;
+	assign ioce_D1 = ioce_D;
+	assign ioce_D2 = ioce_D;
+	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY)) difficult_pll_TR (
+		.reset(reset), .clock_in(clock_in), .fabric_clock_out(word_clock_out), 
+		.serializer_clock_out_1(ioclk_T), .serializer_strobe_out_1(ioce_T), .locked_1(locked_T),
+		.serializer_clock_out_2(ioclk_D), .serializer_strobe_out_2(ioce_D), .locked_2(locked_D)
+	);
+	assign locked = locked_T & locked_D;
+endmodule
 
 module ocyrus_single8 #(
 	parameter WIDTH = 8,
