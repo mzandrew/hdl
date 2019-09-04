@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2019-08-21 by mza
+// last updated 2019-09-04 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
@@ -28,6 +28,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	input ack_n,
 	output reg led_revo,
 	output reg led_rfclock,
+	output driven_high,
+	input clock_select,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -46,7 +48,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	IBUFGDS remote_input_clock509_instance (.I(remote_clock509_in_p), .IB(remote_clock509_in_n), .O(remote_clock509));
 	IBUFGDS local_input_clock50_instance (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(local_clock50));
 	IBUFGDS local_input_clock509_instance (.I(local_clock509_in_p), .IB(local_clock509_in_n), .O(local_clock509));
-	assign clock509 = remote_clock509;
+	assign driven_high = 1;
+	BUFGMUX #(.CLK_SEL_TYPE("ASYNC")) clock_selection_instance (.I0(remote_clock509), .I1(local_clock509), .S(clock_select), .O(clock509));
 	reg reset = 1;
 	reg [12:0] reset_counter = 0;
 	wire rawtrg;
@@ -62,16 +65,16 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 		reset_counter <= reset_counter + 1'b1;
 		led_rfclock <= 0;
-		if (clock509) begin
-			led_rfclock <= 1;
-		end
+//		if (clock509) begin
+//			led_rfclock <= 1;
+//		end
 	end
 	wire rawclock127;
 	wire rawclock127b;
 	wire rawclock254;
 	wire rawclock254b;
-	wire locked;
-	simplepll_BASE #(.overall_divide(2), .multiply(4), .divide1(8), .divide2(4), .period(1.965), .compensation("INTERNAL")) mypll (.clockin(clock509), .reset(reset), .clock1out(rawclock127), .clock1out180(rawclock127b), .clock2out(rawclock254), .clock2out180(rawclock254b), .locked(locked));
+	wire locked1;
+	simplepll_BASE #(.overall_divide(2), .multiply(4), .divide1(8), .divide2(4), .period(1.965), .compensation("INTERNAL")) mypll (.clockin(clock509), .reset(reset), .clock1out(rawclock127), .clock1out180(rawclock127b), .clock2out(rawclock254), .clock2out180(rawclock254b), .locked(locked1));
 	wire clock127;
 	wire clock127b;
 	BUFG mybufg1 (.I(rawclock127), .O(clock127));
@@ -80,13 +83,13 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire clock254b;
 	BUFG mybufg3 (.I(rawclock254), .O(clock254));
 	BUFG mybufg4 (.I(rawclock254b), .O(clock254b));
-	reg dummy = 0;
-	always @(posedge local_clock509) begin
-		dummy <= 0;
-		if (trg) begin
-			dummy <= 1;
-		end
-	end
+//	reg dummy = 0;
+//	always @(posedge local_clock509) begin
+//		dummy <= 0;
+//		if (trg) begin
+//			dummy <= 1;
+//		end
+//	end
 	always @(posedge word_clock) begin
 		if (lemo) begin
 			word <= word0;
@@ -94,13 +97,14 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			word <= word1;
 		end
 	end
-	always @(posedge clock509) begin
+	//always @(posedge clock509) begin
+	always @(posedge clock254) begin
 		led_revo <= 0;
 		trg <= 0;
 		//if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
 		if (upper==0 & lower!=0) begin
 			trg <= 1;
-			led_revo <= 1;
+//			led_revo <= 1;
 		end
 		upper <= trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION];
 		lower <= trgstream[TRG_MAX_DURATION-1:0];
@@ -113,21 +117,22 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire clock127oddr2;
 	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(~trg),  .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(clock127oddr2));
 	OBUFDS grouch2 (.I(clock127oddr2), .O(trg_out_p), .OB(trg_out_n));
-	assign led_7 = reset;
+	wire locked2;
+	assign led_7 = locked2;
 	assign led_6 = 0;
-	assign led_5 = dummy;
-	assign led_4 = trg;
-	assign led_3 = 0;
-	assign led_2 = reset_counter[12];
+	assign led_5 = reset_counter[12];
+	assign led_4 = reset;
+	assign led_3 = clock_select;
+	assign led_2 = trg;
 	assign led_1 = 0;
-	assign led_0 = locked;
+	assign led_0 = locked1;
 	OBUFDS out1 (.I(trg), .O(out1_p), .OB(out1_n));
 	wire D;
 	wire word_clock;
 	reg [7:0] word;
 	wire [7:0] word0 = 8'b11110100;
 	wire [7:0] word1 = 8'b11110010;
-	ocyrus_single8 #(.WIDTH(8), .PERIOD(3.93), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock254), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(D), .T_out(), .locked());
+	ocyrus_single8 #(.WIDTH(8), .PERIOD(3.93), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock254), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(D), .T_out(), .locked(locked2));
 	wire clock254oddr;
 	ODDR2 doughnut3 (.C0(clock254), .C1(clock254b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(clock254oddr));
 	OBUFDS outa (.I(clock254oddr), .O(outa_p), .OB(outa_n));
@@ -241,6 +246,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	input k_p, k_n,
 	input lemo,
 	output l_p, l_n,
+	input g_n, output g_p,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -274,6 +280,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		.ack_n(a_n),
 		.led_revo(l_p),
 		.led_rfclock(l_n),
+		.driven_high(g_p), .clock_select(g_n),
 		.led_0(led_0),
 		.led_1(led_1),
 		.led_2(led_2),
