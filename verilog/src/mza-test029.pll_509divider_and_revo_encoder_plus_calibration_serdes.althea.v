@@ -56,7 +56,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	IBUFGDS trigger_input_instance (.I(remote_revo_in_p), .IB(remote_revo_in_n), .O(rawtrg));
 	parameter TRGSTREAM_WIDTH = 16;
 	parameter TRG_MAX_DURATION = 8;
-	reg [TRGSTREAM_WIDTH-1:0] trgstream = 0;
+	reg [TRGSTREAM_WIDTH-1:0] trgstream;
 	reg [TRGSTREAM_WIDTH-TRG_MAX_DURATION-1:0] upper;
 	reg [TRG_MAX_DURATION-1:0] lower;
 	always @(posedge local_clock50) begin
@@ -83,13 +83,6 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire clock254b;
 	BUFG mybufg3 (.I(rawclock254), .O(clock254));
 	BUFG mybufg4 (.I(rawclock254b), .O(clock254b));
-//	reg dummy = 0;
-//	always @(posedge local_clock509) begin
-//		dummy <= 0;
-//		if (trg) begin
-//			dummy <= 1;
-//		end
-//	end
 	always @(posedge word_clock) begin
 		if (lemo) begin
 			word <= word0;
@@ -97,18 +90,29 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			word <= word1;
 		end
 	end
-	//always @(posedge clock509) begin
-	always @(posedge clock254) begin
-		led_revo <= 0;
-		trg <= 0;
-		//if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
-		if (upper==0 & lower!=0) begin
-			trg <= 1;
-//			led_revo <= 1;
+	reg [3:0] phase;
+	always @(posedge clock509) begin
+		if (reset) begin
+			phase <= 4'b0001;
+			trgstream <= 0;
+		end else begin
+			if (phase == 4'b0001) begin
+				led_revo <= 0;
+				trg <= 0;
+				//if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
+				if (upper==0 & lower!=0) begin
+					trg <= 1;
+		//			led_revo <= 1;
+				end
+			end else if (phase == 4'b0010) begin
+				upper <= trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION];
+				lower <= trgstream[TRG_MAX_DURATION-1:0];
+//			end else if (phase == 4'b0100) begin
+//			end else begin
+			end
+			phase <= { phase[2:0], phase[3] };
+			trgstream <= { trgstream[TRGSTREAM_WIDTH-2:0], rawtrg };
 		end
-		upper <= trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION];
-		lower <= trgstream[TRG_MAX_DURATION-1:0];
-		trgstream <= { trgstream[TRGSTREAM_WIDTH-2:0], rawtrg };
 	end
 	reg trg = 0;
 	wire clock127oddr1;
@@ -120,7 +124,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire locked2;
 	assign led_7 = locked2;
 	assign led_6 = 0;
-	assign led_5 = reset_counter[12];
+	assign led_5 = 0;//reset_counter[12];
 	assign led_4 = reset;
 	assign led_3 = clock_select;
 	assign led_2 = trg;
@@ -135,7 +139,9 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	ocyrus_single8 #(.WIDTH(8), .PERIOD(3.93), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock254), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(D), .T_out(), .locked(locked2));
 	wire clock254oddr;
 	ODDR2 doughnut3 (.C0(clock254), .C1(clock254b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(clock254oddr));
-	OBUFDS outa (.I(clock254oddr), .O(outa_p), .OB(outa_n));
+	wire clock127oddr3;
+	ODDR2 doughnut4 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(clock127oddr3));
+	OBUFDS outa (.I(clock127oddr3), .O(outa_p), .OB(outa_n));
 	//OBUFDS outa (.I(D), .O(outa_p), .OB(outa_n));
 	OBUFDS out (.I(D), .O(rsv_p), .OB(rsv_n));
 endmodule
@@ -200,8 +206,8 @@ module mything_tb;
 		.led_6(led_6), 
 		.led_7(led_7)
 	);
-	wire raw_recovered_reco;
-	assign raw_recovered_reco = clock127_out_p ^ trg_out_p;
+	wire raw_recovered_revo;
+	assign raw_recovered_revo = clock127_out_p ^ trg_out_p;
 	reg recovered_revo;
 	initial begin
 		// Initialize Inputs
@@ -230,7 +236,7 @@ module mything_tb;
 		remote_clock509_in_n = ~ remote_clock509_in_n;
 	end
 	always @(negedge clock127_out_p) begin
-		recovered_revo <= raw_recovered_reco;
+		recovered_revo <= raw_recovered_revo;
 	end
 endmodule
 
