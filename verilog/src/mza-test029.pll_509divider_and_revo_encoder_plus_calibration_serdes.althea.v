@@ -4,7 +4,7 @@
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
-module synchronizer_fast_to_slow #(
+module synchronizer_slow_to_fast #(
 	parameter WIDTH=1
 ) (
 	input faster_clock, slower_clock,
@@ -99,7 +99,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	BUFG mybufg4 (.I(rawclock254b), .O(clock254b));
 	// ----------------------------------------------------------------------
 	reg [3:0] phase;
-	reg trg3, trg_inv1, should_trg;
+	reg trg, trg_inv1, should_trg;
 	parameter TRGSTREAM_WIDTH = 16;
 	parameter TRG_MAX_DURATION = 8;
 	reg [TRGSTREAM_WIDTH-1:0] trgstream509;
@@ -107,20 +107,21 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	reg [TRGSTREAM_WIDTH-TRG_MAX_DURATION-1:0] upper;
 	reg [TRG_MAX_DURATION-1:0] lower;
 	reg u, l;
-	wire rawtrg;
+	wire rawtrg, rawtrg2;
 	IBUFGDS trigger_input_instance (.I(remote_revo_in_p), .IB(remote_revo_in_n), .O(rawtrg));
 	always @(posedge clock509) begin
 		if (reset) begin
 			trgstream509 <= 0;
 		end else begin
-			trgstream509 <= { trgstream509[TRGSTREAM_WIDTH-2:0], rawtrg };
+			trgstream509 <= { trgstream509[TRGSTREAM_WIDTH-2:0], rawtrg2 };
 		end
 	end
-	synchronizer_fast_to_slow  #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.faster_clock(clock509), .slower_clock(clock254), .reset(reset), .in(trgstream509), .out(trgstream254));
-	always @(posedge clock254) begin
+	synchronizer_slow_to_fast #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.faster_clock(clock509), .slower_clock(clock254), .reset(reset), .in(trgstream509), .out(trgstream254));
+	assign rawtrg2 = rawtrg;
+	always @(posedge clock127) begin
 		if (reset) begin
 			phase <= 4'b0001;
-			trg3 <= 0;
+			trg <= 0;
 			trg_inv1 <= 1;
 			should_trg <= 0;
 			upper <= 0;
@@ -131,10 +132,10 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			if (phase == 4'b0001) begin
 				//led_revo <= 0;
 				if (should_trg) begin
-					trg3 <= 1;
+					trg <= 1;
 					trg_inv1 <= 0;
 				end else begin
-					trg3 <= 0;
+					trg <= 0;
 					trg_inv1 <= 1;
 				end
 				//if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
@@ -170,33 +171,27 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	assign led_5 = reset;
 	assign led_4 = 0;//lemo;
 	assign led_3 = clock_select;
-	assign led_2 = 0;//trg1;
+	assign led_2 = trg;
 	assign led_1 = 0;//rawtrg;
 	assign led_0 = locked1;
 	// ----------------------------------------------------------------------
-//	reg trg4, trg5;
 	wire data;
 	wire word_clock;
-	wire [7:0] word;
-	wire [7:0] word0 = 8'b11110100;
-	wire [7:0] word1 = 8'b11110010;
+	reg [7:0] word;
+	wire [7:0] word_null = 8'b11000000;
+	wire [7:0] word_trg  = 8'b00111111;
 	ocyrus_single8 #(.WIDTH(8), .PERIOD(3.93), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock254), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(locked2));
-	assign word = word1;
-//	always @(posedge word_clock) begin
-//		if (reset) begin
-//			word <= 0;
-//			trg4 <= 0;
-//			trg5 <= 0;
-//		end else begin
-//			if (trg5) begin
-//				word <= word0;
-//			end else begin
-//				word <= word1;
-//			end
-//			trg5 <= trg4;
-//			trg4 <= trg2;
-//		end
-//	end
+	always @(posedge word_clock) begin
+		if (reset) begin
+			word <= word_null;
+		end else begin
+			if (trg) begin
+				word <= word_trg;
+			end else begin
+				word <= word_null;
+			end
+		end
+	end
 	// ----------------------------------------------------------------------
 	OBUFDS rsv (.I(data), .O(rsv_p), .OB(rsv_n));
 //	OBUFDS rsv (.I(0), .O(rsv_p), .OB(rsv_n));
@@ -216,7 +211,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 //	wire clock127_encoded_trg_oddr2;
 //	ODDR2 doughnut3 (.C0(clock127), .C1(clock127b), .CE(trg_inv2),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr2));
 //	OBUFDS out1 (.I(clock127_encoded_trg_oddr2), .O(out1_p), .OB(out1_n));
-	OBUFDS out1 (.I(trg3), .O(out1_p), .OB(out1_n));
+	OBUFDS out1 (.I(trg), .O(out1_p), .OB(out1_n));
 endmodule
 
 module mything_tb;
