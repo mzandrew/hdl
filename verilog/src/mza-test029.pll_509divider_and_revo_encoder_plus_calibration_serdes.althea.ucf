@@ -59,3 +59,7 @@ net led_7 loc=p1  | iostandard=lvcmos25;
 
 net lemo loc=p93 | iostandard=lvcmos25;
 
+# timing constraints:
+
+net "mything/ts_sync/cdc*" TIG;
+

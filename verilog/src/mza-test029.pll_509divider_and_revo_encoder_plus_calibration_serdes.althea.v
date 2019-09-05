@@ -1,8 +1,43 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2019-09-04 by mza
+// last updated 2019-09-05 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
+
+module synchronizer_fast_to_slow #(
+	parameter WIDTH=1
+) (
+	input faster_clock, slower_clock,
+	input reset,
+	input [WIDTH-1:0] in,
+	output [WIDTH-1:0] out
+);
+	reg [WIDTH-1:0] intermediate_f1;
+	reg [WIDTH-1:0] intermediate_f2;
+	reg [WIDTH-1:0] intermediate_s1;
+	reg [WIDTH-1:0] intermediate_s2;
+	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
+	always @(posedge faster_clock) begin
+		if (reset) begin
+			intermediate_f1 <= 0;
+			intermediate_f2 <= 0;
+		end else begin
+			intermediate_f2 <= intermediate_f1;
+			intermediate_f1 <= in;
+		end
+	end
+	always @(posedge slower_clock) begin
+		if (reset) begin
+			intermediate_s1 <= 0;
+			intermediate_s2 <= 0;
+		end else begin
+			intermediate_s2 <= intermediate_s1;
+			intermediate_s1 <= cdc;
+		end
+	end
+	assign cdc = intermediate_f2;
+	assign out = intermediate_s2;
+endmodule
 
 module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea (
 	input local_clock50_in_p, input local_clock50_in_n,
@@ -65,25 +100,29 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	// ----------------------------------------------------------------------
 	reg [3:0] phase;
 	reg trg3, trg_inv1, should_trg;
-	parameter TRGSTREAM_WIDTH = 12;
-	parameter TRG_MAX_DURATION = 6;
-	reg [TRGSTREAM_WIDTH-1:0] trgstream;
+	parameter TRGSTREAM_WIDTH = 16;
+	parameter TRG_MAX_DURATION = 8;
+	reg [TRGSTREAM_WIDTH-1:0] trgstream509;
+	wire [TRGSTREAM_WIDTH-1:0] trgstream254;
 	reg [TRGSTREAM_WIDTH-TRG_MAX_DURATION-1:0] upper;
 	reg [TRG_MAX_DURATION-1:0] lower;
 	reg u, l;
 	wire rawtrg;
 	IBUFGDS trigger_input_instance (.I(remote_revo_in_p), .IB(remote_revo_in_n), .O(rawtrg));
-	//always @(posedge clock509) begin
+	always @(posedge clock509) begin
+		if (reset) begin
+			trgstream509 <= 0;
+		end else begin
+			trgstream509 <= { trgstream509[TRGSTREAM_WIDTH-2:0], rawtrg };
+		end
+	end
+	synchronizer_fast_to_slow  #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.faster_clock(clock509), .slower_clock(clock254), .reset(reset), .in(trgstream509), .out(trgstream254));
 	always @(posedge clock254) begin
 		if (reset) begin
 			phase <= 4'b0001;
-//			trg1 <= 0;
-//			trg2 <= 0;
 			trg3 <= 0;
 			trg_inv1 <= 1;
-//			trg_inv2 <= 1;
 			should_trg <= 0;
-			trgstream <= 0;
 			upper <= 0;
 			lower <= 0;
 			u <= 0;
@@ -92,21 +131,15 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			if (phase == 4'b0001) begin
 				//led_revo <= 0;
 				if (should_trg) begin
-//					trg1 <= 1;
-//					trg2 <= 1;
 					trg3 <= 1;
 					trg_inv1 <= 0;
-//					trg_inv2 <= 0;
 				end else begin
-//					trg1 <= 0;
-//					trg2 <= 0;
 					trg3 <= 0;
 					trg_inv1 <= 1;
-//					trg_inv2 <= 1;
 				end
 				//if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
-				upper <= trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION];
-				lower <= trgstream[TRG_MAX_DURATION-1:0];
+				upper <= trgstream254[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION];
+				lower <= trgstream254[TRG_MAX_DURATION-1:0];
 			end else if (phase == 4'b0010) begin
 				u <= |upper;
 				l <= |lower;
@@ -128,7 +161,6 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 //				end
 			end
 			phase <= { phase[2:0], phase[3] };
-			trgstream <= { trgstream[TRGSTREAM_WIDTH-2:0], rawtrg };
 		end
 	end
 	// ----------------------------------------------------------------------
