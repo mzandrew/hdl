@@ -4,29 +4,30 @@
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
-module synchronizer_slow_to_fast #(
+module ssynchronizer #(
 	parameter WIDTH=1
 ) (
-	input faster_clock, slower_clock,
+	input clock1, clock2,
 	input reset,
-	input [WIDTH-1:0] in,
-	output [WIDTH-1:0] out
+	input [WIDTH-1:0] in1,
+	output [WIDTH-1:0] out2
 );
 	reg [WIDTH-1:0] intermediate_f1;
 	reg [WIDTH-1:0] intermediate_f2;
 	reg [WIDTH-1:0] intermediate_s1;
 	reg [WIDTH-1:0] intermediate_s2;
 	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
-	always @(posedge faster_clock) begin
+	always @(posedge clock1) begin
 		if (reset) begin
 			intermediate_f1 <= 0;
 			intermediate_f2 <= 0;
 		end else begin
 			intermediate_f2 <= intermediate_f1;
-			intermediate_f1 <= in;
+			intermediate_f1 <= in1;
 		end
 	end
-	always @(posedge slower_clock) begin
+	assign cdc = intermediate_f2;
+	always @(posedge clock2) begin
 		if (reset) begin
 			intermediate_s1 <= 0;
 			intermediate_s2 <= 0;
@@ -35,8 +36,7 @@ module synchronizer_slow_to_fast #(
 			intermediate_s1 <= cdc;
 		end
 	end
-	assign cdc = intermediate_f2;
-	assign out = intermediate_s2;
+	assign out2 = intermediate_s2;
 endmodule
 
 module asynchronizer (
@@ -155,7 +155,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			trgstream509 <= { trgstream509[TRGSTREAM_WIDTH-2:0], rawtrg2 };
 		end
 	end
-	synchronizer_slow_to_fast #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.faster_clock(clock509), .slower_clock(clock254), .reset(reset), .in(trgstream509), .out(trgstream254));
+	ssynchronizer #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.clock1(clock509), .clock2(clock254), .reset(reset), .in1(trgstream509), .out2(trgstream254));
 	//assign rawtrg2 = rawtrg;
 	asynchronizer rawtrg_sync (.clock(clock509), .reset(reset), .async_in(rawtrg), .sync_out(rawtrg2));
 	always @(posedge clock127) begin
