@@ -61,5 +61,5 @@ net lemo loc=p93 | iostandard=lvcmos25;
 
 # timing constraints:
 
-net "*/cdc*" TIG;
+#net "*/cdc*" TIG;
 

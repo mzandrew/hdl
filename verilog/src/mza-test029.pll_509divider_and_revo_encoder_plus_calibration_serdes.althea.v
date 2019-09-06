@@ -1,8 +1,128 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2019-09-05 by mza
+// last updated 2019-09-06 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
+
+module ssynchronizer_90_270 #(
+	parameter WIDTH=1
+) (
+	input clock1, clock1_90, clock1_270,
+	input clock2,
+	input reset,
+	input [WIDTH-1:0] in1,
+	output [WIDTH-1:0] out2
+);
+	reg [WIDTH-1:0] intermediate_f1;
+	reg [WIDTH-1:0] intermediate_f2;
+	reg [WIDTH-1:0] intermediate_f3;
+	reg [WIDTH-1:0] intermediate_f4;
+	reg [WIDTH-1:0] intermediate_s1;
+	reg [WIDTH-1:0] intermediate_s2;
+//	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
+	always @(posedge clock1) begin
+		if (reset) begin
+			intermediate_f1 <= 0;
+		end else begin
+			intermediate_f1 <= in1;
+		end
+	end
+	always @(posedge clock1_270) begin
+		if (reset) begin
+			intermediate_f2 <= 0;
+		end else begin
+			intermediate_f2 <= intermediate_f1;
+		end
+	end
+	always @(negedge clock1) begin
+		if (reset) begin
+			intermediate_f3 <= 0;
+		end else begin
+			intermediate_f3 <= intermediate_f2;
+		end
+	end
+	always @(posedge clock1_90) begin
+		if (reset) begin
+			intermediate_f4 <= 0;
+		end else begin
+			intermediate_f4 <= intermediate_f3;
+		end
+	end
+//	assign cdc = intermediate_f4;
+	always @(negedge clock2) begin
+		if (reset) begin
+			intermediate_s1 <= 0;
+		end else begin
+			//intermediate_s1 <= cdc;
+			intermediate_s1 <= intermediate_f4;
+		end
+	end
+	always @(posedge clock2) begin
+		if (reset) begin
+			intermediate_s2 <= 0;
+		end else begin
+			intermediate_s2 <= intermediate_s1;
+		end
+	end
+	assign out2 = intermediate_s2;
+endmodule
+
+module ssynchronizer_pnppp #(
+	parameter WIDTH=1
+) (
+	input clock1, clock2,
+	input reset,
+	input [WIDTH-1:0] in1,
+	output [WIDTH-1:0] out2
+);
+	reg [WIDTH-1:0] intermediate_f1;
+	reg [WIDTH-1:0] intermediate_f2;
+	reg [WIDTH-1:0] intermediate_f3;
+	reg [WIDTH-1:0] intermediate_s1;
+	reg [WIDTH-1:0] intermediate_s2;
+	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
+//  242 pos neg neg pos pos
+//  332 pos neg neg neg pos
+// 1030 pos pos neg neg pos
+// 1759 pos neg neg pos neg
+	always @(posedge clock1) begin
+		if (reset) begin
+			intermediate_f1 <= 0;
+		end else begin
+			intermediate_f1 <= in1;
+		end
+	end
+	always @(negedge clock1) begin
+		if (reset) begin
+			intermediate_f2 <= 0;
+		end else begin
+			intermediate_f2 <= intermediate_f1;
+		end
+	end
+	always @(negedge clock1) begin
+		if (reset) begin
+			intermediate_f3 <= 0;
+		end else begin
+			intermediate_f3 <= intermediate_f2;
+		end
+	end
+	assign cdc = intermediate_f3;
+	always @(posedge clock2) begin
+		if (reset) begin
+			intermediate_s1 <= 0;
+		end else begin
+			intermediate_s1 <= cdc;
+		end
+	end
+	always @(posedge clock2) begin
+		if (reset) begin
+			intermediate_s2 <= 0;
+		end else begin
+			intermediate_s2 <= intermediate_s1;
+		end
+	end
+	assign out2 = intermediate_s2;
+endmodule
 
 module ssynchronizer #(
 	parameter WIDTH=1
@@ -126,16 +246,29 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire rawclock127b;
 	wire rawclock254;
 	wire rawclock254b;
+	wire rawclock509_1;
+	wire rawclock509_3;
 	wire locked1;
-	simplepll_BASE #(.overall_divide(2), .multiply(4), .divide1(8), .divide2(4), .period(1.965), .compensation("INTERNAL")) mypll (.clockin(clock509), .reset(reset), .clock1out(rawclock127), .clock1out180(rawclock127b), .clock2out(rawclock254), .clock2out180(rawclock254b), .locked(locked1));
+	simplepll_BASE #(.overall_divide(2), .multiply(4), .period(1.965), .compensation("INTERNAL"),
+		.divide0(8), .divide1(8), .divide2(4), .divide3(4), .divide4(2), .divide5(2),
+		.phase0(0.0), .phase1(180.0), .phase2(0.0), .phase3(180.0), .phase4(90.0), .phase5(270.0)
+	) mypll (.clockin(clock509), .reset(reset), .locked(locked1),
+		.clock0out(rawclock127), .clock1out(rawclock127b),
+		.clock2out(rawclock254), .clock3out(rawclock254b),
+		.clock4out(rawclock509_90), .clock5out(rawclock509_270)
+	);
 	wire clock127;
 	wire clock127b;
-	BUFG mybufg1 (.I(rawclock127), .O(clock127));
-	BUFG mybufg2 (.I(rawclock127b), .O(clock127b));
+	BUFG mybufg0 (.I(rawclock127), .O(clock127));
+	BUFG mybufg1 (.I(rawclock127b), .O(clock127b));
 	wire clock254;
 	wire clock254b;
-	BUFG mybufg3 (.I(rawclock254), .O(clock254));
-	BUFG mybufg4 (.I(rawclock254b), .O(clock254b));
+	BUFG mybufg2 (.I(rawclock254), .O(clock254));
+	BUFG mybufg3 (.I(rawclock254b), .O(clock254b));
+	wire clock509_90;
+	wire clock509_270;
+	BUFG mybufg4 (.I(rawclock509_90), .O(clock509_90));
+	BUFG mybufg5 (.I(rawclock509_270), .O(clock509_270));
 	// ----------------------------------------------------------------------
 	reg [3:0] phase;
 	reg trg, trg_inv1, should_trg;
@@ -155,7 +288,9 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			trgstream509 <= { trgstream509[TRGSTREAM_WIDTH-2:0], rawtrg2 };
 		end
 	end
-	ssynchronizer #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.clock1(clock509), .clock2(clock254), .reset(reset), .in1(trgstream509), .out2(trgstream254));
+	//ssynchronizer #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.clock1(clock509), .clock2(clock254), .reset(reset), .in1(trgstream509), .out2(trgstream254));
+	//ssynchronizer_pnppp #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.clock1(clock509), .clock2(clock254), .reset(reset), .in1(trgstream509), .out2(trgstream254));
+	ssynchronizer_90_270 #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.clock1(clock509), .clock1_90(clock509_90), .clock1_270(clock509_270), .clock2(clock254), .reset(reset), .in1(trgstream509), .out2(trgstream254));
 	//assign rawtrg2 = rawtrg;
 	asynchronizer rawtrg_sync (.clock(clock509), .reset(reset), .async_in(rawtrg), .sync_out(rawtrg2));
 	always @(posedge clock127) begin
