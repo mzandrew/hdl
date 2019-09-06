@@ -39,6 +39,45 @@ module synchronizer_slow_to_fast #(
 	assign out = intermediate_s2;
 endmodule
 
+module asynchronizer (
+	input clock,
+	input reset,
+	input async_in,
+	output reg sync_out
+);
+// https://daffy1108.wordpress.com/2014/06/08/synchronizers-for-asynchronous-signals/
+	reg intermediate_s1;
+	reg intermediate_s2;
+	reg intermediate_s3;
+//	(* KEEP = "TRUE" *) wire cdc;
+	wire randy;
+	assign randy = reset | ((~async_in) & intermediate_s3);
+	always @(posedge async_in) begin
+		if (randy) begin
+			intermediate_s1 <= 0;
+		end else begin
+			intermediate_s1 <= 1;
+		end
+	end
+//	assign cdc = intermediate_s1;
+	always @(posedge clock) begin
+		if (randy) begin
+			intermediate_s2 <= 0;
+		end else begin
+			intermediate_s2 <= intermediate_s1; // cdc;
+		end
+	end
+	always @(posedge clock) begin
+		if (reset) begin
+			intermediate_s3 <= 0;
+			sync_out <= 0;
+		end else begin
+			sync_out <= intermediate_s3;
+			intermediate_s3 <= intermediate_s2;
+		end
+	end
+endmodule
+
 module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea (
 	input local_clock50_in_p, input local_clock50_in_n,
 	input local_clock509_in_p, input local_clock509_in_n,
@@ -117,7 +156,8 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 	end
 	synchronizer_slow_to_fast #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.faster_clock(clock509), .slower_clock(clock254), .reset(reset), .in(trgstream509), .out(trgstream254));
-	assign rawtrg2 = rawtrg;
+	//assign rawtrg2 = rawtrg;
+	asynchronizer rawtrg_sync (.clock(clock509), .reset(reset), .async_in(rawtrg), .sync_out(rawtrg2));
 	always @(posedge clock127) begin
 		if (reset) begin
 			phase <= 4'b0001;
