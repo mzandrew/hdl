@@ -10,15 +10,15 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	input local_clock509_in_p, local_clock509_in_n,
 	input remote_clock509_in_p, remote_clock509_in_n,
 	input remote_revo_in_p, remote_revo_in_n,
-	output clk78_p, clk78_n,
+	output ack12_p, ack12_n,
 	output trg36_p, trg36_n,
+	output rsv54_p, rsv54_n,
+	output clk78_p, clk78_n,
 	output out1_p, out1_n,
 	output outa_p, outa_n,
-	output rsv54_p, rsv54_n,
 	input lemo,
-	output ack12_p, ack12_n,
 	output reg led_revo,
-	output reg led_rfclock,
+	output led_rfclock,
 	output driven_high,
 	input clock_select,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
@@ -32,19 +32,24 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 //	BUFGMUX #(.CLK_SEL_TYPE("ASYNC")) clock_selection_instance (.I0(remote_clock509), .I1(local_clock509), .S(clock_select), .O(clock509));
 	assign clock509 = remote_clock509;
 	// ----------------------------------------------------------------------
-	reg reset = 1;
+	reg reset1 = 1;
+	reg reset2 = 1;
+	wire reset;
+	assign reset = reset1 | reset2;
 	reg [25:0] counter = 0;
 	wire local_clock50;
 	IBUFGDS local_input_clock50_instance (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(local_clock50));
 	reg acknowledge_that_we_saw_a_trigger_recently = 0;
 	always @(posedge local_clock50) begin
-		if (reset) begin
+		if (reset1) begin
 			counter <= 0;
 			led_revo <= 0;
-			led_rfclock <= 0;
+			reset2 <= 1;
+		end else begin
+			reset2 <= ~pll_509_127_locked;
 		end
 		if (counter[10]) begin
-			reset <= 0;
+			reset1 <= 0;
 		end
 		if (counter[18:0]==0) begin
 			if (saw_a_trigger_recently) begin
@@ -62,11 +67,12 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire rawclock127_90;
 	wire rawclock127_180;
 	wire rawclock127_270;
-	wire locked1;
+	wire pll_509_127_locked;
+	assign led_rfclock = pll_509_127_locked;
 	simplepll_BASE #(.overall_divide(2), .multiply(4), .period(1.965), .compensation("INTERNAL"),
 		.divide0(8), .divide1(8), .divide2(8), .divide3(8), .divide4(2), .divide5(2),
 		.phase0(0.0), .phase1(90.0), .phase2(180.0), .phase3(270.0), .phase4(0.0), .phase5(0.0)
-	) mypll (.clockin(clock509), .reset(reset), .locked(locked1),
+	) mypll (.clockin(clock509), .reset(reset1), .locked(pll_509_127_locked),
 		.clock0out(rawclock127_0), .clock1out(rawclock127_90),
 		.clock2out(rawclock127_180), .clock3out(rawclock127_270),
 		.clock4out(), .clock5out()
@@ -84,29 +90,27 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	end
 	wire revo_stream_clock;
 	wire [3:0] revo_stream127;
-	reg [1:0] select2 = 0;
 	iserdes_single4 revo_iserdes (.sample_clock(clock509), .data_in(rawtrg), .reset(reset), .word_clock(revo_stream_clock), .word_out(revo_stream127));
 	wire [3:0] pulse_revo_stream127;
 	edge_to_pulse #(.WIDTH(4)) midge (.clock(revo_stream_clock), .in(revo_stream127), .reset(reset), .out(pulse_revo_stream127));
-	reg phase_locked = 0;
+	reg [1:0] select2 = 0;
 	reg [3:0] select4 = 0;
-	always @(posedge revo_stream_clock) begin
+	reg phase_locked = 0;
+	always @(posedge revo_stream_clock or posedge reset) begin
 		if (reset) begin
 			select2 <= 0;
 			select4 <= 0;
 			phase_locked <= 0;
 		end else begin
-			case (select4)
-				4'b1111 : begin select2 <= 2'b00; end
-				4'b1110 : begin select2 <= 2'b01; end
-				4'b1100 : begin select2 <= 2'b10; end
-				4'b1000 : begin select2 <= 2'b11; end
-				default : begin end
-			endcase
-//			if (!phase_locked) begin
-				select4 <= pulse_revo_stream127;
-				phase_locked = 1;
-//			end
+			if (!phase_locked) begin
+				case (pulse_revo_stream127)
+					4'b1111 : begin select2 <= 2'b00; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+					4'b1110 : begin select2 <= 2'b01; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+					4'b1100 : begin select2 <= 2'b10; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+					4'b1000 : begin select2 <= 2'b11; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+					default : begin end
+				endcase
+			end
 		end
 	end
 	wire clock127_0s;
@@ -134,24 +138,25 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 	end
 	// ----------------------------------------------------------------------
-	wire locked2;
-	assign led_7 = locked2;
-	assign led_6 = locked1;
+	wire pll_oserdes_locked;
+	assign led_7 = pll_oserdes_locked;
+	assign led_6 = pll_509_127_locked;
 	assign led_5 = reset;
-	assign led_4 = 0;//trg;
-	assign led_3 = revo_stream127[3];
-	assign led_2 = revo_stream127[2];
-	assign led_1 = revo_stream127[1];
-	assign led_0 = revo_stream127[0];
+	assign led_4 = reset3;
+	assign led_3 = select4[3];
+	assign led_2 = select4[2];
+	assign led_1 = select4[1];
+	assign led_0 = select4[0];
 	// ----------------------------------------------------------------------
 	wire data;
 	wire word_clock;
 	reg [7:0] word;
 	wire [7:0] word_null = 8'b00000000;
 	wire [7:0] word_trg  = 8'b11110000;
-	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(locked2));
+	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(pll_oserdes_locked));
+	wire reset3 = reset1 | reset2 | ~pll_oserdes_locked;
 	always @(posedge word_clock) begin
-		if (reset) begin
+		if (reset3) begin
 			word <= word_null;
 		end else begin
 			if (trg) begin
