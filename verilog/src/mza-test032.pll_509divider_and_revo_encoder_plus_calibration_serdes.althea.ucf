@@ -1,6 +1,6 @@
 # written 2018-10-25 by mza
 # based off of mza_test023_serdes_pll.althea.ucf
-# last updated 2019-09-04 by mza
+# last updated 2019-09-10 by mza
 
 # 50 MHz local oscillator:
 net clock50_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK50+
