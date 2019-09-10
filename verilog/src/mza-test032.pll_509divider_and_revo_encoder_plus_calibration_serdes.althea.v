@@ -164,8 +164,8 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire data;
 	wire word_clock;
 	reg [7:0] word;
-	wire [7:0] word_null = 8'b00111100;
-	wire [7:0] word_trg  = 8'b11100111;
+	wire [7:0] word_null = 8'b00000000;
+	wire [7:0] word_trg  = 8'b11001100;
 	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(pll_oserdes_locked));
 	wire reset3 = reset1 | reset2 | ~pll_oserdes_locked;
 	reg trg_again = 0;
