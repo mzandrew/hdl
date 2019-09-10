@@ -1,6 +1,63 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2019-08-26 by mza
+// last updated 2019-09-09 by mza
+
+module iserdes_single4 #(
+	parameter WIDTH = 4
+) (
+	input sample_clock,
+	input data_in,
+	input reset,
+	output word_clock,
+	output [WIDTH-1:0] word_out
+);
+	wire fast_clock;
+	wire ioce;
+	wire raw_word_clock;
+	BUFIO2 #(.DIVIDE(WIDTH), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")) buffy (.I(fast_clock), .DIVCLK(raw_word_clock), .IOCLK(fast_clock), .SERDESSTROBE(ioce));
+	BUFG fabbuf (.I(raw_word_clock), .O(word_clock));
+	ISERDES2 #(
+		.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
+		.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
+		.DATA_WIDTH(WIDTH), // Parallel data width selection (2-8)
+		.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
+		.SERDES_MODE("NONE") // "NONE", "MASTER" or "SLAVE"
+	) ISERDES2_inst (
+		.CFB0(), // 1-bit output: Clock feed-through route output
+		.CFB1(), // 1-bit output: Clock feed-through route output
+		.DFB(), // 1-bit output: Feed-through clock output
+		.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
+		.INCDEC(), // 1-bit output: Phase detector output
+		// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
+		.Q4(word_out[3]), // see ug381 page 80
+		.Q3(word_out[2]),
+		.Q2(word_out[1]),
+		.Q1(word_out[0]),
+		.SHIFTOUT(), // 1-bit output: Cascade output signal for master/slave I/O
+		.VALID(), // 1-bit output: Output status of the phase detector
+		.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
+		.CE0(1'b1), // 1-bit input: Clock enable input
+		.CLK0(fast_clock), // 1-bit input: I/O clock network input
+		.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
+		.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
+		.D(data_in), // 1-bit input: Input data
+		.IOCE(ioce), // 1-bit input: Data strobe input
+		.RST(reset), // 1-bit input: Asynchronous reset input
+		.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for master/slave I/O
+	);
+//	wire pll_is_locked;
+//	wire buffered_pll_is_locked_and_strobe_is_aligned;
+//	BUFPLL #(
+//		.DIVIDE(WIDTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+//		) rx_bufpll_inst (
+//		.PLLIN(sample_clock), // PLL Clock input
+//		.GCLK(raw_fabric_clock), // Global Clock input
+//		.LOCKED(pll_is_locked), // Clock0 locked input
+//		.IOCLK(fast_clock), // Output PLL Clock
+//		.LOCK(buffered_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
+//		.SERDESSTROBE(ioce) // Output SERDES strobe
+//		);
+endmodule
 
 module ocyrus_double8 #(
 	parameter WIDTH = 8,
