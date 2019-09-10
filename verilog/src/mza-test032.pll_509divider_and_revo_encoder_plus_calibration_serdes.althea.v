@@ -193,7 +193,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	OBUFDS supercool1 (.I(clock127_oddr1), .O(clk78_p), .OB(clk78_n));
 //	OBUFDS supercool1 (.I(0'b0), .O(clk78_p), .OB(clk78_n));
 	wire clock127_encoded_trg_oddr1;
-	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(trg),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr1));
+	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(trg_inv),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr1));
 	OBUFDS supercool2 (.I(clock127_encoded_trg_oddr1), .O(trg36_p), .OB(trg36_n));
 //	OBUFDS supercool2 (.I(select2[1]), .O(trg36_p), .OB(trg36_n));
 //	OBUFDS supercool2 (.I(trg), .O(trg36_p), .OB(trg36_n));
