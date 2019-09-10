@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2019-09-09 by mza
+// last updated 2019-09-10 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
@@ -10,22 +10,19 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	input local_clock509_in_p, local_clock509_in_n,
 	input remote_clock509_in_p, remote_clock509_in_n,
 	input remote_revo_in_p, remote_revo_in_n,
-	output clock127_out_p, clock127_out_n,
-	output trg_out_p, trg_out_n,
+	output clk78_p, clk78_n,
+	output trg36_p, trg36_n,
 	output out1_p, out1_n,
 	output outa_p, outa_n,
-	output rsv_p, rsv_n,
+	output rsv54_p, rsv54_n,
 	input lemo,
-	input ack_p, ack_n,
+	output ack12_p, ack12_n,
 	output reg led_revo,
 	output reg led_rfclock,
 	output driven_high,
 	input clock_select,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
-	wire ack;
-	IBUFGDS ackbuf (.I(ack_p), .IB(ack_n), .O(ack));
-	// ----------------------------------------------------------------------
 	wire remote_clock509;
 	wire local_clock509;
 	wire clock509;
@@ -109,76 +106,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			other_revo_stream127 <= revo_stream127;
 		end
 	end
-
-//	reg [3:0] phase;
-//	reg trg, trg_inv1, should_trg;
-//	parameter TRGSTREAM_WIDTH = 8'd16;
-//	parameter TRG_MAX_DURATION = 8'd8;
-//	reg [TRGSTREAM_WIDTH-1:0] trgstream509;
-//	wire [TRGSTREAM_WIDTH-1:0] trgstream254;
-//	reg [TRGSTREAM_WIDTH-TRG_MAX_DURATION-1:0] upper;
-//	reg [TRG_MAX_DURATION-1:0] lower;
-//	reg u, l;
-//	wire rawtrg, rawtrg2;
-//	always @(posedge clock509) begin
-//		if (reset) begin
-//			trgstream509 <= 0;
-//		end else begin
-//			trgstream509 <= { trgstream509[TRGSTREAM_WIDTH-2:0], rawtrg2 };
-//		end
-//	end
-//	//ssynchronizer #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.clock1(clock509), .clock2(clock254), .reset(reset), .in1(trgstream509), .out2(trgstream254));
-//	//ssynchronizer_pnppp #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.clock1(clock509), .clock2(clock254), .reset(reset), .in1(trgstream509), .out2(trgstream254));
-//	//ssynchronizer_90_270 #(.WIDTH(TRGSTREAM_WIDTH)) ts_sync (.clock1(clock509), .clock1_90(clock254_90), .clock1_270(clock254_270), .clock2(clock254), .reset(reset), .in1(trgstream509), .out2(trgstream254));
-//	//assign rawtrg2 = rawtrg;
-//	asynchronizer rawtrg_sync (.clock(clock509), .reset(reset), .async_in(rawtrg), .sync_out(rawtrg2));
-//	always @(posedge clock127) begin
-//		if (reset) begin
-//			phase <= 4'b0001;
-//			trg <= 0;
-//			trg_inv1 <= 1;
-//			should_trg <= 0;
-//			upper <= 0;
-//			lower <= 0;
-//			u <= 0;
-//			l <= 0;
-//		end else begin
-//			if (phase == 4'b0001) begin
-//				//led_revo <= 0;
-//				if (should_trg) begin
-//					trg <= 1;
-//					trg_inv1 <= 0;
-//				end else begin
-//					trg <= 0;
-//					trg_inv1 <= 1;
-//				end
-//				//if (trgstream[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION] == 0 && trgstream[TRG_MAX_DURATION-1:0] != 0) begin
-//				upper <= trgstream254[TRGSTREAM_WIDTH-1:TRG_MAX_DURATION];
-//				lower <= trgstream254[TRG_MAX_DURATION-1:0];
-//			end else if (phase == 4'b0010) begin
-//				u <= |upper;
-//				l <= |lower;
-//				should_trg <= 0;
-//			end else if (phase == 4'b0100) begin
-//				if (l) begin
-//					should_trg <= 1;
-//				end
-//			end else begin
-//				if (u) begin
-//					should_trg <= 0;
-//				end
-////				if (l) begin
-////					if (u) begin
-////						should_trg <= 0;
-////					end else begin
-////						should_trg <= 1;
-////					end
-////				end
-//			end
-//			phase <= { phase[2:0], phase[3] };
-//		end
-//	end
-
 	// ----------------------------------------------------------------------
 	wire locked2;
 	assign led_7 = locked2;
@@ -193,8 +120,8 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire data;
 	wire word_clock;
 	reg [7:0] word;
-	wire [7:0] word_null = 8'b11000000;
-	wire [7:0] word_trg  = 8'b00111111;
+	wire [7:0] word_null = 8'b00000000;
+	wire [7:0] word_trg  = 8'b11110000;
 	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(locked2));
 	always @(posedge word_clock) begin
 		if (reset) begin
@@ -208,24 +135,27 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 	end
 	// ----------------------------------------------------------------------
-	OBUFDS rsv (.I(data), .O(rsv_p), .OB(rsv_n));
-//	OBUFDS rsv (.I(0), .O(rsv_p), .OB(rsv_n));
-	wire clock127_oddr1;
-	ODDR2 doughnut0 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr1));
-	OBUFDS supercool1 (.I(clock127_oddr1), .O(clock127_out_p), .OB(clock127_out_n));
-//	OBUFDS supercool1 (.I(0'b0), .O(clock127_out_p), .OB(clock127_out_n));
+	OBUFDS ack12 (.I(revo_stream127[3]), .O(ack12_p), .OB(ack12_n));
+	OBUFDS trg36 (.I(revo_stream127[2]), .O(trg36_p), .OB(trg36_n));
+	OBUFDS rsv54 (.I(revo_stream127[1]), .O(rsv54_p), .OB(rsv54_n));
+	OBUFDS clk78 (.I(revo_stream127[0]), .O(clk78_p), .OB(clk78_n));
+//	OBUFDS rsv54 (.I(data), .O(rsv54_p), .OB(rsv54_n));
+//	wire clock127_oddr1;
+//	ODDR2 doughnut0 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr1));
+//	OBUFDS supercool1 (.I(clock127_oddr1), .O(clk78_p), .OB(clk78_n));
+//	OBUFDS supercool1 (.I(0'b0), .O(clk78_p), .OB(clk78_n));
 //	wire clock127_oddr2;
 //	ODDR2 doughnut1 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr2));
 //	OBUFDS outa (.I(clock127_oddr2), .O(outa_p), .OB(outa_n));
 //	OBUFDS outa (.I(data), .O(outa_p), .OB(outa_n));
-//	OBUFDS outa (.I(rawtrg), .O(outa_p), .OB(outa_n));
 //	OBUFDS outa (.I(select[0]), .O(outa_p), .OB(outa_n));
+//	OBUFDS outa (.I(rawtrg), .O(outa_p), .OB(outa_n));
 	OBUFDS outa (.I(revo_stream127[0]), .O(outa_p), .OB(outa_n));
 //	wire clock127_encoded_trg_oddr1;
 //	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(trg_inv1),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr1));
-//	OBUFDS supercool2 (.I(clock127_encoded_trg_oddr1), .O(trg_out_p), .OB(trg_out_n));
-//	OBUFDS supercool2 (.I(select[1]), .O(trg_out_p), .OB(trg_out_n));
-	OBUFDS supercool2 (.I(trg), .O(trg_out_p), .OB(trg_out_n));
+//	OBUFDS supercool2 (.I(clock127_encoded_trg_oddr1), .O(trg36_p), .OB(trg36_n));
+//	OBUFDS supercool2 (.I(select[1]), .O(trg36_p), .OB(trg36_n));
+//	OBUFDS supercool2 (.I(trg), .O(trg36_p), .OB(trg36_n));
 //	wire clock127_encoded_trg_oddr2;
 //	ODDR2 doughnut3 (.C0(clock127), .C1(clock127b), .CE(trg_inv2),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr2));
 //	OBUFDS out1 (.I(clock127_encoded_trg_oddr2), .O(out1_p), .OB(out1_n));
@@ -244,19 +174,19 @@ module mything_tb;
 	reg remote_revo_in_p = 0;
 	reg remote_revo_in_n = 1;
 	// Outputs
-	wire clock127_out_p;
-	wire clock127_out_n;
-	wire trg_out_p;
-	wire trg_out_n;
+	wire clk78_p;
+	wire clk78_n;
+	wire trg36_p;
+	wire trg36_n;
 	wire out1_p;
 	wire out1_n;
 	wire outa_p;
 	wire outa_n;
-	wire rsv_p;
-	wire rsv_n;
+	wire rsv54_p;
+	wire rsv54_n;
 	reg lemo = 0;
-	reg ack_p = 0;
-	reg ack_n = 0;
+	wire ack12_p;
+	wire ack12_n;
 	wire led_revo;
 	wire led_rfclock;
 	wire driven_high;
@@ -274,10 +204,10 @@ module mything_tb;
 		.local_clock50_in_p(local_clock50_in_p), .local_clock50_in_n(local_clock50_in_n),
 		.remote_clock509_in_p(remote_clock509_in_p), .remote_clock509_in_n(remote_clock509_in_n),
 		.remote_revo_in_p(remote_revo_in_p), .remote_revo_in_n(remote_revo_in_n),
-		.clock127_out_p(clock127_out_p), .clock127_out_n(clock127_out_n),
-		.trg_out_p(trg_out_p), .trg_out_n(trg_out_n),
-		.rsv_p(rsv_p), .rsv_n(rsv_n),
-		.ack_p(ack_p), .ack_n(ack_n),
+		.clk78_p(clk78_p), .clk78_n(clk78_n),
+		.trg36_p(trg36_p), .trg36_n(trg36_n),
+		.rsv54_p(rsv54_p), .rsv54_n(rsv54_n),
+		.ack12_p(ack12_p), .ack12_n(ack12_n),
 		.out1_p(out1_p), .out1_n(out1_n),
 		.outa_p(outa_p), .outa_n(outa_n),
 		.lemo(lemo),
@@ -295,7 +225,7 @@ module mything_tb;
 		.led_7(led_7)
 	);
 	wire raw_recovered_revo;
-	assign raw_recovered_revo = clock127_out_p ^ trg_out_p;
+	assign raw_recovered_revo = clk78_p ^ trg36_p;
 	reg recovered_revo = 0;
 	initial begin
 		// Initialize Inputs
@@ -303,7 +233,7 @@ module mything_tb;
 		remote_clock509_in_p <= 0; remote_clock509_in_n <= 1;
 		local_clock509_in_p <= 0; local_clock509_in_n <= 1;
 		remote_revo_in_p <= 0; remote_revo_in_n <= 1;
-		recovered_revo <= 0; lemo <= 0; ack_p <= 0; ack_n <= 1;
+		recovered_revo <= 0; lemo <= 0;
 		clock_select <= 0;
 		// Wait 100 ns for global reset to finish
 		#100;
@@ -333,24 +263,25 @@ module mything_tb;
 		#10;
 		local_clock50_in_p <= ~local_clock50_in_p; local_clock50_in_n <= ~local_clock50_in_n;
 	end
-	always @(negedge clock127_out_p) begin
+	always @(negedge clk78_p) begin
 		recovered_revo <= raw_recovered_revo;
 	end
 endmodule
 
 module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea_top (
 	input clock50_p, clock50_n,
-	input a_p, a_n,
+	output a_p, a_n,
 	output b_p, b_n,
 	output c_p, c_n,
 	output d_p, d_n,
 	output e_p, e_n,
+	output f_p, f_n,
+	input g_n, output g_p,
 	input h_p, h_n,
 	input j_p, j_n,
 	input k_p, k_n,
-	input lemo,
 	output l_p, l_n,
-	input g_n, output g_p,
+	input lemo,
 	output led_0, output led_1, output led_2, output led_3,
 	output led_4, output led_5, output led_6, output led_7
 );
@@ -359,10 +290,10 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		.local_clock509_in_p(j_p), .local_clock509_in_n(j_n),
 		.remote_clock509_in_p(k_p), .remote_clock509_in_n(k_n),
 		.remote_revo_in_p(h_p), .remote_revo_in_n(h_n),
-		.clock127_out_p(d_p), .clock127_out_n(d_n),
-		.trg_out_p(f_p), .trg_out_n(f_n),
-		.rsv_p(c_p), .rsv_n(c_n),
-		.ack_p(a_p), .ack_n(a_n),
+		.ack12_p(a_p), .ack12_n(a_n),
+		.trg36_p(f_p), .trg36_n(f_n),
+		.rsv54_p(c_p), .rsv54_n(c_n),
+		.clk78_p(d_p), .clk78_n(d_n),
 		.out1_p(e_p), .out1_n(e_n),
 		.outa_p(b_p), .outa_n(b_n),
 		.lemo(lemo),
