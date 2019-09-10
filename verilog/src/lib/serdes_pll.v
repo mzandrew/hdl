@@ -14,7 +14,7 @@ module iserdes_single4 #(
 	wire fast_clock;
 	wire ioce;
 	wire raw_word_clock;
-	BUFIO2 #(.DIVIDE(WIDTH), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")) buffy (.I(fast_clock), .DIVCLK(raw_word_clock), .IOCLK(fast_clock), .SERDESSTROBE(ioce));
+	BUFIO2 #(.DIVIDE(WIDTH), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")) buffy (.I(sample_clock), .DIVCLK(raw_word_clock), .IOCLK(fast_clock), .SERDESSTROBE(ioce));
 	BUFG fabbuf (.I(raw_word_clock), .O(word_clock));
 	ISERDES2 #(
 		.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)

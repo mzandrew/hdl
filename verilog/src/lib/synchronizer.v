@@ -4,46 +4,48 @@
 
 //	parameter POLARITY = "HIGH"
 module edge_to_pulse #(
-	parameter DEPTH = 3
+	parameter DEPTH = 3,
+	parameter WIDTH = 1
 ) (
 	input clock,
-	input in,
+	input [WIDTH-1:0] in,
 	input reset,
-	output out,
-	output [DEPTH-1:0] stream
+	output [WIDTH-1:0] out
 );
-	reg [DEPTH-1:0] reg_stream = 0;
-	reg reg_out = 0;
-	always @(posedge clock) begin
-		if (reset) begin
-			reg_stream <= 0;
-		end else begin
-			reg_stream <= { reg_stream[DEPTH-2:0], in };
-		end
-	end
-	always @(posedge clock) begin
-		if (reset) begin
-			reg_out <= 0;
-		end else begin
-			if (reg_stream[2:1] == 2'b01) begin
-				reg_out <= 1;
+	reg [DEPTH-1:0] reg_stream [WIDTH-1:0];
+	reg [WIDTH-1:0] reg_out = 0;
+	genvar i; // generate
+	for (i=0; i<WIDTH; i=i+1) begin : general
+		always @(posedge clock) begin
+			if (reset) begin
+				reg_stream[i] <= 0;
 			end else begin
-				reg_out <= 0;
+				reg_stream[i] <= { reg_stream[i][DEPTH-2:0], in[i] };
 			end
 		end
-	end
+		always @(posedge clock) begin
+			if (reset) begin
+				reg_out[i] <= 0;
+			end else begin
+				if (reg_stream[i][2:1] == 2'b01) begin
+					reg_out[i] <= 1;
+				end else begin
+					reg_out[i] <= 0;
+				end
+			end
+		end
+	end // endgenerate
 	assign out = reg_out;
-	assign stream = reg_stream;
 endmodule
 
 module edge_to_pulse_tb;
 	reg clock = 0;
-	reg in = 0;
+	reg [WIDTH-1:0] in = 0;
 	reg reset = 1;
-	wire out;
-	parameter DEPTH = 4'd4;
-	wire [DEPTH-1:0] stream;
-	edge_to_pulse #(.DEPTH(DEPTH)) e2p (.clock(clock), .in(in), .reset(reset), .out(out), .stream(stream));
+	wire [WIDTH-1:0] out;
+	parameter DEPTH = 4'd8;
+	parameter WIDTH = 4'd4;
+	edge_to_pulse #(.DEPTH(DEPTH), .WIDTH(WIDTH)) e2p (.clock(clock), .in(in), .reset(reset), .out(out));
 	initial begin
 		clock <= 0;
 		reset <= 1;
@@ -51,15 +53,17 @@ module edge_to_pulse_tb;
 		#10
 		reset <= 0;
 		#10
-		in <= 1;
+		in <= 4'b0001;
 		#8;
 		in <= 0;
 		#10
-		in <= 1;
+		in <= 4'b0101;
+		#2;
+		in <= 4'b0100;
 		#2;
 		in <= 0;
 		#10
-		in <= 1;
+		in <= 4'b0001;
 		#4;
 		in <= 0;
 	end

@@ -35,7 +35,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	BUFGMUX #(.CLK_SEL_TYPE("ASYNC")) clock_selection_instance (.I0(remote_clock509), .I1(local_clock509), .S(clock_select), .O(clock509));
 	// ----------------------------------------------------------------------
 	reg reset = 1;
-	reg [11:0] reset_counter = 0;
+	reg [8:0] reset_counter = 0;
 	wire local_clock50;
 	IBUFGDS local_input_clock50_instance (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(local_clock50));
 	always @(posedge local_clock50) begin
@@ -43,7 +43,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			led_revo <= 0;
 			led_rfclock <= 0;
 		end
-		if (reset_counter[10]) begin
+		if (reset_counter[7]) begin
 			reset <= 0;
 		end
 		reset_counter <= reset_counter + 1'b1;
@@ -67,13 +67,15 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	IBUFDS trigger_input_instance (.I(remote_revo_in_p), .IB(remote_revo_in_n), .O(rawtrg));
 	wire revo_stream_clock;
 	wire [3:0] revo_stream127;
-	reg [1:0] select;
+	reg [1:0] select = 0;
 	iserdes_single4 revo_iserdes (.sample_clock(clock509), .data_in(rawtrg), .reset(reset), .word_clock(revo_stream_clock), .word_out(revo_stream127));
+	wire [3:0] pulse_revo_stream127;
+	edge_to_pulse #(.WIDTH(4)) midge (.clock(revo_stream_clock), .in(revo_stream127), .reset(reset), .out(pulse_revo_stream127));
 	always @(posedge revo_stream_clock) begin
 		if (reset) begin
 			select <= 0;
 		end else begin
-			case (revo_stream127)
+			case (pulse_revo_stream127)
 				4'b1000 : begin select <= 2'b00; end
 				4'b0100 : begin select <= 2'b01; end
 				4'b0010 : begin select <= 2'b10; end
@@ -176,7 +178,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	reg [7:0] word;
 	wire [7:0] word_null = 8'b11000000;
 	wire [7:0] word_trg  = 8'b00111111;
-	ocyrus_single8 #(.WIDTH(8), .PERIOD(3.93), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock254), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(locked2));
+	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(locked2));
 	always @(posedge word_clock) begin
 		if (reset) begin
 			word <= word_null;
@@ -194,7 +196,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire clock127_oddr1;
 	ODDR2 doughnut0 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr1));
 	OBUFDS supercool1 (.I(clock127_oddr1), .O(clock127_out_p), .OB(clock127_out_n));
-//	OBUFDS supercool1 (.I(0), .O(clock127_out_p), .OB(clock127_out_n));
+//	OBUFDS supercool1 (.I(0'b0), .O(clock127_out_p), .OB(clock127_out_n));
 //	wire clock127_oddr2;
 //	ODDR2 doughnut1 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr2));
 //	OBUFDS outa (.I(clock127_oddr2), .O(outa_p), .OB(outa_n));
@@ -214,14 +216,14 @@ endmodule
 
 module mything_tb;
 	// Inputs
-	reg remote_clock50_in_p;
-	reg remote_clock50_in_n;
-	reg remote_clock509_in_p;
-	reg remote_clock509_in_n;
-	reg local_clock509_in_p;
-	reg local_clock509_in_n;
-	reg remote_revo_in_p;
-	reg remote_revo_in_n;
+	reg local_clock50_in_p = 0;
+	reg local_clock50_in_n = 1;
+	reg remote_clock509_in_p = 0;
+	reg remote_clock509_in_n = 1;
+	reg local_clock509_in_p = 0;
+	reg local_clock509_in_n = 1;
+	reg remote_revo_in_p = 0;
+	reg remote_revo_in_n = 1;
 	// Outputs
 	wire clock127_out_p;
 	wire clock127_out_n;
@@ -233,9 +235,9 @@ module mything_tb;
 	wire outa_n;
 	wire rsv_p;
 	wire rsv_n;
-	reg lemo;
-	reg ack_p;
-	reg ack_n;
+	reg lemo = 0;
+	reg ack_p = 0;
+	reg ack_n = 0;
 	wire led_revo;
 	wire led_rfclock;
 	wire driven_high;
@@ -250,7 +252,7 @@ module mything_tb;
 	wire led_7;
 	// Instantiate the Unit Under Test (UUT)
 	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea uut (
-		.remote_clock50_in_p(remote_clock50_in_p), .remote_clock50_in_n(remote_clock50_in_n),
+		.local_clock50_in_p(local_clock50_in_p), .local_clock50_in_n(local_clock50_in_n),
 		.remote_clock509_in_p(remote_clock509_in_p), .remote_clock509_in_n(remote_clock509_in_n),
 		.remote_revo_in_p(remote_revo_in_p), .remote_revo_in_n(remote_revo_in_n),
 		.clock127_out_p(clock127_out_p), .clock127_out_n(clock127_out_n),
@@ -275,10 +277,10 @@ module mything_tb;
 	);
 	wire raw_recovered_revo;
 	assign raw_recovered_revo = clock127_out_p ^ trg_out_p;
-	reg recovered_revo;
+	reg recovered_revo = 0;
 	initial begin
 		// Initialize Inputs
-		remote_clock50_in_p <= 0; remote_clock50_in_n <= 1;
+		local_clock50_in_p <= 0; local_clock50_in_n <= 1;
 		remote_clock509_in_p <= 0; remote_clock509_in_n <= 1;
 		local_clock509_in_p <= 0; local_clock509_in_n <= 1;
 		remote_revo_in_p <= 0; remote_revo_in_n <= 1;
@@ -302,21 +304,15 @@ module mything_tb;
 	end
 	always begin
 		#1;
-		local_clock509_in_p <= ~local_clock509_in_p;
-		#1;
-		local_clock509_in_n <= ~local_clock509_in_n;
+		local_clock509_in_p <= ~local_clock509_in_p; local_clock509_in_n <= ~local_clock509_in_n;
 	end
 	always begin
 		#1;
-		remote_clock509_in_p <= ~remote_clock509_in_p;
-		#1;
-		remote_clock509_in_n <= ~remote_clock509_in_n;
+		remote_clock509_in_p <= ~remote_clock509_in_p; remote_clock509_in_n <= ~remote_clock509_in_n;
 	end
 	always begin
 		#10;
-		remote_clock50_in_p <= ~remote_clock50_in_p;
-		#10;
-		remote_clock50_in_n <= ~remote_clock50_in_n;
+		local_clock50_in_p <= ~local_clock50_in_p; local_clock50_in_n <= ~local_clock50_in_n;
 	end
 	always @(negedge clock127_out_p) begin
 		recovered_revo <= raw_recovered_revo;
