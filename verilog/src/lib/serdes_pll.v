@@ -192,7 +192,8 @@ module ocyrus_double8 #(
 		.serializer_clock_out_1(ioclk_T), .serializer_strobe_out_1(ioce_T), .locked_1(locked_T),
 		.serializer_clock_out_2(ioclk_D), .serializer_strobe_out_2(ioce_D), .locked_2(locked_D)
 	);
-	assign locked = locked_T & locked_D;
+	//assign locked = locked_T & locked_D;
+	assign locked = locked_D;
 endmodule
 
 module ocyrus_single8 #(

@@ -123,16 +123,20 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_b (.I0(clock127_0s), .I1(clock127_1s), .S(~select2[1]), .O(clock127b));
 	// ----------------------------------------------------------------------
 	reg trg = 0;
+	reg trg_inv = 1;
 	reg [3:0] other_revo_stream127;
 	always @(posedge clock127) begin
 		if (reset) begin
 			trg <= 0;
+			trg_inv <= 1;
 			other_revo_stream127 <= 0;
 		end else begin
 			if (other_revo_stream127) begin
 				trg <= 1;
+				trg_inv <= 0;
 			end else begin
 				trg <= 0;
+				trg_inv <= 1;
 			end
 			other_revo_stream127 <= revo_stream127;
 		end
@@ -142,7 +146,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	assign led_7 = pll_oserdes_locked;
 	assign led_6 = pll_509_127_locked;
 	assign led_5 = reset;
-	assign led_4 = reset3;
+	assign led_4 = phase_locked;
 	assign led_3 = select4[3];
 	assign led_2 = select4[2];
 	assign led_1 = select4[1];
@@ -151,9 +155,9 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire data;
 	wire word_clock;
 	reg [7:0] word;
-	wire [7:0] word_null = 8'b00000000;
-	wire [7:0] word_trg  = 8'b11110000;
-	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(pll_oserdes_locked));
+	wire [7:0] word_null = 8'b11110000;
+	wire [7:0] word_trg  = 8'b11101110;
+	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(pll_oserdes_locked));
 	wire reset3 = reset1 | reset2 | ~pll_oserdes_locked;
 	always @(posedge word_clock) begin
 		if (reset3) begin
@@ -167,14 +171,15 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 	end
 	// ----------------------------------------------------------------------
-	OBUFDS ack12 (.I(select4[3]), .O(ack12_p), .OB(ack12_n));
-	OBUFDS trg36 (.I(select4[2]), .O(trg36_p), .OB(trg36_n));
-	OBUFDS rsv54 (.I(select4[1]), .O(rsv54_p), .OB(rsv54_n));
-	OBUFDS clk78 (.I(select4[0]), .O(clk78_p), .OB(clk78_n));
-//	OBUFDS rsv54 (.I(data), .O(rsv54_p), .OB(rsv54_n));
-//	wire clock127_oddr1;
-//	ODDR2 doughnut0 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr1));
-//	OBUFDS supercool1 (.I(clock127_oddr1), .O(clk78_p), .OB(clk78_n));
+	OBUFDS ack12 (.I(trg), .O(ack12_p), .OB(ack12_n));
+//	OBUFDS ack12 (.I(select4[3]), .O(ack12_p), .OB(ack12_n));
+//	OBUFDS trg36 (.I(select4[2]), .O(trg36_p), .OB(trg36_n));
+//	OBUFDS rsv54 (.I(select4[1]), .O(rsv54_p), .OB(rsv54_n));
+//	OBUFDS clk78 (.I(select4[0]), .O(clk78_p), .OB(clk78_n));
+	OBUFDS rsv54 (.I(data), .O(rsv54_p), .OB(rsv54_n));
+	wire clock127_oddr1;
+	ODDR2 doughnut0 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr1));
+	OBUFDS supercool1 (.I(clock127_oddr1), .O(clk78_p), .OB(clk78_n));
 //	OBUFDS supercool1 (.I(0'b0), .O(clk78_p), .OB(clk78_n));
 //	wire clock127_oddr2;
 //	ODDR2 doughnut1 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr2));
@@ -183,9 +188,9 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 //	OBUFDS outa (.I(select2[0]), .O(outa_p), .OB(outa_n));
 //	OBUFDS outa (.I(rawtrg), .O(outa_p), .OB(outa_n));
 	OBUFDS outa (.I(revo_stream127[0]), .O(outa_p), .OB(outa_n));
-//	wire clock127_encoded_trg_oddr1;
-//	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(trg_inv1),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr1));
-//	OBUFDS supercool2 (.I(clock127_encoded_trg_oddr1), .O(trg36_p), .OB(trg36_n));
+	wire clock127_encoded_trg_oddr1;
+	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(trg_inv),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr1));
+	OBUFDS supercool2 (.I(clock127_encoded_trg_oddr1), .O(trg36_p), .OB(trg36_n));
 //	OBUFDS supercool2 (.I(select2[1]), .O(trg36_p), .OB(trg36_n));
 //	OBUFDS supercool2 (.I(trg), .O(trg36_p), .OB(trg36_n));
 //	wire clock127_encoded_trg_oddr2;
