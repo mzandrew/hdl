@@ -122,7 +122,8 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire clock127b;
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_b (.I0(clock127_0s), .I1(clock127_1s), .S(~select2[1]), .O(clock127b));
 	// ----------------------------------------------------------------------
-	reg [3:0] other_revo_stream127;
+	wire [3:0] other_revo_stream127;
+	ssynchronizer_pnp #(.WIDTH(4)) sharma (.clock1(revo_stream_clock127), .clock2(clock127), .reset(reset), .in1(revo_stream127), .out2(other_revo_stream127));
 	reg long_trg = 0;
 	wire short_trg;
 	reg trg = 0;
@@ -133,7 +134,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			long_trg <= 0;
 			trg <= 0;
 			trg_inv <= 1;
-			other_revo_stream127 <= 0;
+//			other_revo_stream127 <= 0;
 		end else begin
 			if (short_trg) begin
 				trg <= 1;
@@ -147,7 +148,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			end else begin
 				long_trg <= 0;
 			end
-			other_revo_stream127 <= revo_stream127;
+//			other_revo_stream127 <= revo_stream127;
 		end
 	end
 	// ----------------------------------------------------------------------
