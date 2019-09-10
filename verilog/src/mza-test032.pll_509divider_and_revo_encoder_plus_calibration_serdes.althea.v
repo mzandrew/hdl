@@ -134,7 +134,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			long_trg <= 0;
 			trg <= 0;
 			trg_inv <= 1;
-//			other_revo_stream127 <= 0;
 		end else begin
 			if (short_trg) begin
 				trg <= 1;
@@ -148,7 +147,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			end else begin
 				long_trg <= 0;
 			end
-//			other_revo_stream127 <= revo_stream127;
 		end
 	end
 	// ----------------------------------------------------------------------
@@ -169,7 +167,8 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire [7:0] word_trg  = 8'b11001100;
 	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(pll_oserdes_locked));
 	wire reset3 = reset1 | reset2 | ~pll_oserdes_locked;
-	reg trg_again = 0;
+	wire trg_again;
+	ssynchronizer_pnp barry (.clock1(clock127), .clock2(word_clock), .reset(reset), .in1(trg), .out2(trg_again));
 	always @(posedge word_clock) begin
 		if (reset3) begin
 			word <= word_null;
@@ -179,7 +178,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			end else begin
 				word <= word_null;
 			end
-			trg_again <= trg;
 		end
 	end
 	// ----------------------------------------------------------------------
