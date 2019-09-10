@@ -87,12 +87,28 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	end
 	wire clock127_0s;
 	wire clock127_1s;
-	wire clock127;
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_0s (.I0(rawclock127_0),   .I1(rawclock127_90),  .S(select[0]), .O(clock127_0s));
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_1s (.I0(rawclock127_180), .I1(rawclock127_270), .S(select[0]), .O(clock127_1s));
+	wire clock127;
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_sx (.I0(clock127_0s), .I1(clock127_1s), .S(select[1]), .O(clock127));
+	wire clock127b;
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_b (.I0(clock127_0s), .I1(clock127_1s), .S(~select[1]), .O(clock127b));
 	// ----------------------------------------------------------------------
 	reg trg = 0;
+	reg [3:0] other_revo_stream127;
+	always @(posedge clock127) begin
+		if (reset) begin
+			trg <= 0;
+			other_revo_stream127 <= 0;
+		end else begin
+			if (other_revo_stream127) begin
+				trg <= 1;
+			end else begin
+				trg <= 0;
+			end
+			other_revo_stream127 <= revo_stream127;
+		end
+	end
 
 //	reg [3:0] phase;
 //	reg trg, trg_inv1, should_trg;
@@ -168,7 +184,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	assign led_7 = locked2;
 	assign led_6 = locked1;
 	assign led_5 = reset;
-	assign led_4 = trg;
+	assign led_4 = 0;//trg;
 	assign led_3 = revo_stream127[3];
 	assign led_2 = revo_stream127[2];
 	assign led_1 = revo_stream127[1];
@@ -203,16 +219,18 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 //	OBUFDS outa (.I(clock127_oddr2), .O(outa_p), .OB(outa_n));
 //	OBUFDS outa (.I(data), .O(outa_p), .OB(outa_n));
 //	OBUFDS outa (.I(rawtrg), .O(outa_p), .OB(outa_n));
-	OBUFDS outa (.I(select[0]), .O(outa_p), .OB(outa_n));
+//	OBUFDS outa (.I(select[0]), .O(outa_p), .OB(outa_n));
+	OBUFDS outa (.I(revo_stream127[0]), .O(outa_p), .OB(outa_n));
 //	wire clock127_encoded_trg_oddr1;
 //	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(trg_inv1),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr1));
 //	OBUFDS supercool2 (.I(clock127_encoded_trg_oddr1), .O(trg_out_p), .OB(trg_out_n));
 //	OBUFDS supercool2 (.I(select[1]), .O(trg_out_p), .OB(trg_out_n));
-	OBUFDS supercool2 (.I(0), .O(trg_out_p), .OB(trg_out_n));
+	OBUFDS supercool2 (.I(trg), .O(trg_out_p), .OB(trg_out_n));
 //	wire clock127_encoded_trg_oddr2;
 //	ODDR2 doughnut3 (.C0(clock127), .C1(clock127b), .CE(trg_inv2),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr2));
 //	OBUFDS out1 (.I(clock127_encoded_trg_oddr2), .O(out1_p), .OB(out1_n));
-	OBUFDS out1 (.I(select[1]), .O(out1_p), .OB(out1_n));
+//	OBUFDS out1 (.I(select[1]), .O(out1_p), .OB(out1_n));
+	OBUFDS out1 (.I(pulse_revo_stream127[0]), .O(out1_p), .OB(out1_n));
 endmodule
 
 module mything_tb;
