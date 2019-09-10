@@ -46,7 +46,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			led_revo <= 0;
 			reset2 <= 1;
 		end else begin
-			reset2 <= ~pll_509_127_locked;
+			reset2 <= ~pll_127_127_locked;
 		end
 		if (counter[10]) begin
 			reset1 <= 0;
@@ -67,12 +67,13 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire rawclock127_90;
 	wire rawclock127_180;
 	wire rawclock127_270;
-	wire pll_509_127_locked;
-	assign led_rfclock = pll_509_127_locked;
-	simplepll_BASE #(.overall_divide(2), .multiply(4), .period(1.965), .compensation("INTERNAL"),
+	wire pll_127_127_locked;
+	assign led_rfclock = pll_127_127_locked;
+	wire revo_stream_clock127;
+	simplepll_BASE #(.overall_divide(2), .multiply(16), .period(7.86), .compensation("INTERNAL"),
 		.divide0(8), .divide1(8), .divide2(8), .divide3(8), .divide4(2), .divide5(2),
 		.phase0(0.0), .phase1(90.0), .phase2(180.0), .phase3(270.0), .phase4(0.0), .phase5(0.0)
-	) mypll (.clockin(clock509), .reset(reset1), .locked(pll_509_127_locked),
+	) mypll (.clockin(revo_stream_clock127), .reset(reset1), .locked(pll_127_127_locked),
 		.clock0out(rawclock127_0), .clock1out(rawclock127_90),
 		.clock2out(rawclock127_180), .clock3out(rawclock127_270),
 		.clock4out(), .clock5out()
@@ -88,15 +89,14 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			saw_a_trigger_recently <= 1;
 		end
 	end
-	wire revo_stream_clock;
 	wire [3:0] revo_stream127;
-	iserdes_single4 revo_iserdes (.sample_clock(clock509), .data_in(rawtrg), .reset(reset), .word_clock(revo_stream_clock), .word_out(revo_stream127));
+	iserdes_single4 revo_iserdes (.sample_clock(clock509), .data_in(rawtrg), .reset(reset1), .word_clock(revo_stream_clock127), .word_out(revo_stream127));
 	wire [3:0] pulse_revo_stream127;
-	edge_to_pulse #(.WIDTH(4)) midge (.clock(revo_stream_clock), .in(revo_stream127), .reset(reset), .out(pulse_revo_stream127));
+	edge_to_pulse #(.WIDTH(4)) midge (.clock(revo_stream_clock127), .in(revo_stream127), .reset(reset), .out(pulse_revo_stream127));
 	reg [1:0] select2 = 0;
 	reg [3:0] select4 = 0;
 	reg phase_locked = 0;
-	always @(posedge revo_stream_clock or posedge reset) begin
+	always @(posedge revo_stream_clock127 or posedge reset) begin
 		if (reset) begin
 			select2 <= 0;
 			select4 <= 0;
@@ -153,7 +153,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	// ----------------------------------------------------------------------
 	wire pll_oserdes_locked;
 	assign led_7 = pll_oserdes_locked;
-	assign led_6 = pll_509_127_locked;
+	assign led_6 = pll_127_127_locked;
 	assign led_5 = reset;
 	assign led_4 = phase_locked;
 	assign led_3 = select4[3];
