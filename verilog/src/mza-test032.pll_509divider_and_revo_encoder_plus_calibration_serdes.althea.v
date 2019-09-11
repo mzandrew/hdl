@@ -67,16 +67,17 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire rawclock127_90;
 	wire rawclock127_180;
 	wire rawclock127_270;
+	wire raw_clock509a, raw_clock509b;
 	wire pll_127_127_locked;
 	assign led_rfclock = pll_127_127_locked;
 	wire revo_stream_clock127;
 	simplepll_BASE #(.overall_divide(2), .multiply(16), .period(7.86), .compensation("INTERNAL"),
 		.divide0(8), .divide1(8), .divide2(8), .divide3(8), .divide4(2), .divide5(2),
-		.phase0(0.0), .phase1(90.0), .phase2(180.0), .phase3(270.0), .phase4(0.0), .phase5(0.0)
+		.phase0(0.0), .phase1(90.0), .phase2(180.0), .phase3(270.0), .phase4(0.0), .phase5(180.0)
 	) mypll (.clockin(revo_stream_clock127), .reset(reset1), .locked(pll_127_127_locked),
 		.clock0out(rawclock127_0), .clock1out(rawclock127_90),
 		.clock2out(rawclock127_180), .clock3out(rawclock127_270),
-		.clock4out(), .clock5out()
+		.clock4out(raw_clock509a), .clock5out(raw_clock509b)
 	);
 	// ----------------------------------------------------------------------
 	wire rawtrg;
@@ -181,33 +182,48 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 	end
 	// ----------------------------------------------------------------------
-	OBUFDS ack12 (.I(long_trg), .O(ack12_p), .OB(ack12_n));
-//	OBUFDS ack12 (.I(select4[3]), .O(ack12_p), .OB(ack12_n));
-//	OBUFDS trg36 (.I(select4[2]), .O(trg36_p), .OB(trg36_n));
-//	OBUFDS rsv54 (.I(select4[1]), .O(rsv54_p), .OB(rsv54_n));
-//	OBUFDS clk78 (.I(select4[0]), .O(clk78_p), .OB(clk78_n));
-	OBUFDS rsv54 (.I(rawtrg), .O(rsv54_p), .OB(rsv54_n));
-	wire clock127_oddr1;
-	ODDR2 doughnut0 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr1));
-	OBUFDS supercool1 (.I(clock127_oddr1), .O(clk78_p), .OB(clk78_n));
-//	OBUFDS supercool1 (.I(0'b0), .O(clk78_p), .OB(clk78_n));
-	wire clock127_encoded_trg_oddr1;
-	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(trg_inv),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr1));
-	OBUFDS supercool2 (.I(clock127_encoded_trg_oddr1), .O(trg36_p), .OB(trg36_n));
-//	OBUFDS supercool2 (.I(select2[1]), .O(trg36_p), .OB(trg36_n));
-//	OBUFDS supercool2 (.I(trg), .O(trg36_p), .OB(trg36_n));
-//	wire clock127_encoded_trg_oddr2;
-//	ODDR2 doughnut3 (.C0(clock127), .C1(clock127b), .CE(trg_inv2),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr2));
-//	OBUFDS out1 (.I(clock127_encoded_trg_oddr2), .O(out1_p), .OB(out1_n));
-//	OBUFDS out1 (.I(select2[1]), .O(out1_p), .OB(out1_n));
-	OBUFDS out1 (.I(data), .O(out1_p), .OB(out1_n));
-//	wire clock127_oddr2;
-//	ODDR2 doughnut1 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr2));
-//	OBUFDS outa (.I(clock127_oddr2), .O(outa_p), .OB(outa_n));
-//	OBUFDS outa (.I(data), .O(outa_p), .OB(outa_n));
-//	OBUFDS outa (.I(select2[0]), .O(outa_p), .OB(outa_n));
-//	OBUFDS outa (.I(rawtrg), .O(outa_p), .OB(outa_n));
-	OBUFDS outa (.I(trg), .O(outa_p), .OB(outa_n));
+	wire clock127_oddr;
+	ODDR2 doughnut127 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr));
+	wire clock127_encoded_trg_oddr;
+	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(trg_inv),  .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_encoded_trg_oddr));
+//	wire clock509a, clock509b;
+//	BUFG a (.I(raw_clock509a), .O(clock509a));
+//	BUFG b (.I(raw_clock509b), .O(clock509b));
+//	wire clock509_oddr;
+//	ODDR2 doughnut509 (.C0(raw_clock509a), .C1(raw_clock509b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock509_oddr));
+	if (0) begin
+		// test performance
+		OBUFDS ack12 (.I(rawtrg), .O(ack12_p), .OB(ack12_n));
+//		OBUFDS trg36 (.I(clock509_oddr), .O(trg36_p), .OB(trg36_n));
+		OBUFDS rsv54 (.I(trg), .O(rsv54_p), .OB(rsv54_n));
+		OBUFDS clk78 (.I(clock127_oddr), .O(clk78_p), .OB(clk78_n));
+	end else if (0) begin
+		// miscellaneous debug/troubleshoot
+//		OBUFDS ack12 (.I(long_trg), .O(ack12_p), .OB(ack12_n));
+//		OBUFDS ack12 (.I(select4[3]), .O(ack12_p), .OB(ack12_n));
+//		OBUFDS trg36 (.I(select4[2]), .O(trg36_p), .OB(trg36_n));
+//		OBUFDS rsv54 (.I(select4[1]), .O(rsv54_p), .OB(rsv54_n));
+//		OBUFDS clk78 (.I(select4[0]), .O(clk78_p), .OB(clk78_n));
+//		OBUFDS rsv54 (.I(rawtrg), .O(rsv54_p), .OB(rsv54_n));
+//		OBUFDS supercool1 (.I(clock127_oddr), .O(clk78_p), .OB(clk78_n));
+//		OBUFDS supercool1 (.I(0'b0), .O(clk78_p), .OB(clk78_n));
+//		OBUFDS supercool2 (.I(select2[1]), .O(trg36_p), .OB(trg36_n));
+//		OBUFDS supercool2 (.I(trg), .O(trg36_p), .OB(trg36_n));
+//		OBUFDS out1 (.I(clock127_encoded_trg_oddr2), .O(out1_p), .OB(out1_n));
+//		OBUFDS out1 (.I(select2[1]), .O(out1_p), .OB(out1_n));
+//		OBUFDS outa (.I(clock127_oddr), .O(outa_p), .OB(outa_n));
+//		OBUFDS outa (.I(data), .O(outa_p), .OB(outa_n));
+//		OBUFDS outa (.I(rawtrg), .O(outa_p), .OB(outa_n));
+//		OBUFDS outa (.I(clock509_oddr), .O(outa_p), .OB(outa_n));
+	end else begin
+		// normal operation
+		OBUFDS ack12 (.I(long_trg), .O(ack12_p), .OB(ack12_n));
+		OBUFDS trg36 (.I(clock127_encoded_trg_oddr), .O(trg36_p), .OB(trg36_n));
+		OBUFDS rsv54 (.I(data), .O(rsv54_p), .OB(rsv54_n));
+		OBUFDS clk78 (.I(clock127_oddr), .O(clk78_p), .OB(clk78_n));
+		OBUFDS out1 (.I(rawtrg), .O(out1_p), .OB(out1_n));
+		OBUFDS outa (.I(trg), .O(outa_p), .OB(outa_n));
+	end
 endmodule
 
 module mything_tb;
