@@ -23,9 +23,9 @@ net b_n loc=p114 | iostandard=lvds_25; # B- bank0 TR
 net d_p loc=p124 | iostandard=lvds_25 | diff_term=true; # D+ bank0 TR GCLK
 net d_n loc=p123 | iostandard=lvds_25 | diff_term=true; # D- bank0 TR GCLK
 
-#net e_p loc=p138 | iostandard=lvds_25; # E+ bank0 TL
+#net e_p loc=p138 | iostandard=lvcmos25 | slew=fast | drive=12; # E+ bank0 TL
 #net e_n loc=p137 | iostandard=lvds_25; # E- bank0 TL
-#net f_p loc=p142 | iostandard=lvds_25 | diff_term=true; # F+ bank0 TL
+#net f_p loc=p142 | iostandard=lvcmos25 | slew=fast | drive=12; # F+ bank0 TL
 #net f_n loc=p141 | iostandard=lvds_25 | diff_term=true; # F- bank0 TL
 
 #net g_p loc=p41  | iostandard=lvcmos25; # G+ bank3 BL
