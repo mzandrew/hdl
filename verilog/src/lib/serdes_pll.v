@@ -60,6 +60,7 @@ module iserdes_single4 #(
 endmodule
 
 module ocyrus_quad8 #(
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
 	parameter WIDTH = 8,
 	PERIOD = 20.0,
 	DIVIDE = 2,
@@ -164,13 +165,14 @@ module ocyrus_quad8 #(
 	assign ioce_D2 = ioce_D;
 	assign ioce_D3 = ioce_D;
 	assign ioce_D4 = ioce_D;
-	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY)) difficult_pll_TR (
+	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .fabric_clock_out(word_clock_out), 
 		.serializer_clock_out(ioclk_D), .serializer_strobe_out(ioce_D), .locked(locked)
 	);
 endmodule
 
 module ocyrus_double8 #(
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
 	parameter WIDTH = 8,
 	PERIOD = 20.0,
 	DIVIDE = 2,
@@ -231,13 +233,14 @@ module ocyrus_double8 #(
 	assign ioclk_D2 = ioclk_D;
 	assign ioce_D1 = ioce_D;
 	assign ioce_D2 = ioce_D;
-	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY)) difficult_pll_TR (
+	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .fabric_clock_out(word_clock_out), 
 		.serializer_clock_out(ioclk_D), .serializer_strobe_out(ioce_D), .locked(locked)
 	);
 endmodule
 
 module ocyrus_single8 #(
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
 	parameter WIDTH = 8,
 	PERIOD = 20.0,
 	DIVIDE = 2,
@@ -274,7 +277,7 @@ module ocyrus_single8 #(
 	         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
 	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY)) difficult_pll_TR (
+	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .fabric_clock_out(word_clock_out), 
 		.serializer_clock_out(ioclk_D), .serializer_strobe_out(ioce_D), .locked(locked)
 	);
@@ -365,7 +368,7 @@ module simpll #(
 endmodule
 
 module oserdes_pll #(
-//	parameter scope = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
 	parameter WIDTH=8,
 	parameter CLKIN_PERIOD=6.4,
 	parameter PLLD=5,
@@ -376,6 +379,7 @@ module oserdes_pll #(
 );
 	wire clock_1x, clock_nx;
 	wire pll_is_locked; // Locked output from PLL
+	if (SCOPE == "BUFPLL" | SCOPE == "GLOBAL") begin
 	simpll #(
 		.WIDTH(WIDTH),
 		.CLKIN_PERIOD(CLKIN_PERIOD),
@@ -388,6 +392,7 @@ module oserdes_pll #(
 		.clock_1x(clock_1x),
 		.clock_nx(clock_nx)
 	);
+	end
 	BUFG bufg_tx (.I(clock_1x), .O(fabric_clock_out));
 	wire buffered_pll_is_locked_and_strobe_is_aligned;
 	BUFPLL #(
