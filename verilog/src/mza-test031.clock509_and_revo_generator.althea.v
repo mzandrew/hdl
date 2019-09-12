@@ -88,9 +88,9 @@ module mza_test031_clock509_and_revo_generator_althea (
 	wire word_clock;
 	wire word_clock2;
 	wire [7:0] clock_word = 8'b10101010;
-	ocyrus_double8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr1), .D2_out(revo_oddr1), .locked(oserdes_pll_locked));
-//	ocyrus_double8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8)) mylei2 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock2), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr2), .D2_out(revo_oddr2), .locked(oserdes_pll_locked2));
-//	ocyrus_quad8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8)) mylei (
+	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr1), .D2_out(revo_oddr1), .locked(oserdes_pll_locked));
+//	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8)) mylei2 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock2), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr2), .D2_out(revo_oddr2), .locked(oserdes_pll_locked2));
+//	ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8)) mylei (
 //			.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .locked(oserdes_pll_locked),
 //			.word1_in(clock_word), .word2_in(revo_word), .word3_in(clock_word), .word4_in(revo_word),
 //			.D1_out(clock509_oddr1), .D2_out(revo_oddr1), .D3_out(clock509_oddr2), .D4_out(revo_oddr2)
