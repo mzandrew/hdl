@@ -1,6 +1,6 @@
 # written 2019-08-26 by mza
 # based off of mza_test029
-# last updated 2019-08-27 by mza
+# last updated 2019-09-12 by mza
 
 # 50 MHz local oscillator:
 net clock50_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK50+
@@ -53,5 +53,5 @@ net led_5 loc=p6  | iostandard=lvcmos25;
 net led_6 loc=p2  | iostandard=lvcmos25;
 net led_7 loc=p1  | iostandard=lvcmos25;
 
-net lemo loc=p93 | iostandard=lvcmos25;
+net lemo loc=p93 | iostandard=lvcmos25 | slew=fast | drive=24;
 

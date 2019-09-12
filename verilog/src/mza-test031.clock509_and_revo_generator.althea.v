@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-08-26 by mza
-// last updated 2019-09-11 by mza
+// last updated 2019-09-12 by mza
 
 module mza_test031_clock509_and_revo_generator_althea (
 	input local_clock50_in_p, local_clock50_in_n,
@@ -49,22 +49,22 @@ module mza_test031_clock509_and_revo_generator_althea (
 //			lemo <= 1;
 //		end
 //	end
-	reg reg_lemo = 0;
+	reg reg_revo = 0;
 	reg [10:0] quad_bunch_counter = 1280-1;
 	always @(posedge word_clock) begin
 		if (reset) begin
-			reg_lemo <= 0;
+			reg_revo <= 0;
 			quad_bunch_counter <= 1280-1;
 			revo_word <= 8'b00000000;
 		end else begin
 			if (quad_bunch_counter>0) begin
 				quad_bunch_counter <= quad_bunch_counter - 1'b1;
 				revo_word <= 8'b00000000;
-				reg_lemo <= 0;
+				reg_revo <= 0;
 			end else begin
 				quad_bunch_counter <= 1280-1;
 				revo_word <= 8'b11111111;
-				reg_lemo <= 1;
+				reg_revo <= 1;
 			end
 		end
 	end
@@ -72,7 +72,7 @@ module mza_test031_clock509_and_revo_generator_althea (
 	assign led_7 = oserdes_pll_locked;
 	assign led_6 = pll_509_127_locked;
 	assign led_5 = reset;
-	assign led_4 = reg_lemo;
+	assign led_4 = reg_revo;
 	assign led_3 = 0;
 	assign led_2 = 0;
 	assign led_1 = 0;
@@ -82,9 +82,12 @@ module mza_test031_clock509_and_revo_generator_althea (
 	wire word_clock;
 	wire [7:0] clock_word = 8'b10101010;
 	ocyrus_double8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr), .D2_out(revo_oddr), .T1_out(), .T2_out(), .locked(oserdes_pll_locked));
-	OBUFDS out1 (.I(clock509_oddr), .O(clk78_p), .OB(clk78_n));
-	OBUFDS out2 (.I(revo_oddr), .O(trg36_p), .OB(trg36_n));
-	assign lemo = reg_lemo;
+//	OBUFDS out1 (.I(clock509_oddr), .O(clk78_p), .OB(clk78_n));
+	OBUFDS out1 (.I(reg_revo), .O(clk78_p), .OB(clk78_n));
+//	OBUFDS out2 (.I(revo_oddr), .O(trg36_p), .OB(trg36_n));
+	OBUFDS out2 (.I(reg_revo), .O(trg36_p), .OB(trg36_n));
+//	assign lemo = reg_revo;
+	assign lemo = clock509_oddr;
 endmodule
 
 module mza_test031_clock509_and_revo_generator_althea_tb;
