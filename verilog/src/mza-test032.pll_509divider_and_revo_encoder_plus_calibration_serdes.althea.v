@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2019-09-10 by mza
+// last updated 2019-09-11 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
@@ -278,14 +278,8 @@ module mything_tb;
 		.led_rfclock(l_n),
 		.clock_select(clock_select),
 		.driven_high(driven_high),
-		.led_0(led_0),
-		.led_1(led_1),
-		.led_2(led_2),
-		.led_3(led_3),
-		.led_4(led_4),
-		.led_5(led_5),
-		.led_6(led_6),
-		.led_7(led_7)
+		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
+		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
 	);
 	wire raw_recovered_revo;
 	assign raw_recovered_revo = clk78_p ^ trg36_p;

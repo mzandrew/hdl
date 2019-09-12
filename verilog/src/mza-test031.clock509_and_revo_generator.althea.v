@@ -1,13 +1,13 @@
 `timescale 1ns / 1ps
 // written 2019-08-26 by mza
-// last updated 2019-09-10 by mza
+// last updated 2019-09-11 by mza
 
 module mza_test031_clock509_and_revo_generator_althea (
 	input local_clock50_in_p, local_clock50_in_n,
 	input local_clock509_in_p, local_clock509_in_n,
-	output clock509_out_p, clock509_out_n,
-	output revo_out_p, revo_out_n,
-	output reg lemo,
+	output clk78_p, clk78_n,
+	output trg36_p, trg36_n,
+	output lemo,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	wire clock50;
@@ -27,10 +27,10 @@ module mza_test031_clock509_and_revo_generator_althea (
 	wire locked;
 	simplepll_BASE #(
 			.overall_divide(2), .multiply(4), .period(1.965), .compensation("INTERNAL"),
-			.divide0(8), .divide1(8), .divide2(4), .divide3(4)
+			.divide0(8), .divide1(8), .divide2(4), .divide3(4), .divide4(4), .divide5(4)
 		) mypll (
 			.clockin(clock509), .reset(reset), .locked(pll_509_127_locked),
-			.clock0out(rawclock127), .clock1out(rawclock127b), .clock2out(), .clock3out()
+			.clock0out(rawclock127), .clock1out(rawclock127b), .clock2out(), .clock3out(), .clock4out(), .clock5out()
 		);
 	wire clock127;
 	wire clock127b;
@@ -49,23 +49,30 @@ module mza_test031_clock509_and_revo_generator_althea (
 //			lemo <= 1;
 //		end
 //	end
-	reg [10:0] quad_bunch_counter = 1280;
+	reg reg_lemo = 0;
+	reg [10:0] quad_bunch_counter = 1280-1;
 	always @(posedge word_clock) begin
-		if (quad_bunch_counter>0) begin
-			quad_bunch_counter <= quad_bunch_counter - 1'b1;
+		if (reset) begin
+			reg_lemo <= 0;
+			quad_bunch_counter <= 1280-1;
 			revo_word <= 8'b00000000;
-			lemo <= 0;
 		end else begin
-			quad_bunch_counter <= 1280;
-			revo_word <= 8'b11111111;
-			lemo <= 1;
+			if (quad_bunch_counter>0) begin
+				quad_bunch_counter <= quad_bunch_counter - 1'b1;
+				revo_word <= 8'b00000000;
+				reg_lemo <= 0;
+			end else begin
+				quad_bunch_counter <= 1280-1;
+				revo_word <= 8'b11111111;
+				reg_lemo <= 1;
+			end
 		end
 	end
 	wire oserdes_pll_locked;
 	assign led_7 = oserdes_pll_locked;
 	assign led_6 = pll_509_127_locked;
 	assign led_5 = reset;
-	assign led_4 = 0;
+	assign led_4 = reg_lemo;
 	assign led_3 = 0;
 	assign led_2 = 0;
 	assign led_1 = 0;
@@ -75,8 +82,39 @@ module mza_test031_clock509_and_revo_generator_althea (
 	wire word_clock;
 	wire [7:0] clock_word = 8'b10101010;
 	ocyrus_double8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr), .D2_out(revo_oddr), .T1_out(), .T2_out(), .locked(oserdes_pll_locked));
-	OBUFDS out1 (.I(clock509_oddr), .O(clock509_out_p), .OB(clock509_out_n));
-	OBUFDS out2 (.I(revo_oddr), .O(revo_out_p), .OB(revo_out_n));
+	OBUFDS out1 (.I(clock509_oddr), .O(clk78_p), .OB(clk78_n));
+	OBUFDS out2 (.I(revo_oddr), .O(trg36_p), .OB(trg36_n));
+	assign lemo = reg_lemo;
+endmodule
+
+module mza_test031_clock509_and_revo_generator_althea_tb;
+	reg local_clock50_in_p = 0, local_clock50_in_n = 1;
+	reg local_clock509_in_p = 0, local_clock509_in_n = 1;
+	wire clk78_p, clk78_n;
+	wire trg36_p, trg36_n;
+	wire lemo;
+	wire led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7;
+	mza_test031_clock509_and_revo_generator_althea mything (
+		.local_clock50_in_p(local_clock50_in_p), .local_clock50_in_n(local_clock50_in_n),
+		.local_clock509_in_p(local_clock509_in_p), .local_clock509_in_n(local_clock509_in_n),
+		.clk78_p(clk78_p), .clk78_n(clk78_n),
+		.trg36_p(trg36_p), .trg36_n(trg36_n),
+		.lemo(lemo),
+		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
+		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
+	);
+	initial begin
+		local_clock509_in_p = 0; local_clock509_in_n = 1;
+		local_clock50_in_p = 0; local_clock50_in_n = 1;
+	end
+	always begin
+		#1;
+		local_clock509_in_p <= ~local_clock509_in_p; local_clock509_in_n <= ~local_clock509_in_n;
+	end
+	always begin
+		#10;
+		local_clock50_in_p <= ~local_clock50_in_p; local_clock50_in_n <= ~local_clock50_in_n;
+	end
 endmodule
 
 module mza_test031_clock509_and_revo_generator_althea_top (
@@ -90,8 +128,8 @@ module mza_test031_clock509_and_revo_generator_althea_top (
 	mza_test031_clock509_and_revo_generator_althea mything (
 		.local_clock50_in_p(clock50_p), .local_clock50_in_n(clock50_n),
 		.local_clock509_in_p(d_p), .local_clock509_in_n(d_n),
-		.clock509_out_p(a_p), .clock509_out_n(a_n),
-		.revo_out_p(b_p), .revo_out_n(b_n),
+		.clk78_p(a_p), .clk78_n(a_n),
+		.trg36_p(b_p), .trg36_n(b_n),
 		.lemo(lemo),
 		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
 		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
