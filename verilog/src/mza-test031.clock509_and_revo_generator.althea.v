@@ -7,6 +7,8 @@ module mza_test031_clock509_and_revo_generator_althea (
 	input local_clock509_in_p, local_clock509_in_n,
 	output clk78_p, clk78_n,
 	output trg36_p, trg36_n,
+	output clk_se,
+	output trg_se,
 	output lemo,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
@@ -86,8 +88,10 @@ module mza_test031_clock509_and_revo_generator_althea (
 	OBUFDS out1 (.I(reg_revo), .O(clk78_p), .OB(clk78_n));
 //	OBUFDS out2 (.I(revo_oddr), .O(trg36_p), .OB(trg36_n));
 	OBUFDS out2 (.I(reg_revo), .O(trg36_p), .OB(trg36_n));
-//	assign lemo = reg_revo;
-	assign lemo = clock509_oddr;
+	assign lemo = reg_revo;
+//	assign lemo = clock509_oddr;
+	assign clk_se = clock509_oddr;
+	assign trg_se = revo_oddr;
 endmodule
 
 module mza_test031_clock509_and_revo_generator_althea_tb;
@@ -125,6 +129,7 @@ module mza_test031_clock509_and_revo_generator_althea_top (
 	output a_p, a_n,
 	output b_p, b_n,
 	input d_p, d_n,
+	output h_p, k_p,
 	output lemo,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
@@ -133,6 +138,8 @@ module mza_test031_clock509_and_revo_generator_althea_top (
 		.local_clock509_in_p(d_p), .local_clock509_in_n(d_n),
 		.clk78_p(a_p), .clk78_n(a_n),
 		.trg36_p(b_p), .trg36_n(b_n),
+		.clk_se(k_p),
+		.trg_se(h_p),
 		.lemo(lemo),
 		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
 		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
