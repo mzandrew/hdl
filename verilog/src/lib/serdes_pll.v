@@ -283,21 +283,27 @@ endmodule
 // 156.25 / 8.0 * 61.875 / 2.375 = 508.840461 for scrod revA3 on-board oscillator
 // 156.25 / 5 * 32 = 1000 for scrod revA3 on-board oscillator
 // 50.0 / 2 * 40 = 1000 for althea on-board oscillator
-module oserdes_pll #(parameter WIDTH=8, parameter CLKIN_PERIOD=6.4, parameter PLLD=5, parameter PLLX=32) (
-	input clock_in, input reset, output fabric_clock_out,
-	output serializer_clock_out, output serializer_strobe_out, output locked
+// 127.221875 / 2 * 16 = 1017.775 MHz
+// 508.8875 / 2 * 4 = 1017.775 MHz
+module simpll #(
+	parameter WIDTH=8,
+	parameter CLKIN_PERIOD=6.4,
+	parameter PLLD=5,
+	parameter PLLX=32
+) (
+	input clock_in,
+	input reset,
+	output pll_is_locked,
+	output clock_1x,
+	output clock_nx
 );
 	// from clock_generator_pll_s8_diff.v from XAPP1064 example code
-	// but modified to remove unnecessary BUFPLL instance
-//	localparam integer PLLD = 5; // 1 to 52 on a spartan6
-//	localparam integer PLLX = 32; // 1 to 64 on a spartan6
 	// frequency of VCO after div and mult must be in range [400,1080] MHz
-	wire pllout_xn; // pll generated xn clock
-	wire pllout_x1; // pll generated x1 clock
+	// frequency of BUFG can't be higher than 400 MHz
+	wire clock_1x; // pll generated x1 clock
+	wire clock_nx; // pll generated xn clock
 	wire fb; // feedback net
 	wire pll_is_locked; // Locked output from PLL
-	wire buffered_pll_is_locked_and_strobe_is_aligned_2;
-	assign locked = pll_is_locked & buffered_pll_is_locked_and_strobe_is_aligned_2;
 	PLL_ADV #(
 		.SIM_DEVICE("SPARTAN6"),
 		.BANDWIDTH("OPTIMIZED"), // "high", "low" or "optimized"
@@ -326,15 +332,15 @@ module oserdes_pll #(parameter WIDTH=8, parameter CLKIN_PERIOD=6.4, parameter PL
 		.CLKOUT5_DUTY_CYCLE(0.5), // duty cycle for clkout5 (0.01 to 0.99)
 		.COMPENSATION("INTERNAL"), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
 		.REF_JITTER(0.100) // input reference jitter (0.000 to 0.999 ui%)
-		) tx_pll_adv_inst (
+		) pll_adv_inst (
 		.RST(reset), // asynchronous pll reset
 		.LOCKED(pll_is_locked), // active high pll lock signal
 		.CLKFBIN(fb), // clock feedback input
 		.CLKFBOUT(fb), // general output feedback signal
 		.CLKIN1(clock_in), // primary clock input
 		.CLKOUT0(), // *n clock for transmitter
-		.CLKOUT1(pllout_xn), //
-		.CLKOUT2(pllout_x1), // *1 clock for BUFG
+		.CLKOUT1(clock_nx), //
+		.CLKOUT2(clock_1x), // *1 clock for BUFG
 		.CLKOUT3(), // one of six general clock output signals
 		.CLKOUT4(), // one of six general clock output signals
 		.CLKOUT5(), // one of six general clock output signals
@@ -355,19 +361,45 @@ module oserdes_pll #(parameter WIDTH=8, parameter CLKIN_PERIOD=6.4, parameter PL
 		.DI(16'h0000), // dynamic reconfig data input (16-bits)
 		.DWE(1'b0), // dynamic reconfig write enable input
 		.REL(1'b0) // used to force the state of the PFD outputs (test only)
-		);
-	wire fabric_clock;
-	BUFG bufg_tx (.I(pllout_x1), .O(fabric_clock));
-	assign fabric_clock_out = fabric_clock;
+	);
+endmodule
+
+module oserdes_pll #(
+//	parameter scope = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
+	parameter WIDTH=8,
+	parameter CLKIN_PERIOD=6.4,
+	parameter PLLD=5,
+	parameter PLLX=32
+) (
+	input clock_in, input reset, output fabric_clock_out,
+	output serializer_clock_out, output serializer_strobe_out, output locked
+);
+	wire clock_1x, clock_nx;
+	wire pll_is_locked; // Locked output from PLL
+	simpll #(
+		.WIDTH(WIDTH),
+		.CLKIN_PERIOD(CLKIN_PERIOD),
+		.PLLD(PLLD),
+		.PLLX(PLLX)
+	) simon (
+		.clock_in(clock_in),
+		.reset(reset),
+		.pll_is_locked(pll_is_locked),
+		.clock_1x(clock_1x),
+		.clock_nx(clock_nx)
+	);
+	BUFG bufg_tx (.I(clock_1x), .O(fabric_clock_out));
+	wire buffered_pll_is_locked_and_strobe_is_aligned;
 	BUFPLL #(
 		.DIVIDE(WIDTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
 		) tx_bufpll_inst_2 (
-		.PLLIN(pllout_xn), // PLL Clock input
-		.GCLK(fabric_clock), // Global Clock input
+		.PLLIN(clock_nx), // PLL Clock input
+		.GCLK(fabric_clock_out), // Global Clock input
 		.LOCKED(pll_is_locked), // Clock0 locked input
 		.IOCLK(serializer_clock_out), // Output PLL Clock
-		.LOCK(buffered_pll_is_locked_and_strobe_is_aligned_2), // BUFPLL Clock and strobe locked
+		.LOCK(buffered_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
 		.SERDESSTROBE(serializer_strobe_out) // Output SERDES strobe
-		);
+	);
+	assign locked = pll_is_locked & buffered_pll_is_locked_and_strobe_is_aligned;
 endmodule
 
