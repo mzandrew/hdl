@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2019-09-12 by mza
+// last updated 2019-09-13 by mza
 
 module iserdes_single4 #(
 	parameter WIDTH = 4
@@ -60,7 +60,7 @@ module iserdes_single4 #(
 endmodule
 
 module ocyrus_quad8 #(
-	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
@@ -174,7 +174,7 @@ module ocyrus_quad8 #(
 endmodule
 
 module ocyrus_double8 #(
-	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
@@ -244,7 +244,7 @@ module ocyrus_double8 #(
 endmodule
 
 module ocyrus_single8 #(
-	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
@@ -307,7 +307,8 @@ module simpll #(
 	output clock_nx
 );
 	// from clock_generator_pll_s8_diff.v from XAPP1064 example code
-	// frequency of VCO after div and mult must be in range [400,1080] MHz
+	// frequency of VCO after div and mult must be in range [400,1050] MHz for speed grade 3
+	// frequency of PFD (right after first DIVCLK_DIVIDE) stage must be in range [19, 500] MHz for speed grade 3
 	// frequency of BUFG can't be higher than 400 MHz
 	wire fb; // feedback net
 	PLL_ADV #(
@@ -372,7 +373,7 @@ endmodule
 
 module oserdes_pll #(
 	// seems global mode is only possible for bit clocks that fit on the gbuf network (max 400 MHz)
-	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
