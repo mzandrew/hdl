@@ -2,61 +2,16 @@
 // written 2019-08-26 by mza
 // last updated 2019-09-12 by mza
 
-module mza_test031_clock509_and_revo_generator_althea (
-	input local_clock50_in_p, local_clock50_in_n,
-	input local_clock509_in_p, local_clock509_in_n,
-	output clk78_p, clk78_n,
-	output trg36_p, trg36_n,
-	output clk_se,
-	output trg_se,
-	output lemo,
-	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
+module superkekb (
+	input clock,
+	input reset,
+	output revo,
+	output reg [7:0] revo_word
 );
-	wire clock50;
-	wire clock509;
-	IBUFGDS local_input_clock50_instance (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(clock50));
-	IBUFGDS local_input_clock509_instance (.I(local_clock509_in_p), .IB(local_clock509_in_n), .O(clock509));
-//	wire clock509g;
-//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel (.I0(clock509), .I1(clock50),  .S(1'b0), .O(clock509g));
-	reg reset = 1;
-	reg [26:0] reset_counter = 0;
-	always @(posedge clock50) begin
-		if (reset_counter[10]) begin
-			reset <= 0;
-		end
-		reset_counter <= reset_counter + 1'b1;
-	end
-//	wire rawclock127;
-//	wire rawclock127b;
-//	wire locked;
-//	simplepll_BASE #(
-//			.overall_divide(2), .multiply(4), .period(1.965), .compensation("INTERNAL"),
-//			.divide0(8), .divide1(8), .divide2(4), .divide3(4), .divide4(4), .divide5(4)
-//		) mypll (
-//			.clockin(clock509), .reset(reset), .locked(pll_509_127_locked),
-//			.clock0out(rawclock127), .clock1out(rawclock127b), .clock2out(), .clock3out(), .clock4out(), .clock5out()
-//		);
-//	wire clock127;
-//	wire clock127b;
-//	BUFG mybufg1 (.I(rawclock127), .O(clock127));
-//	BUFG mybufg2 (.I(rawclock127b), .O(clock127b));
-	reg [7:0] revo_word = 0;
-//	reg [12:0] bunch_counter = 5120;
-//	always @(posedge clock509) begin
-//		if (bunch_counter>0) begin
-//			bunch_counter <= bunch_counter - 1'b1;
-//			revo_word <= 8'b00000000;
-//			lemo <= 0;
-//		end else begin
-//			bunch_counter <= 5120;
-//			revo_word <= 8'b11110000;
-//			lemo <= 1;
-//		end
-//	end
 	reg reg_revo = 0;
 	parameter number_of_quad_bunches_minus_one = 1280 - 1;
 	reg [10:0] quad_bunch_counter = number_of_quad_bunches_minus_one;
-	always @(posedge word_clock) begin
+	always @(posedge clock) begin
 		if (reset) begin
 			reg_revo <= 0;
 			quad_bunch_counter <= number_of_quad_bunches_minus_one;
@@ -73,38 +28,50 @@ module mza_test031_clock509_and_revo_generator_althea (
 			end
 		end
 	end
-	wire dcm_509_127_locked;
-	wire oserdes_pll_locked;
+	assign revo = reg_revo;
+endmodule
+
+module mza_test031_clock509_and_revo_generator_althea (
+	input local_clock50_in_p, local_clock50_in_n,
+	input local_clock509_in_p, local_clock509_in_n,
+	output clk78_p, clk78_n,
+	output trg36_p, trg36_n,
+	output clk_se,
+	output trg_se,
+	output lemo,
+	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
+);
+	wire clock50;
+	wire clock509;
+	IBUFGDS local_input_clock50_instance (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(clock50));
+	IBUFGDS local_input_clock509_instance (.I(local_clock509_in_p), .IB(local_clock509_in_n), .O(clock509));
+	reg reset = 1;
+	reg [26:0] counter = 0;
+	always @(posedge clock50) begin
+		if (counter[10]) begin
+			reset <= 0;
+		end
+		counter <= counter + 1'b1;
+	end
+	parameter clock_word = 8'b10101010;
+	wire [7:0] revo_word;
+	wire oserdes_pll_locked1;
 	wire oserdes_pll_locked2;
-	assign led_7 = dcm_509_127_locked;
-	assign led_6 = oserdes_pll_locked;
-	assign led_5 = oserdes_pll_locked2;
-	assign led_4 = reset;
-	assign led_3 = reg_revo;
-	assign led_2 = 0;
+	assign led_7 = oserdes_pll_locked1;
+	assign led_6 = oserdes_pll_locked2;
+	assign led_5 = 0;
+	assign led_4 = revo;
+	assign led_3 = 0;
+	assign led_2 = reset;
 	assign led_1 = 0;
-	assign led_0 = 0;
-	wire clock509_oddr1;
-	wire clock509_oddr2;
-	wire revo_oddr1;
-	wire revo_oddr2;
-	wire word_clock;
+	assign led_0 = counter[26];
+	wire clock509_oddr;
+	wire revo_oddr;
+	wire word_clock1;
 	wire word_clock2;
-	wire [7:0] clock_word = 8'b10101010;
+	wire revo;
+	superkekb skb (.clock(word_clock1), .reset(reset), .revo(revo), .revo_word(revo_word));
 	wire rawclock127;
-//	simpledcm_SP #(
-//		.DIVIDE(8),
-//		.MULTIPLY(2),
-//		.PERIOD(1.965),
-//		.ALT_DIVIDE(4)
-//	) asdf (
-//		.clockin(clock509g),
-//		.reset(reset),
-//		.clockout(rawclock127),
-//		.clockout180(),
-//		.locked(dcm_509_127_locked),
-//		.alt_clockout()
-//	);
 	BUFIO2 #(
 		.DIVIDE(4), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")
 	) sally (
@@ -112,25 +79,15 @@ module mza_test031_clock509_and_revo_generator_althea (
 	);
 	wire clock127;
 	BUFG peter (.I(rawclock127), .O(clock127));
-	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN")) mylei1 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(clock_word), .D_out(clock509_oddr1), .locked(oserdes_pll_locked));
-	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN")) mylei2 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock2), .word_in(revo_word), .D_out(revo_oddr1), .locked(oserdes_pll_locked2));
-//	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(1.965), .DIVIDE(2), .MULTIPLY(4), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock509), .reset(reset), .word_clock_out(word_clock), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr1), .D2_out(revo_oddr1), .locked(oserdes_pll_locked));
+	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN")) mylei1 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock1), .word_in(clock_word), .D_out(clock509_oddr), .locked(oserdes_pll_locked1));
+	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN")) mylei2 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock2), .word_in(revo_word), .D_out(revo_oddr), .locked(oserdes_pll_locked2));
+//	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(1.965), .DIVIDE(2), .MULTIPLY(4), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock509), .reset(reset), .word_clock_out(word_clock), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr), .D2_out(revo_oddr), .locked(oserdes_pll_locked));
 //	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(1.965), .DIVIDE(2), .MULTIPLY(4), .SCOPE("BUFPLL")) mylei2 (.clock_in(clock509), .reset(reset), .word_clock_out(word_clock2), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr2), .D2_out(revo_oddr2), .locked(oserdes_pll_locked2));
-//	ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8)) mylei (
-//			.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .locked(oserdes_pll_locked),
-//			.word1_in(clock_word), .word2_in(revo_word), .word3_in(clock_word), .word4_in(revo_word),
-//			.D1_out(clock509_oddr1), .D2_out(revo_oddr1), .D3_out(clock509_oddr2), .D4_out(revo_oddr2)
-//		);
-//	OBUFDS out1 (.I(clock509_oddr1), .O(clk78_p), .OB(clk78_n));
-	OBUFDS out1 (.I(reg_revo), .O(clk78_p), .OB(clk78_n));
-	OBUFDS out2 (.I(revo_oddr1), .O(trg36_p), .OB(trg36_n));
-//	OBUFDS out2 (.I(reg_revo), .O(trg36_p), .OB(trg36_n));
-//	assign lemo = reg_revo;
-	assign lemo = clock509_oddr1;
-//	assign clk_se = clock509_oddr2;
-//	assign trg_se = revo_oddr2;
-	assign clk_se = reg_revo;
-	assign trg_se = reg_revo;
+	OBUFDS out1 (.I(1'b0), .O(clk78_p), .OB(clk78_n));
+	OBUFDS out2 (.I(revo_oddr), .O(trg36_p), .OB(trg36_n));
+	assign lemo = clock509_oddr;
+	assign clk_se = 0;
+	assign trg_se = 0;
 endmodule
 
 module mza_test031_clock509_and_revo_generator_althea_tb;
@@ -168,7 +125,6 @@ module mza_test031_clock509_and_revo_generator_althea_top (
 	output a_p, a_n,
 	output b_p, b_n,
 	input d_p, d_n,
-//	output e_p, f_p,
 	output h_p, k_p,
 	output lemo,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
@@ -180,8 +136,6 @@ module mza_test031_clock509_and_revo_generator_althea_top (
 		.trg36_p(b_p), .trg36_n(b_n),
 		.clk_se(k_p),
 		.trg_se(h_p),
-//		.clk_se(e_p),
-//		.trg_se(f_p),
 		.lemo(lemo),
 		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
 		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)

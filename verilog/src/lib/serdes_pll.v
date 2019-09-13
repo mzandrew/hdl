@@ -309,10 +309,7 @@ module simpll #(
 	// from clock_generator_pll_s8_diff.v from XAPP1064 example code
 	// frequency of VCO after div and mult must be in range [400,1080] MHz
 	// frequency of BUFG can't be higher than 400 MHz
-	wire clock_1x; // pll generated x1 clock
-	wire clock_nx; // pll generated xn clock
 	wire fb; // feedback net
-	wire pll_is_locked; // Locked output from PLL
 	PLL_ADV #(
 		.SIM_DEVICE("SPARTAN6"),
 		.BANDWIDTH("OPTIMIZED"), // "high", "low" or "optimized"
