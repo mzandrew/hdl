@@ -63,6 +63,7 @@ module ocyrus_quad8 #(
 	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
 	PERIOD = 20.0,
 	DIVIDE = 2,
 	MULTIPLY = 40
@@ -166,8 +167,8 @@ module ocyrus_quad8 #(
 	assign ioce_D2 = ioce_D;
 	assign ioce_D3 = ioce_D;
 	assign ioce_D4 = ioce_D;
-	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE)) difficult_pll_TR (
-		.reset(reset), .clock_in(clock_in), .fabric_clock_out(word_clock_out), 
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(ioclk_D), .serializer_strobe_out(ioce_D), .locked(locked)
 	);
 endmodule
@@ -176,6 +177,7 @@ module ocyrus_double8 #(
 	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
 	PERIOD = 20.0,
 	DIVIDE = 2,
 	MULTIPLY = 40
@@ -235,8 +237,8 @@ module ocyrus_double8 #(
 	assign ioclk_D2 = ioclk_D;
 	assign ioce_D1 = ioce_D;
 	assign ioce_D2 = ioce_D;
-	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE)) difficult_pll_TR (
-		.reset(reset), .clock_in(clock_in), .fabric_clock_out(word_clock_out), 
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(ioclk_D), .serializer_strobe_out(ioce_D), .locked(locked)
 	);
 endmodule
@@ -245,6 +247,7 @@ module ocyrus_single8 #(
 	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
 	PERIOD = 20.0,
 	DIVIDE = 2,
 	MULTIPLY = 40
@@ -280,8 +283,8 @@ module ocyrus_single8 #(
 	         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
 	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE)) difficult_pll_TR (
-		.reset(reset), .clock_in(clock_in), .fabric_clock_out(word_clock_out), 
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(ioclk_D), .serializer_strobe_out(ioce_D), .locked(locked)
 	);
 endmodule
@@ -319,11 +322,11 @@ module simpll #(
 		.DIVCLK_DIVIDE(PLLD), // division factor for all clocks (1 to 52)
 		.CLKFBOUT_MULT(PLLX), // multiplication factor for all output clocks
 		.CLKOUT0_DIVIDE(1), // division factor for clkout0 (1 to 128)
-		.CLKOUT1_DIVIDE(1), // division factor for clkout1 (1 to 128)
-		.CLKOUT2_DIVIDE(BIT_DEPTH), // division factor for clkout2 (1 to 128)
-		.CLKOUT3_DIVIDE(8), // division factor for clkout3 (1 to 128)
+		.CLKOUT1_DIVIDE(BIT_DEPTH), // division factor for clkout1 (1 to 128)
+		.CLKOUT2_DIVIDE(2), // division factor for clkout2 (1 to 128)
+		.CLKOUT3_DIVIDE(4), // division factor for clkout3 (1 to 128)
 		.CLKOUT4_DIVIDE(8), // division factor for clkout4 (1 to 128)
-		.CLKOUT5_DIVIDE(8), // division factor for clkout5 (1 to 128)
+		.CLKOUT5_DIVIDE(16), // division factor for clkout5 (1 to 128)
 		.CLKOUT0_PHASE(0.0), // phase shift (degrees) for clkout0 (0.0 to 360.0)
 		.CLKOUT1_PHASE(0.0), // phase shift (degrees) for clkout1 (0.0 to 360.0)
 		.CLKOUT2_PHASE(0.0), // phase shift (degrees) for clkout2 (0.0 to 360.0)
@@ -344,9 +347,9 @@ module simpll #(
 		.CLKFBIN(fb), // clock feedback input
 		.CLKFBOUT(fb), // general output feedback signal
 		.CLKIN1(clock_in), // primary clock input
-		.CLKOUT0(), // *n clock for transmitter
-		.CLKOUT1(clock_nx), //
-		.CLKOUT2(clock_1x), // *1 clock for BUFG
+		.CLKOUT0(clock_nx), // *n clock for transmitter
+		.CLKOUT1(clock_1x), //
+		.CLKOUT2(), // *1 clock for BUFG
 		.CLKOUT3(), // one of six general clock output signals
 		.CLKOUT4(), // one of six general clock output signals
 		.CLKOUT5(), // one of six general clock output signals
@@ -371,6 +374,7 @@ module simpll #(
 endmodule
 
 module oserdes_pll #(
+	// seems global mode is only possible for bit clocks that fit on the gbuf network (max 400 MHz)
 	parameter SCOPE = "BUFIO2", // can be "BUFIO2" "BUFPLL" or "GLOBAL"
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
@@ -379,40 +383,78 @@ module oserdes_pll #(
 	parameter PLLD=5,
 	parameter PLLX=32
 ) (
-	input clock_in, input reset, output fabric_clock_out,
+	input clock_in, input reset, output word_clock_out,
 	output serializer_clock_out, output serializer_strobe_out, output locked
 );
 	wire clock_1x, clock_nx;
 	wire pll_is_locked; // Locked output from PLL
-	if (SCOPE == "BUFPLL" | SCOPE == "GLOBAL" | MODE == "WORD_CLOCK_IN") begin
-	simpll #(
-		.BIT_DEPTH(BIT_DEPTH),
-		.CLKIN_PERIOD(CLKIN_PERIOD),
-		.PLLD(PLLD),
-		.PLLX(PLLX)
-	) simon (
-		.clock_in(clock_in),
-		.reset(reset),
-		.pll_is_locked(pll_is_locked),
-		.clock_1x(clock_1x),
-		.clock_nx(clock_nx)
-	);
-	end
-	if (SCOPE == "BUFIO2") begin
-		BUFIO2 #(.DIVIDE(BIT_DEPTH), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")) simon (.I(clock_in), .DIVCLK(clock_1x), .IOCLK(clock_nx), .SERDESSTROBE(serializer_strobe_out));
-	end
-	BUFG bufg_tx (.I(clock_1x), .O(fabric_clock_out));
+	//if (SCOPE == "BUFPLL" | SCOPE == "GLOBAL" | MODE == "WORD_CLOCK_IN") begin
 	wire buffered_pll_is_locked_and_strobe_is_aligned;
-	BUFPLL #(
-		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
-		) tx_bufpll_inst_2 (
-		.PLLIN(clock_nx), // PLL Clock input
-		.GCLK(fabric_clock_out), // Global Clock input
-		.LOCKED(pll_is_locked), // Clock0 locked input
-		.IOCLK(serializer_clock_out), // Output PLL Clock
-		.LOCK(buffered_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
-		.SERDESSTROBE(serializer_strobe_out) // Output SERDES strobe
-	);
+	if (MODE == "WORD_CLOCK_IN") begin
+		wire rawclock_1x_plladv;
+		wire rawclock_nx_plladv;
+		simpll #(
+			.BIT_DEPTH(BIT_DEPTH),
+			.CLKIN_PERIOD(CLKIN_PERIOD),
+			.PLLD(PLLD),
+			.PLLX(PLLX)
+		) simon (
+			.clock_in(clock_in),
+			.reset(reset),
+			.pll_is_locked(pll_is_locked),
+			.clock_1x(rawclock_1x_plladv),
+			.clock_nx(rawclock_nx_plladv)
+		);
+		if (SCOPE == "BUFIO2") begin
+			BUFIO2 #(
+				.DIVIDE(BIT_DEPTH), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")
+			) simon1 (
+				.I(rawclock_nx_plladv), .DIVCLK(clock_1x), .IOCLK(clock_nx), .SERDESSTROBE(serializer_strobe_out)
+			);
+			assign buffered_pll_is_locked_and_strobe_is_aligned = 1;
+			assign serializer_clock_out = clock_nx;
+		end else if (SCOPE == "BUFPLL") begin
+			assign clock_1x = rawclock_1x_plladv;
+			BUFPLL #(
+				.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+				.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+			) tx_bufpll_inst_1 (
+				.PLLIN(rawclock_nx_plladv), // PLL Clock input
+				.GCLK(word_clock_out), // Global Clock input
+				.LOCKED(pll_is_locked), // Clock0 locked input
+				.IOCLK(serializer_clock_out), // Output PLL Clock
+				.LOCK(buffered_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
+				.SERDESSTROBE(serializer_strobe_out) // Output SERDES strobe
+			);
+		end
+	end else if (MODE == "BIT_CLOCK_IN") begin
+		wire serializer_strobe_out_bufio2;
+		BUFIO2 #(
+			.DIVIDE(BIT_DEPTH), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")
+		) simon2 (
+			.I(clock_in), .DIVCLK(clock_1x), .IOCLK(clock_nx), .SERDESSTROBE(serializer_strobe_out_bufio2)
+		);
+		if (SCOPE == "BUFPLL") begin
+			wire serializer_strobe_out_bufpll;
+			BUFPLL #(
+				.ENABLE_SYNC("FALSE"), // does *not* try to synchronize strobe to gclk input
+				.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+			) tx_bufpll_inst_2 (
+				.PLLIN(clock_nx), // PLL Clock input
+				.GCLK(word_clock_out), // Global Clock input
+				.LOCKED(pll_is_locked), // Clock0 locked input
+				.IOCLK(serializer_clock_out), // Output PLL Clock
+				.LOCK(buffered_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
+				.SERDESSTROBE(serializer_strobe_out_bufpll) // Output SERDES strobe
+			);
+			assign serializer_strobe_out = serializer_strobe_out_bufpll;
+		end else begin
+			assign serializer_clock_out = clock_nx;
+			assign serializer_strobe_out = serializer_strobe_out_bufio2;
+			assign buffered_pll_is_locked_and_strobe_is_aligned = 1;
+		end
+	end
 	assign locked = pll_is_locked & buffered_pll_is_locked_and_strobe_is_aligned;
+	BUFG bufg_tx (.I(clock_1x), .O(word_clock_out));
 endmodule
 
