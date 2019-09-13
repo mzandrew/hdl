@@ -2,35 +2,6 @@
 // written 2019-08-26 by mza
 // last updated 2019-09-12 by mza
 
-module superkekb (
-	input clock,
-	input reset,
-	output revo,
-	output reg [7:0] revo_word
-);
-	reg reg_revo = 0;
-	parameter number_of_quad_bunches_minus_one = 1280 - 1;
-	reg [10:0] quad_bunch_counter = number_of_quad_bunches_minus_one;
-	always @(posedge clock) begin
-		if (reset) begin
-			reg_revo <= 0;
-			quad_bunch_counter <= number_of_quad_bunches_minus_one;
-			revo_word <= 8'b00000000;
-		end else begin
-			if (quad_bunch_counter>0) begin
-				quad_bunch_counter <= quad_bunch_counter - 1'b1;
-				revo_word <= 8'b00000000;
-				reg_revo <= 0;
-			end else begin
-				quad_bunch_counter <= number_of_quad_bunches_minus_one;
-				revo_word <= 8'b11111111;
-				reg_revo <= 1;
-			end
-		end
-	end
-	assign revo = reg_revo;
-endmodule
-
 module mza_test031_clock509_and_revo_generator_althea (
 	input local_clock50_in_p, local_clock50_in_n,
 	input local_clock509_in_p, local_clock509_in_n,
