@@ -17,7 +17,7 @@ module mza_test031_clock509_and_revo_generator_althea (
 	IBUFGDS local_input_clock50_instance (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(clock50));
 	IBUFGDS local_input_clock509_instance (.I(local_clock509_in_p), .IB(local_clock509_in_n), .O(clock509));
 	reg reset = 1;
-	reg [26:0] counter = 0;
+	reg [25:0] counter = 0;
 	always @(posedge clock50) begin
 		if (counter[10]) begin
 			reset <= 0;
@@ -35,7 +35,7 @@ module mza_test031_clock509_and_revo_generator_althea (
 	assign led_3 = 0;
 	assign led_2 = reset;
 	assign led_1 = 0;
-	assign led_0 = counter[26];
+	assign led_0 = counter[25];
 	wire clock509_oddr;
 	wire revo_oddr;
 	wire word_clock1;
