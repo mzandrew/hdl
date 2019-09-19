@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-// written 2019-09-09 by mza
+// written 2019-09-22 by mza
 // based partly off mza-test029
 
 module ssynchronizer_pnp #(
@@ -14,7 +14,7 @@ module ssynchronizer_pnp #(
 	reg [WIDTH-1:0] intermediate_s1;
 	reg [WIDTH-1:0] intermediate_s2;
 //	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
-	always @(posedge clock1) begin
+	always @(posedge clock1 or posedge reset) begin
 		if (reset) begin
 			intermediate_f1 <= 0;
 		end else begin
@@ -22,14 +22,14 @@ module ssynchronizer_pnp #(
 		end
 	end
 //	assign cdc = intermediate_f3;
-	always @(negedge clock2) begin
+	always @(negedge clock2 or posedge reset) begin
 		if (reset) begin
 			intermediate_s1 <= 0;
 		end else begin
 			intermediate_s1 <= intermediate_f1;
 		end
 	end
-	always @(posedge clock2) begin
+	always @(posedge clock2 or posedge reset) begin
 		if (reset) begin
 			intermediate_s2 <= 0;
 		end else begin

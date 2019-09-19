@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test034_simulation_of_interaction_between_joestrummer_and_rafferty_and_scrod/joestrummer_and_rafferty_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="joestrummer_and_rafferty_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="47" />
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_local_clock50_in_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_local_clock50_in_p</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_local_clock50_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/local_clock50_in_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">local_clock50_in_p</obj_property>
+      <obj_property name="ObjectShortName">local_clock50_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_local_clock509_in_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_local_clock509_in_p</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_local_clock509_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_lemo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_lemo</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_lemo</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/flaky_clock_select" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">flaky_clock_select</obj_property>
+      <obj_property name="ObjectShortName">flaky_clock_select</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/remote_clock_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">remote_clock_p</obj_property>
+      <obj_property name="ObjectShortName">remote_clock_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_led_4" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_led_4</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_led_4</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_trg36_p</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/intermediate0_trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">intermediate0_trg36_p</obj_property>
+      <obj_property name="ObjectShortName">intermediate0_trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/intermediate1_trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">intermediate1_trg36_p</obj_property>
+      <obj_property name="ObjectShortName">intermediate1_trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/delay_select" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">delay_select</obj_property>
+      <obj_property name="ObjectShortName">delay_select</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/intermediate_trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">intermediate_trg36_p</obj_property>
+      <obj_property name="ObjectShortName">intermediate_trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/iserdes_reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">iserdes_reset</obj_property>
+      <obj_property name="ObjectShortName">iserdes_reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/revo_stream_clock127" type="logic" db_ref_id="1">
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="ElementShortName">revo_stream_clock127</obj_property>
+      <obj_property name="ObjectShortName">revo_stream_clock127</obj_property>
+      <obj_property name="label">revo_stream_clock127</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/pll_127_127_reset_1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_127_127_reset_1</obj_property>
+      <obj_property name="ObjectShortName">pll_127_127_reset_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/pll_lost_lock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_lost_lock</obj_property>
+      <obj_property name="ObjectShortName">pll_lost_lock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/pll_127_127_reset_2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_127_127_reset_2</obj_property>
+      <obj_property name="ObjectShortName">pll_127_127_reset_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/pll_127_127_reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_127_127_reset</obj_property>
+      <obj_property name="ObjectShortName">pll_127_127_reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/pll_127_127_locked" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_127_127_locked</obj_property>
+      <obj_property name="ObjectShortName">pll_127_127_locked</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/pll_not_locked_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_not_locked_counter[9:0]</obj_property>
+      <obj_property name="ObjectShortName">pll_not_locked_counter[9:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/rawtrg" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rawtrg</obj_property>
+      <obj_property name="ObjectShortName">rawtrg</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/out1_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">out1_p</obj_property>
+      <obj_property name="ObjectShortName">out1_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/revo_stream127" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">revo_stream127[3:0]</obj_property>
+      <obj_property name="ObjectShortName">revo_stream127[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/pulse_revo_stream127" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pulse_revo_stream127[3:0]</obj_property>
+      <obj_property name="ObjectShortName">pulse_revo_stream127[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/histogram00" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">histogram00[32:0]</obj_property>
+      <obj_property name="ObjectShortName">histogram00[32:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/histogram01" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">histogram01[32:0]</obj_property>
+      <obj_property name="ObjectShortName">histogram01[32:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/histogram10" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">histogram10[32:0]</obj_property>
+      <obj_property name="ObjectShortName">histogram10[32:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/histogram11" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">histogram11[32:0]</obj_property>
+      <obj_property name="ObjectShortName">histogram11[32:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/pulse_count" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pulse_count[34:0]</obj_property>
+      <obj_property name="ObjectShortName">pulse_count[34:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/select0s" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">select0s[1:0]</obj_property>
+      <obj_property name="ObjectShortName">select0s[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/select1s" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">select1s[1:0]</obj_property>
+      <obj_property name="ObjectShortName">select1s[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/selectsx" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">selectsx[1:0]</obj_property>
+      <obj_property name="ObjectShortName">selectsx[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/select2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">select2[1:0]</obj_property>
+      <obj_property name="ObjectShortName">select2[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/phase_locked" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">phase_locked</obj_property>
+      <obj_property name="ObjectShortName">phase_locked</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/revo_stream_synchronizer_reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">revo_stream_synchronizer_reset</obj_property>
+      <obj_property name="ObjectShortName">revo_stream_synchronizer_reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/oserdes_reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">oserdes_reset</obj_property>
+      <obj_property name="ObjectShortName">oserdes_reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/clock127" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock127</obj_property>
+      <obj_property name="ObjectShortName">clock127</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/clk78_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk78_p</obj_property>
+      <obj_property name="ObjectShortName">clk78_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trg36_p</obj_property>
+      <obj_property name="ObjectShortName">trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/pll_oserdes_locked" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_oserdes_locked</obj_property>
+      <obj_property name="ObjectShortName">pll_oserdes_locked</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/other_revo_stream127" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">other_revo_stream127[3:0]</obj_property>
+      <obj_property name="ObjectShortName">other_revo_stream127[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/long_trg" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">long_trg</obj_property>
+      <obj_property name="ObjectShortName">long_trg</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/short_trg" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">short_trg</obj_property>
+      <obj_property name="ObjectShortName">short_trg</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/trg" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trg</obj_property>
+      <obj_property name="ObjectShortName">trg</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/outa_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">outa_p</obj_property>
+      <obj_property name="ObjectShortName">outa_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_lemo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_lemo</obj_property>
+      <obj_property name="ObjectShortName">rafferty_lemo</obj_property>
+   </wvobject>
+</wave_config>

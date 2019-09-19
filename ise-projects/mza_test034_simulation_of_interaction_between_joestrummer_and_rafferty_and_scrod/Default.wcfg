@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test034_simulation_of_interaction_between_test031_and_test032/joestrummer_and_rafferty_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="joestrummer_and_rafferty_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="41" />
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_local_clock509_in_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_local_clock509_in_p</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_local_clock509_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_local_clock509_in_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_local_clock509_in_n</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_local_clock509_in_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_local_clock509_in_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_local_clock509_in_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_local_clock509_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_local_clock509_in_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_local_clock509_in_n</obj_property>
+      <obj_property name="ObjectShortName">rafferty_local_clock509_in_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_lemo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_lemo</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_lemo</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/remote_clock_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">remote_clock_p</obj_property>
+      <obj_property name="ObjectShortName">remote_clock_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/remote_clock_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">remote_clock_n</obj_property>
+      <obj_property name="ObjectShortName">remote_clock_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_led_0" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_led_0</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_led_0</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_led_1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_led_1</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_led_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_led_2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_led_2</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_led_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_led_3" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_led_3</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_led_3</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_led_4" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_led_4</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_led_4</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_led_5" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_led_5</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_led_5</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_led_6" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_led_6</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_led_6</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_led_7" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_led_7</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_led_7</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_trg36_p</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_trg36_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">joestrummer_trg36_n</obj_property>
+      <obj_property name="ObjectShortName">joestrummer_trg36_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_out1_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_out1_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_out1_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_out1_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_out1_n</obj_property>
+      <obj_property name="ObjectShortName">rafferty_out1_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_clk78_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_clk78_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_clk78_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_clk78_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_clk78_n</obj_property>
+      <obj_property name="ObjectShortName">rafferty_clk78_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_trg36_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_trg36_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_trg36_n</obj_property>
+      <obj_property name="ObjectShortName">rafferty_trg36_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_ack12_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_ack12_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_ack12_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_ack12_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_ack12_n</obj_property>
+      <obj_property name="ObjectShortName">rafferty_ack12_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_outa_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_outa_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_outa_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_outa_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_outa_n</obj_property>
+      <obj_property name="ObjectShortName">rafferty_outa_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/raw_recovered_revo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">raw_recovered_revo</obj_property>
+      <obj_property name="ObjectShortName">raw_recovered_revo</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/recovered_revo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">recovered_revo</obj_property>
+      <obj_property name="ObjectShortName">recovered_revo</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_rsv54_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_rsv54_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_rsv54_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_rsv54_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_rsv54_n</obj_property>
+      <obj_property name="ObjectShortName">rafferty_rsv54_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_led_revo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_revo</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_revo</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_led_rfclock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_rfclock</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_rfclock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_led_0" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_0</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_0</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_led_1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_1</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_led_2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_2</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_led_3" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_3</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_3</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_led_4" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_4</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_4</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_led_5" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_5</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_5</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_led_6" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_6</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_6</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty_led_7" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_7</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_7</obj_property>
+   </wvobject>
+</wave_config>
