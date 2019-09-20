@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2019-09-13 by mza
+// last updated 2019-09-20 by mza
 
 module iserdes_single4 #(
 	parameter WIDTH = 4
@@ -248,6 +248,7 @@ module ocyrus_single8 #(
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
+	parameter PHASE = 0.0,
 	PERIOD = 20.0,
 	DIVIDE = 2,
 	MULTIPLY = 40
@@ -283,7 +284,7 @@ module ocyrus_single8 #(
 	         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
 	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE), .PHASE(PHASE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(ioclk_D), .serializer_strobe_out(ioce_D), .locked(locked)
 	);
@@ -297,6 +298,7 @@ endmodule
 module simpll #(
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter CLKIN_PERIOD=6.4,
+	parameter PHASE = 0.0,
 	parameter PLLD=5,
 	parameter PLLX=32
 ) (
@@ -326,7 +328,7 @@ module simpll #(
 		.CLKOUT4_DIVIDE(8), // division factor for clkout4 (1 to 128)
 		.CLKOUT5_DIVIDE(16), // division factor for clkout5 (1 to 128)
 		.CLKOUT0_PHASE(0.0), // phase shift (degrees) for clkout0 (0.0 to 360.0)
-		.CLKOUT1_PHASE(0.0), // phase shift (degrees) for clkout1 (0.0 to 360.0)
+		.CLKOUT1_PHASE(PHASE), // phase shift (degrees) for clkout1 (0.0 to 360.0)
 		.CLKOUT2_PHASE(0.0), // phase shift (degrees) for clkout2 (0.0 to 360.0)
 		.CLKOUT3_PHASE(0.0), // phase shift (degrees) for clkout3 (0.0 to 360.0)
 		.CLKOUT4_PHASE(0.0), // phase shift (degrees) for clkout4 (0.0 to 360.0)
@@ -374,10 +376,11 @@ endmodule
 module oserdes_pll #(
 	// seems global mode is only possible for bit clocks that fit on the gbuf network (max 400 MHz)
 	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
-	parameter BIT_WIDTH=1, // how many bits come out in parallel
-	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter BIT_WIDTH = 1, // how many bits come out in parallel
+	parameter BIT_DEPTH = 8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	parameter CLKIN_PERIOD=6.4,
+	parameter CLKIN_PERIOD = 6.4,
+	parameter PHASE = 0.0,
 	parameter PLLD=5,
 	parameter PLLX=32
 ) (
@@ -394,6 +397,7 @@ module oserdes_pll #(
 		simpll #(
 			.BIT_DEPTH(BIT_DEPTH),
 			.CLKIN_PERIOD(CLKIN_PERIOD),
+			.PHASE(PHASE),
 			.PLLD(PLLD),
 			.PLLX(PLLX)
 		) simon (

@@ -1,7 +1,8 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2019-09-13 by mza
+// last updated 2019-09-20 by mza
+// this code runs on an althea connected to a RAFFERTY board
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
@@ -104,13 +105,23 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			phase_locked <= 0;
 		end else begin
 			if (!phase_locked) begin
-				case (pulse_revo_stream127)
-					4'b1111 : begin select2 <= 2'b00; select4 <= pulse_revo_stream127; phase_locked <= 1; end
-					4'b1110 : begin select2 <= 2'b01; select4 <= pulse_revo_stream127; phase_locked <= 1; end
-					4'b1100 : begin select2 <= 2'b10; select4 <= pulse_revo_stream127; phase_locked <= 1; end
-					4'b1000 : begin select2 <= 2'b11; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+				if (1) begin
+					case (pulse_revo_stream127)
+						4'b1111 : begin select2 <= 2'b11; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+						4'b1110 : begin select2 <= 2'b00; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+						4'b1100 : begin select2 <= 2'b01; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+						4'b1000 : begin select2 <= 2'b10; select4 <= pulse_revo_stream127; phase_locked <= 1; end
 					default : begin end
-				endcase
+					endcase
+//				end else begin
+//					case (pulse_revo_stream127)
+//						4'b1111 : begin select2 <= 2'b01; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+//						4'b1110 : begin select2 <= 2'b00; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+//						4'b1100 : begin select2 <= 2'b11; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+//						4'b1000 : begin select2 <= 2'b10; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+//					default : begin end
+//					endcase
+				end
 			end
 		end
 	end
@@ -157,7 +168,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire [7:0] word_null = 8'b00000000;
 	wire [7:0] word_trg  = 8'b11001100;
 	wire pll_oserdes_locked;
-	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(pll_oserdes_locked));
+	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .locked(pll_oserdes_locked));
 	wire reset3 = reset1 | reset2 | ~pll_oserdes_locked;
 	wire trg_again;
 	ssynchronizer_pnp barry (.clock1(clock127), .clock2(word_clock), .reset(reset), .in1(trg), .out2(trg_again));
@@ -225,101 +236,84 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	assign led_0 = select4[0];
 endmodule
 
-module mything_tb;
+module rafferty_tb;
 	// Inputs
-	reg local_clock50_in_p = 0;
-	reg local_clock50_in_n = 1;
-	reg remote_clock509_in_p = 0;
-	reg remote_clock509_in_n = 1;
-	reg local_clock509_in_p = 0;
-	reg local_clock509_in_n = 1;
-	reg remote_revo_in_p = 0;
-	reg remote_revo_in_n = 1;
+	reg rafferty_local_clock50_in_p = 0, rafferty_local_clock50_in_n = 1;
+	reg rafferty_remote_clock509_in_p = 0, rafferty_remote_clock509_in_n = 1;
+	reg rafferty_local_clock509_in_p = 0, rafferty_local_clock509_in_n = 1;
+	reg rafferty_remote_revo_in_p = 0, rafferty_remote_revo_in_n = 1;
 	// Outputs
-	wire clk78_p;
-	wire clk78_n;
-	wire trg36_p;
-	wire trg36_n;
-	wire out1_p;
-	wire out1_n;
-	wire outa_p;
-	wire outa_n;
-	wire rsv54_p;
-	wire rsv54_n;
-	reg lemo = 0;
-	wire ack12_p;
-	wire ack12_n;
-	wire led_revo;
-	wire led_rfclock;
-	wire driven_high;
-	reg clock_select = 0;
-	wire led_0;
-	wire led_1;
-	wire led_2;
-	wire led_3;
-	wire led_4;
-	wire led_5;
-	wire led_6;
-	wire led_7;
-	// Instantiate the Unit Under Test (UUT)
-	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea uut (
-		.local_clock50_in_p(local_clock50_in_p), .local_clock50_in_n(local_clock50_in_n),
-		.remote_clock509_in_p(remote_clock509_in_p), .remote_clock509_in_n(remote_clock509_in_n),
-		.remote_revo_in_p(remote_revo_in_p), .remote_revo_in_n(remote_revo_in_n),
-		.clk78_p(clk78_p), .clk78_n(clk78_n),
-		.trg36_p(trg36_p), .trg36_n(trg36_n),
-		.rsv54_p(rsv54_p), .rsv54_n(rsv54_n),
-		.ack12_p(ack12_p), .ack12_n(ack12_n),
-		.out1_p(out1_p), .out1_n(out1_n),
-		.outa_p(outa_p), .outa_n(outa_n),
-		.lemo(lemo),
-		.led_revo(l_p),
-		.led_rfclock(l_n),
-		.clock_select(clock_select),
-		.driven_high(driven_high),
-		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
-		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
+	wire rafferty_clk78_p, rafferty_clk78_n;
+	wire rafferty_trg36_p, rafferty_trg36_n;
+	wire rafferty_out1_p, rafferty_out1_n;
+	wire rafferty_outa_p, rafferty_outa_n;
+	wire rafferty_rsv54_p, rafferty_rsv54_n;
+	reg rafferty_lemo = 0;
+	wire rafferty_ack12_p, rafferty_ack12_n;
+	wire rafferty_led_revo;
+	wire rafferty_led_rfclock;
+	wire rafferty_driven_high;
+	reg rafferty_clock_select = 0;
+	wire rafferty_led_0, rafferty_led_1, rafferty_led_2, rafferty_led_3;
+	wire rafferty_led_4, rafferty_led_5, rafferty_led_6, rafferty_led_7;
+	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea rafferty (
+		.local_clock50_in_p(rafferty_local_clock50_in_p), .local_clock50_in_n(rafferty_local_clock50_in_n),
+		.remote_clock509_in_p(rafferty_remote_clock509_in_p), .remote_clock509_in_n(rafferty_remote_clock509_in_n),
+		.remote_revo_in_p(rafferty_remote_revo_in_p), .remote_revo_in_n(rafferty_remote_revo_in_n),
+		.clk78_p(rafferty_clk78_p), .clk78_n(rafferty_clk78_n),
+		.trg36_p(rafferty_trg36_p), .trg36_n(rafferty_trg36_n),
+		.rsv54_p(rafferty_rsv54_p), .rsv54_n(rafferty_rsv54_n),
+		.ack12_p(rafferty_ack12_p), .ack12_n(rafferty_ack12_n),
+		.out1_p(rafferty_out1_p), .out1_n(rafferty_out1_n),
+		.outa_p(rafferty_outa_p), .outa_n(rafferty_outa_n),
+		.lemo(rafferty_lemo),
+		.led_revo(rafferty_led_revo),
+		.led_rfclock(rafferty_led_rfclock),
+		.clock_select(rafferty_clock_select),
+		.driven_high(rafferty_driven_high),
+		.led_0(rafferty_led_0), .led_1(rafferty_led_1), .led_2(rafferty_led_2), .led_3(rafferty_led_3),
+		.led_4(rafferty_led_4), .led_5(rafferty_led_5), .led_6(rafferty_led_6), .led_7(rafferty_led_7)
 	);
 	wire raw_recovered_revo;
-	assign raw_recovered_revo = clk78_p ^ trg36_p;
+	assign raw_recovered_revo = rafferty_clk78_p ^ rafferty_trg36_p;
 	reg recovered_revo = 0;
 	initial begin
 		// Initialize Inputs
-		local_clock50_in_p <= 0; local_clock50_in_n <= 1;
-		remote_clock509_in_p <= 0; remote_clock509_in_n <= 1;
-		local_clock509_in_p <= 0; local_clock509_in_n <= 1;
-		remote_revo_in_p <= 0; remote_revo_in_n <= 1;
-		recovered_revo <= 0; lemo <= 0;
-		clock_select <= 0;
+		rafferty_local_clock50_in_p <= 0; rafferty_local_clock50_in_n <= 1;
+		rafferty_remote_clock509_in_p <= 0; rafferty_remote_clock509_in_n <= 1;
+		rafferty_local_clock509_in_p <= 0; rafferty_local_clock509_in_n <= 1;
+		rafferty_remote_revo_in_p <= 0; rafferty_remote_revo_in_n <= 1;
+		recovered_revo <= 0; rafferty_lemo <= 0;
+		rafferty_clock_select <= 0;
 		// Wait 100 ns for global reset to finish
 		#100;
 		// Add stimulus here
 		#5000;
-		remote_revo_in_p = 1; remote_revo_in_n = 0;
+		rafferty_remote_revo_in_p = 1; rafferty_remote_revo_in_n = 0;
 		#2;
-		remote_revo_in_p = 0; remote_revo_in_n = 1;
+		rafferty_remote_revo_in_p = 0; rafferty_remote_revo_in_n = 1;
 		#50;
-		remote_revo_in_p = 1; remote_revo_in_n = 0;
+		rafferty_remote_revo_in_p = 1; rafferty_remote_revo_in_n = 0;
 		#8;
-		remote_revo_in_p = 0; remote_revo_in_n = 1;
+		rafferty_remote_revo_in_p = 0; rafferty_remote_revo_in_n = 1;
 		#50;
-		remote_revo_in_p = 1; remote_revo_in_n = 0;
+		rafferty_remote_revo_in_p = 1; rafferty_remote_revo_in_n = 0;
 		#30;
-		remote_revo_in_p = 0; remote_revo_in_n = 1;
+		rafferty_remote_revo_in_p = 0; rafferty_remote_revo_in_n = 1;
 	end
 	always begin
 		#1;
-		local_clock509_in_p <= ~local_clock509_in_p; local_clock509_in_n <= ~local_clock509_in_n;
+		rafferty_local_clock509_in_p <= ~rafferty_local_clock509_in_p; rafferty_local_clock509_in_n <= ~rafferty_local_clock509_in_n;
 	end
 	always begin
 		#1;
-		remote_clock509_in_p <= ~remote_clock509_in_p; remote_clock509_in_n <= ~remote_clock509_in_n;
+		rafferty_remote_clock509_in_p <= ~rafferty_remote_clock509_in_p; rafferty_remote_clock509_in_n <= ~rafferty_remote_clock509_in_n;
 	end
 	always begin
 		#10;
-		local_clock50_in_p <= ~local_clock50_in_p; local_clock50_in_n <= ~local_clock50_in_n;
+		rafferty_local_clock50_in_p <= ~rafferty_local_clock50_in_p; rafferty_local_clock50_in_n <= ~rafferty_local_clock50_in_n;
 	end
-	always @(negedge clk78_p) begin
+	always @(negedge rafferty_clk78_p) begin
 		recovered_revo <= raw_recovered_revo;
 	end
 endmodule
