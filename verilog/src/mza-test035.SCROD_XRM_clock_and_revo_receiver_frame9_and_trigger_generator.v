@@ -3,8 +3,6 @@
 // based on vhdl version I wrote in late 2018 / early 2019 (from ScrodRevB_b2tt.vhd in UH svn repo)
 // last updated 2019-09-20 by mza
 
-// todo: make a copy of bunch_marker_[abcd]_position and trig_prescale_N_log2 so they can't change in the middle
-
 module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 	input remote_clock127_p, remote_clock127_n,
 	input remote_revo_p, remote_revo_n,
@@ -35,6 +33,10 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 	reg [10:0] clock127_counter = 0; // 0 to 1279
 	reg [31:0] frame9_counter = 1;
 	reg [31:0] frame9_prescale = 0;
+	reg [24:0] copy_of_bunch_marker_a_position = 0;
+	reg [24:0] copy_of_bunch_marker_b_position = 0;
+	reg [24:0] copy_of_bunch_marker_c_position = 0;
+	reg [24:0] copy_of_bunch_marker_d_position = 0;
 	assign xrm_trigger = bunch_marker_a | bunch_marker_b | bunch_marker_c | bunch_marker_d;
 	always @(posedge clock127) begin
 		if (reset) begin
@@ -57,20 +59,20 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 			bunch_marker_c <= 0;
 			bunch_marker_d <= 0;
 			if (xrm_trigger_active) begin
-				         if (clock127_counter == bunch_marker_a_position[12:2]) begin
-					if (bunch_marker_a_position[24:16] & frame9_token) begin
+				         if (clock127_counter == copy_of_bunch_marker_a_position[12:2]) begin
+					if (copy_of_bunch_marker_a_position[24:16] & frame9_token) begin
 						bunch_marker_a <= 1;
 					end
-				end else if (clock127_counter == bunch_marker_b_position[12:2]) begin
-					if (bunch_marker_b_position[24:16] & frame9_token) begin
+				end else if (clock127_counter == copy_of_bunch_marker_b_position[12:2]) begin
+					if (copy_of_bunch_marker_b_position[24:16] & frame9_token) begin
 						bunch_marker_b <= 1;
 					end
-				end else if (clock127_counter == bunch_marker_c_position[12:2]) begin
-					if (bunch_marker_c_position[24:16] & frame9_token) begin
+				end else if (clock127_counter == copy_of_bunch_marker_c_position[12:2]) begin
+					if (copy_of_bunch_marker_c_position[24:16] & frame9_token) begin
 						bunch_marker_c <= 1;
 					end
-				end else if (clock127_counter == bunch_marker_d_position[12:2]) begin
-					if (bunch_marker_d_position[24:16] & frame9_token) begin
+				end else if (clock127_counter == copy_of_bunch_marker_d_position[12:2]) begin
+					if (copy_of_bunch_marker_d_position[24:16] & frame9_token) begin
 						bunch_marker_d <= 1;
 					end
 				end
@@ -91,6 +93,10 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 					end
 					frame9_prescale <= 0;
 					frame9_prescale[trig_prescale_N_log2] <= 1;
+					copy_of_bunch_marker_a_position <= bunch_marker_a_position;
+					copy_of_bunch_marker_b_position <= bunch_marker_b_position;
+					copy_of_bunch_marker_c_position <= bunch_marker_c_position;
+					copy_of_bunch_marker_d_position <= bunch_marker_d_position;
 				end
 				frame9_token <= { frame9_token[0], frame9_token[8:1] };
 			end else begin
@@ -98,8 +104,6 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 			end
 		end
 	end
-//	assign frame9 = frame9_token[8];
-//	assign frame = local_revo;
 endmodule
 
 module XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb;
@@ -143,10 +147,6 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb;
 		scrod_bunch_marker_d_position[12:2] <= 4; scrod_bunch_marker_d_position[24:16] <= 9'b000111000;
 		scrod_trig_prescale_N_log2 <= 2;
 		#400;
-//		scrod_remote_revo_p <= 1; scrod_remote_revo_n <= 0;
-//		#8;
-//		scrod_remote_revo_p <= 0; scrod_remote_revo_n <= 1;
-//		#50;
 		scrod_remote_revo_p <= 1; scrod_remote_revo_n <= 0;
 		#8;
 		scrod_remote_revo_p <= 0; scrod_remote_revo_n <= 1;
