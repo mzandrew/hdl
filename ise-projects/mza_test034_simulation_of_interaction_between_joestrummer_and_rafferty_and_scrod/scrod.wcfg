@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test034_simulation_of_interaction_between_joestrummer_and_rafferty_and_scrod/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="19" />
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_xrm_trigger" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_xrm_trigger</obj_property>
+      <obj_property name="ObjectShortName">scrod_xrm_trigger</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_frame" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_frame</obj_property>
+      <obj_property name="ObjectShortName">scrod_frame</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_frame9" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_frame9</obj_property>
+      <obj_property name="ObjectShortName">scrod_frame9</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_remote_clock127_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_remote_clock127_p</obj_property>
+      <obj_property name="ObjectShortName">scrod_remote_clock127_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_remote_clock127_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_remote_clock127_n</obj_property>
+      <obj_property name="ObjectShortName">scrod_remote_clock127_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_remote_revo_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_remote_revo_p</obj_property>
+      <obj_property name="ObjectShortName">scrod_remote_revo_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_remote_revo_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_remote_revo_n</obj_property>
+      <obj_property name="ObjectShortName">scrod_remote_revo_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_reset</obj_property>
+      <obj_property name="ObjectShortName">scrod_reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_xrm_trigger_enabled" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_xrm_trigger_enabled</obj_property>
+      <obj_property name="ObjectShortName">scrod_xrm_trigger_enabled</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_trig_prescale_N_log2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_trig_prescale_N_log2[4:0]</obj_property>
+      <obj_property name="ObjectShortName">scrod_trig_prescale_N_log2[4:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_bunch_marker_a_position" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_bunch_marker_a_position[24:0]</obj_property>
+      <obj_property name="ObjectShortName">scrod_bunch_marker_a_position[24:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_bunch_marker_b_position" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_bunch_marker_b_position[24:0]</obj_property>
+      <obj_property name="ObjectShortName">scrod_bunch_marker_b_position[24:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_bunch_marker_c_position" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_bunch_marker_c_position[24:0]</obj_property>
+      <obj_property name="ObjectShortName">scrod_bunch_marker_c_position[24:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_bunch_marker_d_position" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">scrod_bunch_marker_d_position[24:0]</obj_property>
+      <obj_property name="ObjectShortName">scrod_bunch_marker_d_position[24:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod/bunch_marker_a" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bunch_marker_a</obj_property>
+      <obj_property name="ObjectShortName">bunch_marker_a</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod/bunch_marker_b" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bunch_marker_b</obj_property>
+      <obj_property name="ObjectShortName">bunch_marker_b</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod/bunch_marker_c" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bunch_marker_c</obj_property>
+      <obj_property name="ObjectShortName">bunch_marker_c</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod/bunch_marker_d" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bunch_marker_d</obj_property>
+      <obj_property name="ObjectShortName">bunch_marker_d</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod/clock127_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">clock127_counter[10:0]</obj_property>
+      <obj_property name="ObjectShortName">clock127_counter[10:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+</wave_config>
