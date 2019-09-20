@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2019-09-11 by mza
+// last updated 2019-09-13 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
@@ -151,21 +151,12 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 	end
 	// ----------------------------------------------------------------------
-	wire pll_oserdes_locked;
-	assign led_7 = pll_oserdes_locked;
-	assign led_6 = pll_127_127_locked;
-	assign led_5 = reset;
-	assign led_4 = phase_locked;
-	assign led_3 = select4[3];
-	assign led_2 = select4[2];
-	assign led_1 = select4[1];
-	assign led_0 = select4[0];
-	// ----------------------------------------------------------------------
 	wire data;
 	wire word_clock;
 	reg [7:0] word;
 	wire [7:0] word_null = 8'b00000000;
 	wire [7:0] word_trg  = 8'b11001100;
+	wire pll_oserdes_locked;
 	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(pll_oserdes_locked));
 	wire reset3 = reset1 | reset2 | ~pll_oserdes_locked;
 	wire trg_again;
@@ -224,6 +215,14 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		OBUFDS out1 (.I(rawtrg), .O(out1_p), .OB(out1_n));
 		OBUFDS outa (.I(trg), .O(outa_p), .OB(outa_n));
 	end
+	assign led_7 = pll_oserdes_locked;
+	assign led_6 = pll_127_127_locked;
+	assign led_5 = reset;
+	assign led_4 = phase_locked;
+	assign led_3 = select4[3];
+	assign led_2 = select4[2];
+	assign led_1 = select4[1];
+	assign led_0 = select4[0];
 endmodule
 
 module mything_tb;
