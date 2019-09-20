@@ -76,9 +76,7 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 				end
 			end
 			local_revo <= 0;
-			if (clock127_counter < FTSW_CLOCKS_IN_ONE_BEAM_ORBIT_MINUS_ONE) begin
-				clock127_counter = clock127_counter + 1;
-			end else begin
+			if (remote_revo | (FTSW_CLOCKS_IN_ONE_BEAM_ORBIT_MINUS_ONE<=clock127_counter)) begin
 				clock127_counter <= 0;
 				local_revo <= 1;
 				if (frame9_token == 9'b000000001) begin
@@ -95,6 +93,8 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 					frame9_prescale[trig_prescale_N_log2] <= 1;
 				end
 				frame9_token <= { frame9_token[0], frame9_token[8:1] };
+			end else begin
+				clock127_counter = clock127_counter + 1;
 			end
 		end
 	end
@@ -143,16 +143,28 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb;
 		scrod_bunch_marker_d_position[12:2] <= 4; scrod_bunch_marker_d_position[24:16] <= 9'b000111000;
 		scrod_trig_prescale_N_log2 <= 2;
 		#400;
-		scrod_remote_revo_p <= 1; scrod_remote_revo_n <= 0;
-		#2;
-		scrod_remote_revo_p <= 0; scrod_remote_revo_n <= 1;
-		#50;
+//		scrod_remote_revo_p <= 1; scrod_remote_revo_n <= 0;
+//		#8;
+//		scrod_remote_revo_p <= 0; scrod_remote_revo_n <= 1;
+//		#50;
 		scrod_remote_revo_p <= 1; scrod_remote_revo_n <= 0;
 		#8;
 		scrod_remote_revo_p <= 0; scrod_remote_revo_n <= 1;
-		#50;
+		#10232;
 		scrod_remote_revo_p <= 1; scrod_remote_revo_n <= 0;
-		#30;
+		#8;
+		scrod_remote_revo_p <= 0; scrod_remote_revo_n <= 1;
+		#10232;
+		scrod_remote_revo_p <= 1; scrod_remote_revo_n <= 0;
+		#8;
+		scrod_remote_revo_p <= 0; scrod_remote_revo_n <= 1;
+		#10232;
+		scrod_remote_revo_p <= 1; scrod_remote_revo_n <= 0;
+		#8;
+		scrod_remote_revo_p <= 0; scrod_remote_revo_n <= 1;
+		#10232;
+		scrod_remote_revo_p <= 1; scrod_remote_revo_n <= 0;
+		#8;
 		scrod_remote_revo_p <= 0; scrod_remote_revo_n <= 1;
 	end
 	always begin

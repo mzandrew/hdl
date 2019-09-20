@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="19" />
+   <WVObjectSize size="20" />
    <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_xrm_trigger" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">scrod_xrm_trigger</obj_property>
       <obj_property name="ObjectShortName">scrod_xrm_trigger</obj_property>
@@ -50,6 +50,7 @@
    <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_trig_prescale_N_log2" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">scrod_trig_prescale_N_log2[4:0]</obj_property>
       <obj_property name="ObjectShortName">scrod_trig_prescale_N_log2[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod_bunch_marker_a_position" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">scrod_bunch_marker_a_position[24:0]</obj_property>
@@ -86,6 +87,11 @@
    <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod/clock127_counter" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">clock127_counter[10:0]</obj_property>
       <obj_property name="ObjectShortName">clock127_counter[10:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb/scrod/frame9_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">frame9_counter[31:0]</obj_property>
+      <obj_property name="ObjectShortName">frame9_counter[31:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 </wave_config>
