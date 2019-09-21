@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2019-09-20 by mza
+// last updated 2019-09-21 by mza
 // this code runs on an althea connected to a RAFFERTY board
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
@@ -11,9 +11,9 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	input local_clock509_in_p, local_clock509_in_n,
 	input remote_clock509_in_p, remote_clock509_in_n,
 	input remote_revo_in_p, remote_revo_in_n,
-	output ack12_p, ack12_n,
+	input ack12_p, ack12_n,
 	output trg36_p, trg36_n,
-	output rsv54_p, rsv54_n,
+	input rsv54_p, rsv54_n,
 	output clk78_p, clk78_n,
 	output out1_p, out1_n,
 	output outa_p, outa_n,
@@ -29,6 +29,8 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire clock509;
 	IBUFGDS remote_input_clock509_instance (.I(remote_clock509_in_p), .IB(remote_clock509_in_n), .O(remote_clock509));
 	IBUFGDS local_input_clock509_instance (.I(local_clock509_in_p), .IB(local_clock509_in_n), .O(local_clock509));
+	IBUFDS dummy_ack (.I(ack12_p), .IB(ack12_n), .O());
+	IBUFDS dummy_rsv (.I(rsv54_p), .IB(rsv54_n), .O());
 	assign driven_high = 1;
 //	BUFGMUX #(.CLK_SEL_TYPE("ASYNC")) clock_selection_instance (.I0(remote_clock509), .I1(local_clock509), .S(clock_select), .O(clock509));
 	assign clock509 = remote_clock509;
@@ -163,27 +165,31 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end
 	end
 	// ----------------------------------------------------------------------
-	wire data;
-	wire word_clock;
-	reg [7:0] word;
-	wire [7:0] word_null = 8'b00000000;
-	wire [7:0] word_trg  = 8'b11001100;
 	wire pll_oserdes_locked;
-	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16), .SCOPE("BUFPLL")) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .locked(pll_oserdes_locked));
-	wire reset3 = reset1 | reset2 | ~pll_oserdes_locked;
-//	wire trg_again;
-//	ssynchronizer_pnp barry (.clock1(clock127), .clock2(word_clock), .reset(reset), .in1(trg), .out2(trg_again));
-	always @(posedge word_clock) begin
-		if (reset3) begin
-			word <= word_null;
-		end else begin
-			//if (trg_again) begin
-			if (trg) begin
-				word <= word_trg;
-			end else begin
+	if (0) begin
+		wire data;
+		wire word_clock;
+		reg [7:0] word;
+		wire [7:0] word_null = 8'b00000000;
+		wire [7:0] word_trg  = 8'b11001100;
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16), .SCOPE("BUFPLL")) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .locked(pll_oserdes_locked));
+		wire reset3 = reset1 | reset2 | ~pll_oserdes_locked;
+	//	wire trg_again;
+	//	ssynchronizer_pnp barry (.clock1(clock127), .clock2(word_clock), .reset(reset), .in1(trg), .out2(trg_again));
+		always @(posedge word_clock) begin
+			if (reset3) begin
 				word <= word_null;
+			end else begin
+				//if (trg_again) begin
+				if (trg) begin
+					word <= word_trg;
+				end else begin
+					word <= word_null;
+				end
 			end
 		end
+	end else begin
+		assign pll_oserdes_locked = 0;
 	end
 	// ----------------------------------------------------------------------
 	wire clock127_oddr;
@@ -197,9 +203,9 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 //	ODDR2 doughnut509 (.C0(raw_clock509a), .C1(raw_clock509b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock509_oddr));
 	if (0) begin
 		// test performance
-		OBUFDS ack12 (.I(rawtrg), .O(ack12_p), .OB(ack12_n));
+//		OBUFDS ack12 (.I(rawtrg), .O(ack12_p), .OB(ack12_n));
 //		OBUFDS trg36 (.I(clock509_oddr), .O(trg36_p), .OB(trg36_n));
-		OBUFDS rsv54 (.I(trg), .O(rsv54_p), .OB(rsv54_n));
+//		OBUFDS rsv54 (.I(trg), .O(rsv54_p), .OB(rsv54_n));
 		OBUFDS clk78 (.I(clock127_oddr), .O(clk78_p), .OB(clk78_n));
 	end else if (0) begin
 		// miscellaneous debug/troubleshoot
@@ -221,9 +227,9 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 //		OBUFDS outa (.I(clock509_oddr), .O(outa_p), .OB(outa_n));
 	end else begin
 		// normal operation
-		OBUFDS ack12 (.I(long_trg), .O(ack12_p), .OB(ack12_n));
+//		OBUFDS ack12 (.I(long_trg), .O(ack12_p), .OB(ack12_n));
 		OBUFDS trg36 (.I(clock127_encoded_trg_oddr), .O(trg36_p), .OB(trg36_n));
-		OBUFDS rsv54 (.I(data), .O(rsv54_p), .OB(rsv54_n));
+//		OBUFDS rsv54 (.I(data), .O(rsv54_p), .OB(rsv54_n));
 		OBUFDS clk78 (.I(clock127_oddr), .O(clk78_p), .OB(clk78_n));
 		OBUFDS out1 (.I(rawtrg), .O(out1_p), .OB(out1_n));
 		         if (0) begin
@@ -263,9 +269,9 @@ module rafferty_tb;
 	wire rafferty_trg36_p, rafferty_trg36_n;
 	wire rafferty_out1_p, rafferty_out1_n;
 	wire rafferty_outa_p, rafferty_outa_n;
-	wire rafferty_rsv54_p, rafferty_rsv54_n;
+	reg rafferty_rsv54_p = 0, rafferty_rsv54_n = 0;
 	reg rafferty_lemo = 0;
-	wire rafferty_ack12_p, rafferty_ack12_n;
+	reg rafferty_ack12_p = 0, rafferty_ack12_n = 0;
 	wire rafferty_led_revo;
 	wire rafferty_led_rfclock;
 	wire rafferty_driven_high;
@@ -295,6 +301,8 @@ module rafferty_tb;
 	reg recovered_revo = 0;
 	initial begin
 		// Initialize Inputs
+		rafferty_ack12_p <= 0; rafferty_ack12_n <= 1;
+		rafferty_rsv54_p <= 0; rafferty_rsv54_n <= 1;
 		rafferty_local_clock50_in_p <= 0; rafferty_local_clock50_in_n <= 1;
 		rafferty_remote_clock509_in_p <= 0; rafferty_remote_clock509_in_n <= 1;
 		rafferty_local_clock509_in_p <= 0; rafferty_local_clock509_in_n <= 1;
@@ -340,9 +348,9 @@ endmodule
 
 module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea_top (
 	input clock50_p, clock50_n,
-	output a_p, a_n,
+	input a_p, a_n,
 	output b_p, b_n,
-	output c_p, c_n,
+	input c_p, c_n,
 	output d_p, d_n,
 	output e_p, e_n,
 	output f_p, f_n,
