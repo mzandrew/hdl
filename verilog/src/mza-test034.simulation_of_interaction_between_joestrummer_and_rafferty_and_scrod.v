@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-09-20 by mza
-// last updated 2019-09-20 by mza
+// last updated 2019-09-21 by mza
 
 module joestrummer_and_rafferty_tb;
 	reg joestrummer_local_clock50_in_p = 0, joestrummer_local_clock50_in_n = 1;
@@ -125,6 +125,16 @@ module joestrummer_and_rafferty_and_scrod_tb;
 		rafferty_local_clock509_in_p <= 0; rafferty_local_clock509_in_n <= 1;
 		rafferty_lemo <= 0; rafferty_clock_select <= 0;
 		recovered_revo <= 0;
+		scrod_reset <= 1;
+		#100;
+		scrod_reset <= 0;
+		#100;
+		scrod_xrm_trigger_enabled <= 1;
+		scrod_bunch_marker_a_position[12:2] <= 0; scrod_bunch_marker_a_position[24:16] <= 9'b111111111;
+		scrod_bunch_marker_b_position[12:2] <= 2; scrod_bunch_marker_b_position[24:16] <= 9'b000000001;
+		scrod_bunch_marker_c_position[12:2] <= 3; scrod_bunch_marker_c_position[24:16] <= 9'b100000000;
+		scrod_bunch_marker_d_position[12:2] <= 4; scrod_bunch_marker_d_position[24:16] <= 9'b000111000;
+		scrod_trig_prescale_N_log2 <= 2;
 	end
 	always begin
 		#1;
@@ -196,5 +206,29 @@ module joestrummer_and_rafferty_and_scrod_tb;
 	always @(negedge rafferty_clk78_p) begin
 		recovered_revo <= raw_recovered_revo;
 	end
+	reg scrod_reset = 1;
+	reg scrod_xrm_trigger_enabled = 0;
+	reg [4:0] scrod_trig_prescale_N_log2 = 12;
+	reg [24:0] scrod_bunch_marker_a_position = 0;
+	reg [24:0] scrod_bunch_marker_b_position = 1;
+	reg [24:0] scrod_bunch_marker_c_position = 2;
+	reg [24:0] scrod_bunch_marker_d_position = 3;
+	wire scrod_xrm_trigger;
+	wire scrod_frame;
+	wire scrod_frame9;
+	XRM_clock_and_revo_receiver_frame9_and_trigger_generator scrod (
+		.remote_clock127_p(rafferty_clk78_p), .remote_clock127_n(rafferty_clk78_n),
+		.remote_revo_p(rafferty_trg36_p), .remote_revo_n(rafferty_trg36_n),
+		.reset(scrod_reset),
+		.xrm_trigger_enabled(scrod_xrm_trigger_enabled), // from config.xrm_trigger_enabled
+		.trig_prescale_N_log2(scrod_trig_prescale_N_log2), // from config.trig_prescale_N_log2
+		.bunch_marker_a_position(scrod_bunch_marker_a_position), // from config.bunch_marker_a
+		.bunch_marker_b_position(scrod_bunch_marker_b_position), // from config.bunch_marker_b
+		.bunch_marker_c_position(scrod_bunch_marker_c_position), // from config.bunch_marker_c
+		.bunch_marker_d_position(scrod_bunch_marker_d_position), // from config.bunch_marker_d
+		.xrm_trigger(scrod_xrm_trigger),
+		.frame(scrod_frame),
+		.frame9(scrod_frame9)
+	);
 endmodule
 

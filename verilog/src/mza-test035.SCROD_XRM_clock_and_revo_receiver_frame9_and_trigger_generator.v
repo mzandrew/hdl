@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-20 by mza
 // based on vhdl version I wrote in late 2018 / early 2019 (from ScrodRevB_b2tt.vhd in UH svn repo)
-// last updated 2019-09-20 by mza
+// last updated 2019-09-21 by mza
 
 module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 	input remote_clock127_p, remote_clock127_n,
@@ -20,12 +20,14 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 	parameter FTSW_CLOCKS_IN_ONE_BEAM_ORBIT_MINUS_ONE = 1280 - 1;
 	wire clock127;
 	IBUFGDS clock127_instance (.I(remote_clock127_p), .IB(remote_clock127_n), .O(clock127));
-	wire remote_revo;
-	IBUFGDS revo_instance (.I(remote_revo_p), .IB(remote_revo_n), .O(remote_revo));
+	wire remote_revo_encoded;
+	IBUFGDS revo_instance (.I(remote_revo_p), .IB(remote_revo_n), .O(remote_revo_encoded));
+	wire remote_revo_raw;
+	assign remote_revo_raw = clock127 ^ remote_revo_encoded;
+	reg remote_revo = 0;
 	reg local_revo = 0;
 	reg xrm_trigger_active = 0;
 	reg [8:0] frame9_token = 9'b100000000;
-	reg [2:0] framePipe = 3'b000;
 	reg bunch_marker_a = 0;
 	reg bunch_marker_b = 0;
 	reg bunch_marker_c = 0;
@@ -102,6 +104,13 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 			end else begin
 				clock127_counter = clock127_counter + 1;
 			end
+		end
+	end
+	always @(negedge clock127) begin
+		if (reset) begin
+			remote_revo <= 0;
+		end else begin
+			remote_revo <= remote_revo_raw;
 		end
 	end
 endmodule
