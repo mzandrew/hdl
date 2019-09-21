@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2019-09-20 by mza
+// last updated 2019-09-21 by mza
 
 module iserdes_single4 #(
 	parameter WIDTH = 4
@@ -375,7 +375,7 @@ endmodule
 
 module oserdes_pll #(
 	// seems global mode is only possible for bit clocks that fit on the gbuf network (max 400 MHz)
-	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
+	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
 	parameter BIT_WIDTH = 1, // how many bits come out in parallel
 	parameter BIT_DEPTH = 8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
