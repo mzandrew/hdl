@@ -18,7 +18,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	output out1_p, out1_n,
 	output outa_p, outa_n,
 	input lemo,
-	output reg led_revo,
+	output reg led_revo = 0,
 	output led_rfclock,
 	output driven_high,
 	input clock_select,
@@ -68,7 +68,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire rawclock127_90;
 	wire rawclock127_180;
 	wire rawclock127_270;
-	wire raw_clock509a, raw_clock509b;
+//	wire raw_clock509a, raw_clock509b;
 	wire pll_127_127_locked;
 	assign led_rfclock = pll_127_127_locked;
 	wire revo_stream_clock127;
@@ -78,7 +78,8 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	) mypll (.clockin(revo_stream_clock127), .reset(reset1), .locked(pll_127_127_locked),
 		.clock0out(rawclock127_0), .clock1out(rawclock127_90),
 		.clock2out(rawclock127_180), .clock3out(rawclock127_270),
-		.clock4out(raw_clock509a), .clock5out(raw_clock509b)
+		.clock4out(), .clock5out()
+		//.clock4out(raw_clock509a), .clock5out(raw_clock509b)
 	);
 	// ----------------------------------------------------------------------
 	wire rawtrg;
@@ -107,18 +108,18 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			if (!phase_locked) begin
 				if (1) begin
 					case (pulse_revo_stream127)
-						4'b1111 : begin select2 <= 2'b11; select4 <= pulse_revo_stream127; phase_locked <= 1; end
-						4'b1110 : begin select2 <= 2'b00; select4 <= pulse_revo_stream127; phase_locked <= 1; end
-						4'b1100 : begin select2 <= 2'b01; select4 <= pulse_revo_stream127; phase_locked <= 1; end
-						4'b1000 : begin select2 <= 2'b10; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+						4'b1111 : begin select2 <= 2'b11; select4 <= 4'b1111; phase_locked <= 1; end
+						4'b1110 : begin select2 <= 2'b00; select4 <= 4'b1110; phase_locked <= 1; end
+						4'b1100 : begin select2 <= 2'b01; select4 <= 4'b1100; phase_locked <= 1; end
+						4'b1000 : begin select2 <= 2'b10; select4 <= 4'b1000; phase_locked <= 1; end
 					default : begin end
 					endcase
 //				end else begin
 //					case (pulse_revo_stream127)
-//						4'b1111 : begin select2 <= 2'b01; select4 <= pulse_revo_stream127; phase_locked <= 1; end
-//						4'b1110 : begin select2 <= 2'b00; select4 <= pulse_revo_stream127; phase_locked <= 1; end
-//						4'b1100 : begin select2 <= 2'b11; select4 <= pulse_revo_stream127; phase_locked <= 1; end
-//						4'b1000 : begin select2 <= 2'b10; select4 <= pulse_revo_stream127; phase_locked <= 1; end
+//						4'b1111 : begin select2 <= 2'b01; select4 <= 4'b1111; phase_locked <= 1; end
+//						4'b1110 : begin select2 <= 2'b00; select4 <= 4'b1110; phase_locked <= 1; end
+//						4'b1100 : begin select2 <= 2'b11; select4 <= 4'b1100; phase_locked <= 1; end
+//						4'b1000 : begin select2 <= 2'b10; select4 <= 4'b1000; phase_locked <= 1; end
 //					default : begin end
 //					endcase
 				end
@@ -135,7 +136,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_b (.I0(clock127_0s), .I1(clock127_1s), .S(~select2[1]), .O(clock127b));
 	// ----------------------------------------------------------------------
 	wire [3:0] other_revo_stream127;
-	ssynchronizer_pnp #(.WIDTH(4)) sharma (.clock1(revo_stream_clock127), .clock2(clock127), .reset(reset), .in1(revo_stream127), .out2(other_revo_stream127));
+	ssynchronizer_pnp #(.WIDTH(4)) sharma (.clock1(revo_stream_clock127), .clock2(clock127), .reset(reset), .in1(pulse_revo_stream127), .out2(other_revo_stream127));
 	reg long_trg = 0;
 	wire short_trg;
 	reg trg = 0;
@@ -168,15 +169,16 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire [7:0] word_null = 8'b00000000;
 	wire [7:0] word_trg  = 8'b11001100;
 	wire pll_oserdes_locked;
-	ocyrus_single8 #(.WIDTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16)) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .locked(pll_oserdes_locked));
+	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16), .SCOPE("BUFPLL")) mylei (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .locked(pll_oserdes_locked));
 	wire reset3 = reset1 | reset2 | ~pll_oserdes_locked;
-	wire trg_again;
-	ssynchronizer_pnp barry (.clock1(clock127), .clock2(word_clock), .reset(reset), .in1(trg), .out2(trg_again));
+//	wire trg_again;
+//	ssynchronizer_pnp barry (.clock1(clock127), .clock2(word_clock), .reset(reset), .in1(trg), .out2(trg_again));
 	always @(posedge word_clock) begin
 		if (reset3) begin
 			word <= word_null;
 		end else begin
-			if (trg_again) begin
+			//if (trg_again) begin
+			if (trg) begin
 				word <= word_trg;
 			end else begin
 				word <= word_null;
@@ -224,7 +226,21 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		OBUFDS rsv54 (.I(data), .O(rsv54_p), .OB(rsv54_n));
 		OBUFDS clk78 (.I(clock127_oddr), .O(clk78_p), .OB(clk78_n));
 		OBUFDS out1 (.I(rawtrg), .O(out1_p), .OB(out1_n));
-		OBUFDS outa (.I(trg), .O(outa_p), .OB(outa_n));
+		         if (0) begin
+			OBUFDS outa (.I(|other_revo_stream127), .O(outa_p), .OB(outa_n));
+		end else if (0) begin
+			OBUFDS outa (.I(long_trg), .O(outa_p), .OB(outa_n));
+		end else if (0) begin
+			OBUFDS outa (.I(short_trg), .O(outa_p), .OB(outa_n));
+		end else if (1) begin
+			OBUFDS outa (.I(trg), .O(outa_p), .OB(outa_n));
+		end else if (0) begin
+			OBUFDS outa (.I(trg_inv), .O(outa_p), .OB(outa_n));
+		end else begin
+			wire clock127_oddr2;
+			ODDR2 doughnut127_2 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(reset), .S(1'b0), .Q(clock127_oddr2));
+			OBUFDS outa (.I(clock127_oddr2), .O(outa_p), .OB(outa_n));
+		end
 	end
 	assign led_7 = pll_oserdes_locked;
 	assign led_6 = pll_127_127_locked;
@@ -288,7 +304,7 @@ module rafferty_tb;
 		// Wait 100 ns for global reset to finish
 		#100;
 		// Add stimulus here
-		#5000;
+		#25000;
 		rafferty_remote_revo_in_p = 1; rafferty_remote_revo_in_n = 0;
 		#2;
 		rafferty_remote_revo_in_p = 0; rafferty_remote_revo_in_n = 1;
@@ -296,7 +312,11 @@ module rafferty_tb;
 		rafferty_remote_revo_in_p = 1; rafferty_remote_revo_in_n = 0;
 		#8;
 		rafferty_remote_revo_in_p = 0; rafferty_remote_revo_in_n = 1;
-		#50;
+		#10240;
+		rafferty_remote_revo_in_p = 1; rafferty_remote_revo_in_n = 0;
+		#8;
+		rafferty_remote_revo_in_p = 0; rafferty_remote_revo_in_n = 1;
+		#10240;
 		rafferty_remote_revo_in_p = 1; rafferty_remote_revo_in_n = 0;
 		#30;
 		rafferty_remote_revo_in_p = 0; rafferty_remote_revo_in_n = 1;
