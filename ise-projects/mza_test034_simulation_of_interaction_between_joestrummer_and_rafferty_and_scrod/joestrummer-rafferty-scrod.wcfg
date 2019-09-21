@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="18" />
+   <WVObjectSize size="20" />
    <wvobject fp_name="/joestrummer_and_rafferty_and_scrod_tb/joestrummer_lemo" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">joestrummer_lemo</obj_property>
       <obj_property name="ObjectShortName">joestrummer_lemo</obj_property>
@@ -30,6 +30,10 @@
    <wvobject fp_name="/joestrummer_and_rafferty_and_scrod_tb/joestrummer_led_4" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">joestrummer_led_4</obj_property>
       <obj_property name="ObjectShortName">joestrummer_led_4</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_and_scrod_tb/rafferty_out1_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_out1_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_out1_p</obj_property>
    </wvobject>
    <wvobject fp_name="vbus63" type="vbus" db_ref_id="1">
       <obj_property name="label">select4</obj_property>
@@ -54,6 +58,10 @@
    <wvobject fp_name="/joestrummer_and_rafferty_and_scrod_tb/rafferty_led_4" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">rafferty_led_4</obj_property>
       <obj_property name="ObjectShortName">rafferty_led_4</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_and_scrod_tb/rafferty_outa_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_outa_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_outa_p</obj_property>
    </wvobject>
    <wvobject fp_name="/joestrummer_and_rafferty_and_scrod_tb/scrod/remote_revo_raw" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">remote_revo_raw</obj_property>
