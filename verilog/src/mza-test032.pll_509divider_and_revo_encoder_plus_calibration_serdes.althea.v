@@ -118,32 +118,68 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	// ----------------------------------------------------------------------
 	wire [3:0] pulse_revo_stream127;
 	edge_to_pulse #(.WIDTH(4)) revo_stream_edger (.clock(revo_stream_clock127), .in(revo_stream127), .reset(iserdes_reset), .out(pulse_revo_stream127));
+	reg select0s = 0;
+	reg select1s = 0;
 	reg [1:0] select2 = 0;
-	reg [3:0] select4 = 0;
+	reg [1:0] selectsx = 0;
 	reg phase_locked = 0;
 	reg revo_stream_synchronizer_reset = 1;
-	//reg [7:0] histogram [1:0];
-	reg [7:0] histogram00 = 0;
-	reg [7:0] histogram01 = 0;
-	reg [7:0] histogram10 = 0;
-	reg [7:0] histogram11 = 0;
+	// 508887500 Hz / 5120 buckets_per_revolution ~= 99392.09 revolutions_per_second
+	// 24 hours_per_day * 3600 seconds_per_hour = 86400 seconds_per_day
+	// 99392.09 * 86400 ~= 8.6 billion, so a 33 bit counter will roll over about once per day
+	reg [32:0] histogram00 = 0;
+	reg [32:0] histogram01 = 0;
+	reg [32:0] histogram10 = 0;
+	reg [32:0] histogram11 = 0;
+	reg [32:0] histogram0s = 0;
+	reg [32:0] histogram1s = 0;
+	localparam PULSE_COUNT_MIN = 10;
+	reg [34:0] pulse_count = 0;
 	always @(posedge revo_stream_clock127 or negedge pll_127_127_locked) begin
 		if (iserdes_reset | pll_127_127_reset | ~pll_127_127_locked) begin
 			select2 <= 0;
-			select4 <= 0;
 			phase_locked <= 0;
 			revo_stream_synchronizer_reset <= 1;
 		end else begin
+			case (pulse_revo_stream127)
+				4'b1111 : begin histogram11 <= histogram11 + 1'b1; pulse_count <= pulse_count + 1'b1; end
+				4'b1110 : begin histogram00 <= histogram00 + 1'b1; pulse_count <= pulse_count + 1'b1; end
+				4'b1100 : begin histogram01 <= histogram01 + 1'b1; pulse_count <= pulse_count + 1'b1; end
+				4'b1000 : begin histogram10 <= histogram10 + 1'b1; pulse_count <= pulse_count + 1'b1; end
+			default : begin end
+			endcase
 			if (phase_locked) begin
 				revo_stream_synchronizer_reset <= 0;
+			end else if (PULSE_COUNT_MIN < pulse_count) begin
+				select2 <= selectsx;
+				phase_locked <= 1;
+				revo_stream_synchronizer_reset <= 1;
+				// maybe clear the count and histograms at this point?  Or add a pulse_count_max to do that...
+//				pulse_count <= 0;
+//				histogram00 <= 0;
+//				histogram01 <= 0;
+//				histogram10 <= 0;
+//				histogram11 <= 0;
 			end else begin
-				case (pulse_revo_stream127)
-					4'b1111 : begin select2 <= 2'b11; select4 <= 4'b1111; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; histogram11 <= histogram11 + 1; end
-					4'b1110 : begin select2 <= 2'b00; select4 <= 4'b1110; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; histogram00 <= histogram00 + 1; end
-					4'b1100 : begin select2 <= 2'b01; select4 <= 4'b1100; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; histogram01 <= histogram01 + 1; end
-					4'b1000 : begin select2 <= 2'b10; select4 <= 4'b1000; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; histogram10 <= histogram10 + 1; end
-				default : begin end
-				endcase
+				if (histogram0s < histogram1s) begin // slight preference for 2'b0x here
+					selectsx <= { 1'b1, select1s };
+				end else begin
+					selectsx <= { 1'b0, select0s };
+				end
+				if (histogram00 < histogram01) begin // slight preference for 2'b00 here
+					select0s <= 1;
+					histogram0s <= histogram01;
+				end else begin
+					select0s <= 0;
+					histogram0s <= histogram00;
+				end
+				if (histogram10 < histogram11) begin // slight preference for 2'b10 here
+					select1s <= 1;
+					histogram1s <= histogram11;
+				end else begin
+					select1s <= 0;
+					histogram1s <= histogram10;
+				end
 			end
 		end
 	end
@@ -275,10 +311,10 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	assign led_6 = phase_locked;
 	assign led_5 = revo_stream_synchronizer_reset;
 	assign led_4 = pll_oserdes_locked;
-	assign led_3 = select4[3];
-	assign led_2 = select4[2];
-	assign led_1 = select4[1];
-	assign led_0 = select4[0];
+	assign led_3 = selectsx[1];
+	assign led_2 = selectsx[0];
+	assign led_1 = select2[1];
+	assign led_0 = select2[0];
 endmodule
 
 module rafferty_tb;

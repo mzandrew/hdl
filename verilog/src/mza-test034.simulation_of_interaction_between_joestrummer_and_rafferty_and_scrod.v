@@ -39,13 +39,13 @@ module joestrummer_and_rafferty_tb;
 		delay_select <= 0;
 		#60000;
 		flaky_clock_select <= 1;
-		#2000;
-		delay_select <= 1;
-		#2000;
+		#4000;
 		flaky_clock_select <= 0;
 		#10000;
 		flaky_clock_select <= 1;
-		#10000;
+		#8000;
+		delay_select <= 1;
+		#2000;
 		flaky_clock_select <= 0;
 	end
 	wire intermediate0_trg36_p, intermediate0_trg36_n;
