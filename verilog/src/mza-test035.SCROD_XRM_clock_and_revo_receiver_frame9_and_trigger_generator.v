@@ -13,6 +13,7 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 	input [24:0] bunch_marker_b_position, // from config.bunch_marker_b
 	input [24:0] bunch_marker_c_position, // from config.bunch_marker_c
 	input [24:0] bunch_marker_d_position, // from config.bunch_marker_d
+	output clockout,
 	output xrm_trigger,
 	output reg frame = 0,
 	output reg frame9 = 0
@@ -113,6 +114,7 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 			remote_revo <= remote_revo_raw;
 		end
 	end
+	assign clockout = clock127;
 endmodule
 
 module XRM_clock_and_revo_receiver_frame9_and_trigger_generator_tb;
