@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-08-26 by mza
-// last updated 2019-09-20 by mza
+// last updated 2019-09-22 by mza
 // this code runs on an althea connected to a JoeStrummer board
 
 module mza_test031_clock509_and_revo_generator_althea (
@@ -18,10 +18,14 @@ module mza_test031_clock509_and_revo_generator_althea (
 	IBUFGDS local_input_clock50_instance (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(clock50));
 	IBUFGDS local_input_clock509_instance (.I(local_clock509_in_p), .IB(local_clock509_in_n), .O(clock509));
 	reg reset = 1;
+	reg superkekb_reset = 1;
 	reg [25:0] counter = 0;
 	always @(posedge clock50) begin
-		if (counter[10]) begin
+		if (counter[9]) begin
 			reset <= 0;
+		end
+		if (counter[11]) begin
+			superkekb_reset <= 0;
 		end
 		counter <= counter + 1'b1;
 	end
@@ -35,14 +39,14 @@ module mza_test031_clock509_and_revo_generator_althea (
 	assign led_4 = revo;
 	assign led_3 = 0;
 	assign led_2 = reset;
-	assign led_1 = 0;
+	assign led_1 = superkekb_reset;
 	assign led_0 = counter[25];
 	wire clock509_oddr;
 	wire revo_oddr;
 	wire word_clock1;
 	wire word_clock2;
 	wire revo;
-	superkekb skb (.clock(word_clock1), .reset(reset), .revo(revo), .revo_word(revo_word));
+	superkekb skb (.clock(word_clock1), .reset(superkekb_reset), .revo(revo), .revo_word(revo_word));
 	wire rawclock127;
 	BUFIO2 #(
 		.DIVIDE(4), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")

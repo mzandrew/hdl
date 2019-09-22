@@ -1,6 +1,6 @@
 # written 2018-10-25 by mza
 # based off of mza_test023_serdes_pll.althea.ucf
-# last updated 2019-09-21 by mza
+# last updated 2019-09-22 by mza
 
 # 50 MHz local oscillator:
 net clock50_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK50+
@@ -57,9 +57,5 @@ net led_5 loc=p6  | iostandard=lvcmos25;
 net led_6 loc=p2  | iostandard=lvcmos25;
 net led_7 loc=p1  | iostandard=lvcmos25;
 
-net lemo loc=p93 | iostandard=lvcmos25;
-
-# timing constraints:
-
-#net "*/cdc*" TIG;
+net lemo loc=p93 | iostandard=lvcmos25 | drive = 24 | slew = fast;
 
