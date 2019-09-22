@@ -43,6 +43,10 @@ module joestrummer_and_rafferty_tb;
 		delay_select <= 1;
 		#2000;
 		flaky_clock_select <= 0;
+		#10000;
+		flaky_clock_select <= 1;
+		#10000;
+		flaky_clock_select <= 0;
 	end
 	wire intermediate0_trg36_p, intermediate0_trg36_n;
 	clocked_1ns_delay snip0_p (.in(joestrummer_trg36_p), .out(intermediate0_trg36_p));

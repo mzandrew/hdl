@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="39" />
+   <WVObjectSize size="43" />
    <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_local_clock50_in_p" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">joestrummer_local_clock50_in_p</obj_property>
       <obj_property name="ObjectShortName">joestrummer_local_clock50_in_p</obj_property>
@@ -133,6 +133,26 @@
          <obj_property name="ElementShortName">led_3</obj_property>
          <obj_property name="ObjectShortName">led_3</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/histogram00" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">histogram00[7:0]</obj_property>
+      <obj_property name="ObjectShortName">histogram00[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/histogram01" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">histogram01[7:0]</obj_property>
+      <obj_property name="ObjectShortName">histogram01[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/histogram10" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">histogram10[7:0]</obj_property>
+      <obj_property name="ObjectShortName">histogram10[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/histogram11" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">histogram11[7:0]</obj_property>
+      <obj_property name="ObjectShortName">histogram11[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/phase_locked" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">phase_locked</obj_property>

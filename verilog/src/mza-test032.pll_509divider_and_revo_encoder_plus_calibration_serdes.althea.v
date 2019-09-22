@@ -122,6 +122,11 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	reg [3:0] select4 = 0;
 	reg phase_locked = 0;
 	reg revo_stream_synchronizer_reset = 1;
+	//reg [7:0] histogram [1:0];
+	reg [7:0] histogram00 = 0;
+	reg [7:0] histogram01 = 0;
+	reg [7:0] histogram10 = 0;
+	reg [7:0] histogram11 = 0;
 	always @(posedge revo_stream_clock127 or negedge pll_127_127_locked) begin
 		if (iserdes_reset | pll_127_127_reset | ~pll_127_127_locked) begin
 			select2 <= 0;
@@ -133,10 +138,10 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 				revo_stream_synchronizer_reset <= 0;
 			end else begin
 				case (pulse_revo_stream127)
-					4'b1111 : begin select2 <= 2'b11; select4 <= 4'b1111; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; end
-					4'b1110 : begin select2 <= 2'b00; select4 <= 4'b1110; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; end
-					4'b1100 : begin select2 <= 2'b01; select4 <= 4'b1100; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; end
-					4'b1000 : begin select2 <= 2'b10; select4 <= 4'b1000; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; end
+					4'b1111 : begin select2 <= 2'b11; select4 <= 4'b1111; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; histogram11 <= histogram11 + 1; end
+					4'b1110 : begin select2 <= 2'b00; select4 <= 4'b1110; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; histogram00 <= histogram00 + 1; end
+					4'b1100 : begin select2 <= 2'b01; select4 <= 4'b1100; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; histogram01 <= histogram01 + 1; end
+					4'b1000 : begin select2 <= 2'b10; select4 <= 4'b1000; phase_locked <= 1; revo_stream_synchronizer_reset <= 1; histogram10 <= histogram10 + 1; end
 				default : begin end
 				endcase
 			end
