@@ -3,7 +3,9 @@
 // last updated 2019-09-22 by mza
 // this code runs on an althea connected to a JoeStrummer board
 
-module mza_test031_clock509_and_revo_generator_althea (
+module mza_test031_clock509_and_revo_generator_althea #(
+	parameter PHASE = 45.0
+) (
 	input local_clock50_in_p, local_clock50_in_n,
 	input local_clock509_in_p, local_clock509_in_n,
 	output clk78_p, clk78_n,
@@ -29,7 +31,7 @@ module mza_test031_clock509_and_revo_generator_althea (
 		end
 		counter <= counter + 1'b1;
 	end
-	parameter clock_word = 8'b10101010;
+	localparam clock_word = 8'b10101010;
 	wire [7:0] revo_word;
 	wire oserdes_pll_locked1;
 	wire oserdes_pll_locked2;
@@ -43,10 +45,9 @@ module mza_test031_clock509_and_revo_generator_althea (
 	assign led_0 = counter[25];
 	wire clock509_oddr;
 	wire revo_oddr;
-	wire word_clock1;
 	wire word_clock2;
 	wire revo;
-	superkekb skb (.clock(word_clock1), .reset(superkekb_reset), .revo(revo), .revo_word(revo_word));
+	superkekb skb (.clock(word_clock2), .reset(superkekb_reset), .revo(revo), .revo_word(revo_word));
 	wire rawclock127;
 	BUFIO2 #(
 		.DIVIDE(4), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")
@@ -55,8 +56,7 @@ module mza_test031_clock509_and_revo_generator_althea (
 	);
 	wire clock127;
 	BUFG peter (.I(rawclock127), .O(clock127));
-	parameter PHASE = 45.0;
-	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) mylei1 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock1), .word_in(clock_word), .D_out(clock509_oddr), .locked(oserdes_pll_locked1));
+	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) mylei1 (.clock_in(clock127), .reset(reset), .word_clock_out(), .word_in(clock_word), .D_out(clock509_oddr), .locked(oserdes_pll_locked1));
 	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(PHASE)) mylei2 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock2), .word_in(revo_word), .D_out(revo_oddr), .locked(oserdes_pll_locked2));
 //	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(1.965), .DIVIDE(2), .MULTIPLY(4), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock509), .reset(reset), .word_clock_out(word_clock), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr), .D2_out(revo_oddr), .locked(oserdes_pll_locked));
 //	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(1.965), .DIVIDE(2), .MULTIPLY(4), .SCOPE("BUFPLL")) mylei2 (.clock_in(clock509), .reset(reset), .word_clock_out(word_clock2), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr2), .D2_out(revo_oddr2), .locked(oserdes_pll_locked2));

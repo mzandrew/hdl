@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="35" />
+   <WVObjectSize size="39" />
    <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_local_clock50_in_p" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">joestrummer_local_clock50_in_p</obj_property>
       <obj_property name="ObjectShortName">joestrummer_local_clock50_in_p</obj_property>
@@ -46,6 +46,22 @@
    <wvobject fp_name="/joestrummer_and_rafferty_tb/joestrummer_trg36_p" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">joestrummer_trg36_p</obj_property>
       <obj_property name="ObjectShortName">joestrummer_trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/intermediate0_trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">intermediate0_trg36_p</obj_property>
+      <obj_property name="ObjectShortName">intermediate0_trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/intermediate1_trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">intermediate1_trg36_p</obj_property>
+      <obj_property name="ObjectShortName">intermediate1_trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/delay_select" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">delay_select</obj_property>
+      <obj_property name="ObjectShortName">delay_select</obj_property>
+   </wvobject>
+   <wvobject fp_name="/joestrummer_and_rafferty_tb/intermediate_trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">intermediate_trg36_p</obj_property>
+      <obj_property name="ObjectShortName">intermediate_trg36_p</obj_property>
    </wvobject>
    <wvobject fp_name="/joestrummer_and_rafferty_tb/rafferty/iserdes_reset" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">iserdes_reset</obj_property>

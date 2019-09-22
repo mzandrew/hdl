@@ -15,6 +15,8 @@ module joestrummer_and_rafferty_tb;
 		.local_clock50_in_p(joestrummer_local_clock50_in_p), .local_clock50_in_n(joestrummer_local_clock50_in_n),
 		.local_clock509_in_p(joestrummer_local_clock509_in_p), .local_clock509_in_n(joestrummer_local_clock509_in_n),
 		.clk78_p(), .clk78_n(),
+		.trg_se(),
+		.clk_se(),
 		.trg36_p(joestrummer_trg36_p), .trg36_n(joestrummer_trg36_n),
 		.lemo(joestrummer_lemo),
 		.led_0(joestrummer_led_0), .led_1(joestrummer_led_1), .led_2(joestrummer_led_2), .led_3(joestrummer_led_3),
@@ -23,21 +25,34 @@ module joestrummer_and_rafferty_tb;
 	wire remote_clock_p, remote_clock_n;
 	wire flaky_clock;
 	reg flaky_clock_select = 0;
-	BUFGMUX forky (.I0(joestrummer_lemo), .I1(0'b0), .S(flaky_clock_select), .O(flaky_clock));
+	BUFGMUX forky (.I0(joestrummer_lemo), .I1(1'b0), .S(flaky_clock_select), .O(flaky_clock));
 	OBUFDS comparator (.I(flaky_clock), .O(remote_clock_p), .OB(remote_clock_n));
+	reg delay_select = 0;
 	initial begin
 		joestrummer_local_clock509_in_p = 0; joestrummer_local_clock509_in_n = 1;
 		joestrummer_local_clock50_in_p = 0; joestrummer_local_clock50_in_n = 1;
 		rafferty_local_clock50_in_p <= 0; rafferty_local_clock50_in_n <= 1;
 		rafferty_local_clock509_in_p <= 0; rafferty_local_clock509_in_n <= 1;
-		rafferty_lemo <= 0; rafferty_clock_select <= 0;
+		rafferty_clock_select <= 0;
 		recovered_revo <= 0;
 		flaky_clock_select <= 0;
+		delay_select <= 0;
 		#60000;
 		flaky_clock_select <= 1;
-		#4000;
+		#2000;
+		delay_select <= 1;
+		#2000;
 		flaky_clock_select <= 0;
 	end
+	wire intermediate0_trg36_p, intermediate0_trg36_n;
+	clocked_1ns_delay snip0_p (.in(joestrummer_trg36_p), .out(intermediate0_trg36_p));
+	clocked_1ns_delay snip0_n (.in(joestrummer_trg36_n), .out(intermediate0_trg36_n));
+	wire intermediate1_trg36_p, intermediate1_trg36_n;
+	clocked_2ns_delay snip1_p (.in(joestrummer_trg36_p), .out(intermediate1_trg36_p));
+	clocked_2ns_delay snip1_n (.in(joestrummer_trg36_n), .out(intermediate1_trg36_n));
+	wire intermediate_trg36_p, intermediate_trg36_n;
+	mux mucks_p (.I0(intermediate0_trg36_p), .I1(intermediate1_trg36_p), .S(delay_select), .O(intermediate_trg36_p));
+	mux mucks_n (.I0(intermediate0_trg36_n), .I1(intermediate1_trg36_n), .S(delay_select), .O(intermediate_trg36_n));
 	always begin
 		#1;
 		joestrummer_local_clock509_in_p <= ~joestrummer_local_clock509_in_p; joestrummer_local_clock509_in_n <= ~joestrummer_local_clock509_in_n;
@@ -62,7 +77,7 @@ module joestrummer_and_rafferty_tb;
 	wire rafferty_outa_n;
 	wire rafferty_rsv54_p;
 	wire rafferty_rsv54_n;
-	reg rafferty_lemo = 0;
+	wire rafferty_lemo;
 	wire rafferty_ack12_p;
 	wire rafferty_ack12_n;
 	wire rafferty_led_revo;
@@ -79,8 +94,9 @@ module joestrummer_and_rafferty_tb;
 	wire rafferty_led_7;
 	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea rafferty (
 		.local_clock50_in_p(rafferty_local_clock50_in_p), .local_clock50_in_n(rafferty_local_clock50_in_n),
+		.local_clock509_in_p(1'b0), .local_clock509_in_n(1'b1),
 		.remote_clock509_in_p(remote_clock_p), .remote_clock509_in_n(remote_clock_n),
-		.remote_revo_in_p(joestrummer_trg36_p), .remote_revo_in_n(joestrummer_trg36_n),
+		.remote_revo_in_p(intermediate_trg36_p), .remote_revo_in_n(intermediate_trg36_n),
 		.clk78_p(rafferty_clk78_p), .clk78_n(rafferty_clk78_n),
 		.trg36_p(rafferty_trg36_p), .trg36_n(rafferty_trg36_n),
 		.rsv54_p(rafferty_rsv54_p), .rsv54_n(rafferty_rsv54_n),
@@ -121,6 +137,8 @@ module joestrummer_and_rafferty_and_scrod_tb;
 		.local_clock50_in_p(joestrummer_local_clock50_in_p), .local_clock50_in_n(joestrummer_local_clock50_in_n),
 		.local_clock509_in_p(joestrummer_local_clock509_in_p), .local_clock509_in_n(joestrummer_local_clock509_in_n),
 		.clk78_p(), .clk78_n(),
+		.trg_se(),
+		.clk_se(),
 		.trg36_p(joestrummer_trg36_p), .trg36_n(joestrummer_trg36_n),
 		.lemo(joestrummer_lemo),
 		.led_0(joestrummer_led_0), .led_1(joestrummer_led_1), .led_2(joestrummer_led_2), .led_3(joestrummer_led_3),
@@ -131,7 +149,7 @@ module joestrummer_and_rafferty_and_scrod_tb;
 		joestrummer_local_clock50_in_p = 0; joestrummer_local_clock50_in_n = 1;
 		rafferty_local_clock50_in_p <= 0; rafferty_local_clock50_in_n <= 1;
 		rafferty_local_clock509_in_p <= 0; rafferty_local_clock509_in_n <= 1;
-		rafferty_lemo <= 0; rafferty_clock_select <= 0;
+		rafferty_clock_select <= 0;
 		recovered_revo <= 0;
 		scrod_reset <= 1;
 		#100;
@@ -168,7 +186,7 @@ module joestrummer_and_rafferty_and_scrod_tb;
 	wire rafferty_outa_n;
 	wire rafferty_rsv54_p;
 	wire rafferty_rsv54_n;
-	reg rafferty_lemo = 0;
+	wire rafferty_lemo;
 	wire rafferty_ack12_p;
 	wire rafferty_ack12_n;
 	wire rafferty_led_revo;
@@ -187,6 +205,7 @@ module joestrummer_and_rafferty_and_scrod_tb;
 	OBUFDS samwise (.I(joestrummer_lemo), .O(remote_clock_p), .OB(remote_clock_n));
 	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea rafferty (
 		.local_clock50_in_p(rafferty_local_clock50_in_p), .local_clock50_in_n(rafferty_local_clock50_in_n),
+		.local_clock509_in_p(1'b0), .local_clock509_in_n(1'b1),
 		.remote_clock509_in_p(remote_clock_p), .remote_clock509_in_n(remote_clock_n),
 		.remote_revo_in_p(joestrummer_trg36_p), .remote_revo_in_n(joestrummer_trg36_n),
 		.clk78_p(rafferty_clk78_p), .clk78_n(rafferty_clk78_n),
