@@ -20,6 +20,11 @@ module joestrummer_and_rafferty_tb;
 		.led_0(joestrummer_led_0), .led_1(joestrummer_led_1), .led_2(joestrummer_led_2), .led_3(joestrummer_led_3),
 		.led_4(joestrummer_led_4), .led_5(joestrummer_led_5), .led_6(joestrummer_led_6), .led_7(joestrummer_led_7)
 	);
+	wire remote_clock_p, remote_clock_n;
+	wire flaky_clock;
+	reg flaky_clock_select = 0;
+	BUFGMUX forky (.I0(joestrummer_lemo), .I1(0'b0), .S(flaky_clock_select), .O(flaky_clock));
+	OBUFDS comparator (.I(flaky_clock), .O(remote_clock_p), .OB(remote_clock_n));
 	initial begin
 		joestrummer_local_clock509_in_p = 0; joestrummer_local_clock509_in_n = 1;
 		joestrummer_local_clock50_in_p = 0; joestrummer_local_clock50_in_n = 1;
@@ -27,6 +32,11 @@ module joestrummer_and_rafferty_tb;
 		rafferty_local_clock509_in_p <= 0; rafferty_local_clock509_in_n <= 1;
 		rafferty_lemo <= 0; rafferty_clock_select <= 0;
 		recovered_revo <= 0;
+		flaky_clock_select <= 0;
+		#60000;
+		flaky_clock_select <= 1;
+		#4000;
+		flaky_clock_select <= 0;
 	end
 	always begin
 		#1;
@@ -67,8 +77,6 @@ module joestrummer_and_rafferty_tb;
 	wire rafferty_led_5;
 	wire rafferty_led_6;
 	wire rafferty_led_7;
-	wire remote_clock_p, remote_clock_n;
-	OBUFDS samwise (.I(joestrummer_lemo), .O(remote_clock_p), .OB(remote_clock_n));
 	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea rafferty (
 		.local_clock50_in_p(rafferty_local_clock50_in_p), .local_clock50_in_n(rafferty_local_clock50_in_n),
 		.remote_clock509_in_p(remote_clock_p), .remote_clock509_in_n(remote_clock_n),

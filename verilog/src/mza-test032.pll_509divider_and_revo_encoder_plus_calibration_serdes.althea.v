@@ -48,22 +48,33 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	end
 	// ----------------------------------------------------------------------
 	reg iserdes_reset = 1;
-	reg pll_127_127_reset = 1;
+	reg pll_127_127_reset_1 = 1;
+	reg pll_127_127_reset_2 = 0;
+	wire pll_127_127_reset;
+	assign pll_127_127_reset = pll_127_127_reset_1 | pll_127_127_reset_2;
 	reg [25:0] counter = 0;
+	parameter PLL_NOT_LOCKED_COUNTER_MAX = 64;
+	reg [9:0] pll_not_locked_counter = 0;
+	reg pll_lost_lock = 0;
 	wire local_clock50;
 	IBUFGDS local_input_clock50_instance (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(local_clock50));
+	//always @(posedge local_clock50 or negedge pll_127_127_locked) begin
 	always @(posedge local_clock50) begin
 		if (iserdes_reset) begin
-			counter <= 0;
 			led_revo <= 0;
-			pll_127_127_reset <= 1;
 			acknowledge_that_we_saw_a_trigger_recently <= 0;
+		end
+		if ((~pll_127_127_reset) & (~pll_127_127_locked)) begin
+			if (PLL_NOT_LOCKED_COUNTER_MAX < pll_not_locked_counter) begin
+				pll_lost_lock <= 1;
+			end
+			pll_not_locked_counter <= pll_not_locked_counter + 1'b1;
 		end
 		if (counter[10]) begin
 			iserdes_reset <= 0;
 		end
 		if (counter[11]) begin
-			pll_127_127_reset <= 0;
+			pll_127_127_reset_1 <= 0;
 		end
 		if (counter[18:0]==0) begin
 			if (saw_a_trigger_recently) begin
@@ -75,6 +86,13 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			end
 		end
 		counter <= counter + 1'b1;
+		if (pll_lost_lock) begin
+			pll_127_127_reset_2 <= 1;
+			pll_lost_lock <= 0;
+			pll_not_locked_counter <= 0;
+		end else begin
+			pll_127_127_reset_2 <= 0;
+		end
 	end
 	// ----------------------------------------------------------------------
 	wire [3:0] revo_stream127;
