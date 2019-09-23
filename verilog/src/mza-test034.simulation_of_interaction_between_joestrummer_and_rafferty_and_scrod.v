@@ -96,7 +96,10 @@ module joestrummer_and_rafferty_tb;
 	wire rafferty_led_5;
 	wire rafferty_led_6;
 	wire rafferty_led_7;
-	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea rafferty (
+	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea #(
+			.PLL_NOT_LOCKED_COUNTER_MAX(50),
+			.PULSE_COUNT_MIN(10)
+	) rafferty (
 		.local_clock50_in_p(rafferty_local_clock50_in_p), .local_clock50_in_n(rafferty_local_clock50_in_n),
 		.local_clock509_in_p(1'b0), .local_clock509_in_n(1'b1),
 		.remote_clock509_in_p(remote_clock_p), .remote_clock509_in_n(remote_clock_n),
@@ -207,7 +210,10 @@ module joestrummer_and_rafferty_and_scrod_tb;
 	wire rafferty_led_7;
 	wire remote_clock_p, remote_clock_n;
 	OBUFDS samwise (.I(joestrummer_lemo), .O(remote_clock_p), .OB(remote_clock_n));
-	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea rafferty (
+	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea #(
+			.PLL_NOT_LOCKED_COUNTER_MAX(50),
+			.PULSE_COUNT_MIN(10)
+	) rafferty (
 		.local_clock50_in_p(rafferty_local_clock50_in_p), .local_clock50_in_n(rafferty_local_clock50_in_n),
 		.local_clock509_in_p(1'b0), .local_clock509_in_n(1'b1),
 		.remote_clock509_in_p(remote_clock_p), .remote_clock509_in_n(remote_clock_n),

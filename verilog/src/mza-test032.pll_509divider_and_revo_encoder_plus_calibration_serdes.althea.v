@@ -6,7 +6,10 @@
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
-module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea (
+module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea #(
+	parameter PLL_NOT_LOCKED_COUNTER_MAX = 16384, // simulation only needed ~30, but 512 isn't enough for reality, so picked this
+	parameter PULSE_COUNT_MIN = 131072
+) (
 	input local_clock50_in_p, local_clock50_in_n,
 	input local_clock509_in_p, local_clock509_in_n,
 	input remote_clock509_in_p, remote_clock509_in_n,
@@ -51,7 +54,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire pll_127_127_reset;
 	assign pll_127_127_reset = pll_127_127_reset_1 | pll_127_127_reset_2;
 	reg [25:0] counter = 0;
-	parameter PLL_NOT_LOCKED_COUNTER_MAX = 16384; // simulation only needed ~30, but 512 isn't enough for reality, so picked this
 	reg [20:0] pll_not_locked_counter = 0;
 	reg pll_lost_lock = 0;
 	wire local_clock50;
@@ -131,7 +133,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	reg [32:0] histogram11 = 0;
 	reg [32:0] histogram0s = 0;
 	reg [32:0] histogram1s = 0;
-	localparam PULSE_COUNT_MIN = 131072;
 	reg [34:0] pulse_count = 0;
 	always @(posedge revo_stream_clock127 or posedge pll_127_127_reset or negedge pll_127_127_locked) begin
 		if (iserdes_reset | pll_127_127_reset | (~pll_127_127_locked)) begin
@@ -254,9 +255,17 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	end
 	// ----------------------------------------------------------------------
 	wire clock127_oddr;
-	ODDR2 doughnut127 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_oddr));
+	if (1) begin
+		ODDR2 o127 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_oddr));
+	end else begin
+		ODDR2 o127 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_oddr));
+	end
 	wire clock127_encoded_trg_oddr;
-	ODDR2 doughnut2 (.C0(clock127), .C1(clock127b), .CE(trg_inv),  .D0(1'b0), .D1(1'b1), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_encoded_trg_oddr));
+	if (1) begin
+		ODDR2 revoenc (.C0(clock127), .C1(clock127b), .CE(1'b1),  .D0(trg), .D1(trg_inv), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_encoded_trg_oddr));
+	end else begin
+		ODDR2 revoenc (.C0(clock127), .C1(clock127b), .CE(1'b1),  .D0(trg_inv), .D1(trg), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_encoded_trg_oddr));
+	end
 //	wire clock509a, clock509b;
 //	BUFG a (.I(raw_clock509a), .O(clock509a));
 //	BUFG b (.I(raw_clock509b), .O(clock509b));
@@ -280,7 +289,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 //		OBUFDS supercool1 (.I(0'b0), .O(clk78_p), .OB(clk78_n));
 //		OBUFDS supercool2 (.I(select2[1]), .O(trg36_p), .OB(trg36_n));
 //		OBUFDS supercool2 (.I(trg), .O(trg36_p), .OB(trg36_n));
-//		OBUFDS out1 (.I(clock127_encoded_trg_oddr2), .O(out1_p), .OB(out1_n));
 //		OBUFDS out1 (.I(select2[1]), .O(out1_p), .OB(out1_n));
 //		OBUFDS outa (.I(clock127_oddr), .O(outa_p), .OB(outa_n));
 //		OBUFDS outa (.I(data), .O(outa_p), .OB(outa_n));
@@ -292,16 +300,23 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		OBUFDS trg36 (.I(clock127_encoded_trg_oddr), .O(trg36_p), .OB(trg36_n));
 //		OBUFDS rsv54 (.I(data), .O(rsv54_p), .OB(rsv54_n));
 		OBUFDS clk78 (.I(clock127_oddr), .O(clk78_p), .OB(clk78_n));
+		wire ack12;
+		IBUFDS ackbuf (.I(ack12_p), .IB(ack12_n), .O(ack12));
+		wire rsv54;
+		IBUFDS rsvbuf (.I(rsv54_p), .IB(rsv54_n), .O(rsv54));
 		if (0) begin
 			OBUFDS out1 (.I(rawtrg), .O(out1_p), .OB(out1_n));
 			OBUFDS outa (.I(trg), .O(outa_p), .OB(outa_n));
+		end else if (0) begin
+			wire clock127_oddr2;
+			ODDR2 doughnut127a (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_oddr2));
+			OBUFDS outa (.I(clock127_oddr2), .O(outa_p), .OB(outa_n));
+			wire clock127_encoded_trg_oddr2;
+			ODDR2 doughnut2a (.C0(clock127), .C1(clock127b), .CE(1'b1),  .D0(trg), .D1(trg_inv), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_encoded_trg_oddr2));
+			OBUFDS out1 (.I(clock127_encoded_trg_oddr2), .O(out1_p), .OB(out1_n));
 		end else begin
-			wire returned_frame9;
-			IBUFDS ack (.I(ack12_p), .IB(ack12_n), .O(returned_frame9));
-			OBUFDS outa (.I(returned_frame9), .O(outa_p), .OB(outa_n));
-			wire returned_xrm_trigger;
-			IBUFDS rsv (.I(rsv54_p), .IB(rsv54_n), .O(returned_xrm_trigger));
-			OBUFDS out1 (.I(returned_xrm_trigger), .O(out1_p), .OB(out1_n));
+			OBUFDS outa (.I(ack12), .O(outa_p), .OB(outa_n));
+			OBUFDS out1 (.I(rsv54), .O(out1_p), .OB(out1_n));
 		end
 //		         if (0) begin
 //		end else if (0) begin
@@ -359,7 +374,10 @@ module rafferty_tb;
 	reg rafferty_clock_select = 0;
 	wire rafferty_led_0, rafferty_led_1, rafferty_led_2, rafferty_led_3;
 	wire rafferty_led_4, rafferty_led_5, rafferty_led_6, rafferty_led_7;
-	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea rafferty (
+	mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea #(
+			.PLL_NOT_LOCKED_COUNTER_MAX(50),
+			.PULSE_COUNT_MIN(10)
+		) rafferty (
 		.local_clock50_in_p(rafferty_local_clock50_in_p), .local_clock50_in_n(rafferty_local_clock50_in_n),
 		.remote_clock509_in_p(rafferty_remote_clock509_in_p), .remote_clock509_in_n(rafferty_remote_clock509_in_n),
 		.remote_revo_in_p(rafferty_remote_revo_in_p), .remote_revo_in_n(rafferty_remote_revo_in_n),
