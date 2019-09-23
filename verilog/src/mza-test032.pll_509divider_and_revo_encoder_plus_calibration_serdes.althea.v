@@ -53,8 +53,8 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire pll_127_127_reset;
 	assign pll_127_127_reset = pll_127_127_reset_1 | pll_127_127_reset_2;
 	reg [25:0] counter = 0;
-	parameter PLL_NOT_LOCKED_COUNTER_MAX = 64;
-	reg [9:0] pll_not_locked_counter = 0;
+	parameter PLL_NOT_LOCKED_COUNTER_MAX = 16384; // simulation only needed ~30, but 512 isn't enough for reality, so picked this
+	reg [20:0] pll_not_locked_counter = 0;
 	reg pll_lost_lock = 0;
 	wire local_clock50;
 	IBUFGDS local_input_clock50_instance (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(local_clock50));
@@ -85,7 +85,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 				acknowledge_that_we_saw_a_trigger_recently <= 0;
 			end
 		end
-		counter <= counter + 1'b1;
 		if (pll_lost_lock) begin
 			pll_127_127_reset_2 <= 1;
 			pll_lost_lock <= 0;
@@ -93,6 +92,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		end else begin
 			pll_127_127_reset_2 <= 0;
 		end
+		counter <= counter + 1'b1;
 	end
 	// ----------------------------------------------------------------------
 	wire [3:0] revo_stream127;
@@ -133,14 +133,51 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	reg [32:0] histogram11 = 0;
 	reg [32:0] histogram0s = 0;
 	reg [32:0] histogram1s = 0;
-	localparam PULSE_COUNT_MIN = 10;
+	localparam PULSE_COUNT_MIN = 131072;
 	reg [34:0] pulse_count = 0;
-	always @(posedge revo_stream_clock127 or negedge pll_127_127_locked) begin
-		if (iserdes_reset | pll_127_127_reset | ~pll_127_127_locked) begin
-			select2 <= 0;
-			phase_locked <= 0;
+	always @(posedge revo_stream_clock127 or posedge pll_127_127_reset or negedge pll_127_127_locked) begin
+		if (iserdes_reset | pll_127_127_reset | (~pll_127_127_locked)) begin
 			revo_stream_synchronizer_reset <= 1;
+			phase_locked <= 0;
+			pulse_count <= 0;
+			select2 <= 0;
+			selectsx <= 0;
+			select0s <= 0;
+			select1s <= 0;
+			histogram0s <= 0;
+			histogram1s <= 0;
+			histogram00 <= 0;
+			histogram01 <= 0;
+			histogram10 <= 0;
+			histogram11 <= 0;
 		end else begin
+			if (phase_locked) begin
+				revo_stream_synchronizer_reset <= 0;
+			end else if (PULSE_COUNT_MIN < pulse_count) begin
+				revo_stream_synchronizer_reset <= 1;
+				select2 <= selectsx;
+				phase_locked <= 1;
+				// maybe clear the count and histograms at this point?  Or add a pulse_count_max to do that...
+			end
+			if (histogram0s < histogram1s) begin // slight preference for 2'b0x here
+				selectsx <= { 1'b1, select1s };
+			end else begin
+				selectsx <= { 1'b0, select0s };
+			end
+			if (histogram00 < histogram01) begin // slight preference for 2'b00 here
+				select0s <= 1;
+				histogram0s <= histogram01;
+			end else begin
+				select0s <= 0;
+				histogram0s <= histogram00;
+			end
+			if (histogram10 < histogram11) begin // slight preference for 2'b10 here
+				select1s <= 1;
+				histogram1s <= histogram11;
+			end else begin
+				select1s <= 0;
+				histogram1s <= histogram10;
+			end
 			case (pulse_revo_stream127)
 				4'b1111 : begin histogram11 <= histogram11 + 1'b1; pulse_count <= pulse_count + 1'b1; end
 				4'b1110 : begin histogram00 <= histogram00 + 1'b1; pulse_count <= pulse_count + 1'b1; end
@@ -148,39 +185,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 				4'b1000 : begin histogram10 <= histogram10 + 1'b1; pulse_count <= pulse_count + 1'b1; end
 			default : begin end
 			endcase
-			if (phase_locked) begin
-				revo_stream_synchronizer_reset <= 0;
-			end else if (PULSE_COUNT_MIN < pulse_count) begin
-				select2 <= selectsx;
-				phase_locked <= 1;
-				revo_stream_synchronizer_reset <= 1;
-				// maybe clear the count and histograms at this point?  Or add a pulse_count_max to do that...
-//				pulse_count <= 0;
-//				histogram00 <= 0;
-//				histogram01 <= 0;
-//				histogram10 <= 0;
-//				histogram11 <= 0;
-			end else begin
-				if (histogram0s < histogram1s) begin // slight preference for 2'b0x here
-					selectsx <= { 1'b1, select1s };
-				end else begin
-					selectsx <= { 1'b0, select0s };
-				end
-				if (histogram00 < histogram01) begin // slight preference for 2'b00 here
-					select0s <= 1;
-					histogram0s <= histogram01;
-				end else begin
-					select0s <= 0;
-					histogram0s <= histogram00;
-				end
-				if (histogram10 < histogram11) begin // slight preference for 2'b10 here
-					select1s <= 1;
-					histogram1s <= histogram11;
-				end else begin
-					select1s <= 0;
-					histogram1s <= histogram10;
-				end
-			end
 		end
 	end
 	wire clock127_0s;
@@ -307,14 +311,25 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			OBUFDS outa (.I(clock127_oddr2), .O(outa_p), .OB(outa_n));
 		end
 	end
-	assign led_7 = pll_127_127_locked;
-	assign led_6 = phase_locked;
-	assign led_5 = revo_stream_synchronizer_reset;
-	assign led_4 = pll_oserdes_locked;
-	assign led_3 = selectsx[1];
-	assign led_2 = selectsx[0];
-	assign led_1 = select2[1];
-	assign led_0 = select2[0];
+	if (0) begin
+		assign led_7 = pll_127_127_locked;
+		assign led_6 = phase_locked;
+		assign led_5 = revo_stream_synchronizer_reset;
+		assign led_4 = pll_oserdes_locked;
+		assign led_3 = selectsx[1];
+		assign led_2 = selectsx[0];
+		assign led_1 = select2[1];
+		assign led_0 = select2[0];
+	end else begin
+		assign led_7 = iserdes_reset;
+		assign led_6 = 0;
+		assign led_5 = pll_127_127_reset;
+		assign led_4 = 0;
+		assign led_3 = ~pll_127_127_locked;
+		assign led_2 = 0;
+		assign led_1 = revo_stream_synchronizer_reset;
+		assign led_0 = 0;
+	end
 endmodule
 
 module rafferty_tb;
