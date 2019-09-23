@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2019-09-22 by mza
+// last updated 2019-09-23 by mza
 // this code runs on an althea connected to a RAFFERTY board
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
@@ -29,8 +29,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire clock509;
 	IBUFGDS remote_input_clock509_instance (.I(remote_clock509_in_p), .IB(remote_clock509_in_n), .O(remote_clock509));
 	IBUFGDS local_input_clock509_instance (.I(local_clock509_in_p), .IB(local_clock509_in_n), .O(local_clock509));
-	IBUFDS dummy_ack (.I(ack12_p), .IB(ack12_n), .O());
-	IBUFDS dummy_rsv (.I(rsv54_p), .IB(rsv54_n), .O());
 	assign driven_high = 1;
 //	BUFGMUX #(.CLK_SEL_TYPE("ASYNC")) clock_selection_instance (.I0(remote_clock509), .I1(local_clock509), .S(clock_select), .O(clock509));
 	assign clock509 = remote_clock509;
@@ -294,22 +292,31 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		OBUFDS trg36 (.I(clock127_encoded_trg_oddr), .O(trg36_p), .OB(trg36_n));
 //		OBUFDS rsv54 (.I(data), .O(rsv54_p), .OB(rsv54_n));
 		OBUFDS clk78 (.I(clock127_oddr), .O(clk78_p), .OB(clk78_n));
-		OBUFDS out1 (.I(rawtrg), .O(out1_p), .OB(out1_n));
-		         if (0) begin
-			OBUFDS outa (.I(|other_revo_stream127), .O(outa_p), .OB(outa_n));
-		end else if (0) begin
-			OBUFDS outa (.I(long_trg), .O(outa_p), .OB(outa_n));
-		end else if (0) begin
-			OBUFDS outa (.I(short_trg), .O(outa_p), .OB(outa_n));
-		end else if (1) begin
+		if (0) begin
+			OBUFDS out1 (.I(rawtrg), .O(out1_p), .OB(out1_n));
 			OBUFDS outa (.I(trg), .O(outa_p), .OB(outa_n));
-		end else if (0) begin
-			OBUFDS outa (.I(trg_inv), .O(outa_p), .OB(outa_n));
 		end else begin
-			wire clock127_oddr2;
-			ODDR2 doughnut127_2 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_oddr2));
-			OBUFDS outa (.I(clock127_oddr2), .O(outa_p), .OB(outa_n));
+			wire returned_frame9;
+			IBUFDS ack (.I(ack12_p), .IB(ack12_n), .O(returned_frame9));
+			OBUFDS outa (.I(returned_frame9), .O(outa_p), .OB(outa_n));
+			wire returned_xrm_trigger;
+			IBUFDS rsv (.I(rsv54_p), .IB(rsv54_n), .O(returned_xrm_trigger));
+			OBUFDS out1 (.I(returned_xrm_trigger), .O(out1_p), .OB(out1_n));
 		end
+//		         if (0) begin
+//		end else if (0) begin
+//			OBUFDS outa (.I(long_trg), .O(outa_p), .OB(outa_n));
+//		end else if (0) begin
+//			OBUFDS outa (.I(short_trg), .O(outa_p), .OB(outa_n));
+//		end else if (0) begin
+//			OBUFDS outa (.I(|other_revo_stream127), .O(outa_p), .OB(outa_n));
+//		end else if (0) begin
+//			OBUFDS outa (.I(trg_inv), .O(outa_p), .OB(outa_n));
+//		end else begin
+//			wire clock127_oddr2;
+//			ODDR2 doughnut127_2 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_oddr2));
+//			OBUFDS outa (.I(clock127_oddr2), .O(outa_p), .OB(outa_n));
+//		end
 	end
 	if (0) begin
 		assign led_7 = pll_127_127_locked;
