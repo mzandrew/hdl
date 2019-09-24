@@ -314,9 +314,16 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			wire clock127_encoded_trg_oddr2;
 			ODDR2 doughnut2a (.C0(clock127), .C1(clock127b), .CE(1'b1),  .D0(trg), .D1(trg_inv), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_encoded_trg_oddr2));
 			OBUFDS out1 (.I(clock127_encoded_trg_oddr2), .O(out1_p), .OB(out1_n));
-		end else begin
-			OBUFDS outa (.I(ack12), .O(outa_p), .OB(outa_n));
+		end else if (0) begin
 			OBUFDS out1 (.I(rsv54), .O(out1_p), .OB(out1_n));
+			OBUFDS outa (.I(ack12), .O(outa_p), .OB(outa_n));
+		end else begin
+			wire recovered_ack;
+			IDDR2 #(.DDR_ALIGNMENT("C0")) ackack (.D(ack12), .C0(clock127), .C1(clock127b), .CE(1'b1), .R(1'b0), .S(1'b0), .Q0(recovered_ack), .Q1());
+			wire recovered_rsv;
+			IDDR2 #(.DDR_ALIGNMENT("C0")) rsvrsv (.D(rsv54), .C0(clock127), .C1(clock127b), .CE(1'b1), .R(1'b0), .S(1'b0), .Q0(recovered_rsv), .Q1());
+			OBUFDS out1 (.I(recovered_rsv), .O(out1_p), .OB(out1_n));
+			OBUFDS outa (.I(recovered_ack), .O(outa_p), .OB(outa_n));
 		end
 //		         if (0) begin
 //		end else if (0) begin
