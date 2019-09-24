@@ -255,13 +255,13 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	end
 	// ----------------------------------------------------------------------
 	wire clock127_oddr;
-	if (1) begin
+	if (0) begin
 		ODDR2 o127 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_oddr));
 	end else begin
 		ODDR2 o127 (.C0(clock127), .C1(clock127b), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_oddr));
 	end
 	wire clock127_encoded_trg_oddr;
-	if (1) begin
+	if (0) begin
 		ODDR2 revoenc (.C0(clock127), .C1(clock127b), .CE(1'b1),  .D0(trg), .D1(trg_inv), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_encoded_trg_oddr));
 	end else begin
 		ODDR2 revoenc (.C0(clock127), .C1(clock127b), .CE(1'b1),  .D0(trg_inv), .D1(trg), .R(revo_stream_synchronizer_reset), .S(1'b0), .Q(clock127_encoded_trg_oddr));
