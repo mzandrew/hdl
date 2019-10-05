@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2019-09-23 by mza
+// last updated 2019-10-04 by mza
 // this code runs on an althea connected to a RAFFERTY board
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
@@ -318,12 +318,12 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 			OBUFDS out1 (.I(rsv54), .O(out1_p), .OB(out1_n));
 			OBUFDS outa (.I(ack12), .O(outa_p), .OB(outa_n));
 		end else begin
-			wire recovered_ack;
-			IDDR2 #(.DDR_ALIGNMENT("C0")) ackack (.D(ack12), .C0(clock127), .C1(clock127b), .CE(1'b1), .R(1'b0), .S(1'b0), .Q0(recovered_ack), .Q1());
-			wire recovered_rsv;
-			IDDR2 #(.DDR_ALIGNMENT("C0")) rsvrsv (.D(rsv54), .C0(clock127), .C1(clock127b), .CE(1'b1), .R(1'b0), .S(1'b0), .Q0(recovered_rsv), .Q1());
-			OBUFDS out1 (.I(recovered_rsv), .O(out1_p), .OB(out1_n));
-			OBUFDS outa (.I(recovered_ack), .O(outa_p), .OB(outa_n));
+			wire recovered_ack_0, recovered_ack_1;
+			IDDR2 #(.DDR_ALIGNMENT("NONE")) ackack (.D(ack12), .C0(clock127), .C1(clock127b), .CE(1'b1), .R(1'b0), .S(1'b0), .Q0(recovered_ack_0), .Q1(recovered_ack_1));
+			wire recovered_rsv_0, recovered_rsv_1;
+			IDDR2 #(.DDR_ALIGNMENT("NONE")) rsvrsv (.D(rsv54), .C0(clock127), .C1(clock127b), .CE(1'b1), .R(1'b0), .S(1'b0), .Q0(recovered_rsv_0), .Q1(recovered_rsv_1));
+			OBUFDS out1 (.I(recovered_rsv_0), .O(out1_p), .OB(out1_n));
+			OBUFDS outa (.I(recovered_ack_0), .O(outa_p), .OB(outa_n));
 		end
 //		         if (0) begin
 //		end else if (0) begin
