@@ -39,11 +39,11 @@ net lemo_output loc=p93 | iostandard=lvcmos25 | slew=fast | drive=24;
 net lvds_trig_input_p loc=p117 | iostandard=lvds_25 | diff_term=true; // C+
 net lvds_trig_input_n loc=p116 | iostandard=lvds_25 | diff_term=true; // C-
 
-net lvds_trig_output_1_p loc=p142 | iostandard=lvds_25; // F+;
-net lvds_trig_output_1_n loc=p141 | iostandard=lvds_25; // F-;
+#net lvds_trig_output_1_p loc=p142 | iostandard=lvds_25; // F+;
+#net lvds_trig_output_1_n loc=p141 | iostandard=lvds_25; // F-;
 
-#net lvds_trig_output_2_p loc=p112 | iostandard=lvds_25; // A+;
-#net lvds_trig_output_2_n loc=p111 | iostandard=lvds_25; // A-;
+net lvds_trig_output_1_p loc=p112 | iostandard=lvds_25; // A+;
+net lvds_trig_output_1_n loc=p111 | iostandard=lvds_25; // A-;
 
 net self_triggered_mode_switch loc=p56 | iostandard=lvcmos25 | pullup = true; // K+
 
