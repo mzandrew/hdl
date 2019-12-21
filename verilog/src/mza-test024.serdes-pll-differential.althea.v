@@ -6,9 +6,11 @@ module mza_test024_serdes_pll_differential_althea (
 	input clock_p,
 	input clock_n,
 	input self_triggered_mode_switch,
-	output lemo_output,
-	input lvds_trig_input_p,
-	input lvds_trig_input_n,
+	input pass_through_mode,
+	input lemo_input,
+//	output lemo_output,
+//	input lvds_trig_input_p,
+//	input lvds_trig_input_n,
 	output lvds_trig_output_1_p,
 	output lvds_trig_output_1_n,
 //	output lvds_trig_output_2_p,
@@ -39,7 +41,7 @@ module mza_test024_serdes_pll_differential_althea (
 	//OBUFDS catcat2 (.I(lvds_trig_output_T), .O(lvds_trig_output_2_p), .OB(lvds_trig_output_2_n));
 	//assign lvds_trig_output_T = sync;
 	//assign lvds_trig_output_T = T;
-	assign lemo_output = sync;
+//	assign lemo_output = sync;
 //	assign lemo_output = D;
 	reg [WIDTH-1:0] word;
 	wire [7:0] led_byte;
@@ -57,14 +59,17 @@ module mza_test024_serdes_pll_differential_althea (
 		end
 		reset1_counter <= reset1_counter + 1'b1;
 	end
-	wire trigger_input;
-	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
+	reg trigger_input = 0;
+//	wire trigger_input;
+//	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
 	reg [1:0] token;
 	reg [2:0] trigger_stream;
 	localparam first  = ~ 8'b11111111;
 	localparam second = ~ 8'b11110001;
 	localparam third  = ~ 8'b10001000;
 	localparam forth  = ~ 8'b10101010;
+	localparam on     = ~ 8'b11111111;
+	localparam off    = ~ 8'b00000000;
 	localparam pickoff = 24;
 	always @(posedge word_clock) begin // 125.0 MHz
 		if (reset2) begin
@@ -78,7 +83,13 @@ module mza_test024_serdes_pll_differential_althea (
 		end
 		word <= ~ 8'b00000000;
 		sync <= 0;
-		if (self_triggered_mode_switch) begin
+		if (pass_through_mode) begin
+			if (lemo_input) begin
+				word <= on;
+			end else begin
+				word <= off;
+			end
+		end else if (self_triggered_mode_switch) begin
 			if (counter[pickoff:0]==0) begin
 				         if (counter[pickoff+2:pickoff+1]==2'b00) begin
 					sync <= 1;
