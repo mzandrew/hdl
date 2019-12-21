@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2019-08-19 by mza
+// last updated 2019-12-20 by mza
 
 module mza_test024_serdes_pll_differential_althea (
 	input clock_p,
@@ -11,8 +11,8 @@ module mza_test024_serdes_pll_differential_althea (
 	input lvds_trig_input_n,
 	output lvds_trig_output_1_p,
 	output lvds_trig_output_1_n,
-	output lvds_trig_output_2_p,
-	output lvds_trig_output_2_n,
+//	output lvds_trig_output_2_p,
+//	output lvds_trig_output_2_n,
 	output led_0,
 	output led_1,
 	output led_2,
@@ -35,11 +35,10 @@ module mza_test024_serdes_pll_differential_althea (
 //	assign lvds_trig_output_D = sync;
 	assign lvds_trig_output_D = D;
 	OBUFDS catcat1 (.I(lvds_trig_output_D), .O(lvds_trig_output_1_p), .OB(lvds_trig_output_1_n));
-	wire T;
-	wire lvds_trig_output_T;
-	OBUFDS catcat2 (.I(lvds_trig_output_T), .O(lvds_trig_output_2_p), .OB(lvds_trig_output_2_n));
+	//wire lvds_trig_output_T;
+	//OBUFDS catcat2 (.I(lvds_trig_output_T), .O(lvds_trig_output_2_p), .OB(lvds_trig_output_2_n));
 	//assign lvds_trig_output_T = sync;
-	assign lvds_trig_output_T = T;
+	//assign lvds_trig_output_T = T;
 	assign lemo_output = sync;
 //	assign lemo_output = D;
 	reg [WIDTH-1:0] word;
@@ -48,7 +47,7 @@ module mza_test024_serdes_pll_differential_althea (
 	reg [7:0] led_reg;
 	assign led_byte = led_reg;
 	//assign led_byte = ~ word;
-	ocyrus_single8 #(.WIDTH(WIDTH), .PERIOD(20.0), .DIVIDE(2), .MULTIPLY(40)) mylei (.clock_in(other_clock), .reset(reset1), .word_clock_out(word_clock), .word_in(word), .D_out(D), .T_out(T), .locked());
+	ocyrus_single8 #(.BIT_WIDTH(WIDTH), .PERIOD(20.0), .DIVIDE(2), .MULTIPLY(40), .SCOPE("BUFPLL")) mylei (.clock_in(other_clock), .reset(reset1), .word_clock_out(word_clock), .word_in(word), .D_out(D), .locked());
 	reg [12:0] reset1_counter = 0;
 	always @(posedge other_clock) begin // 50.0 MHz
 		if (reset1) begin
@@ -75,8 +74,10 @@ module mza_test024_serdes_pll_differential_althea (
 				reset2 <= 0;
 			end
 			led_reg <= 0;
+			sync <= 0;
 		end
 		word <= ~ 8'b00000000;
+		sync <= 0;
 		if (self_triggered_mode_switch) begin
 			if (counter[pickoff:0]==0) begin
 				         if (counter[pickoff+2:pickoff+1]==2'b00) begin
@@ -84,13 +85,15 @@ module mza_test024_serdes_pll_differential_althea (
 					word <= first;
 					led_reg <= first;
 				end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
-					sync <= 0;
+					sync <= 1;
 					word <= second;
 					led_reg <= second;
 				end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
+					sync <= 1;
 					word <= third;
 					led_reg <= third;
 				end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
+					sync <= 1;
 					word <= forth;
 					led_reg <= forth;
 				end
