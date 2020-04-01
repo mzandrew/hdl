@@ -1,7 +1,7 @@
-source [find interface/ftdi/digilent-hs1.cfg]
-ftdi_serial "210205813018"
+#source [find interface/ftdi/digilent-hs1.cfg]
+#ftdi_serial "210205813018"
 #source [find interface/ftdi/digilent-hs2.cfg]
-#source [find interface/ftdi/digilent_jtag_hs3.cfg]
+source [find interface/ftdi/digilent_jtag_hs3.cfg]
 #ftdi_serial "210299A568EA"
 adapter_khz 10000
 transport select jtag
