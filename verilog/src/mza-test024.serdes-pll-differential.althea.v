@@ -1,6 +1,7 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
 // last updated 2019-12-20 by mza
+// works on a laser driver revE
 
 module mza_test024_serdes_pll_differential_althea (
 	input clock_p,
