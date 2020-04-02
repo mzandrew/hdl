@@ -1,5 +1,8 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
+// content borrowed from mza-test017.serializer-ram.v
+// content borrowed from mza-test031.clock509_and_revo_generator.althea.v
+// content borrowed from mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v
 // last updated 2020-04-02 by mza
 
 module function_generator_althea #(
@@ -15,17 +18,45 @@ module function_generator_althea #(
 	wire [7:0] leds;
 	assign { led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7 } = leds;
 	IBUFDS clocky (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(clock));
-	reg [DATA_BUS_WIDTH-1:0] data_in = 8'h5a;
-	reg [ADDRESS_BUS_DEPTH-1:0] write_address = 10'b000001000;
+	reg [DATA_BUS_WIDTH-1:0] data_in = 0;
+	reg [ADDRESS_BUS_DEPTH-1:0] write_address = 0;
 	reg write_enable = 1;
-	wire reset;
-	assign reset = 0;
+	reg initialized = 0;
+	reg reset = 1;
+	reg [7:0] reset_counter = 0;
+	localparam PRBSWIDTH = 128;
+	wire [PRBSWIDTH-1:0] rand;
+	reg [PRBSWIDTH-1:0] buffered_rand = 0;
+	prbs #(.WIDTH(PRBSWIDTH)) mrpibs (.clock(clock), .reset(reset), .word(rand));
+	localparam MAX_ADDRESS = 1023;
 	always @(posedge clock) begin
 		if (reset) begin
-			data_in <= 8'ha5;
-			write_address <= 10'b0010000000;
+			data_in <= 0;
+			write_address <= 0;
 			write_enable <= 0;
+			initialized <= 0;
+			if (10<reset_counter) begin
+				reset <= 0;
+			end
+			reset_counter = reset_counter + 1;
 		end else begin
+			if (!initialized) begin
+				write_enable <= 1;
+				if (0) begin
+					data_in <= data_in + 1;
+				end else begin
+					data_in <= buffered_rand[7:0];
+					buffered_rand <= rand;
+				end
+				if (MAX_ADDRESS==write_address) begin
+					initialized <= 1;
+				end
+				write_address <= write_address + 1;
+			end else begin
+				data_in <= 0;
+				write_address <= 0;
+				write_enable <= 0;
+			end
 		end
 	end
 	wire [7:0] data_out;
@@ -45,6 +76,7 @@ module function_generator_althea #(
 //		.output_0(led_0), .output_1(led_1), .output_2(led_2), .output_3(led_3),
 //		.output_4(led_4), .output_5(led_5), .output_6(led_6), .output_7(led_7)
 	);
+	wire oserdes_pll_locked;
 	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) single (.clock_in(clock), .reset(reset), .word_clock_out(), .word_in(data_out), .D_out(bit_out), .locked(oserdes_pll_locked));
 endmodule
 
