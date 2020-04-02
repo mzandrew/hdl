@@ -1,7 +1,7 @@
 // written 2018-09-07 by mza
 // to drive a SN65LV1023 serializer IC
 // based on mza-test016.serializer.v 
-// last updated 2018-09-07 by mza
+// last updated 2020-04-02 by mza
 
 `include "lib/easypll.v"
 `include "lib/prbs.v"
@@ -98,7 +98,7 @@ output [7:0] J3
 	assign LED[1] = 0;
 	localparam PRBSWIDTH = 128;
 	localparam log2_PRBSWIDTH = $clog2(PRBSWIDTH);
-	reg [PRBSWIDTH-1:0] rand;
+	wire [PRBSWIDTH-1:0] rand;
 	reg [PRBSWIDTH-1:0] buffered_rand;
 	prbs #(.WIDTH(PRBSWIDTH)) myprbs (.clock(clock), .reset(reset), .word(rand));
 endmodule // mytop
