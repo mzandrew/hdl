@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2020-04-01 by mza
+// last updated 2020-04-02 by mza
 
 module function_generator #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
@@ -53,7 +53,7 @@ module function_generator_tb;
 	parameter DATA_BUS_WIDTH = 8; // should correspond to corresponding oserdes input width
 	parameter ADDRESS_BUS_DEPTH = 10;
 	parameter NUMBER_OF_CHANNELS = 1;
-	parameter ADDRESS_MAX = 1024;
+	parameter ADDRESS_MAX = 1023;
 	reg clock = 0;
 	reg reset = 1;
 //	reg [NUMBER_OF_CHANNELS-1:0] outputs_enabled = 0;
@@ -87,7 +87,7 @@ module function_generator_tb;
 		#8;
 		reset <= 0;
 		#8;
-		for (ad=0; ad<ADDRESS_MAX; ad=ad+1) begin : ramp
+		for (ad=0; ad<=ADDRESS_MAX; ad=ad+1) begin : ramp
 			write_address <= ad;
 			if (0) begin
 				if (write_address==123) begin

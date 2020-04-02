@@ -80,6 +80,31 @@ module function_generator_althea #(
 	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) single (.clock_in(clock), .reset(reset), .word_clock_out(), .word_in(data_out), .D_out(bit_out), .locked(oserdes_pll_locked));
 endmodule
 
+module function_generator_althea_tb;
+	reg clock50_p = 0;
+	reg clock50_n = 0;
+	wire lemo;
+	wire led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7;
+	function_generator_althea #(
+		.DATA_BUS_WIDTH(8), // should correspond to corresponding oserdes input width
+		.ADDRESS_BUS_DEPTH(10),
+		.NUMBER_OF_CHANNELS(1)
+	) fga (
+		.local_clock50_in_p(clock50_p), .local_clock50_in_n(clock50_n),
+		.bit_out(lemo),
+		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
+		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
+	);
+	initial begin
+		clock50_p <= 0; clock50_n <= 1;
+	end
+	always begin
+		#10;
+		clock50_p = ~clock50_p;
+		clock50_n = ~clock50_n;
+	end
+endmodule
+
 //module mza_test036_function_generator_althea (
 module althea (
 	input clock50_p, clock50_n,
