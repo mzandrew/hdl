@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2020-04-01 by mza
+// last updated 2020-04-02 by mza
 
 module function_generator_althea #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
@@ -8,6 +8,7 @@ module function_generator_althea #(
 	parameter NUMBER_OF_CHANNELS = 1
 ) (
 	input local_clock50_in_p, local_clock50_in_n,
+	output bit_out,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	wire clock;
@@ -27,6 +28,8 @@ module function_generator_althea #(
 		end else begin
 		end
 	end
+	wire [7:0] data_out;
+	assign leds = data_out;
 	function_generator #(
 		.DATA_BUS_WIDTH(DATA_BUS_WIDTH),
 		.ADDRESS_BUS_DEPTH(ADDRESS_BUS_DEPTH),
@@ -38,10 +41,11 @@ module function_generator_althea #(
 		.write_address(write_address),
 		.data_in(data_in),
 		.write_enable(write_enable),
-		.data_out(leds)
+		.data_out(data_out)
 //		.output_0(led_0), .output_1(led_1), .output_2(led_2), .output_3(led_3),
 //		.output_4(led_4), .output_5(led_5), .output_6(led_6), .output_7(led_7)
 	);
+	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) single (.clock_in(clock), .reset(reset), .word_clock_out(), .word_in(data_out), .D_out(bit_out), .locked(oserdes_pll_locked));
 endmodule
 
 //module mza_test036_function_generator_althea (
@@ -58,7 +62,7 @@ module althea (
 //	input j_p, j_n,
 //	input k_p, k_n,
 //	output l_p, l_n,
-//	output lemo,
+	output lemo,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	function_generator_althea #(
@@ -76,7 +80,7 @@ module althea (
 //		.clk78_p(d_p), .clk78_n(d_n),
 //		.out1_p(e_p), .out1_n(e_n),
 //		.outa_p(b_p), .outa_n(b_n),
-//		.lemo(lemo),
+		.bit_out(lemo),
 //		.led_revo(l_n),
 //		.led_rfclock(l_p),
 //		.driven_high(g_p), .clock_select(g_n),
