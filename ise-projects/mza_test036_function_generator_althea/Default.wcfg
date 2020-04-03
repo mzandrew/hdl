@@ -47,20 +47,22 @@
       <obj_property name="ElementShortName">led_0</obj_property>
       <obj_property name="ObjectShortName">led_0</obj_property>
    </wvobject>
-   <wvobject fp_name="/function_generator_althea_tb/fga/rawclock125" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">rawclock125</obj_property>
-      <obj_property name="ObjectShortName">rawclock125</obj_property>
+   <wvobject fp_name="/function_generator_althea_tb/clock50_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock50_p</obj_property>
+      <obj_property name="ObjectShortName">clock50_p</obj_property>
    </wvobject>
-   <wvobject fp_name="/function_generator_althea_tb/fga/pll_locked" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">pll_locked</obj_property>
-      <obj_property name="ObjectShortName">pll_locked</obj_property>
+   <wvobject fp_name="/function_generator_althea_tb/clock50_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock50_n</obj_property>
+      <obj_property name="ObjectShortName">clock50_n</obj_property>
    </wvobject>
-   <wvobject fp_name="/function_generator_althea_tb/fga/oserdes_pll_locked" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">oserdes_pll_locked</obj_property>
-      <obj_property name="ObjectShortName">oserdes_pll_locked</obj_property>
+   <wvobject fp_name="/function_generator_althea_tb/fga/fg/data_in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_in[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_in[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/function_generator_althea_tb/fga/reset" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">reset</obj_property>
-      <obj_property name="ObjectShortName">reset</obj_property>
+   <wvobject fp_name="/function_generator_althea_tb/fga/fg/data_out" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_out[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_out[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 </wave_config>

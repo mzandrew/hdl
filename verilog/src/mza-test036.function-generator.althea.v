@@ -7,7 +7,7 @@
 
 module function_generator_althea #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
-	parameter ADDRESS_BUS_DEPTH = 10,
+	parameter ADDRESS_BUS_DEPTH = 11,
 	parameter NUMBER_OF_CHANNELS = 1
 ) (
 	input local_clock50_in_p, local_clock50_in_n,
@@ -33,7 +33,7 @@ module function_generator_althea #(
 	wire [PRBSWIDTH-1:0] rand;
 	reg [PRBSWIDTH-1:0] buffered_rand = 0;
 	prbs #(.WIDTH(PRBSWIDTH)) mrpibs (.clock(clock), .reset(reset), .word(rand));
-	localparam MAX_ADDRESS = 1023;
+	localparam ADDRESS_MAX = (2**ADDRESS_BUS_DEPTH)-1;
 	always @(posedge clock50) begin
 		if (reset) begin
 			if (reset_counter[7]) begin
@@ -58,9 +58,12 @@ module function_generator_althea #(
 					if (write_address[4:0]==0) begin
 						data_in <= 8'hff;
 					end else if (write_address[4:0]==1) begin
-						data_in <= { 3'b000, write_address[9:5] };
+						data_in <= { write_address[ADDRESS_BUS_DEPTH-1:ADDRESS_BUS_DEPTH-8] }; // 9:2 or 10:3
 					end else if (write_address[4:0]==2) begin
-						data_in <= { 3'b000, write_address[4:0] };
+						//data_in <= { (ADDRESS_BUS_DEPTH-8)'d0, write_address[ADDRESS_BUS_DEPTH-9:0] }; // 1:0 or 2:0
+						data_in[7:ADDRESS_BUS_DEPTH-8] <= 0;
+						data_in[ADDRESS_BUS_DEPTH-9:0] <= write_address[ADDRESS_BUS_DEPTH-9:0]; // 1:0 or 2:0
+						//data_in <= { 0, write_address[ADDRESS_BUS_DEPTH-9:0] }; // 1:0 or 2:0
 					end else if (write_address[4:0]==3) begin
 						data_in <= 8'hff;
 					end else begin
@@ -70,7 +73,7 @@ module function_generator_althea #(
 					data_in <= buffered_rand[7:0];
 					buffered_rand <= rand;
 				end
-				if (MAX_ADDRESS==write_address) begin
+				if (ADDRESS_MAX==write_address) begin
 					initialized <= 1;
 				end
 				write_address <= write_address + 1;
@@ -109,7 +112,7 @@ module function_generator_althea_tb;
 	wire led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0;
 	function_generator_althea #(
 		.DATA_BUS_WIDTH(8), // should correspond to corresponding oserdes input width
-		.ADDRESS_BUS_DEPTH(10),
+		.ADDRESS_BUS_DEPTH(11),
 		.NUMBER_OF_CHANNELS(1)
 	) fga (
 		.local_clock50_in_p(clock50_p), .local_clock50_in_n(clock50_n),
@@ -146,7 +149,7 @@ module althea (
 );
 	function_generator_althea #(
 		.DATA_BUS_WIDTH(8), // should correspond to corresponding oserdes input width
-		.ADDRESS_BUS_DEPTH(10),
+		.ADDRESS_BUS_DEPTH(11),
 		.NUMBER_OF_CHANNELS(1)
 	) fga (
 		.local_clock50_in_p(clock50_p), .local_clock50_in_n(clock50_n),

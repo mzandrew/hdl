@@ -1,10 +1,10 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2020-04-02 by mza
+// last updated 2020-04-03 by mza
 
 module function_generator #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
-	parameter ADDRESS_BUS_DEPTH = 10,
+	parameter ADDRESS_BUS_DEPTH = 11,
 	parameter NUMBER_OF_CHANNELS = 1
 	//parameter CHANNELS_LOG2 = $clog2(NUMBER_OF_CHANNELS),
 	//parameter CHANNELS_LOG2 = 3, // hardcoded to a max of 8 channels here
@@ -22,13 +22,17 @@ module function_generator #(
 	//output output_0, output_1, output_2, output_3,
 	//output output_4, output_5, output_6, output_7
 );
-	reg [9:0] read_address = 0;
+	reg [ADDRESS_BUS_DEPTH-1:0] read_address = 0;
 //	reg outputs_enabled = 0;
 //	reg [NUMBER_OF_CHANNELS-1:0] potential_outputs = 0;
 //	reg [channel][ADDRESS_BUS_DEPTH-1:0]
 	genvar ch; // generate
 	for (ch=0; ch<NUMBER_OF_CHANNELS; ch=ch+1) begin : chan
-		RAM_s6_8k mem (.write_clock(clock), .read_clock(clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+		if (ADDRESS_BUS_DEPTH==10) begin
+			RAM_s6_1k_8bit mem (.write_clock(clock), .read_clock(clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+		end else begin
+			RAM_s6_2k_8bit mem (.write_clock(clock), .read_clock(clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+		end
 		always @(posedge clock) begin
 			if (reset) begin
 				read_address <= 0;
@@ -37,7 +41,7 @@ module function_generator #(
 ///			end else if (write) begin
 //				memory[channel][address] <= data;
 			end else begin
-				read_address[9:0] <= read_address + 1;
+				read_address[ADDRESS_BUS_DEPTH-1:0] <= read_address + 1;
 //				if (outputs_enabled[i]) begin
 //					potential_outputs[i] <= 1;
 //				end
@@ -51,9 +55,9 @@ endmodule
 
 module function_generator_tb;
 	parameter DATA_BUS_WIDTH = 8; // should correspond to corresponding oserdes input width
-	parameter ADDRESS_BUS_DEPTH = 10;
+	parameter ADDRESS_BUS_DEPTH = 11;
 	parameter NUMBER_OF_CHANNELS = 1;
-	parameter ADDRESS_MAX = 1023;
+	parameter ADDRESS_MAX = (2**ADDRESS_BUS_DEPTH)-1;
 	reg clock = 0;
 	reg reset = 1;
 //	reg [NUMBER_OF_CHANNELS-1:0] outputs_enabled = 0;
