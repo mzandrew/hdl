@@ -3,57 +3,64 @@
    <wave_state>
    </wave_state>
    <db_ref_list>
-      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test036_function_generator_althea/function_generator_tb_isim_beh.wdb" id="1" type="auto">
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test036_function_generator_althea/function_generator_althea_tb_isim_beh.wdb" id="1" type="auto">
          <top_modules>
-            <top_module name="function_generator_tb" />
+            <top_module name="function_generator_althea_tb" />
             <top_module name="glbl" />
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="11" />
-   <wvobject fp_name="/function_generator_tb/data_out" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">data_out[7:0]</obj_property>
-      <obj_property name="ObjectShortName">data_out[7:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
+   <WVObjectSize size="13" />
+   <wvobject fp_name="/function_generator_althea_tb/lemo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">lemo</obj_property>
+      <obj_property name="ObjectShortName">lemo</obj_property>
    </wvobject>
-   <wvobject fp_name="/function_generator_tb/clock" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">clock</obj_property>
-      <obj_property name="ObjectShortName">clock</obj_property>
+   <wvobject fp_name="/function_generator_althea_tb/led_7" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_7</obj_property>
+      <obj_property name="ObjectShortName">led_7</obj_property>
    </wvobject>
-   <wvobject fp_name="/function_generator_tb/reset" type="logic" db_ref_id="1">
+   <wvobject fp_name="/function_generator_althea_tb/led_6" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_6</obj_property>
+      <obj_property name="ObjectShortName">led_6</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/led_5" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_5</obj_property>
+      <obj_property name="ObjectShortName">led_5</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/led_4" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_4</obj_property>
+      <obj_property name="ObjectShortName">led_4</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/led_3" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_3</obj_property>
+      <obj_property name="ObjectShortName">led_3</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/led_2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_2</obj_property>
+      <obj_property name="ObjectShortName">led_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/led_1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_1</obj_property>
+      <obj_property name="ObjectShortName">led_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/led_0" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_0</obj_property>
+      <obj_property name="ObjectShortName">led_0</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/rawclock125" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rawclock125</obj_property>
+      <obj_property name="ObjectShortName">rawclock125</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/pll_locked" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_locked</obj_property>
+      <obj_property name="ObjectShortName">pll_locked</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/oserdes_pll_locked" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">oserdes_pll_locked</obj_property>
+      <obj_property name="ObjectShortName">oserdes_pll_locked</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/reset" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">reset</obj_property>
       <obj_property name="ObjectShortName">reset</obj_property>
-   </wvobject>
-   <wvobject fp_name="/function_generator_tb/data_in" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">data_in[7:0]</obj_property>
-      <obj_property name="ObjectShortName">data_in[7:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/function_generator_tb/write_address" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">write_address[9:0]</obj_property>
-      <obj_property name="ObjectShortName">write_address[9:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/function_generator_tb/write_enable" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">write_enable</obj_property>
-      <obj_property name="ObjectShortName">write_enable</obj_property>
-   </wvobject>
-   <wvobject fp_name="/function_generator_tb/ad" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">ad[9:0]</obj_property>
-      <obj_property name="ObjectShortName">ad[9:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/function_generator_tb/DATA_BUS_WIDTH" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">DATA_BUS_WIDTH[31:0]</obj_property>
-      <obj_property name="ObjectShortName">DATA_BUS_WIDTH[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/function_generator_tb/ADDRESS_BUS_DEPTH" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">ADDRESS_BUS_DEPTH[31:0]</obj_property>
-      <obj_property name="ObjectShortName">ADDRESS_BUS_DEPTH[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/function_generator_tb/NUMBER_OF_CHANNELS" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">NUMBER_OF_CHANNELS[31:0]</obj_property>
-      <obj_property name="ObjectShortName">NUMBER_OF_CHANNELS[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/function_generator_tb/ADDRESS_MAX" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">ADDRESS_MAX[31:0]</obj_property>
-      <obj_property name="ObjectShortName">ADDRESS_MAX[31:0]</obj_property>
    </wvobject>
 </wave_config>

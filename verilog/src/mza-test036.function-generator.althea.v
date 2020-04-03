@@ -3,7 +3,7 @@
 // content borrowed from mza-test017.serializer-ram.v
 // content borrowed from mza-test031.clock509_and_revo_generator.althea.v
 // content borrowed from mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v
-// last updated 2020-04-02 by mza
+// last updated 2020-04-03 by mza
 
 module function_generator_althea #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
@@ -12,38 +12,60 @@ module function_generator_althea #(
 ) (
 	input local_clock50_in_p, local_clock50_in_n,
 	output bit_out,
-	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
+	output led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0
 );
-	wire clock;
+	wire clock50;
+	IBUFDS clocky (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(clock50));
+	reg reset = 1;
+	wire rawclock125;
+	wire pll_locked;
+	simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset), .clock0out(rawclock125), .locked(pll_locked)); // 50->125
+	wire clock; // 125 MHz
+	BUFG mrt (.I(rawclock125), .O(clock));
 	wire [7:0] leds;
-	assign { led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7 } = leds;
-	IBUFDS clocky (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(clock));
+	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
 	reg [DATA_BUS_WIDTH-1:0] data_in = 0;
 	reg [ADDRESS_BUS_DEPTH-1:0] write_address = 0;
 	reg write_enable = 1;
 	reg initialized = 0;
-	reg reset = 1;
 	reg [7:0] reset_counter = 0;
 	localparam PRBSWIDTH = 128;
 	wire [PRBSWIDTH-1:0] rand;
 	reg [PRBSWIDTH-1:0] buffered_rand = 0;
 	prbs #(.WIDTH(PRBSWIDTH)) mrpibs (.clock(clock), .reset(reset), .word(rand));
 	localparam MAX_ADDRESS = 1023;
+	always @(posedge clock50) begin
+		if (reset) begin
+			if (reset_counter[7]) begin
+				reset <= 0;
+			end
+			reset_counter = reset_counter + 1;
+		end
+	end
 	always @(posedge clock) begin
 		if (reset) begin
 			data_in <= 0;
 			write_address <= 0;
 			write_enable <= 0;
 			initialized <= 0;
-			if (10<reset_counter) begin
-				reset <= 0;
-			end
-			reset_counter = reset_counter + 1;
 		end else begin
 			if (!initialized) begin
 				write_enable <= 1;
 				if (0) begin
 					data_in <= data_in + 1;
+				end else if (1) begin
+//						data_in <= { write_address[9:6], 4'b0000 };
+					if (write_address[4:0]==0) begin
+						data_in <= 8'hff;
+					end else if (write_address[4:0]==1) begin
+						data_in <= { 3'b000, write_address[9:5] };
+					end else if (write_address[4:0]==2) begin
+						data_in <= { 3'b000, write_address[4:0] };
+					end else if (write_address[4:0]==3) begin
+						data_in <= 8'hff;
+					end else begin
+						data_in <= 0;
+					end
 				end else begin
 					data_in <= buffered_rand[7:0];
 					buffered_rand <= rand;
@@ -84,7 +106,7 @@ module function_generator_althea_tb;
 	reg clock50_p = 0;
 	reg clock50_n = 0;
 	wire lemo;
-	wire led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7;
+	wire led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0;
 	function_generator_althea #(
 		.DATA_BUS_WIDTH(8), // should correspond to corresponding oserdes input width
 		.ADDRESS_BUS_DEPTH(10),
@@ -120,7 +142,7 @@ module althea (
 //	input k_p, k_n,
 //	output l_p, l_n,
 	output lemo,
-	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
+	output led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0
 );
 	function_generator_althea #(
 		.DATA_BUS_WIDTH(8), // should correspond to corresponding oserdes input width

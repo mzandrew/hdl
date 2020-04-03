@@ -1,8 +1,10 @@
 // written 2019-08-14 by mza
-// last updated 2019-08-15 by mza
 // taken from info in ug382/ug615/ds162
+// last updated 2020-04-03 by mza
 
-module simplepll_ADV #(parameter overall_divide=1, multiply=4, divide=1, period=10.0, compensation="SYSTEM_SYNCHRONOUS") (
+// can only be used to directly feed a DCM
+//simplepll_ADV #(.overall_divide(1), .multiply(10), .divide(4), .period(20.0)) mypll (.clockin(clock50), .reset(reset), .clockout(clock), .locked()); // 50->125
+module simplepll_ADV #(parameter overall_divide=1, multiply=4, divide=1, period=10.0, compensation="PLL2DCM") (
 	input clockin,
 	input reset,
 	output clockout,
@@ -69,6 +71,11 @@ module simplepll_ADV #(parameter overall_divide=1, multiply=4, divide=1, period=
 	);
 endmodule
 
+
+//wire rawclock125;
+//simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) other (.clockin(clock50), .reset(reset), .clock0out(rawclock125), .locked(other_pll_locked)); // 50->125
+//wire clock125;
+//BUFG mrt (.I(rawclock125), .O(clock125));
 module simplepll_BASE #(
 	parameter
 	period=10.0,
@@ -181,7 +188,7 @@ module simpledcm_CLKGEN #(parameter multiply=4, divide=1, period="10.0") (
 endmodule
 
 module simpledcm_SP #(
-	parameter MULTIPLY=4, DIVIDE=1, PERIOD=10.0, ALT_DIVIDE=2.0
+	parameter alt_clockout_divide=2.0, multiply=4, divide=1, period=10.0
 ) (
 	input clockin,
 	input reset,
@@ -195,12 +202,12 @@ module simpledcm_SP #(
 //	wire clockfb_out;
 //	BUFG mybufg (.I(clockfb_out), .O(clockfb_in));
 	DCM_SP #(
-		.CLKDV_DIVIDE(ALT_DIVIDE), // Divide by: 1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5
+		.CLKDV_DIVIDE(alt_clockout_divide), // Divide by: 1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5
 		// 7.0,7.5,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0 or 16.0
-		.CLKFX_DIVIDE(DIVIDE), // Can be any integer from 1 to 32
-		.CLKFX_MULTIPLY(MULTIPLY), // Can be any integer from 2 to 32
+		.CLKFX_DIVIDE(divide), // Can be any integer from 1 to 32
+		.CLKFX_MULTIPLY(multiply), // Can be any integer from 2 to 32
 		.CLKIN_DIVIDE_BY_2("FALSE"), // TRUE/FALSE to enable CLKIN divide by two feature
-		.CLKIN_PERIOD(PERIOD), // Specify period of input clock
+		.CLKIN_PERIOD(period), // Specify period of input clock
 		.CLKOUT_PHASE_SHIFT("NONE"), // Specify phase shift of NONE, FIXED or VARIABLE
 		.CLK_FEEDBACK("1X"), // Specify clock feedback of NONE, 1X or 2X
 		.DESKEW_ADJUST("SYSTEM_SYNCHRONOUS"), // SOURCE_SYNCHRONOUS, SYSTEM_SYNCHRONOUS or
@@ -232,6 +239,7 @@ module simpledcm_SP #(
 	);
 endmodule
 
+//plldcm #(.overall_divide(1), .pllmultiply(10), .plldivide(1), .pllperiod(20.0), .dcmmultiply(2), .dcmdivide(8), .dcmperiod(2.0)) kronos (.clockin(clock50), .reset(reset), .clockout(clock), .clockout180(), .locked()); // 50->125
 module plldcm #(parameter overall_divide=1, pllmultiply=1, plldivide=1, pllperiod=10.0, dcmmultiply=1, dcmdivide=1, dcmperiod="10.0") (
 	input clockin,
 	input reset,
@@ -244,6 +252,7 @@ module plldcm #(parameter overall_divide=1, pllmultiply=1, plldivide=1, pllperio
 	wire plllocked;
 	assign locked = dcmlocked & plllocked;
 	simplepll_ADV #(.overall_divide(overall_divide), .multiply(pllmultiply), .divide(plldivide), .period(pllperiod), .compensation("PLL2DCM")) mypll (
+	//simplepll_ADV #(.overall_divide(overall_divide), .multiply(pllmultiply), .divide(plldivide), .period(pllperiod), .compensation("DCM2PLL")) mypll (
 		.clockin(clockin),
 		.reset(reset),
 		.clockout(clockintermediate),
