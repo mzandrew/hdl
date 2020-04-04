@@ -10,7 +10,7 @@ module prbs #(parameter WIDTH=128, TAP1=27, TAP2=30) (input clock, input reset, 
 		end else begin
 			//temp = word; // blocking assignment
 			//repeat (WIDTH) temp = { temp[WIDTH-2:1], temp[TAP1]^temp[TAP2] }; // blocking assignment
-			word <= { word[WIDTH-1:0], word[TAP1]^word[TAP2] };
+			word <= { word[WIDTH-1:0], word[TAP1]^word[TAP2] }[WIDTH-1:0];
 			//word <= temp;
 		end
 	end

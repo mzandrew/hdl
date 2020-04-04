@@ -30,8 +30,12 @@ module function_generator #(
 	for (ch=0; ch<NUMBER_OF_CHANNELS; ch=ch+1) begin : chan
 		if (ADDRESS_BUS_DEPTH==10) begin
 			RAM_s6_1k_8bit mem (.write_clock(clock), .read_clock(clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
-		end else begin
+		end else if (ADDRESS_BUS_DEPTH==11) begin
 			RAM_s6_2k_8bit mem (.write_clock(clock), .read_clock(clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+		end else if (ADDRESS_BUS_DEPTH==14) begin
+			RAM_s6_16k_8bit mem (.write_clock(clock), .read_clock(clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+//		end else begin
+			// assert
 		end
 		always @(posedge clock) begin
 			if (reset) begin
@@ -41,7 +45,7 @@ module function_generator #(
 ///			end else if (write) begin
 //				memory[channel][address] <= data;
 			end else begin
-				read_address[ADDRESS_BUS_DEPTH-1:0] <= read_address + 1;
+				read_address <= { read_address + 1 }[ADDRESS_BUS_DEPTH-1:0];
 //				if (outputs_enabled[i]) begin
 //					potential_outputs[i] <= 1;
 //				end

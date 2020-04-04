@@ -3,27 +3,28 @@
 // content borrowed from mza-test017.serializer-ram.v
 // content borrowed from mza-test031.clock509_and_revo_generator.althea.v
 // content borrowed from mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v
-// last updated 2020-04-03 by mza
+// last updated 2020-04-04 by mza
 
 module function_generator_althea #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
-	parameter ADDRESS_BUS_DEPTH = 11,
+	parameter ADDRESS_BUS_DEPTH = 14,
 	parameter NUMBER_OF_CHANNELS = 1
 ) (
 	input local_clock50_in_p, local_clock50_in_n,
 	output bit_out,
 	output led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0
 );
+	wire [7:0] leds;
+	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
 	wire clock50;
 	IBUFDS clocky (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(clock50));
 	reg reset = 1;
 	wire rawclock125;
 	wire pll_locked;
 	simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset), .clock0out(rawclock125), .locked(pll_locked)); // 50->125
+	assign leds[0] = pll_locked;
 	wire clock; // 125 MHz
 	BUFG mrt (.I(rawclock125), .O(clock));
-	wire [7:0] leds;
-	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
 	reg [DATA_BUS_WIDTH-1:0] data_in = 0;
 	reg [ADDRESS_BUS_DEPTH-1:0] write_address = 0;
 	reg write_enable = 1;
@@ -39,11 +40,13 @@ module function_generator_althea #(
 			if (reset_counter[7]) begin
 				reset <= 0;
 			end
-			reset_counter = reset_counter + 1;
+			reset_counter = { reset_counter + 1 }[7:0];
 		end
 	end
+	reg [ADDRESS_BUS_DEPTH-1:0] counter = 0;
 	always @(posedge clock) begin
 		if (reset) begin
+			counter <= 0;
 			data_in <= 0;
 			write_address <= 0;
 			write_enable <= 0;
@@ -52,31 +55,42 @@ module function_generator_althea #(
 			if (!initialized) begin
 				write_enable <= 1;
 				if (0) begin
-					data_in <= data_in + 1;
-				end else if (1) begin
-//						data_in <= { write_address[9:6], 4'b0000 };
-					if (write_address[4:0]==0) begin
+					data_in <= counter;
+				end else if (0) begin
+//						data_in <= { counter[9:6], 4'b0000 };
+					if (counter[4:0]==0) begin
 						data_in <= 8'hff;
-					end else if (write_address[4:0]==1) begin
-						data_in <= { write_address[ADDRESS_BUS_DEPTH-1:ADDRESS_BUS_DEPTH-8] }; // 9:2 or 10:3
-					end else if (write_address[4:0]==2) begin
-						//data_in <= { (ADDRESS_BUS_DEPTH-8)'d0, write_address[ADDRESS_BUS_DEPTH-9:0] }; // 1:0 or 2:0
+					end else if (counter[4:0]==1) begin
+						data_in <= { counter[ADDRESS_BUS_DEPTH-1:ADDRESS_BUS_DEPTH-8] }; // 9:2 or 10:3
+					end else if (counter[4:0]==2) begin
 						data_in[7:ADDRESS_BUS_DEPTH-8] <= 0;
-						data_in[ADDRESS_BUS_DEPTH-9:0] <= write_address[ADDRESS_BUS_DEPTH-9:0]; // 1:0 or 2:0
-						//data_in <= { 0, write_address[ADDRESS_BUS_DEPTH-9:0] }; // 1:0 or 2:0
-					end else if (write_address[4:0]==3) begin
+						data_in[ADDRESS_BUS_DEPTH-9:0] <= counter[ADDRESS_BUS_DEPTH-9:0]; // 1:0 or 2:0
+						//data_in <= { (ADDRESS_BUS_DEPTH-8)'d0, counter[ADDRESS_BUS_DEPTH-9:0] }; // 1:0 or 2:0
+						//data_in <= { 0, counter[ADDRESS_BUS_DEPTH-9:0] }; // 1:0 or 2:0
+					end else if (counter[4:0]==3) begin
 						data_in <= 8'hff;
 					end else begin
 						data_in <= 0;
+					end
+				end else if (1) begin
+					if (counter[5:0]==0) begin
+//						data_in <= 8'h80;
+//					end else if (counter[7:0]==1) begin
+						data_in <= counter[ADDRESS_BUS_DEPTH-1:ADDRESS_BUS_DEPTH-8]; // 9:2 or 10:3 or 13:6
+//					end else if (counter[4:0]==2) begin
+//						data_in[7:ADDRESS_BUS_DEPTH-8] <= 0;
+//					end else begin
+//						data_in <= 0;
 					end
 				end else begin
 					data_in <= buffered_rand[7:0];
 					buffered_rand <= rand;
 				end
-				if (ADDRESS_MAX==write_address) begin
+				if (ADDRESS_MAX==counter) begin
 					initialized <= 1;
 				end
-				write_address <= write_address + 1;
+				write_address <= counter;
+				counter <= { counter + 1 }[ADDRESS_BUS_DEPTH-1:0];
 			end else begin
 				data_in <= 0;
 				write_address <= 0;
@@ -85,7 +99,7 @@ module function_generator_althea #(
 		end
 	end
 	wire [7:0] data_out;
-	assign leds = data_out;
+//	assign leds = data_out;
 	function_generator #(
 		.DATA_BUS_WIDTH(DATA_BUS_WIDTH),
 		.ADDRESS_BUS_DEPTH(ADDRESS_BUS_DEPTH),
@@ -103,6 +117,8 @@ module function_generator_althea #(
 	);
 	wire oserdes_pll_locked;
 	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) single (.clock_in(clock), .reset(reset), .word_clock_out(), .word_in(data_out), .D_out(bit_out), .locked(oserdes_pll_locked));
+	assign leds[1] = oserdes_pll_locked;
+	assign leds[7:2] = 5'd0;
 endmodule
 
 module function_generator_althea_tb;
@@ -112,7 +128,7 @@ module function_generator_althea_tb;
 	wire led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0;
 	function_generator_althea #(
 		.DATA_BUS_WIDTH(8), // should correspond to corresponding oserdes input width
-		.ADDRESS_BUS_DEPTH(11),
+		.ADDRESS_BUS_DEPTH(14),
 		.NUMBER_OF_CHANNELS(1)
 	) fga (
 		.local_clock50_in_p(clock50_p), .local_clock50_in_n(clock50_n),
@@ -149,7 +165,7 @@ module althea (
 );
 	function_generator_althea #(
 		.DATA_BUS_WIDTH(8), // should correspond to corresponding oserdes input width
-		.ADDRESS_BUS_DEPTH(11),
+		.ADDRESS_BUS_DEPTH(14),
 		.NUMBER_OF_CHANNELS(1)
 	) fga (
 		.local_clock50_in_p(clock50_p), .local_clock50_in_n(clock50_n),

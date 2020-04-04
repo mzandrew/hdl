@@ -1,4 +1,52 @@
-// last updated 2020-04-03 by mza
+// last updated 2020-04-04 by mza
+
+// 5,120 buckets/revolution * 9 revolutions = 46,080 buckets
+// need off-between-on functionality, so double that (=92,160)
+// 11,520 bytes of ram (so will fit in a 16k-by-8bit)
+module RAM_s6_16k_8bit #(
+) (
+	input read_clock,
+	input write_clock,
+	input reset,
+	input [7:0] data_in,
+	output [7:0] data_out,
+	input [13:0] write_address,
+	input [13:0] read_address,
+	input write_enable,
+	input read_enable
+);
+	wire [7:0] data_out_array [7:0];
+	wire [7:0] write_enable_array;
+	//RAM_s6_2k_8bit mem[7:0] (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array), .read_enable(1'b1));
+//	genvar i;
+//	for (i=0; i<8; i=i+1) begin : mem_array
+//		RAM_s6_2k_8bit mem[i] (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[i]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[i]), .read_enable(1'b1));
+//	end
+	RAM_s6_2k_8bit mem0 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[0]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[0]), .read_enable(1'b1));
+	RAM_s6_2k_8bit mem1 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[1]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[1]), .read_enable(1'b1));
+	RAM_s6_2k_8bit mem2 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[2]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[2]), .read_enable(1'b1));
+	RAM_s6_2k_8bit mem3 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[3]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[3]), .read_enable(1'b1));
+	RAM_s6_2k_8bit mem4 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[4]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[4]), .read_enable(1'b1));
+	RAM_s6_2k_8bit mem5 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[5]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[5]), .read_enable(1'b1));
+	RAM_s6_2k_8bit mem6 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[6]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[6]), .read_enable(1'b1));
+	RAM_s6_2k_8bit mem7 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[7]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[7]), .read_enable(1'b1));
+	reg [2:0] buffered_sel_0 = 0;
+	wire [7:0] buffered_data_out_0;
+	reg [7:0] buffered_data_out_1 = 0;
+	always @(posedge read_clock) begin
+		buffered_sel_0 <= read_address[13:11];
+		buffered_data_out_1 <= buffered_data_out_0;
+	end
+	assign data_out = buffered_data_out_1;
+	mux_8to1 #(.WIDTH(8)) db (
+		.in0(data_out_array[0]), .in1(data_out_array[1]), .in2(data_out_array[2]), .in3(data_out_array[3]),
+		.in4(data_out_array[4]), .in5(data_out_array[5]), .in6(data_out_array[6]), .in7(data_out_array[7]),
+		.sel(buffered_sel_0), .out(buffered_data_out_0));
+	demux_1to8 we (
+		.in(write_enable), .sel(write_address[13:11]),
+		.out0(write_enable_array[0]), .out1(write_enable_array[1]), .out2(write_enable_array[2]), .out3(write_enable_array[3]),
+		.out4(write_enable_array[4]), .out5(write_enable_array[5]), .out6(write_enable_array[6]), .out7(write_enable_array[7]));
+endmodule
 
 // RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
 module RAM_s6_2k_8bit (
@@ -119,7 +167,7 @@ module RAM_s6_2k_8bit (
 		// SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE"
 		.SIM_COLLISION_CHECK("ALL"),
 		// SIM_DEVICE: Must be set to "SPARTAN6" for proper simulation behavior
-		.SIM_DEVICE("SPARTAN3ADSP"),
+		.SIM_DEVICE("SPARTAN6"),
 		// SRVAL_A/SRVAL_B: Set/Reset value for RAM output
 //		.SRVAL_A(36’h000000000),
 //		.SRVAL_B(36’h000000000),
