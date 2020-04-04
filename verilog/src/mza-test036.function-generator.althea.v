@@ -27,7 +27,7 @@ module function_generator_althea #(
 	BUFG mrt (.I(rawclock125), .O(clock));
 	reg [DATA_BUS_WIDTH-1:0] data_in = 0;
 	reg [ADDRESS_BUS_DEPTH-1:0] write_address = 0;
-	reg write_enable = 1;
+	reg write_enable = 0;
 	reg initialized = 0;
 	reg [7:0] reset_counter = 0;
 	localparam PRBSWIDTH = 128;
@@ -40,7 +40,7 @@ module function_generator_althea #(
 			if (reset_counter[7]) begin
 				reset <= 0;
 			end
-			reset_counter = { reset_counter + 1 }[7:0];
+			reset_counter = reset_counter + 1'b1;
 		end
 	end
 	reg [ADDRESS_BUS_DEPTH-1:0] counter = 0;
@@ -72,7 +72,8 @@ module function_generator_althea #(
 					end else begin
 						data_in <= 0;
 					end
-				end else if (1) begin
+				end else if (0) begin
+					// this mode helps show that there's no shenanigans between BRAM boundaries when using an array of them
 					if (counter[5:0]==0) begin
 //						data_in <= 8'h80;
 //					end else if (counter[7:0]==1) begin
@@ -82,6 +83,21 @@ module function_generator_althea #(
 //					end else begin
 //						data_in <= 0;
 					end
+				end else if (1) begin
+					// this mode pulses the laser once per microsecond with a pulse width proportional to the location in ram
+					data_in <= 8'h00;
+					if (counter[6:0]==0) begin
+						case (counter[ADDRESS_BUS_DEPTH-1:ADDRESS_BUS_DEPTH-3])
+							3'd0:    data_in <= 8'b10000000;
+							3'd1:    data_in <= 8'b11000000;
+							3'd2:    data_in <= 8'b11100000;
+							3'd3:    data_in <= 8'b11110000;
+							3'd4:    data_in <= 8'b11111000;
+							3'd5:    data_in <= 8'b11111100;
+							3'd6:    data_in <= 8'b11111110;
+							default: data_in <= 8'b11111111;
+						endcase
+					end
 				end else begin
 					data_in <= buffered_rand[7:0];
 					buffered_rand <= rand;
@@ -90,7 +106,7 @@ module function_generator_althea #(
 					initialized <= 1;
 				end
 				write_address <= counter;
-				counter <= { counter + 1 }[ADDRESS_BUS_DEPTH-1:0];
+				counter <= counter + 1'b1;
 			end else begin
 				data_in <= 0;
 				write_address <= 0;

@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2020-04-03 by mza
+// last updated 2020-04-04 by mza
 
 module function_generator #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
@@ -45,7 +45,7 @@ module function_generator #(
 ///			end else if (write) begin
 //				memory[channel][address] <= data;
 			end else begin
-				read_address <= { read_address + 1 }[ADDRESS_BUS_DEPTH-1:0];
+				read_address <= read_address + 1'b1;
 //				if (outputs_enabled[i]) begin
 //					potential_outputs[i] <= 1;
 //				end
