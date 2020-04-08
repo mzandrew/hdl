@@ -3,7 +3,8 @@
 // content borrowed from mza-test017.serializer-ram.v
 // content borrowed from mza-test031.clock509_and_revo_generator.althea.v
 // content borrowed from mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v
-// last updated 2020-04-04 by mza
+// grabs output from XRM.py corresponding to an array from the bunch current monitor
+// last updated 2020-04-07 by mza
 
 module function_generator_althea #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
@@ -83,7 +84,7 @@ module function_generator_althea #(
 //					end else begin
 //						data_in <= 0;
 					end
-				end else if (1) begin
+				end else if (0) begin
 					// this mode pulses the laser once per microsecond with a pulse width proportional to the location in ram
 					data_in <= 8'h00;
 					if (counter[6:0]==0) begin
@@ -98,6 +99,16 @@ module function_generator_althea #(
 							default: data_in <= 8'b11111111;
 						endcase
 					end
+				end else if (0) begin
+					// this mode drives out something like a signal that would come from the bunch current monitor
+				end else if (1) begin
+					// this mode drives out something like a single pilot bunch
+					data_in <= 8'h00;
+					if (counter==9989) begin // from 2019-11-15.072853 HER
+						data_in <= 8'b11111111;
+					end
+				end else if (1) begin
+					// this mode drives out only something during the abort gaps
 				end else begin
 					data_in <= buffered_rand[7:0];
 					buffered_rand <= rand;
