@@ -1,4 +1,8 @@
-// last updated 2020-04-04 by mza
+// last updated 2020-04-09 by mza
+
+//(* keep_hierarchy = "yes" *)
+//(* BMM_INFO = " " *)
+//(* BMM_INFO = "ADDRESS_SPACE map_name RAMB16 [start:end] END_ADDRESS_MAP;" *)
 
 // 5,120 buckets/revolution * 9 revolutions = 46,080 buckets
 // need off-between-on functionality, so double that (=92,160)
@@ -17,19 +21,19 @@ module RAM_s6_16k_8bit #(
 );
 	wire [7:0] data_out_array [7:0];
 	wire [7:0] write_enable_array;
-	//RAM_s6_2k_8bit mem[7:0] (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array), .read_enable(1'b1));
-//	genvar i;
-//	for (i=0; i<8; i=i+1) begin : mem_array
-//		RAM_s6_2k_8bit mem[i] (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[i]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[i]), .read_enable(1'b1));
-//	end
-	RAM_s6_2k_8bit mem0 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[0]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[0]), .read_enable(1'b1));
-	RAM_s6_2k_8bit mem1 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[1]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[1]), .read_enable(1'b1));
-	RAM_s6_2k_8bit mem2 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[2]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[2]), .read_enable(1'b1));
-	RAM_s6_2k_8bit mem3 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[3]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[3]), .read_enable(1'b1));
-	RAM_s6_2k_8bit mem4 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[4]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[4]), .read_enable(1'b1));
-	RAM_s6_2k_8bit mem5 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[5]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[5]), .read_enable(1'b1));
-	RAM_s6_2k_8bit mem6 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[6]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[6]), .read_enable(1'b1));
-	RAM_s6_2k_8bit mem7 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[7]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[7]), .read_enable(1'b1));
+//	RAM_s6_2k_8bit #(.INIT_FILENAME("bcm_init.mem")) mem00 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[0]), .read_enable(1'b1));
+	genvar i;
+	for (i=0; i<8; i=i+1) begin : mem_array
+		RAM_s6_2k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[i]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[i]), .read_enable(1'b1));
+	end
+//	RAM_s6_2k_8bit mem0 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[0]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[0]), .read_enable(1'b1));
+//	RAM_s6_2k_8bit mem1 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[1]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[1]), .read_enable(1'b1));
+//	RAM_s6_2k_8bit mem2 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[2]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[2]), .read_enable(1'b1));
+//	RAM_s6_2k_8bit mem3 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[3]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[3]), .read_enable(1'b1));
+//	RAM_s6_2k_8bit mem4 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[4]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[4]), .read_enable(1'b1));
+//	RAM_s6_2k_8bit mem5 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[5]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[5]), .read_enable(1'b1));
+//	RAM_s6_2k_8bit mem6 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[6]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[6]), .read_enable(1'b1));
+//	RAM_s6_2k_8bit mem7 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[7]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[7]), .read_enable(1'b1));
 	reg [2:0] buffered_sel_0 = 0;
 	wire [7:0] buffered_data_out_0;
 	reg [7:0] buffered_data_out_1 = 0;
@@ -49,7 +53,9 @@ module RAM_s6_16k_8bit #(
 endmodule
 
 // RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
-module RAM_s6_2k_8bit (
+module RAM_s6_2k_8bit #(
+	parameter INIT_FILENAME = "NONE"
+) (
 	input read_clock,
 	input write_clock,
 	input reset,
@@ -158,7 +164,8 @@ module RAM_s6_2k_8bit (
 //		.INIT_A(36’h000000000),
 //		.INIT_B(36’h000000000),
 		// INIT_FILE: Optional file used to specify initial RAM contents
-		.INIT_FILE("NONE"),
+		//.INIT_FILE("NONE"),
+		.INIT_FILE(INIT_FILENAME),
 		// RSTTYPE: "SYNC" or "ASYNC"
 		.RSTTYPE("SYNC"),
 		// RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR"
@@ -297,4 +304,97 @@ module RAM_s6_1k_8bit (
 		.RSTA(reset), .RSTBRST(1'b0) // 1 bit input: reset
 	);
 endmodule
+
+//// system verilog version (from UG901)
+//// 3-D Ram Inference Example (Simple Dual port)
+//module rams_sdp_3d #(
+//	parameter NUM_RAMS = 2,
+//	A_WID = 10,
+//	D_WID = 32
+//) (
+//	input clka,
+//	input clkb,
+//	input [NUM_RAMS-1:0] wea,
+//	input [NUM_RAMS-1:0] ena,
+//	input [NUM_RAMS-1:0] enb,
+//	input [A_WID-1:0] addra [NUM_RAMS-1:0],
+//	input [A_WID-1:0] addrb [NUM_RAMS-1:0],
+//	input [D_WID-1:0] dina [NUM_RAMS-1:0],
+//	output reg [D_WID-1:0] doutb [NUM_RAMS-1:0]
+//);
+//	reg [D_WID-1:0] mem [NUM_RAMS-1:0][2**A_WID-1:0];
+//	genvar i;
+//	// PORT_A
+//	generate
+//	for (i=0; i<NUM_RAMS; i=i+1) begin : port_a_ops
+//		always @ (posedge clka) begin
+//			if (ena[i]) begin
+//				if (wea[i]) begin
+//					mem[i][addra[i]] <= dina[i];
+//				end
+//			end
+//		end
+//	end
+//	endgenerate
+//	//PORT_B
+//	generate
+//	for (i=0; i<NUM_RAMS; i=i+1) begin : port_b_ops
+//		always @ (posedge clkb) begin
+//			if (enb[i]) begin
+//				doutb[i] <= mem[i][addrb[i]];
+//			end
+//		end
+//	end
+//	endgenerate
+//endmodule
+
+//// system verilog version (from UG901)
+//// 3-D Ram Inference Example (True Dual port)
+//module rams_tdp_3d #(
+//	parameter NUM_RAMS = 2,
+//	A_WID = 10,
+//	D_WID = 32
+//) (
+//	input clka,
+//	input clkb,
+//	input [NUM_RAMS-1:0] wea,
+//	input [NUM_RAMS-1:0] web,
+//	input [NUM_RAMS-1:0] ena,
+//	input [NUM_RAMS-1:0] enb,
+//	input [A_WID-1:0] addra [NUM_RAMS-1:0],
+//	input [A_WID-1:0] addrb [NUM_RAMS-1:0],
+//	input [D_WID-1:0] dina [NUM_RAMS-1:0],
+//	input [D_WID-1:0] dinb [NUM_RAMS-1:0],
+//	output reg [D_WID-1:0] douta [NUM_RAMS-1:0],
+//	output reg [D_WID-1:0] doutb [NUM_RAMS-1:0]
+//);
+//	reg [D_WID-1:0] mem [NUM_RAMS-1:0][2**A_WID-1:0];
+//	genvar i;
+//	// PORT_A
+//	generate
+//	for (i=0; i<NUM_RAMS; i=i+1) begin:port_a_ops
+//		always @ (posedge clka) begin
+//			if (ena[i]) begin
+//				if (wea[i]) begin
+//					mem[i][addra[i]] <= dina[i];
+//				end
+//				douta[i] <= mem[i][addra[i]];
+//			end
+//		end
+//	end
+//	endgenerate
+//	//PORT_B
+//	generate
+//	for (i=0; i<NUM_RAMS; i=i+1) begin:port_b_ops
+//		always @ (posedge clkb) begin
+//			if (enb[i]) begin
+//				if (web[i]) begin
+//					mem[i][addrb[i]] <= dinb[i];
+//				end
+//				doutb[i] <= mem[i][addrb[i]];
+//			end
+//		end
+//	end
+//	endgenerate
+//endmodule
 

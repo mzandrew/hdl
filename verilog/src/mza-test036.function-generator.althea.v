@@ -30,6 +30,10 @@ module function_generator_althea #(
 	reg [ADDRESS_BUS_DEPTH-1:0] write_address = 0;
 	reg write_enable = 0;
 	reg initialized = 0;
+	//reg [9:0] bunch_counter = 795;
+	//reg [3:0] bucket_counter = 12;
+	reg [9:0] outer_loop_counter = 265;
+	reg [1:0] inner_loop_counter = 2;
 	reg [7:0] reset_counter = 0;
 	localparam PRBSWIDTH = 128;
 	wire [PRBSWIDTH-1:0] rand;
@@ -99,7 +103,7 @@ module function_generator_althea #(
 							default: data_in <= 8'b11111111;
 						endcase
 					end
-				end else if (1) begin
+				end else if (0) begin
 					// this mode drives out something like a signal that would come from the bunch current monitor
 					// from 2019-11-15.075530 HER
 					data_in <= 8'h00;
@@ -111,6 +115,36 @@ module function_generator_althea #(
 						data_in <= 8'b11111000;
 					end else if ( (counter==9989) ) begin
 						data_in <= 8'b11111111;
+					end
+//				end else if (0) begin
+//					// this mode drives out something like a signal that would come from the bunch current monitor
+//					// from 2019-11-15.075530 HER (but simplified/compressed)
+//					data_in <= 8'h00;
+//					if (bunch_counter) begin
+//						if (bucket_counter) begin
+//							bucket_counter <= bucket_counter - 1;
+//						end else begin
+//							data_in <= 8'b10000000;
+//							bucket_counter <= 4'd12;
+//							bunch_counter <= bunch_counter - 1;
+//						end
+//					end
+				end else if (1) begin
+					// this mode drives out something like a signal that would come from the bunch current monitor
+					// from 2019-11-15.075530 HER (but simplified/compressed)
+					data_in <= 8'h00;
+					if (outer_loop_counter) begin
+						if (inner_loop_counter==2) begin
+							inner_loop_counter <= inner_loop_counter - 1;
+							data_in <= 8'b10000000;
+						end else if (inner_loop_counter==1) begin
+							inner_loop_counter <= inner_loop_counter - 1;
+							data_in <= 8'b00001000;
+						end else begin
+							data_in <= 8'b00000000;
+							inner_loop_counter <= 2'd2;
+							outer_loop_counter <= outer_loop_counter - 1;
+						end
 					end
 				end else if (0) begin
 					// this mode drives out something like a single pilot bunch
