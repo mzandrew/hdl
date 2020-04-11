@@ -1,6 +1,6 @@
 # written 2020-04-01 by mza
 # based off of mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.ucf
-# last updated 2020-04-01 by mza
+# last updated 2020-04-10 by mza
 
 # 50 MHz local oscillator:
 net clock50_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK50+
@@ -58,4 +58,13 @@ net led_6 loc=p2  | iostandard=lvcmos25;
 net led_7 loc=p1  | iostandard=lvcmos25;
 
 net lemo loc=p93 | iostandard=lvcmos25 | drive = 24 | slew = fast;
+
+inst "fga/fg/chan[0].mem/mem_array[0].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y12";
+inst "fga/fg/chan[0].mem/mem_array[1].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y18";
+inst "fga/fg/chan[0].mem/mem_array[2].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y14";
+inst "fga/fg/chan[0].mem/mem_array[3].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y24";
+inst "fga/fg/chan[0].mem/mem_array[4].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y16";
+inst "fga/fg/chan[0].mem/mem_array[5].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y20";
+inst "fga/fg/chan[0].mem/mem_array[6].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y22";
+inst "fga/fg/chan[0].mem/mem_array[7].mem/RAMB16BWER_inst" LOC = "RAMB16_X0Y16";
 

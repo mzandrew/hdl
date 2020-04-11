@@ -4,7 +4,14 @@
 // content borrowed from mza-test031.clock509_and_revo_generator.althea.v
 // content borrowed from mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v
 // grabs output from XRM.py corresponding to an array from the bunch current monitor
-// last updated 2020-04-08 by mza
+// last updated 2020-04-10 by mza
+
+// todo:
+// implement end address
+// implement start address
+// implement A/B so we can write into an array while playing back the other
+// implement full scatter-gather
+// implement slowly rising intensity of a fixed pattern
 
 module function_generator_althea #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
@@ -58,7 +65,7 @@ module function_generator_althea #(
 			initialized <= 0;
 		end else begin
 			if (!initialized) begin
-				write_enable <= 1;
+				//write_enable <= 1;
 				if (0) begin
 					data_in <= counter;
 				end else if (0) begin
@@ -129,23 +136,25 @@ module function_generator_althea #(
 //							bunch_counter <= bunch_counter - 1;
 //						end
 //					end
-				end else if (1) begin
+				end else if (0) begin
 					// this mode drives out something like a signal that would come from the bunch current monitor
 					// from 2019-11-15.075530 HER (but simplified/compressed)
 					data_in <= 8'h00;
 					if (outer_loop_counter) begin
 						if (inner_loop_counter==2) begin
-							inner_loop_counter <= inner_loop_counter - 1;
+							inner_loop_counter <= inner_loop_counter - 1'b1;
 							data_in <= 8'b10000000;
 						end else if (inner_loop_counter==1) begin
-							inner_loop_counter <= inner_loop_counter - 1;
+							inner_loop_counter <= inner_loop_counter - 1'b1;
 							data_in <= 8'b00001000;
 						end else begin
 							data_in <= 8'b00000000;
 							inner_loop_counter <= 2'd2;
-							outer_loop_counter <= outer_loop_counter - 1;
+							outer_loop_counter <= outer_loop_counter - 1'b1;
 						end
 					end
+				end else if (0) begin
+					data_in <= 8'h00;
 				end else if (0) begin
 					// this mode drives out something like a single pilot bunch
 					// from 2019-11-15.072853 HER
