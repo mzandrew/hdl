@@ -4,9 +4,6 @@
 //(* BMM_INFO = " " *)
 //(* BMM_INFO = "ADDRESS_SPACE map_name RAMB16 [start:end] END_ADDRESS_MAP;" *)
 
-// 5,120 buckets/revolution * 9 revolutions = 46,080 buckets
-// need off-between-on functionality, so double that (=92,160)
-// 11,520 bytes of ram (so will fit in a 16k-by-8bit)
 module RAM_s6_16k_8bit #(
 ) (
 	input read_clock,

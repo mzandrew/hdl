@@ -1,7 +1,10 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2020-04-04 by mza
+// last updated 2020-04-13 by mza
 
+// 5,120 buckets/revolution * 9 revolutions = 46,080 buckets
+// need off-between-on functionality, so double that (=92,160)
+// 11,520 bytes of ram (so will fit in a 16k-by-8bit)
 module function_generator #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
 	parameter ADDRESS_BUS_DEPTH = 11,
@@ -16,6 +19,7 @@ module function_generator #(
 	input [$clog2(NUMBER_OF_CHANNELS)-1:0] channel,
 	input [DATA_BUS_WIDTH-1:0] data_in,
 	input [ADDRESS_BUS_DEPTH-1:0] write_address,
+	input [ADDRESS_BUS_DEPTH-1:0] end_read_address,
 	input write_enable,
 	output [DATA_BUS_WIDTH-1:0] data_out
 //	output [NUMBER_OF_CHANNELS-1:0] outputs
@@ -23,6 +27,7 @@ module function_generator #(
 	//output output_4, output_5, output_6, output_7
 );
 	reg [ADDRESS_BUS_DEPTH-1:0] read_address = 0;
+	reg [ADDRESS_BUS_DEPTH-1:0] last_read_address = ADDRESS_BUS_DEPTH*{1'b1};
 //	reg outputs_enabled = 0;
 //	reg [NUMBER_OF_CHANNELS-1:0] potential_outputs = 0;
 //	reg [channel][ADDRESS_BUS_DEPTH-1:0]
@@ -45,7 +50,12 @@ module function_generator #(
 ///			end else if (write) begin
 //				memory[channel][address] <= data;
 			end else begin
-				read_address <= read_address + 1'b1;
+				if (read_address==last_read_address) begin
+					read_address <= 0;
+					last_read_address <= end_read_address - 1'b1;
+				end else begin
+					read_address <= read_address + 1'b1;
+				end
 //				if (outputs_enabled[i]) begin
 //					potential_outputs[i] <= 1;
 //				end
