@@ -19,6 +19,7 @@ module function_generator #(
 	input [$clog2(NUMBER_OF_CHANNELS)-1:0] channel,
 	input [DATA_BUS_WIDTH-1:0] data_in,
 	input [ADDRESS_BUS_DEPTH-1:0] write_address,
+	input [ADDRESS_BUS_DEPTH-1:0] start_read_address,
 	input [ADDRESS_BUS_DEPTH-1:0] end_read_address,
 	input write_enable,
 	output [DATA_BUS_WIDTH-1:0] data_out
@@ -51,7 +52,7 @@ module function_generator #(
 //				memory[channel][address] <= data;
 			end else begin
 				if (read_address==last_read_address) begin
-					read_address <= 0;
+					read_address <= start_read_address;
 					last_read_address <= end_read_address - 1'b1;
 				end else begin
 					read_address <= read_address + 1'b1;

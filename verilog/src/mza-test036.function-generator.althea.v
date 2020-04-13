@@ -7,10 +7,14 @@
 // last updated 2020-04-13 by mza
 
 // todo:
-// implement start address
 // implement A/B so we can write into an array while playing back the other
 // implement full scatter-gather
 // implement slowly rising intensity of a fixed pattern
+
+`define RF_BUCKETS 5120 // set by accelerator geometry/parameters
+`define REVOLUTIONS 9 // set by FTSW/TOP firmware
+`define BITS_PER_WORD 8 // matches oserdes input width
+`define SCALING 2 // off-between-on functionality (@1GHz)
 
 module function_generator_althea #(
 	parameter DATA_BUS_WIDTH = 8, // should correspond to corresponding oserdes input width
@@ -168,6 +172,10 @@ module function_generator_althea #(
 	end
 	wire [7:0] data_out;
 //	assign leds = data_out;
+	wire [ADDRESS_BUS_DEPTH-1:0] START_READ_ADDRESS = `RF_BUCKETS * 0 * `SCALING / `BITS_PER_WORD;
+	//wire [ADDRESS_BUS_DEPTH-1:0] START_READ_ADDRESS = 0;
+	wire [ADDRESS_BUS_DEPTH-1:0] END_READ_ADDRESS = `RF_BUCKETS * 3 * `SCALING / `BITS_PER_WORD;
+	//wire [ADDRESS_BUS_DEPTH-1:0] END_READ_ADDRESS = `RF_BUCKETS * REVOLUTIONS * `SCALING / `BITS_PER_WORD; // 11520
 	function_generator #(
 		.DATA_BUS_WIDTH(DATA_BUS_WIDTH),
 		.ADDRESS_BUS_DEPTH(ADDRESS_BUS_DEPTH),
@@ -179,7 +187,8 @@ module function_generator_althea #(
 		.write_address(write_address),
 		.data_in(data_in),
 		.write_enable(write_enable),
-		.end_read_address(11520),
+		.start_read_address(START_READ_ADDRESS),
+		.end_read_address(END_READ_ADDRESS),
 		.data_out(data_out)
 //		.output_0(led_0), .output_1(led_1), .output_2(led_2), .output_3(led_3),
 //		.output_4(led_4), .output_5(led_5), .output_6(led_6), .output_7(led_7)
