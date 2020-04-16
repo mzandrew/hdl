@@ -36,10 +36,6 @@ module function_generator_althea #(
 	assign leds[0] = pll_locked;
 	wire clock; // 125 MHz
 	BUFG mrt (.I(rawclock125), .O(clock));
-	reg [DATA_BUS_WIDTH-1:0] data_in = 0;
-	reg [ADDRESS_BUS_DEPTH-1:0] write_address = 0;
-	reg write_enable = 0;
-	reg initialized = 0;
 	//reg [9:0] bunch_counter = 795;
 	//reg [3:0] bucket_counter = 12;
 	reg [9:0] outer_loop_counter = 265;
@@ -59,18 +55,14 @@ module function_generator_althea #(
 		end
 	end
 
-	reg [7:0] values_array [3:0][97:0];
-	reg [1:0] index_array [166:0];
-	reg [1:0] values_array_counter_1 = 0;
-	reg [6:0] values_array_counter_2 = 0;
-	reg [7:0] index_array_counter = 0;
+	reg [7:0] values_array [4:0][48:0];
+	reg [2:0] index_array [333:0];
+	reg [2:0] values_array_counter_1 = 0;
+	reg [5:0] values_array_counter_2 = 0;
+	reg [8:0] index_array_counter = 0;
 	reg [3:0] initializing_stage = 0;
-	always @(posedge clock) begin
+	always @(posedge clock50) begin
 		if (reset) begin
-			counter <= 0;
-			write_enable <= 0;
-			write_address <= 0;
-			data_in <= 0;
 			initializing_stage <= 0;
 			values_array_counter_1 <= 0;
 			values_array_counter_2 <= 0;
@@ -79,223 +71,200 @@ module function_generator_althea #(
 			values_array_counter_2 <= values_array_counter_2 + 1'b1;
 			if (initializing_stage==0) begin
 				case (values_array_counter_2)
-					98: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
+					49: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
 					default: values_array[values_array_counter_1][values_array_counter_2] <= 8'h00;
 				endcase
 			end else if (initializing_stage==1) begin
 				case (values_array_counter_2)
-//					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
 					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
 					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
 					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
 					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
 					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
 					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					52: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					53: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					55: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					56: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					58: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					59: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					61: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					62: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					64: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					65: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					67: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					68: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					70: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					71: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					73: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					75: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					76: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					78: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					79: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					81: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					82: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					84: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					85: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					87: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					88: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					90: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					91: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					93: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					94: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					96: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					98: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
+					49: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
 					default: values_array[values_array_counter_1][values_array_counter_2] <= 8'h00;
 				endcase
 			end else if (initializing_stage==2) begin
 				case (values_array_counter_2)
-//					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
 					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
 					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
 					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
 					19: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
 					21: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
 					22: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					24: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					26: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					27: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					29: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					30: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					24: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					26: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					27: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					29: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					30: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
 					32: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
 					33: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
 					35: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					36: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					38: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					39: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					41: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					36: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					38: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					39: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					41: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
 					42: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
 					44: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
 					45: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					47: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					49: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					50: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					52: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					53: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					55: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					56: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					58: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					59: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					61: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					62: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					64: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					65: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					67: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					68: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					70: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					72: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					98: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
+					47: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					49: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
 					default: values_array[values_array_counter_1][values_array_counter_2] <= 8'h00;
 				endcase
 			end else if (initializing_stage==3) begin
 				case (values_array_counter_2)
-//					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
 					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
 					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
 					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
 					19: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
 					21: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					22: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					24: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					26: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					27: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					29: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					30: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					32: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					33: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					35: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					36: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					38: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					39: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					41: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					42: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					44: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					45: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					47: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					49: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					50: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					52: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					53: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					55: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					56: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					58: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					59: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					61: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					62: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					64: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					65: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					67: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					68: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					70: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					71: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					73: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					75: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					76: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-//					78: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					79: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					81: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					82: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					84: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-//					85: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					87: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					88: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-//					90: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-//					91: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					93: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					94: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					96: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					98: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
+					23: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					49: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
 					default: values_array[values_array_counter_1][values_array_counter_2] <= 8'h00;
 				endcase
 			end else if (initializing_stage==4) begin
-				index_array_counter <= index_array_counter + 1'b1;
-				case (index_array_counter)
-					0: index_array[index_array_counter] <= 2'h3;
-					1: index_array[index_array_counter] <= 2'h3;
-					2: index_array[index_array_counter] <= 2'h3;
-					3: index_array[index_array_counter] <= 2'h3;
-					4: index_array[index_array_counter] <= 2'h3;
-					5: index_array[index_array_counter] <= 2'h3;
-					6: index_array[index_array_counter] <= 2'h1;
-					7: index_array[index_array_counter] <= 2'h3;
-					8: index_array[index_array_counter] <= 2'h3;
-					9: index_array[index_array_counter] <= 2'h3;
-					10: index_array[index_array_counter] <= 2'h3;
-					11: index_array[index_array_counter] <= 2'h3;
-					12: index_array[index_array_counter] <= 2'h2;
-					167: begin index_array_counter <= 0; initializing_stage <= initializing_stage + 1'b1; end
-					default: index_array[index_array_counter] <= 2'h0;
+				case (values_array_counter_2)
+					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					19: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					21: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					22: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					24: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					26: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					27: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					29: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					30: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					32: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					33: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					35: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
+					36: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					38: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					39: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					41: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					42: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					44: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					45: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
+					47: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					49: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
+					default: values_array[values_array_counter_1][values_array_counter_2] <= 8'h00;
 				endcase
 			end else if (initializing_stage==5) begin
-				write_enable <= 1;
-				write_address <= counter;
-				if (values_array_counter_2==97) begin
-					values_array_counter_2 <= 0;
-					if (index_array_counter==166) begin
-						index_array_counter <= 0;
-						initializing_stage <= initializing_stage + 1'b1;
-					end else begin
-						index_array_counter <= index_array_counter + 1'b1;
-					end
-				end else begin
-					data_in <= values_array[index_array[index_array_counter]][values_array_counter_2];
-				end
-				counter <= counter + 1'b1;
-			end else if (initializing_stage==6) begin
-				write_enable <= 0;
-				write_address <= 0;
-				data_in <= 0;
-				initializing_stage <= initializing_stage + 1'b1;
+				index_array_counter <= index_array_counter + 1'b1;
+				case (index_array_counter)
+					0: index_array[index_array_counter] <= 3'h4;
+					1: index_array[index_array_counter] <= 3'h4;
+					2: index_array[index_array_counter] <= 3'h4;
+					3: index_array[index_array_counter] <= 3'h4;
+					4: index_array[index_array_counter] <= 3'h4;
+					5: index_array[index_array_counter] <= 3'h4;
+					6: index_array[index_array_counter] <= 3'h4;
+					7: index_array[index_array_counter] <= 3'h4;
+					8: index_array[index_array_counter] <= 3'h4;
+					9: index_array[index_array_counter] <= 3'h4;
+					10: index_array[index_array_counter] <= 3'h4;
+					11: index_array[index_array_counter] <= 3'h4;
+					12: index_array[index_array_counter] <= 3'h1;
+					13: index_array[index_array_counter] <= 3'h2;
+					14: index_array[index_array_counter] <= 3'h4;
+					15: index_array[index_array_counter] <= 3'h4;
+					16: index_array[index_array_counter] <= 3'h4;
+					17: index_array[index_array_counter] <= 3'h4;
+					18: index_array[index_array_counter] <= 3'h4;
+					19: index_array[index_array_counter] <= 3'h4;
+					20: index_array[index_array_counter] <= 3'h4;
+					21: index_array[index_array_counter] <= 3'h4;
+					22: index_array[index_array_counter] <= 3'h4;
+					23: index_array[index_array_counter] <= 3'h4;
+					24: index_array[index_array_counter] <= 3'h4;
+					25: index_array[index_array_counter] <= 3'h3;
+					334: begin index_array_counter <= 0; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
+					default: index_array[index_array_counter] <= 3'h0;
+				endcase
 			end
 		end
 	end
 
 	reg [ADDRESS_BUS_DEPTH-1:0] counter = 0;
+	reg write_enable = 0;
+	reg initialized = 0;
+	reg [DATA_BUS_WIDTH-1:0] data_in = 0;
+	reg [ADDRESS_BUS_DEPTH-1:0] write_address = 0;
+	reg [5:0] values_array_counter_3 = 0;
+	reg [8:0] index_array_counter_2 = 0;
+	always @(posedge clock) begin
+		if (reset) begin
+			counter <= 0;
+			write_enable <= 0;
+			write_address <= 0;
+			data_in <= 0;
+			initialized <= 0;
+			values_array_counter_3 <= 0;
+			index_array_counter_2 <= 0;
+		end else begin
+			if (!initialized) begin
+				if (initializing_stage==6) begin
+					values_array_counter_3 <= values_array_counter_3 + 1'b1;
+					write_enable <= 1;
+					write_address <= counter;
+					if (values_array_counter_3==48) begin
+						values_array_counter_3 <= 0;
+						if (index_array_counter_2==333) begin
+							index_array_counter_2 <= 0;
+							initialized <= 1;
+						end else begin
+							index_array_counter_2 <= index_array_counter_2 + 1'b1;
+						end
+					end else begin
+						data_in <= values_array[index_array[index_array_counter_2]][values_array_counter_3];
+					end
+					counter <= counter + 1'b1;
+				end
+			end else begin
+				write_enable <= 0;
+				write_address <= 0;
+				data_in <= 0;
+				ocyrus_reset <= 0;
+			end
+		end
+	end
+
 	if (0) begin
 	always @(posedge clock) begin
 		if (reset) begin
@@ -420,7 +389,8 @@ module function_generator_althea #(
 //		.output_4(led_4), .output_5(led_5), .output_6(led_6), .output_7(led_7)
 	);
 	wire oserdes_pll_locked;
-	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) single (.clock_in(clock), .reset(reset), .word_clock_out(), .word_in(data_out), .D_out(bit_out), .locked(oserdes_pll_locked));
+	reg ocyrus_reset = 1;
+	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) single (.clock_in(clock), .reset(ocyrus_reset), .word_clock_out(), .word_in(data_out), .D_out(bit_out), .locked(oserdes_pll_locked));
 	assign leds[1] = oserdes_pll_locked;
 	assign leds[7:2] = 5'd0;
 endmodule

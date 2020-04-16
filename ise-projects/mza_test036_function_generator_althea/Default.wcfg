@@ -10,26 +10,36 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="16" />
+   <WVObjectSize size="20" />
    <wvobject fp_name="/function_generator_althea_tb/fga/initializing_stage" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">initializing_stage[3:0]</obj_property>
       <obj_property name="ObjectShortName">initializing_stage[3:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/values_array_counter_1" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">values_array_counter_1[1:0]</obj_property>
-      <obj_property name="ObjectShortName">values_array_counter_1[1:0]</obj_property>
+      <obj_property name="ElementShortName">values_array_counter_1[2:0]</obj_property>
+      <obj_property name="ObjectShortName">values_array_counter_1[2:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/values_array_counter_2" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">values_array_counter_2[6:0]</obj_property>
-      <obj_property name="ObjectShortName">values_array_counter_2[6:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">values_array_counter_2[5:0]</obj_property>
+      <obj_property name="ObjectShortName">values_array_counter_2[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/values_array_counter_3" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">values_array_counter_3[5:0]</obj_property>
+      <obj_property name="ObjectShortName">values_array_counter_3[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/index_array_counter" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">index_array_counter[7:0]</obj_property>
-      <obj_property name="ObjectShortName">index_array_counter[7:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">index_array_counter[8:0]</obj_property>
+      <obj_property name="ObjectShortName">index_array_counter[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/index_array_counter_2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">index_array_counter_2[8:0]</obj_property>
+      <obj_property name="ObjectShortName">index_array_counter_2[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/counter" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">counter[13:0]</obj_property>
@@ -49,6 +59,10 @@
       <obj_property name="ElementShortName">data_in[7:0]</obj_property>
       <obj_property name="ObjectShortName">data_in[7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/initialized" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">initialized</obj_property>
+      <obj_property name="ObjectShortName">initialized</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/fg/\chan[0].mem /we/sel" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">sel[2:0]</obj_property>
@@ -155,6 +169,10 @@
          <obj_property name="ElementShortName">led_0</obj_property>
          <obj_property name="ObjectShortName">led_0</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/ocyrus_reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ocyrus_reset</obj_property>
+      <obj_property name="ObjectShortName">ocyrus_reset</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/lemo" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">lemo</obj_property>
