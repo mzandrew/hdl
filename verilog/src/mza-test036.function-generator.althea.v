@@ -4,7 +4,7 @@
 // content borrowed from mza-test031.clock509_and_revo_generator.althea.v
 // content borrowed from mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v
 // grabs output from XRM.py corresponding to an array from the bunch current monitor
-// last updated 2020-04-15 by mza
+// last updated 2020-04-17 by mza
 
 // todo:
 // implement A/B so we can write into an array while playing back the other
@@ -76,112 +76,112 @@ module function_generator_althea #(
 				endcase
 			end else if (initializing_stage==1) begin
 				case (values_array_counter_2)
-					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
 					49: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
 					default: values_array[values_array_counter_1][values_array_counter_2] <= 8'h00;
 				endcase
 			end else if (initializing_stage==2) begin
 				case (values_array_counter_2)
-					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					19: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					21: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					22: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					24: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					26: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					27: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					29: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					30: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					32: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					33: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					35: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					36: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					38: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					39: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					41: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					42: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					44: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					45: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					47: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					19: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					21: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					22: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					24: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					26: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					27: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					29: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					30: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					32: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					33: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					35: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					36: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					38: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					39: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					41: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					42: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					44: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					45: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					47: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
 					49: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
 					default: values_array[values_array_counter_1][values_array_counter_2] <= 8'h00;
 				endcase
 			end else if (initializing_stage==3) begin
 				case (values_array_counter_2)
-					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					19: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					21: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					23: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
+					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					19: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					21: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					23: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
 					49: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
 					default: values_array[values_array_counter_1][values_array_counter_2] <= 8'h00;
 				endcase
 			end else if (initializing_stage==4) begin
 				case (values_array_counter_2)
-					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					19: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					21: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					22: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					24: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					26: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					27: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					29: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					30: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					32: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					33: values_array[values_array_counter_1][values_array_counter_2] <= 8'h04;
-					35: values_array[values_array_counter_1][values_array_counter_2] <= 8'h40;
-					36: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					38: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					39: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					41: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					42: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					44: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
-					45: values_array[values_array_counter_1][values_array_counter_2] <= 8'h01;
-					47: values_array[values_array_counter_1][values_array_counter_2] <= 8'h10;
+					0: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					1: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					3: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					4: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					6: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					7: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					9: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					10: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					12: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					13: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					15: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					16: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					18: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					19: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					21: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					22: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					24: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					26: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					27: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					29: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					30: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					32: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					33: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					35: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					36: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					38: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					39: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					41: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					42: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					44: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
+					45: values_array[values_array_counter_1][values_array_counter_2] <= 8'h0f;
+					47: values_array[values_array_counter_1][values_array_counter_2] <= 8'hf0;
 					49: begin values_array_counter_1 <= values_array_counter_1 + 1'b1; values_array_counter_2 <= 0; initializing_stage <= initializing_stage + 1'b1; end
 					default: values_array[values_array_counter_1][values_array_counter_2] <= 8'h00;
 				endcase
