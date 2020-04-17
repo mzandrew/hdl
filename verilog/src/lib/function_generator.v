@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2020-04-13 by mza
+// last updated 2020-04-17 by mza
 
 // 5,120 buckets/revolution * 9 revolutions = 46,080 buckets
 // need off-between-on functionality, so double that (=92,160)
@@ -15,6 +15,7 @@ module function_generator #(
 ) (
 	input clock,
 	input reset,
+	input sync_read_address,
 //	input [NUMBER_OF_CHANNELS-1:0] outputs_enabled,
 	input [$clog2(NUMBER_OF_CHANNELS)-1:0] channel,
 	input [DATA_BUS_WIDTH-1:0] data_in,
@@ -44,7 +45,7 @@ module function_generator #(
 			// assert
 		end
 		always @(posedge clock) begin
-			if (reset) begin
+			if (reset || sync_read_address) begin
 				read_address <= 0;
 //				write_address <= 0;
 //				potential_outputs[i] <= 0;

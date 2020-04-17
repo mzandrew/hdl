@@ -10,7 +10,15 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="13" />
+   <WVObjectSize size="16" />
+   <wvobject fp_name="/function_generator_althea_tb/fga/reset1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset1</obj_property>
+      <obj_property name="ObjectShortName">reset1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/reset2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset2</obj_property>
+      <obj_property name="ObjectShortName">reset2</obj_property>
+   </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/bcmi/initializing_stage" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">initializing_stage[3:0]</obj_property>
       <obj_property name="ObjectShortName">initializing_stage[3:0]</obj_property>
@@ -30,19 +38,23 @@
       <obj_property name="ObjectShortName">data[7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/function_generator_althea_tb/fga/fg/\chan[0].mem /we/sel" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">sel[2:0]</obj_property>
-      <obj_property name="ObjectShortName">sel[2:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/fg/\chan[0].mem /read_clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">read_clock</obj_property>
       <obj_property name="ObjectShortName">read_clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/sync" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sync</obj_property>
+      <obj_property name="ObjectShortName">sync</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/fg/\chan[0].mem /read_address" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">read_address[13:0]</obj_property>
       <obj_property name="ObjectShortName">read_address[13:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/fg/\chan[0].mem /we/sel" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">sel[2:0]</obj_property>
+      <obj_property name="ObjectShortName">sel[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/fg/\chan[0].mem /buffered_sel_0" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">buffered_sel_0[2:0]</obj_property>
@@ -136,9 +148,9 @@
          <obj_property name="ObjectShortName">led_0</obj_property>
       </wvobject>
    </wvobject>
-   <wvobject fp_name="/function_generator_althea_tb/fga/ocyrus_reset" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">ocyrus_reset</obj_property>
-      <obj_property name="ObjectShortName">ocyrus_reset</obj_property>
+   <wvobject fp_name="/function_generator_althea_tb/fga/reset3" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset3</obj_property>
+      <obj_property name="ObjectShortName">reset3</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/lemo" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">lemo</obj_property>

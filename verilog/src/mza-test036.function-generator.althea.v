@@ -270,6 +270,7 @@ module function_generator_althea #(
 //	localparam ADDRESS_MAX = (2**ADDRESS_BUS_DEPTH)-1;
 	reg [7:0] reset1_counter = 0;
 	always @(posedge clock50) begin
+		sync <= 0;
 		if (reset1) begin
 			if (reset1_counter[7]) begin
 				reset1 <= 0;
@@ -282,6 +283,7 @@ module function_generator_althea #(
 		end else if (reset3) begin
 			if (bcm_init_done) begin
 				reset3 <= 0;
+				sync <= 1;
 			end
 		end
 	end
@@ -396,6 +398,7 @@ module function_generator_althea #(
 	//wire [ADDRESS_BUS_DEPTH-1:0] START_READ_ADDRESS = 0;
 	wire [ADDRESS_BUS_DEPTH-1:0] END_READ_ADDRESS = `RF_BUCKETS * 1 * `SCALING / `BITS_PER_WORD;
 	//wire [ADDRESS_BUS_DEPTH-1:0] END_READ_ADDRESS = `RF_BUCKETS * REVOLUTIONS * `SCALING / `BITS_PER_WORD; // 11520
+	reg sync = 0;
 	function_generator #(
 		.DATA_BUS_WIDTH(DATA_BUS_WIDTH),
 		.ADDRESS_BUS_DEPTH(ADDRESS_BUS_DEPTH),
@@ -406,6 +409,7 @@ module function_generator_althea #(
 		.channel(2'd1),
 		.write_address(write_address),
 		.data_in(data),
+		.sync_read_address(sync),
 		.write_enable(write_enable),
 		.start_read_address(START_READ_ADDRESS),
 		.end_read_address(END_READ_ADDRESS),
