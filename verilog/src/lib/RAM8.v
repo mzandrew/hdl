@@ -1,4 +1,4 @@
-// last updated 2020-04-09 by mza
+// last updated 2020-04-26 by mza
 
 //(* keep_hierarchy = "yes" *)
 //(* BMM_INFO = " " *)
@@ -176,7 +176,7 @@ module RAM_s6_2k_8bit #(
 //		.SRVAL_A(36’h000000000),
 //		.SRVAL_B(36’h000000000),
 		// WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE"
-		.WRITE_MODE_A("READ_FIRST"),
+		.WRITE_MODE_A("WRITE_FIRST"),
 		.WRITE_MODE_B("WRITE_FIRST")
 	) RAMB16BWER_inst (
 		// Port A Data: 32-bit (each) output: Port A data

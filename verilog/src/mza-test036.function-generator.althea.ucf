@@ -59,12 +59,12 @@ net led_7 loc=p1  | iostandard=lvcmos25;
 
 net lemo loc=p93 | iostandard=lvcmos25 | drive = 24 | slew = fast;
 
-inst "fga/fg/chan[0].mem/mem_array[0].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y12";
-inst "fga/fg/chan[0].mem/mem_array[1].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y18";
-inst "fga/fg/chan[0].mem/mem_array[2].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y14";
-inst "fga/fg/chan[0].mem/mem_array[3].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y24";
-inst "fga/fg/chan[0].mem/mem_array[4].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y16";
-inst "fga/fg/chan[0].mem/mem_array[5].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y20";
-inst "fga/fg/chan[0].mem/mem_array[6].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y22";
-inst "fga/fg/chan[0].mem/mem_array[7].mem/RAMB16BWER_inst" LOC = "RAMB16_X0Y16";
+#inst "fga/fg/chan[0].mem/mem_array[0].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y12";
+#inst "fga/fg/chan[0].mem/mem_array[1].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y18";
+#inst "fga/fg/chan[0].mem/mem_array[2].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y14";
+#inst "fga/fg/chan[0].mem/mem_array[3].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y24";
+#inst "fga/fg/chan[0].mem/mem_array[4].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y16";
+#inst "fga/fg/chan[0].mem/mem_array[5].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y20";
+#inst "fga/fg/chan[0].mem/mem_array[6].mem/RAMB16BWER_inst" LOC = "RAMB16_X1Y22";
+#inst "fga/fg/chan[0].mem/mem_array[7].mem/RAMB16BWER_inst" LOC = "RAMB16_X0Y16";
 

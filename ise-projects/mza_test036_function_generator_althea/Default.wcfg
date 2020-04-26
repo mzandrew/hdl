@@ -10,10 +10,14 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="16" />
+   <WVObjectSize size="19" />
    <wvobject fp_name="/function_generator_althea_tb/fga/reset1" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">reset1</obj_property>
       <obj_property name="ObjectShortName">reset1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/pll_locked" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_locked</obj_property>
+      <obj_property name="ObjectShortName">pll_locked</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/reset2" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">reset2</obj_property>
@@ -148,9 +152,17 @@
          <obj_property name="ObjectShortName">led_0</obj_property>
       </wvobject>
    </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/bcm_init_done" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bcm_init_done</obj_property>
+      <obj_property name="ObjectShortName">bcm_init_done</obj_property>
+   </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/reset3" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">reset3</obj_property>
       <obj_property name="ObjectShortName">reset3</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/oserdes_pll_locked" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">oserdes_pll_locked</obj_property>
+      <obj_property name="ObjectShortName">oserdes_pll_locked</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/lemo" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">lemo</obj_property>

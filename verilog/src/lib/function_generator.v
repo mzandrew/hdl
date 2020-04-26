@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2020-04-17 by mza
+// last updated 2020-04-26 by mza
 
 // 5,120 buckets/revolution * 9 revolutions = 46,080 buckets
 // need off-between-on functionality, so double that (=92,160)
@@ -13,7 +13,8 @@ module function_generator #(
 	//parameter CHANNELS_LOG2 = 3, // hardcoded to a max of 8 channels here
 	//parameter CHANNELS_LOG2 = 2
 ) (
-	input clock,
+	input write_clock,
+	input read_clock,
 	input reset,
 	input sync_read_address,
 //	input [NUMBER_OF_CHANNELS-1:0] outputs_enabled,
@@ -36,15 +37,15 @@ module function_generator #(
 	genvar ch; // generate
 	for (ch=0; ch<NUMBER_OF_CHANNELS; ch=ch+1) begin : chan
 		if (ADDRESS_BUS_DEPTH==10) begin
-			RAM_s6_1k_8bit mem (.write_clock(clock), .read_clock(clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+			RAM_s6_1k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
 		end else if (ADDRESS_BUS_DEPTH==11) begin
-			RAM_s6_2k_8bit mem (.write_clock(clock), .read_clock(clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+			RAM_s6_2k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
 		end else if (ADDRESS_BUS_DEPTH==14) begin
-			RAM_s6_16k_8bit mem (.write_clock(clock), .read_clock(clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+			RAM_s6_16k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
 //		end else begin
 			// assert
 		end
-		always @(posedge clock) begin
+		always @(posedge read_clock) begin
 			if (reset || sync_read_address) begin
 				read_address <= 0;
 //				write_address <= 0;
