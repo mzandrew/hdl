@@ -1,10 +1,10 @@
-`timescale 1ns / 1ps
+`timescale 1ns / 100ps
 // written 2020-04-01 by mza
 // content borrowed from mza-test017.serializer-ram.v
 // content borrowed from mza-test031.clock509_and_revo_generator.althea.v
 // content borrowed from mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v
 // grabs output from XRM.py corresponding to an array from the bunch current monitor
-// last updated 2020-04-17 by mza
+// last updated 2020-04-25 by mza
 
 // todo:
 // implement A/B so we can write into an array while playing back the other
@@ -30,11 +30,14 @@ module function_generator_althea #(
 	reg reset1 = 1;
 	reg reset2 = 1;
 	reg reset3 = 1;
+	wire rawclock10;
 	wire rawclock125;
 	wire pll_locked;
-	simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset1), .clock0out(rawclock125), .locked(pll_locked)); // 50->125
+	simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .divide1(50), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset1), .clock0out(rawclock125), .clock1out(rawclock10), .locked(pll_locked)); // 50->125
 	wire clock; // 125 MHz
+	wire clock10;
 	BUFG mrt (.I(rawclock125), .O(clock));
+	BUFG mrst (.I(rawclock10), .O(clock10));
 	//reg [9:0] bunch_counter = 795;
 	//reg [3:0] bucket_counter = 12;
 //	reg [9:0] outer_loop_counter = 265;
@@ -67,7 +70,7 @@ module function_generator_althea #(
 	wire write_enable;
 	wire [DATA_BUS_WIDTH-1:0] data;
 	wire bcm_init_done;
-	bcm_init bcmi (.clock_slow(clock50), .clock_fast(clock), .reset(reset2), .write_address(write_address), .write_enable(write_enable), .data_out(data), .done(bcm_init_done));
+	bcm_init bcmi (.clock_slow(clock10), .clock_fast(clock), .reset(reset2), .write_address(write_address), .write_enable(write_enable), .data_out(data), .done(bcm_init_done));
 //	if (0) begin
 //	always @(posedge clock) begin
 //		if (reset) begin
