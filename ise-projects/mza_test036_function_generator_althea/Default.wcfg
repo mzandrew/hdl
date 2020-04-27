@@ -10,7 +10,11 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="19" />
+   <WVObjectSize size="29" />
+   <wvobject fp_name="/function_generator_althea_tb/fga/clock50" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock50</obj_property>
+      <obj_property name="ObjectShortName">clock50</obj_property>
+   </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/reset1" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">reset1</obj_property>
       <obj_property name="ObjectShortName">reset1</obj_property>
@@ -28,6 +32,47 @@
       <obj_property name="ObjectShortName">initializing_stage[3:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
+   <wvobject fp_name="divider42" type="divider">
+      <obj_property name="label">write</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/bcmi/values_array_counter_1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">values_array_counter_1[2:0]</obj_property>
+      <obj_property name="ObjectShortName">values_array_counter_1[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/bcmi/values_array_counter_1_prime" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">values_array_counter_1_prime[2:0]</obj_property>
+      <obj_property name="ObjectShortName">values_array_counter_1_prime[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/bcmi/values_array_counter_2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">values_array_counter_2[5:0]</obj_property>
+      <obj_property name="ObjectShortName">values_array_counter_2[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/bcmi/values_array_counter_2_prime" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">values_array_counter_2_prime[5:0]</obj_property>
+      <obj_property name="ObjectShortName">values_array_counter_2_prime[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/bcmi/index_array_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">index_array_counter[8:0]</obj_property>
+      <obj_property name="ObjectShortName">index_array_counter[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/bcmi/index_array_counter_prime" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">index_array_counter_prime[8:0]</obj_property>
+      <obj_property name="ObjectShortName">index_array_counter_prime[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/bcmi/counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">counter[13:0]</obj_property>
+      <obj_property name="ObjectShortName">counter[13:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/fg/\chan[0].mem /write_address" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">write_address[13:0]</obj_property>
       <obj_property name="ObjectShortName">write_address[13:0]</obj_property>
@@ -41,6 +86,16 @@
       <obj_property name="ElementShortName">data[7:0]</obj_property>
       <obj_property name="ObjectShortName">data[7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/fga/bcm_init_done" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bcm_init_done</obj_property>
+      <obj_property name="ObjectShortName">bcm_init_done</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider41" type="divider">
+      <obj_property name="label">read</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/fg/\chan[0].mem /read_clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">read_clock</obj_property>
@@ -151,10 +206,6 @@
          <obj_property name="ElementShortName">led_0</obj_property>
          <obj_property name="ObjectShortName">led_0</obj_property>
       </wvobject>
-   </wvobject>
-   <wvobject fp_name="/function_generator_althea_tb/fga/bcm_init_done" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">bcm_init_done</obj_property>
-      <obj_property name="ObjectShortName">bcm_init_done</obj_property>
    </wvobject>
    <wvobject fp_name="/function_generator_althea_tb/fga/reset3" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">reset3</obj_property>

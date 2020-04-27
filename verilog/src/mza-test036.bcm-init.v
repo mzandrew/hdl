@@ -193,7 +193,7 @@ module bcm_init #(
 			write_address <= 0;
 			data_out <= 0;
 			initialized <= 0;
-			values_array_counter_1_prime <= 0;
+			values_array_counter_1_prime <= 3'h4;
 			values_array_counter_2_prime <= 0;
 			index_array_counter_prime <= 0;
 			done <= 0;
@@ -203,18 +203,15 @@ module bcm_init #(
 					values_array_counter_2_prime <= values_array_counter_2_prime + 1'b1;
 					write_enable <= 1;
 					write_address <= counter;
+					data_out <= values_array[values_array_counter_1_prime][values_array_counter_2_prime];
 					if (values_array_counter_2_prime==47) begin
-						if (index_array_counter_prime==333) begin
-							index_array_counter_prime <= 0;
-							initialized <= 1;
-						end else begin
-							index_array_counter_prime <= index_array_counter_prime + 1'b1;
-						end
+						index_array_counter_prime <= index_array_counter_prime + 1'b1;
 					end else if (values_array_counter_2_prime==48) begin
 						values_array_counter_1_prime <= index_array[index_array_counter_prime];
 						values_array_counter_2_prime <= 0;
-					end else begin
-						data_out <= values_array[values_array_counter_1_prime][values_array_counter_2_prime];
+						if (index_array_counter_prime==333) begin
+							initialized <= 1;
+						end
 					end
 					counter <= counter + 1'b1;
 				end
