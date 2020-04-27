@@ -18,12 +18,24 @@ module bcm_init #(
 	reg [5:0] values_array_counter_2 = 0;
 	reg [8:0] index_array_counter = 0;
 	reg [3:0] initializing_stage = 0;
+	reg [ADDRESS_BUS_DEPTH-1:0] counter = 0;
+	reg [5:0] values_array_counter_1_prime = 0;
+	reg [5:0] values_array_counter_2_prime = 0;
+	reg [8:0] index_array_counter_prime = 0;
 	always @(posedge clock) begin
 		if (reset) begin
 			initializing_stage <= 0;
 			values_array_counter_1 <= 0;
 			values_array_counter_2 <= 0;
 			index_array_counter <= 0;
+			counter <= 0;
+			write_enable <= 0;
+			write_address <= 0;
+			data_out <= 0;
+			values_array_counter_1_prime <= 3'h4;
+			values_array_counter_2_prime <= 0;
+			index_array_counter_prime <= 0;
+			done <= 0;
 		end else begin
 			values_array_counter_2 <= values_array_counter_2 + 1'b1;
 			if (initializing_stage==0) begin
@@ -175,31 +187,6 @@ module bcm_init #(
 					default: index_array[index_array_counter] <= 3'h0;
 				endcase
 			end else if (initializing_stage==6) begin
-				if (initialized) begin
-					initializing_stage <= initializing_stage + 1'b1;
-				end
-			end
-		end
-	end
-	reg [ADDRESS_BUS_DEPTH-1:0] counter = 0;
-	reg initialized = 0;
-	reg [5:0] values_array_counter_1_prime = 0;
-	reg [5:0] values_array_counter_2_prime = 0;
-	reg [8:0] index_array_counter_prime = 0;
-	always @(posedge clock) begin
-		if (reset) begin
-			counter <= 0;
-			write_enable <= 0;
-			write_address <= 0;
-			data_out <= 0;
-			initialized <= 0;
-			values_array_counter_1_prime <= 3'h4;
-			values_array_counter_2_prime <= 0;
-			index_array_counter_prime <= 0;
-			done <= 0;
-		end else begin
-			if (!initialized) begin
-				if (initializing_stage==6) begin
 					values_array_counter_2_prime <= values_array_counter_2_prime + 1'b1;
 					write_enable <= 1;
 					write_address <= counter;
@@ -210,16 +197,16 @@ module bcm_init #(
 						values_array_counter_1_prime <= index_array[index_array_counter_prime];
 						values_array_counter_2_prime <= 0;
 						if (index_array_counter_prime==333) begin
-							initialized <= 1;
+							initializing_stage <= initializing_stage + 1'b1;
 						end
 					end
 					counter <= counter + 1'b1;
-				end
-			end else begin
+			end else if (initializing_stage==7) begin
 				write_enable <= 0;
 				write_address <= 0;
 				data_out <= 0;
 				done <= 1;
+				initializing_stage <= initializing_stage + 1'b1;
 			end
 		end
 	end
