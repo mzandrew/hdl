@@ -1,6 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
 // based partly off mza-test029
+// last updated 2020-04-27 by mza
 
 module ssynchronizer_pnp #(
 	parameter WIDTH=1
@@ -232,5 +233,161 @@ module asynchronizer_tb;
 		clock <= 0;
 	end
 	asynchronizer blah (.clock(clock), .reset(reset), .async_in(async_in), .sync_out(sync_out), .intermediate_s1(intermediate_s1), .intermediate_s2(intermediate_s2), .intermediate_s3(intermediate_s3));
+endmodule
+
+// cross-clock handshake
+// following https://zipcpu.com/blog/2017/10/20/cdc.html
+module handshake #(
+	parameter DEPTH = 2
+) (
+	input clock_a,
+	input input_trigger_a,
+	input clock_b,
+	output reg output_trigger_b = 0,
+	output busy
+);
+	reg request_a = 0;
+	reg ack_a = 0;
+	reg [DEPTH-1:0] ack_pipe_a = 0;
+	reg [DEPTH-1:0] request_pipe_b = 0;
+	reg last_request_b = 0;
+	reg request_b = 0;
+	always @(posedge clock_a)
+		if ((!busy)&&(input_trigger_a))
+			request_a <= 1;
+		else if (ack_a)
+			request_a <= 0;
+	always @(posedge clock_a)
+		{ ack_a, ack_pipe_a } <= { ack_pipe_a, request_b };
+	assign busy = (request_a) || (ack_a);
+	always @(posedge clock_b)
+		{ last_request_b, request_b, request_pipe_b } <= { request_b, request_pipe_b, request_a };
+	always @(posedge clock_b)
+		output_trigger_b <= (!last_request_b) && (request_b);
+endmodule
+
+module handshake_tb ();
+	wire busy;
+	reg clock_a = 0;
+	reg clock_b = 0;
+	reg t_a = 0;
+	wire t_b;
+	handshake #(.DEPTH(6)) hs (.clock_a(clock_a), .input_trigger_a(t_a), .clock_b(clock_b), .output_trigger_b(t_b), .busy(busy));
+	initial begin
+		#32;
+		t_a <= 1;
+		#8
+		t_a <= 0;
+	end
+	always begin
+		#4;
+		clock_a <= ~clock_a;
+	end
+	always begin
+		#9;
+		clock_b <= ~clock_b;
+	end
+endmodule
+
+//	parameter BUTTON_POLARITY = 1 // not used yet
+module button_debounce #(
+	parameter DEBOUNCE_CLOCK_PERIODS = 20, // typically 10-50 ms worth of clock periods
+	parameter METASTABLE_CLOCK_PERIODS = 3 // typically 2 or 3 clock periods
+) (
+	input clock,
+	input button_raw,
+	output reg button_just_went_active = 0,
+	output reg button_just_went_inactive = 0,
+	output reg button_state = 0,
+	output reg button_just_changed = 0
+);
+	reg [DEBOUNCE_CLOCK_PERIODS-1:0] button_pipeline_long = 0;
+	reg [METASTABLE_CLOCK_PERIODS-1:0] button_pipeline_short = 0;
+	reg button_state_is_stable = 0;
+	always @(posedge clock) begin
+		button_just_went_active <= 0;
+		button_just_went_inactive <= 0;
+		button_just_changed <= 0;
+		if (button_state_is_stable) begin
+			if (button_state) begin
+				if (button_pipeline_long[0]==0) begin
+					button_state <= 0;
+					button_just_went_inactive <= 1;
+					button_just_changed <= 1;
+					button_state_is_stable <= 0;
+				end
+			end else begin
+				if (button_pipeline_long[0]==1) begin
+					button_state <= 1;
+					button_just_went_active <= 1;
+					button_just_changed <= 1;
+					button_state_is_stable <= 0;
+				end
+			end
+		end else begin
+			//if (button_state) begin
+			if (button_pipeline_long==0) begin
+				button_state_is_stable <= 1;
+			end else if (button_pipeline_long=={DEBOUNCE_CLOCK_PERIODS{1'b1}}) begin
+				button_state_is_stable <= 1;
+			end else begin
+				button_state_is_stable <= 0;
+			end
+		end
+		{ button_pipeline_long, button_pipeline_short } <= { button_pipeline_long[DEBOUNCE_CLOCK_PERIODS-2:0], button_pipeline_short, button_raw };
+	end
+endmodule
+
+module button_debounce_tb ();
+	reg button_raw = 0;
+	reg clock = 0;
+	wire button_just_went_inactive;
+	wire button_just_went_active;
+	wire button_state;
+	wire button_just_changed;
+	button_debounce #(.DEBOUNCE_CLOCK_PERIODS(10)) bd (.button_raw(button_raw), .clock(clock), .button_just_went_inactive(button_just_went_inactive), .button_just_went_active(button_just_went_active), .button_state(button_state), .button_just_changed(button_just_changed));
+	initial begin
+		#100
+		// normal transition on
+		button_raw <= 1;
+		#100
+		button_raw <= 0;
+		#100
+		button_raw <= 1;
+		#100
+		button_raw <= 0;
+		#100
+		button_raw <= 1;
+		#2000
+		// normal transition off
+		button_raw <= 0;
+		#100
+		button_raw <= 1;
+		#100
+		button_raw <= 0;
+		#100
+		button_raw <= 1;
+		#100
+		button_raw <= 0;
+		#2000
+		// quick transition on, then off
+		button_raw <= 1;
+		#100
+		button_raw <= 0;
+		#2000
+		// steady on, then quick transition off, then back on
+		button_raw <= 1;
+		#1000
+		button_raw <= 0;
+		#20
+		button_raw <= 1;
+		#1000
+		// quick transition off
+		button_raw <= 0;
+	end
+	always begin
+		#10
+		clock <= ~clock;
+	end
 endmodule
 
