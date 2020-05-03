@@ -1,2 +1,9 @@
 get makefile from https://github.com/mzandrew/bin/blob/master/nofizbin/verilog-icestorm-arachnepnr-yosys.makefile
 
+wget https://github.com/mzandrew/bin/raw/master/nofizbin/verilog-icestorm-arachnepnr-yosys.makefile
+mv verilog-icestorm-arachnepnr-yosys.makefile makefile
+
+or
+
+ln -s ../../bin/nofizbin/verilog-icestorm-arachnepnr-yosys.makefile makefile
+
