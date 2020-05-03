@@ -1,0 +1,13 @@
+ADDRESS_MAP mymap PPC405 0
+ADDRESS_SPACE BRAM COMBINED INDEX_ADDRESSING[0x00000000:0x00001FFF]
+ADDRESS_RANGE RAMB16
+BUS_BLOCK
+wb_arbiter/BRAM/BU2/U0/blk_mem_generator/valid.cstr/ramloop[3].ram.r/v4_init.ram/SP.SINGLE_PRIM.SP [31:24] PLACED=X5Y1;
+wb_arbiter/BRAM/BU2/U0/blk_mem_generator/valid.cstr/ramloop[2].ram.r/v4_init.ram/SP.SINGLE_PRIM.SP [23:16] PLACED=X5Y0;
+wb_arbiter/BRAM/BU2/U0/blk_mem_generator/valid.cstr/ramloop[1].ram.r/v4_init.ram/SP.SINGLE_PRIM.SP [15:8] PLACED=X4Y1;
+wb_arbiter/BRAM/BU2/U0/blk_mem_generator/valid.cstr/ramloop[0].ram.r/v4_init.ram/SP.SINGLE_PRIM.SP [7:0] PLACED=X4Y0;
+END_BUS_BLOCK;
+END_ADDRESS_RANGE;
+END_ADDRESS_SPACE;
+END_ADDRESS_MAP;
+
