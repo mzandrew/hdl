@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # written 2018-07-31 by mza
 # writes out a .d (dependency) file that can be included in makefiles
-# last updated 2018-07-31 by mza
+# last updated 2020-05-03 by mza
 
 import os # os.path.isfile(), os.stat(), os.utime()
 import sys # sys.argv
@@ -33,7 +33,8 @@ def run_file(filename):
 	bliffilename = "work/" + basename + ".blif"
 	for line in open(filename):
 		#line = line.rstrip("\n\r")
-		match = re.search("`include \"(.*)\"", line)
+		#match = re.search("[^/]*`include \"(.*)\"", line)
+		match = re.search("^`include \"(.*)\"", line)
 		if match:
 			#print match.group(1)
 			includes.append(input_dirname + "/" + match.group(1))
