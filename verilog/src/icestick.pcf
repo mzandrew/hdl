@@ -12,56 +12,57 @@
 # means.
 
 # 12 MHz
-set_io CLK 21 --warn-no-port; # GBIN6/PIO3_00/DP08A, but no PLL?!?
+set_io CLK 21
+# GBIN6/PIO3_00/DP08A, but no PLL?!?
 
 # LEDs
-set_io LED1 99 --warn-no-port
-set_io LED2 98 --warn-no-port
-set_io LED3 97 --warn-no-port
-set_io LED4 96 --warn-no-port
-set_io LED5 95 --warn-no-port
+set_io LED1 99
+set_io LED2 98
+set_io LED3 97
+set_io LED4 96
+set_io LED5 95
 
 # RS232
-set_io DCDn 1 --warn-no-port
-set_io DSRn 2 --warn-no-port
-set_io DTRn 3 --warn-no-port
-set_io CTSn 4 --warn-no-port
-set_io RTSn 7 --warn-no-port
-set_io TX   8 --warn-no-port
-set_io RX   9 --warn-no-port
+set_io DCDn 1
+set_io DSRn 2
+set_io DTRn 3
+set_io CTSn 4
+set_io RTSn 7
+set_io TX   8
+set_io RX   9
 
 # IrDA Transceiver
-set_io IR_TX 105 --warn-no-port
-set_io IR_RX 106 --warn-no-port
-set_io IR_SD 107 --warn-no-port
+set_io IR_TX 105
+set_io IR_RX 106
+set_io IR_SD 107
 
 # J1 Connector  (Pin 1 = 3.3V, Pin 2 = Gnd)
-set_io J1_3  112 --warn-no-port
-set_io J1_4  113 --warn-no-port
-set_io J1_5  114 --warn-no-port
-set_io J1_6  115 --warn-no-port
-set_io J1_7  116 --warn-no-port
-set_io J1_8  117 --warn-no-port
-set_io J1_9  118 --warn-no-port
-set_io J1_10 119 --warn-no-port
+set_io J1_3  112
+set_io J1_4  113
+set_io J1_5  114
+set_io J1_6  115
+set_io J1_7  116
+set_io J1_8  117
+set_io J1_9  118
+set_io J1_10 119
 
 # J2 PMOD  (Pin 5 & 11 = Gnd, Pin 6 & 12 = 3.3V)
-set_io J2_1  78 --warn-no-port
-set_io J2_2  79 --warn-no-port
-set_io J2_3  80 --warn-no-port
-set_io J2_4  81 --warn-no-port
-set_io J2_7  87 --warn-no-port
-set_io J2_8  88 --warn-no-port
-set_io J2_9  90 --warn-no-port
-set_io J2_10 91 --warn-no-port
+set_io J2_1  78
+set_io J2_2  79
+set_io J2_3  80
+set_io J2_4  81
+set_io J2_7  87
+set_io J2_8  88
+set_io J2_9  90
+set_io J2_10 91
 
 # J3 Connector  (Pin 1 = 3.3V, Pin 2 = Gnd)
-set_io J3_3  62 --warn-no-port
-set_io J3_4  61 --warn-no-port
-set_io J3_5  60 --warn-no-port
-set_io J3_6  56 --warn-no-port
-set_io J3_7  48 --warn-no-port
-set_io J3_8  47 --warn-no-port
-set_io J3_9  45 --warn-no-port
-set_io J3_10 44 --warn-no-port
+set_io J3_3  62
+set_io J3_4  61
+set_io J3_5  60
+set_io J3_6  56
+set_io J3_7  48
+set_io J3_8  47
+set_io J3_9  45
+set_io J3_10 44
 
