@@ -1,17 +1,90 @@
 # lifted from https://github.com/thekroko/icezero-blinky.git
+# checked against iceZero-pinout-v5.pdf and SCH-TE0876-02.PDF
 # last updated 2020-05-03 by mza
 
-set_io clk_100mhz 49
+set_io pmod1_1 139
+set_io pmod1_2 137
+set_io pmod1_3 135
+set_io pmod1_4 130
+set_io pmod1_5 141
+set_io pmod1_6 138
+set_io pmod1_7 136
+set_io pmod1_8 134
+
+set_io pmod2_1  56
+set_io pmod2_2  48
+set_io pmod2_3  45
+set_io pmod2_4  43
+set_io pmod2_5  55
+set_io pmod2_6  47
+set_io pmod2_7  44
+set_io pmod2_8  42
+
+#set_io pmod3_1  26
+set_io pmod3_2  29
+set_io pmod3_3  28
+set_io pmod3_4  52
+set_io pmod3_5  41
+set_io pmod3_6  39
+set_io pmod3_7  38
+set_io pmod3_8  37
+
+set_io pmod4_1  21
+set_io pmod4_2  20
+#set_io pmod4_3  26
+set_io pmod4_4  27
+set_io pmod4_5   1
+set_io pmod4_6 144
+set_io pmod4_7 143
+set_io pmod4_8 142
 
 set_io led1 110
 set_io led2  93
 set_io led3  94
+set_io btn   63
+set_io clk_100mhz 49
 
-set_io sram_ce   24
-set_io sram_we   11
-set_io sram_oe   76
-set_io sram_lb   81
-set_io sram_ub   75
+set_io rpi_gpio02_i2c1_sda 115
+set_io rpi_gpio03_i2c1_scl 114
+#set_io rpi_gpio04 NC
+set_io rpi_gpio14_uart_tx 113
+set_io rpi_gpio15_uart_rx 112
+#set_io rpi_gpio17 NC
+#set_io rpi_gpio18 NC
+#set_io rpi_gpio27 NC
+#set_io rpi_gpio22 NC
+#set_io rpi_gpio23 NC
+set_io rpi_gpio24   99
+set_io rpi_gpio10_spi_mosi 90
+set_io rpi_gpio09_spi_miso 54
+set_io rpi_gpio11_spi_sclk 79
+set_io rpi_gpio08_spi_ce0  85
+set_io rpi_gpio07_spi_ce1  78
+set_io rpi_gpio25   88
+set_io rpi_gpio22  101
+set_io rpi_gpio00_i2c0_sda 73
+set_io rpi_gpio01_i2c0_scl 74
+
+# for configuration of the FPGA by the rpi:
+#set_io rpi_gpio05 65
+#set_io rpi_gpio06 68
+#set_io rpi_gpio13 67
+#set_io rpi_gpio16 70
+#set_io rpi_gpio12 71
+#set_io rpi_gpio26 66
+
+# XTRA:
+set_io j1_1 120
+set_io j1_2 121
+set_io j1_3 116
+set_io j1_4 117
+set_io j1_5 118
+
+set_io j3_ftdi_cts 119
+set_io j3_ftdi_tx  122
+set_io j3_ftdi_rx  124
+set_io j3_ftdi_dtr 125
+
 set_io sram_a0   34
 set_io sram_a1   33
 set_io sram_a2   32
@@ -21,16 +94,27 @@ set_io sram_a5   10
 set_io sram_a6    9
 set_io sram_a7    4
 set_io sram_a8    3
-set_io sram_a9    2
-set_io sram_a10 107
+#set_io sram_a9    2
+#set_io sram_a10 107
+set_io sram_a9   60
+set_io sram_a10  61
 set_io sram_a11 106
 set_io sram_a12 105
 set_io sram_a13 104
 set_io sram_a14 102
 set_io sram_a15  62
-set_io sram_a16  60
-set_io sram_a17  61
-set_io sram_a18  98
+#set_io sram_a16  60
+#set_io sram_a17  61
+set_io sram_a16 107
+set_io sram_a17   2
+#set_io sram_nc   98
+
+set_io sram_ce   24
+set_io sram_we   11
+set_io sram_oe   76
+set_io sram_lb   81
+set_io sram_ub   75
+
 set_io sram_d0   23
 set_io sram_d1   22
 set_io sram_d2   19
@@ -47,37 +131,4 @@ set_io sram_d12  84
 set_io sram_d13  82
 set_io sram_d14  83
 set_io sram_d15  80
-
-set_io gpio_0  141
-set_io gpio_1  139
-set_io gpio_2  138
-set_io gpio_3  137
-set_io gpio_4  136
-set_io gpio_5  135
-set_io gpio_6  134
-set_io gpio_7  130
-set_io gpio_8   55
-set_io gpio_9   56
-set_io gpio_10  47
-set_io gpio_11  48
-set_io gpio_12  44
-set_io gpio_13  45
-set_io gpio_14  42
-set_io gpio_15  43
-set_io gpio_16  41
-set_io gpio_17  39
-set_io gpio_18  38
-set_io gpio_19  37
-set_io gpio_20   1
-set_io gpio_21 144
-set_io gpio_22 143
-set_io gpio_23 142
-set_io gpio_24  21
-set_io gpio_25  20
-set_io gpio_26   8
-set_io gpio_27   7
-set_io gpio_28  26
-set_io gpio_29  29
-set_io gpio_30  28
-set_io gpio_31  52
 
