@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
 // based partly off mza-test029
-// last updated 2020-04-27 by mza
+// last updated 2020-05-05 by mza
 
 module ssynchronizer_pnp #(
 	parameter WIDTH=1
@@ -290,7 +290,7 @@ module handshake_tb ();
 endmodule
 
 //	parameter BUTTON_POLARITY = 1 // not used yet
-module button_debounce #(
+module old_stupid_button_debounce #(
 	parameter DEBOUNCE_CLOCK_PERIODS = 20, // typically 10-50 ms worth of clock periods
 	parameter METASTABLE_CLOCK_PERIODS = 3 // typically 2 or 3 clock periods
 ) (
@@ -338,6 +338,67 @@ module button_debounce #(
 	end
 endmodule
 
+//	parameter BUTTON_POLARITY = 1 // not used yet
+module button_debounce #(
+	parameter DEBOUNCE_CLOCK_PERIODS = 20, // typically 10-50 ms worth of clock periods
+	parameter METASTABLE_CLOCK_PERIODS = 3 // typically 2 or 3 clock periods
+) (
+	input clock,
+	input button_raw,
+	output reg button_just_went_active = 0,
+	output reg button_just_went_inactive = 0,
+	output reg button_state = 0,
+	output reg button_just_changed = 0
+);
+	reg [METASTABLE_CLOCK_PERIODS-1:0] button_pipeline_short = 0;
+	reg button_raw_previous = 0;
+	reg button_state_is_stable = 0;
+	reg [31:0] sequential_1_counter = 0;
+	reg [31:0] sequential_0_counter = 0;
+	always @(posedge clock) begin
+		button_just_went_active <= 0;
+		button_just_went_inactive <= 0;
+		button_just_changed <= 0;
+		if (button_state_is_stable) begin
+			if (button_state) begin
+				if (button_raw_previous==0) begin
+					button_state <= 0;
+					button_just_went_inactive <= 1;
+					button_just_changed <= 1;
+					button_state_is_stable <= 0;
+					sequential_0_counter <= 1;
+					sequential_1_counter <= 0;
+				end
+			end else begin
+				if (button_raw_previous==1) begin
+					button_state <= 1;
+					button_just_went_active <= 1;
+					button_just_changed <= 1;
+					button_state_is_stable <= 0;
+					sequential_0_counter <= 0;
+					sequential_1_counter <= 1;
+				end
+			end
+		end else begin
+			if (DEBOUNCE_CLOCK_PERIODS<sequential_0_counter) begin
+				button_state_is_stable <= 1;
+			end else if (DEBOUNCE_CLOCK_PERIODS<sequential_1_counter) begin
+				button_state_is_stable <= 1;
+			end else begin
+				button_state_is_stable <= 0;
+			end
+			if (button_raw_previous==0) begin
+				sequential_0_counter <= sequential_0_counter + 1'b1;
+				sequential_1_counter <= 0;
+			end else begin
+				sequential_1_counter <= sequential_1_counter + 1'b1;
+				sequential_0_counter <= 0;
+			end
+		end
+		{ button_raw_previous, button_pipeline_short } <= { button_pipeline_short, button_raw };
+	end
+endmodule
+
 module button_debounce_tb ();
 	reg button_raw = 0;
 	reg clock = 0;
@@ -347,7 +408,7 @@ module button_debounce_tb ();
 	wire button_just_changed;
 	button_debounce #(.DEBOUNCE_CLOCK_PERIODS(10)) bd (.button_raw(button_raw), .clock(clock), .button_just_went_inactive(button_just_went_inactive), .button_just_went_active(button_just_went_active), .button_state(button_state), .button_just_changed(button_just_changed));
 	initial begin
-		#100
+		#400
 		// normal transition on
 		button_raw <= 1;
 		#100
@@ -383,6 +444,11 @@ module button_debounce_tb ();
 		button_raw <= 1;
 		#1000
 		// quick transition off
+		button_raw <= 0;
+		#1000
+		// steady off, then quick transition on, then back off
+		button_raw <= 1;
+		#20
 		button_raw <= 0;
 	end
 	always begin
