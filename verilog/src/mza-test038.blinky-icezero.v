@@ -1,5 +1,5 @@
 // lifted from https://github.com/thekroko/icezero-blinky.git
-// last updated 2020-05-04 by mza
+// last updated 2020-05-05 by mza
 
 //`include "prescaler.v"
 `include "lib/synchronizer.v"
@@ -37,7 +37,7 @@ module top (
 	reg [23:0] counter = 0;
 	if (1) begin
 		wire button_clock;
-		button_debounce #(.DEBOUNCE_CLOCK_PERIODS(1678)) bd (.clock(clk_16mhz), .button_raw(btn), .button_just_went_active(button_clock));
+		button_debounce #(.DEBOUNCE_CLOCK_PERIODS(1678)) bd (.clock(clk_16mhz), .button_raw(btn), .button_just_went_inactive(button_clock));
 		always @(posedge button_clock) begin
 			counter <= counter + 1'b1;
 		end
