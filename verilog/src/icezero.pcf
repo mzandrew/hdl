@@ -1,6 +1,6 @@
 # lifted from https://github.com/thekroko/icezero-blinky.git
 # checked against iceZero-pinout-v5.pdf and SCH-TE0876-02.PDF
-# last updated 2020-05-03 by mza
+# last updated 2020-05-05 by mza
 
 set_io pmod1_1 139
 set_io pmod1_2 137
@@ -55,11 +55,11 @@ set_io rpi_gpio15_uart_rx 112
 #set_io rpi_gpio22 NC
 #set_io rpi_gpio23 NC
 set_io rpi_gpio24   99
-set_io rpi_gpio10_spi_mosi 90
-set_io rpi_gpio09_spi_miso 54
-set_io rpi_gpio11_spi_sclk 79
-set_io rpi_gpio08_spi_ce0  85
-set_io rpi_gpio07_spi_ce1  78
+set_io rpi_spi_mosi 90
+set_io rpi_spi_miso 87
+set_io rpi_spi_sclk 79
+set_io rpi_spi_ce0  85
+set_io rpi_spi_ce1  78
 set_io rpi_gpio25   88
 set_io rpi_gpio22  101
 set_io rpi_gpio00_i2c0_sda 73
