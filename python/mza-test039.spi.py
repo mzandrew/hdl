@@ -13,7 +13,7 @@ spi = spidev.SpiDev()
 bus = 0
 device = 0
 spi.open(bus, device)
-spi.max_speed_hz = int(20e6) # 20e6 works; 30e6 fails sometimes
+spi.max_speed_hz = int(20e6) # 20e6 works; 25e6 fails sometimes
 spi.mode = 0b01
 
 def hex(number, width=1):
@@ -21,14 +21,18 @@ def hex(number, width=1):
 
 byte_list = [ 0x00, 0x01, 0x03, 0x06, 0x04 ]
 
+i = 0
+previous_value_written = 0
 while True:
-	for byte in byte_list:
-		value_written = byte
-		spi.xfer([value_written])
-		time.sleep(0.2)
-		value_read, = spi.readbytes(1)
-		if value_read!=value_written:
-			print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(value_written, 1) + ")"
+	for value_written in byte_list:
+		value_read, = spi.xfer([value_written])
+		if 0!=i:
+			#print hex(previous_value_written, 1) + " " + hex(value_read, 1)
+			if value_read!=previous_value_written:
+				print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(previous_value_written, 1) + ")"
+		previous_value_written = value_written
+		time.sleep(0.1)
+		i += 1
 
 sys.exit(0)
 
