@@ -19,35 +19,16 @@ spi.mode = 0b01
 def hex(number, width=1):
 	return "%0*x" % (width, number)
 
+byte_list = [ 0x00, 0x01, 0x03, 0x06, 0x04 ]
+
 while True:
-	value_written = 0x00
-	spi.xfer([value_written])
-	time.sleep(0.1)
-	value_read, = spi.readbytes(1)
-	if value_read!=value_written:
-		print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(value_written, 1) + ")"
-	time.sleep(0.1)
-	value_written = 0x01
-	spi.xfer([value_written])
-	time.sleep(0.1)
-	value_read, = spi.readbytes(1)
-	if value_read!=value_written:
-		print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(value_written, 1) + ")"
-	time.sleep(0.1)
-	value_written = 0x02
-	spi.xfer([value_written])
-	time.sleep(0.1)
-	value_read, = spi.readbytes(1)
-	if value_read!=value_written:
-		print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(value_written, 1) + ")"
-	time.sleep(0.1)
-	value_written = 0x04
-	spi.xfer([value_written])
-	time.sleep(0.1)
-	value_read, = spi.readbytes(1)
-	if value_read!=value_written:
-		print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(value_written, 1) + ")"
-	time.sleep(0.1)
+	for byte in byte_list:
+		value_written = byte
+		spi.xfer([value_written])
+		time.sleep(0.2)
+		value_read, = spi.readbytes(1)
+		if value_read!=value_written:
+			print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(value_written, 1) + ")"
 
 sys.exit(0)
 
