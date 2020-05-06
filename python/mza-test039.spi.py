@@ -5,6 +5,7 @@
 
 import time
 import random
+import sys
 
 # from https://github.com/doceme/py-spidev
 import spidev
@@ -12,14 +13,49 @@ spi = spidev.SpiDev()
 bus = 0
 device = 0
 spi.open(bus, device)
-spi.max_speed_hz = int(10e6)
+spi.max_speed_hz = int(20e6) # 20e6 works; 30e6 fails sometimes
 spi.mode = 0b01
+
+def hex(number, width=1):
+	return "%0*x" % (width, number)
+
+while True:
+	value_written = 0x00
+	spi.xfer([value_written])
+	time.sleep(0.1)
+	value_read, = spi.readbytes(1)
+	if value_read!=value_written:
+		print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(value_written, 1) + ")"
+	time.sleep(0.1)
+	value_written = 0x01
+	spi.xfer([value_written])
+	time.sleep(0.1)
+	value_read, = spi.readbytes(1)
+	if value_read!=value_written:
+		print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(value_written, 1) + ")"
+	time.sleep(0.1)
+	value_written = 0x02
+	spi.xfer([value_written])
+	time.sleep(0.1)
+	value_read, = spi.readbytes(1)
+	if value_read!=value_written:
+		print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(value_written, 1) + ")"
+	time.sleep(0.1)
+	value_written = 0x04
+	spi.xfer([value_written])
+	time.sleep(0.1)
+	value_read, = spi.readbytes(1)
+	if value_read!=value_written:
+		print "value_read (" + hex(value_read, 1) + ") != value_written (" + hex(value_written, 1) + ")"
+	time.sleep(0.1)
+
+sys.exit(0)
 
 command = 0xef
 address = 0xabcd
 data = 0x12345678
 
-def send_spi(bus, device, command, address, data):
+def spi_send_command_address_data(bus, device, command, address, data):
 	address_low  =  address     & 0xff
 	address_high = (address>>8) & 0xff
 	data_0 =  data      & 0xff
@@ -49,7 +85,7 @@ for i in range(size):
 while True:
 	start = time.time()
 	for i in range(size):
-		send_spi(0, 0, command_list[i], address_list[i], data_list[i])
+		spi_send_command_address_data(0, 0, command_list[i], address_list[i], data_list[i])
 	end = time.time()
 	diff = end - start
 	per = diff / size

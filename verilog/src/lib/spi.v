@@ -118,6 +118,7 @@ module SPI_slave_tb;
 	wire LED;
 	reg [7:0] data_to_master = 8'h89;
 	wire [7:0] data_from_master;
+	wire data_valid;
 	SPI_slave spis (.clk(clock), .SCK(SCK), .MOSI(MOSI), .MISO(MISO), .SSEL(SSEL), .LED(LED), .data_to_master(data_to_master), .data_from_master(data_from_master), .data_valid(data_valid));
 	reg [7:0] data = 8'ha5;
 	initial begin
