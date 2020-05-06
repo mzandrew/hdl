@@ -42,7 +42,7 @@ set_io led1 110
 set_io led2  93
 set_io led3  94
 set_io btn   63
-set_io clk_100mhz 49
+set_io clock100 49
 
 set_io rpi_gpio02_i2c1_sda 115
 set_io rpi_gpio03_i2c1_scl 114

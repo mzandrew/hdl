@@ -1,52 +1,62 @@
-// lifted from https://github.com/thekroko/icezero-blinky.git
+// originally lifted from https://github.com/thekroko/icezero-blinky.git
 // last updated 2020-05-05 by mza
 
-//`include "prescaler.v"
 `include "lib/synchronizer.v"
+`include "lib/easypll.v"
 
 module top (
-	input clk_100mhz,
+	input clock100,
 	input btn,
+	input rpi_gpio22,
+	input rpi_gpio24,
+	input rpi_gpio25,
 	output led1,
 	output led2,
 	output led3
 );
-	wire clk_16mhz, pll_locked;
+	reg reset = 1;
+	reg [7:0] reset_counter = 0;
+	always @(posedge clock100) begin
+		if (reset) begin
+			if (reset_counter[7]) begin
+				reset <= 0;
+			end else begin
+				reset_counter <= reset_counter + 1'b1;
+			end
+		end
+	end
+	wire clock16, pll_locked;
 `ifdef TESTBENCH
-	assign clk_16mhz = clk_100mhz, pll_locked = 1;
+	assign clock16 = clock100, pll_locked = 1;
 `else
-	SB_PLL40_PAD #(
-		.FEEDBACK_PATH("SIMPLE"),
-		.DELAY_ADJUSTMENT_MODE_FEEDBACK("FIXED"),
-		.DELAY_ADJUSTMENT_MODE_RELATIVE("FIXED"),
-		.PLLOUT_SELECT("GENCLK"),
-		.FDA_FEEDBACK(4'b1111),
-		.FDA_RELATIVE(4'b1111),
-		.DIVR(4'b0011),		// DIVR =  3
-		.DIVF(7'b0101000),	// DIVF = 40
-		.DIVQ(3'b110),		// DIVQ =  6
-		.FILTER_RANGE(3'b010)	// FILTER_RANGE = 2
-	) pll (
-		.PACKAGEPIN   (clk_100mhz),
-		.PLLOUTGLOBAL (clk_16mhz ),
-		.LOCK         (pll_locked),
-		.BYPASS       (1'b0      ),
-		.RESETB       (1'b1      )
-	);
+	easypll #(.DIVR(4'd3), .DIVF(7'd40), .DIVQ(3'd6)) mp (.clock_input(clock100), .reset_active_low(~reset), .global_clock_output(clock16), .pll_is_locked(pll_locked));
+	//pll_pad #(.DIVR(4'd3), .DIVF(7'd40), .DIVQ(3'd6)) mp (.clock_input_pad(clock100), .reset(reset), .global_clock_output(clock16), .pll_is_locked(pll_locked));
 `endif
 	reg [23:0] counter = 0;
 	if (1) begin
+		assign led1 = rpi_gpio22;
+		assign led2 = rpi_gpio24;
+		assign led3 = rpi_gpio25;
+	end else if (0) begin
 		wire button_clock;
-		button_debounce #(.DEBOUNCE_CLOCK_PERIODS(1678)) bd (.clock(clk_16mhz), .button_raw(btn), .button_just_went_inactive(button_clock));
+		button_debounce #(.DEBOUNCE_CLOCK_PERIODS(1678)) bd (.clock(clock16), .button_raw(btn), .button_just_went_inactive(button_clock));
 		always @(posedge button_clock) begin
-			counter <= counter + 1'b1;
+			if (reset) begin
+				counter <= 0;
+			end else begin
+				counter <= counter + 1'b1;
+			end
 		end
 		assign led1 = counter[2];
 		assign led2 = counter[1];
 		assign led3 = counter[0];
 	end else begin
-		always @(posedge clk_16mhz) begin
-			counter <= counter + 1'b1;
+		always @(posedge clock16) begin
+			if (reset) begin
+				counter <= 0;
+			end else begin
+				counter <= counter + 1'b1;
+			end
 		end
 		assign led1 = counter[23];
 		assign led2 = counter[22];
