@@ -139,6 +139,7 @@ module SPI_slave_command8_address16_data32 (
 	output reg [7:0] command8 = 0,
 	output reg [15:0] address16 = 0,
 	output reg [31:0] data32 = 0,
+	input [31:0] data32_to_master,
 	output reg transaction_valid = 0
 );
 //	reg [8+16+32-1:0] word = 0;
@@ -201,18 +202,22 @@ module SPI_slave_command8_address16_data32 (
 //			cnt <= cnt + 8'h1;  // count the messages
 //		end
 //	end
+	reg [31:0] copy_of_data32_to_master = 0;
 	always @(posedge clock) begin
 		if (SSEL_active) begin
-			if (SSEL_startmessage) begin
+//			if (SSEL_startmessage) begin
 				//byte_data_sent <= cnt;  // first byte sent in a message is the message count
 //				byte_data_sent <= data_to_master;
-				byte_data_sent <= 8'h88;
+//				byte_data_sent <= 8'h88;
+			if (bytecnt==3 && bitcnt==0) begin
+				copy_of_data32_to_master <= data32_to_master;
 			end else if (SCK_fallingedge) begin
-				byte_data_sent <= {byte_data_sent[6:0], 1'b0};
+				copy_of_data32_to_master <= { copy_of_data32_to_master[30:0], 1'b0 };
+//				byte_data_sent <= {byte_data_sent[6:0], 1'b0};
 			end
 		end
 	end
-	assign MISO = byte_data_sent[7];	// send MSB first
+	assign MISO = copy_of_data32_to_master[31];	// send MSB first
 	// we assume that there is only one slave on the SPI bus
 	// so we don't bother with a tri-state buffer for MISO
 	// otherwise we would need to tri-state MISO when SSEL is inactive
