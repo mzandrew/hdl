@@ -55,9 +55,7 @@ def eng(x, format='%.1f', si=False):
 		exp3_text = 'e%s' % exp3
 	return ( '%s'+format+'%s') % ( sign, x3, exp3_text)
 
-size = 100000
-
-def test_single8():
+def test_single8(size):
 	print "testing spi_single8 peripheral..."
 	#data_list = [ 0x00, 0x01, 0x03, 0x06, 0x04 ]
 	data_list = []
@@ -102,7 +100,7 @@ def spi_send_command8_address16_data32(bus, device, command, address, data):
 #	result = spi_c8_a16_d32.readbytes(4)
 	return values
 
-def test_command8_address16_data32():
+def test_command8_address16_data32(size):
 	print "testing spi_command8_address16_data32 peripheral..."
 	# 30k transfers per second on a rpi2 @ 10e6 Hz
 	command_list = []
@@ -122,6 +120,8 @@ def test_command8_address16_data32():
 	print str(size) + " transfers completed successfully"
 	print eng(transfers_per_sec) + " transfers per second"
 
+size = 100000
+
 #byte_list = []
 #for i in range(size):
 #	byte_list.append(random.randint(0,255))
@@ -138,12 +138,12 @@ def test_command8_address16_data32():
 #	#print per
 #	print MB_per_sec
 
-test_single8()
+test_single8(size)
 
 #command = 0x01
 #address = 0x3456
 #data = 0x89abcdef
 #spi_send_command8_address16_data32(0, 1, command, address, data)
 
-test_command8_address16_data32()
+test_command8_address16_data32(size)
 
