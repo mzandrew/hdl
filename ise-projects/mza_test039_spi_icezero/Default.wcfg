@@ -3,52 +3,74 @@
    <wave_state>
    </wave_state>
    <db_ref_list>
-      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test039_spi_icezero/SPI_slave_tb_isim_beh.wdb" id="1" type="auto">
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test039_spi_icezero/SPI_slave_command8_address16_data32_tb_isim_beh.wdb" id="1" type="auto">
          <top_modules>
-            <top_module name="SPI_slave_tb" />
+            <top_module name="SPI_slave_command8_address16_data32_tb" />
             <top_module name="glbl" />
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="10" />
-   <wvobject fp_name="/SPI_slave_tb/clock" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">clock</obj_property>
-      <obj_property name="ObjectShortName">clock</obj_property>
-   </wvobject>
-   <wvobject fp_name="/SPI_slave_tb/data" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">data[7:0]</obj_property>
-      <obj_property name="ObjectShortName">data[7:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/SPI_slave_tb/SCK" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">SCK</obj_property>
-      <obj_property name="ObjectShortName">SCK</obj_property>
-   </wvobject>
-   <wvobject fp_name="/SPI_slave_tb/SSEL" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">SSEL</obj_property>
-      <obj_property name="ObjectShortName">SSEL</obj_property>
-   </wvobject>
-   <wvobject fp_name="/SPI_slave_tb/MOSI" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">MOSI</obj_property>
-      <obj_property name="ObjectShortName">MOSI</obj_property>
-   </wvobject>
-   <wvobject fp_name="/SPI_slave_tb/LED" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">LED</obj_property>
-      <obj_property name="ObjectShortName">LED</obj_property>
-   </wvobject>
-   <wvobject fp_name="/SPI_slave_tb/data_to_master" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">data_to_master[7:0]</obj_property>
-      <obj_property name="ObjectShortName">data_to_master[7:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/SPI_slave_tb/MISO" type="logic" db_ref_id="1">
+   <WVObjectSize size="14" />
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/MISO" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">MISO</obj_property>
       <obj_property name="ObjectShortName">MISO</obj_property>
    </wvobject>
-   <wvobject fp_name="/SPI_slave_tb/data_from_master" type="array" db_ref_id="1">
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/data_from_master" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">data_from_master[7:0]</obj_property>
       <obj_property name="ObjectShortName">data_from_master[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/SPI_slave_tb/data_valid" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">data_valid</obj_property>
-      <obj_property name="ObjectShortName">data_valid</obj_property>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/SCK" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">SCK</obj_property>
+      <obj_property name="ObjectShortName">SCK</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/MOSI" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">MOSI</obj_property>
+      <obj_property name="ObjectShortName">MOSI</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/SSEL" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">SSEL</obj_property>
+      <obj_property name="ObjectShortName">SSEL</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/i" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i[7:0]</obj_property>
+      <obj_property name="ObjectShortName">i[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/spi_c8_a16_d32/byte_data_received" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">byte_data_received[7:0]</obj_property>
+      <obj_property name="ObjectShortName">byte_data_received[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/spi_c8_a16_d32/command8" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">command8[7:0]</obj_property>
+      <obj_property name="ObjectShortName">command8[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/spi_c8_a16_d32/address16" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">address16[15:0]</obj_property>
+      <obj_property name="ObjectShortName">address16[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/spi_c8_a16_d32/data32" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data32[31:0]</obj_property>
+      <obj_property name="ObjectShortName">data32[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/transaction_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">transaction_valid</obj_property>
+      <obj_property name="ObjectShortName">transaction_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/spi_c8_a16_d32/bitcnt" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bitcnt[3:0]</obj_property>
+      <obj_property name="ObjectShortName">bitcnt[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_command8_address16_data32_tb/spi_c8_a16_d32/bytecnt" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bytecnt[3:0]</obj_property>
+      <obj_property name="ObjectShortName">bytecnt[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 </wave_config>
