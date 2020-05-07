@@ -10,12 +10,14 @@ import math
 
 # from https://github.com/doceme/py-spidev
 import spidev
-spi = spidev.SpiDev()
-bus = 0
-device = 0
-spi.open(bus, device)
-spi.max_speed_hz = int(24e6) # 24e6 works without errors; 25e6 fails often (BER=500e-3)
-spi.mode = 0b01
+spi_simple8 = spidev.SpiDev()
+spi_simple8.open(0, 0)
+spi_simple8.max_speed_hz = int(24e6) # 24e6 works without errors; 25e6 fails often (BER=500e-3)
+spi_simple8.mode = 0b01
+spi_c8_a16_d32 = spidev.SpiDev()
+spi_c8_a16_d32.open(0, 1)
+spi_c8_a16_d32.max_speed_hz = int(24e6) # 24e6 works without errors; 25e6 fails often (BER=500e-3)
+spi_c8_a16_d32.mode = 0b01
 
 def hex(number, width=1):
 	return "%0*x" % (width, number)
@@ -55,19 +57,18 @@ def eng(x, format='%.1f', si=False):
 
 size = 100000
 
-#data_list = [ 0x00, 0x01, 0x03, 0x06, 0x04 ]
-data_list = []
-for i in range(size):
-	data_list.append(random.randint(0,255))
-
-total_transfers = 0
-total_errors = 0
-
-i = 0
-previous_value_written = 0
-while True:
+def test_single8():
+	print "testing spi_single8 peripheral..."
+	#data_list = [ 0x00, 0x01, 0x03, 0x06, 0x04 ]
+	data_list = []
+	for i in range(size):
+		data_list.append(random.randint(0,255))
+	total_transfers = 0
+	total_errors = 0
+	i = 0
+	previous_value_written = 0
 	for value_written in data_list:
-		value_read, = spi.xfer([value_written])
+		value_read, = spi_simple8.xfer([value_written])
 		total_transfers += 1
 		if 0!=i:
 			#print hex(previous_value_written, 1) + " " + hex(value_read, 1)
@@ -81,14 +82,10 @@ while True:
 	if (total_errors):
 		BER = float(total_errors)/total_transfers
 		print "BER<=" + eng(BER, "%.1f")
+	else:
+		print str(size) + " transfers completed successfully"
 
-sys.exit(0)
-
-command = 0xef
-address = 0xabcd
-data = 0x12345678
-
-def spi_send_command_address_data(bus, device, command, address, data):
+def spi_send_command8_address16_data32(bus, device, command, address, data):
 	address_low  =  address     & 0xff
 	address_high = (address>>8) & 0xff
 	data_0 =  data      & 0xff
@@ -96,32 +93,34 @@ def spi_send_command_address_data(bus, device, command, address, data):
 	data_2 = (data>>16) & 0xff
 	data_3 = (data>>24) & 0xff
 	to_send = [ command, address_high, address_low, data_3, data_2, data_1, data_0 ]
-#	spi.writebytes(to_send)
-#	spi.xfer(to_send)
-	spi.xfer2(to_send)
-#	spi.xfer3(to_send)
+#	spi_c8_a16_d32.writebytes(to_send)
+#	spi_c8_a16_d32.xfer(to_send)
+	values = spi_c8_a16_d32.xfer2(to_send)
+#	spi_c8_a16_d32.xfer3(to_send)
 #	time.sleep(0.001)
-#	spi.writebytes2(to_send)
-#	result = spi.readbytes(4)
+#	spi_c8_a16_d32.writebytes2(to_send)
+#	result = spi_c8_a16_d32.readbytes(4)
+	return values
 
-command_list = []
-address_list = []
-data_list = []
-for i in range(size):
-	command_list.append(random.randint(0,255))
-	address_list.append(random.randint(0,2**16-1))
-	data_list.append(random.randint(0,2**32-1))
-
-# 30k transfers per second on a rpi2 @ 10e6 Hz
-while True:
+def test_command8_address16_data32():
+	print "testing spi_command8_address16_data32 peripheral..."
+	# 30k transfers per second on a rpi2 @ 10e6 Hz
+	command_list = []
+	address_list = []
+	data_list = []
+	for i in range(size):
+		command_list.append(random.randint(0,255))
+		address_list.append(random.randint(0,2**16-1))
+		data_list.append(random.randint(0,2**32-1))
 	start = time.time()
 	for i in range(size):
-		spi_send_command_address_data(0, 0, command_list[i], address_list[i], data_list[i])
+		spi_send_command8_address16_data32(0, 1, command_list[i], address_list[i], data_list[i])
 	end = time.time()
 	diff = end - start
 	per = diff / size
 	transfers_per_sec = size / diff
-	print transfers_per_sec
+	print str(size) + " transfers completed successfully"
+	print eng(transfers_per_sec) + " transfers per second"
 
 #byte_list = []
 #for i in range(size):
@@ -138,4 +137,13 @@ while True:
 #	#print diff
 #	#print per
 #	print MB_per_sec
+
+test_single8()
+
+#command = 0x01
+#address = 0x3456
+#data = 0x89abcdef
+#spi_send_command8_address16_data32(0, 1, command, address, data)
+
+test_command8_address16_data32()
 
