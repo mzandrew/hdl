@@ -15,6 +15,31 @@
 //`include "lib/easypll.v"
 //`endif
 
+module RAM_ice40_512_32bit #(
+) (
+	input reset,
+	input write_clock,
+	input [8:0] write_address,
+	input [31:0] write_data,
+	input write_enable,
+	input read_clock,
+	input [8:0] read_address,
+	output [31:0] read_data
+);
+	RAM_ice40_512_8bit RAM_ice40_512_8bit_3 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[31:24]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[31:24]));
+	RAM_ice40_512_8bit RAM_ice40_512_8bit_2 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[23:16]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[23:16]));
+	RAM_ice40_512_8bit RAM_ice40_512_8bit_1 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[15:8]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[15:8]));
+	RAM_ice40_512_8bit RAM_ice40_512_8bit_0 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[7:0]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[7:0]));
+endmodule
+
 module RAM_ice40_256_32bit #(
 ) (
 	input reset,
@@ -26,40 +51,12 @@ module RAM_ice40_256_32bit #(
 	input [7:0] read_address,
 	output [31:0] read_data
 );
-	wire [10:0] write_address11 = { 3'b000, write_address };
-	wire [10:0] read_address11  = { 3'b000, read_address };
-	SB_RAM40_4K #( // see SBTICETechnologyLibrary201504.pdf
-		.WRITE_MODE(0), // configured as 256x16
-		.READ_MODE(0)   // configured as 256x16
-	) ram40_4k_inst_1 (
-		.WCLK(write_clock),
-		.WADDR(write_address11),
-		.WDATA(write_data[31:16]),
-		.WE(write_enable),
-		.WCLKE(1),
-		.MASK(16'b0),
-		.RCLK(read_clock),
-		.RADDR(read_address11),
-		.RDATA(read_data[31:16]),
-		.RE(1),
-		.RCLKE(1)
-	);
-	SB_RAM40_4K #( // see SBTICETechnologyLibrary201504.pdf
-		.WRITE_MODE(0), // configured as 256x16
-		.READ_MODE(0)   // configured as 256x16
-	) ram40_4k_inst_0 (
-		.WCLK(write_clock),
-		.WADDR(write_address11),
-		.WDATA(write_data[15:0]),
-		.WE(write_enable),
-		.WCLKE(1),
-		.MASK(16'b0),
-		.RCLK(read_clock),
-		.RADDR(read_address11),
-		.RDATA(read_data[15:0]),
-		.RE(1),
-		.RCLKE(1)
-	);
+	RAM_ice40_256_16bit RAM_ice40_256_16bit_1 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[31:16]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[31:16]));
+	RAM_ice40_256_16bit RAM_ice40_256_16bit_0 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[15:0]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[15:0]));
 endmodule
 
 module RAM_ice40_256_16bit #(
@@ -104,23 +101,26 @@ module RAM_ice40_512_8bit #(
 	input [8:0] read_address,
 	output [7:0] read_data
 );
-	wire [10:0] write_address11 = { 3'b000, write_address };
-	wire [10:0] read_address11  = { 3'b000, read_address };
+	wire [10:0] write_address11 = { 3'b00, write_address };
+	wire [10:0] read_address11  = { 3'b00, read_address };
+	wire [15:0] write_data16 = { 8'h0, write_data };
+	wire [15:0] read_data16;
 	SB_RAM40_4K #( // see SBTICETechnologyLibrary201504.pdf
 		.WRITE_MODE(1), // configured as 512x8
 		.READ_MODE(1)   // configured as 512x8
 	) ram40_4k_inst (
 		.WCLK(write_clock),
 		.WADDR(write_address11),
-		.WDATA(write_data),
+		.WDATA(write_data16),
 		.WE(write_enable),
 		.WCLKE(1),
 		.RCLK(read_clock),
 		.RADDR(read_address11),
-		.RDATA(read_data),
+		.RDATA(read_data16),
 		.RE(1),
 		.RCLKE(1)
 	);
+	assign read_data = read_data16[7:0];
 endmodule
 
 // modified from MemoryUsageGuideforiCE40Devices.pdf
@@ -194,18 +194,20 @@ module top (
 	wire [31:0] data32;
 //	wire [15:0] write_data16;
 //	wire [15:0] read_data16;
-	wire [7:0] address8 = address16[10:0];
+	wire [8:0] address9 = address16[8:0];
 	wire [31:0] read_data32;
 //	reg write_enable = 0;
 	wire transaction_valid;
 //	SPI_slave_simple8 spi_s8 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce0), .data_to_master(data_to_master), .data_from_master(data_from_master), .data_valid(data_valid));
 	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce1), .transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32), .data32_to_master(read_data32));
 `ifdef xilinx
-	RAM_inferred #(.addr_width(8), .data_width(32)) myram (.reset(reset), .din(data32), .write_en(transaction_valid), .waddr(address8), .wclk(clock100), .raddr(address8), .rclk(clock100), .dout(read_data32));
+	RAM_inferred #(.addr_width(9), .data_width(32)) myram (.reset(reset1),
+		.din(data32), .write_en(transaction_valid), .waddr(address9), .wclk(clock100),
+		.raddr(address9), .rclk(clock100), .dout(read_data32));
 `else
-	RAM_ice40_256_32bit myram (.reset(reset1),
-		.write_clock(clock100), .write_address(address8), .write_data(data32), .write_enable(transaction_valid),
-		.read_clock(clock100), .read_address(address8), .read_data(read_data32));
+	RAM_ice40_512_32bit myram (.reset(reset1),
+		.write_clock(clock100), .write_address(address9), .write_data(data32), .write_enable(transaction_valid),
+		.read_clock(clock100), .read_address(address9), .read_data(read_data32));
 `endif
 //	RAM_ice40_1k_16bit myram (.reset(reset2), .write_clock(clock100), .write_address(write_address10), .write_data(write_data16), .write_enable(write_enable), .read_clock(clock100), .read_address(read_address10), .read_data(read_data16));
 //	reg [7:0] previous_data_from_master = 0;
