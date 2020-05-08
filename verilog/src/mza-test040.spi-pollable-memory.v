@@ -26,18 +26,20 @@ module RAM_ice40_256_32bit #(
 	input [7:0] read_address,
 	output [31:0] read_data
 );
+	wire [10:0] write_address11 = { 3'b000, write_address };
+	wire [10:0] read_address11  = { 3'b000, read_address };
 	SB_RAM40_4K #( // see SBTICETechnologyLibrary201504.pdf
 		.WRITE_MODE(0), // configured as 256x16
 		.READ_MODE(0)   // configured as 256x16
 	) ram40_4k_inst_1 (
 		.WCLK(write_clock),
-		.WADDR(write_address),
+		.WADDR(write_address11),
 		.WDATA(write_data[31:16]),
 		.WE(write_enable),
 		.WCLKE(1),
 		.MASK(16'b0),
 		.RCLK(read_clock),
-		.RADDR(read_address),
+		.RADDR(read_address11),
 		.RDATA(read_data[31:16]),
 		.RE(1),
 		.RCLKE(1)
@@ -47,13 +49,13 @@ module RAM_ice40_256_32bit #(
 		.READ_MODE(0)   // configured as 256x16
 	) ram40_4k_inst_0 (
 		.WCLK(write_clock),
-		.WADDR(write_address),
+		.WADDR(write_address11),
 		.WDATA(write_data[15:0]),
 		.WE(write_enable),
 		.WCLKE(1),
 		.MASK(16'b0),
 		.RCLK(read_clock),
-		.RADDR(read_address),
+		.RADDR(read_address11),
 		.RDATA(read_data[15:0]),
 		.RE(1),
 		.RCLKE(1)
@@ -71,18 +73,20 @@ module RAM_ice40_256_16bit #(
 	input [7:0] read_address,
 	output [15:0] read_data
 );
+	wire [10:0] write_address11 = { 3'b000, write_address };
+	wire [10:0] read_address11  = { 3'b000, read_address };
 	SB_RAM40_4K #( // see SBTICETechnologyLibrary201504.pdf
 		.WRITE_MODE(0), // configured as 256x16
 		.READ_MODE(0)   // configured as 256x16
 	) ram40_4k_inst (
 		.WCLK(write_clock),
-		.WADDR(write_address),
+		.WADDR(write_address11),
 		.WDATA(write_data),
 		.WE(write_enable),
 		.WCLKE(1),
 		.MASK(16'b0),
 		.RCLK(read_clock),
-		.RADDR(read_address),
+		.RADDR(read_address11),
 		.RDATA(read_data),
 		.RE(1),
 		.RCLKE(1)
@@ -100,17 +104,19 @@ module RAM_ice40_512_8bit #(
 	input [8:0] read_address,
 	output [7:0] read_data
 );
+	wire [10:0] write_address11 = { 3'b000, write_address };
+	wire [10:0] read_address11  = { 3'b000, read_address };
 	SB_RAM40_4K #( // see SBTICETechnologyLibrary201504.pdf
 		.WRITE_MODE(1), // configured as 512x8
 		.READ_MODE(1)   // configured as 512x8
 	) ram40_4k_inst (
 		.WCLK(write_clock),
-		.WADDR(write_address),
+		.WADDR(write_address11),
 		.WDATA(write_data),
 		.WE(write_enable),
 		.WCLKE(1),
 		.RCLK(read_clock),
-		.RADDR(read_address),
+		.RADDR(read_address11),
 		.RDATA(read_data),
 		.RE(1),
 		.RCLKE(1)
@@ -286,7 +292,7 @@ module top_tb;
 //		for (j=0; j<3; j=j+1) begin : twice
 //		end
 		#200;
-		$finish;
+		//$finish;
 	end
 	always begin
 		#10;
