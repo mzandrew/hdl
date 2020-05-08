@@ -4,6 +4,7 @@
 // based on mza-test039.spi.v and mza-test036.function-generator.althea.v and mza-test017.serializer-ram.v
 // last updated 2020-05-07 by mza
 
+`include "lib/easypll.v"
 `include "lib/spi.v"
 
 module RAM_ice40_1k_32bit #(
@@ -126,17 +127,25 @@ module top #(
 	output led2,
 	output led3
 );
-	reg reset = 1;
+	reg reset1 = 1;
+	reg reset2 = 1;
 	reg [7:0] reset_counter = 0;
 	always @(posedge clock100) begin
-		if (reset) begin
+		if (reset1) begin
 			if (reset_counter[7]) begin
-				reset <= 0;
+				reset1 <= 0;
 			end else begin
 				reset_counter <= reset_counter + 1'b1;
 			end
+		end else if (reset2) begin
+			if (pll_locked) begin
+				reset2 <= 0;
+			end
 		end
 	end
+	wire clock16;
+	wire pll_locked;
+	easypll #(.DIVR(4'd3), .DIVF(7'd40), .DIVQ(3'd6)) mp (.clock_input(clock100), .reset_active_low(~reset1), .global_clock_output(clock16), .pll_is_locked(pll_locked));
 //	wire [7:0] data_from_master;
 //	wire [7:0] data_to_master;
 //	wire data_valid;
@@ -150,11 +159,11 @@ module top #(
 //	reg write_enable = 0;
 	wire transaction_valid;
 //	SPI_slave_simple8 spi_s8 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce0), .data_to_master(data_to_master), .data_from_master(data_from_master), .data_valid(data_valid));
-	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce1), .transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32), .data32_to_master(read_data32));
-	RAM_ice40_1k_32bit myram (.reset(reset),
-		.write_clock(clock100), .write_address(address11), .write_data(data32), .write_enable(transaction_valid),
-		.read_clock(clock100), .read_address(address11), .read_data(read_data32));
-//	RAM_ice40_1k_16bit myram (.reset(reset), .write_clock(clock100), .write_address(write_address10), .write_data(write_data16), .write_enable(write_enable), .read_clock(clock100), .read_address(read_address10), .read_data(read_data16));
+	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock16), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce1), .transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32), .data32_to_master(read_data32));
+	RAM_ice40_1k_32bit myram (.reset(reset2),
+		.write_clock(clock16), .write_address(address11), .write_data(data32), .write_enable(transaction_valid),
+		.read_clock(clock16), .read_address(address11), .read_data(read_data32));
+//	RAM_ice40_1k_16bit myram (.reset(reset2), .write_clock(clock100), .write_address(write_address10), .write_data(write_data16), .write_enable(write_enable), .read_clock(clock100), .read_address(read_address10), .read_data(read_data16));
 //	reg [7:0] previous_data_from_master = 0;
 //	reg which16 = 0;
 //	always @(posedge clock100) begin
@@ -169,8 +178,8 @@ module top #(
 //		end
 //	end
 //	assign data_to_master = previous_data_from_master;
-//	assign led1 = reset;
-//	assign led2 = ~rpi_spi_ce0;
+//	assign led1 = reset1;
+//	assign led2 = reset2;
 	wire [2:0] leds = { led1, led2, led3 };
 	//assign leds = data_from_master[2:0];
 	assign leds = data32[2:0];
