@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 # written 2020-05-05 by mza
-# last updated 2020-05-07 by mza
+# based on mza-test039.spi.py
+# last updated 2020-05-08 by mza
 
 import time
 import random
@@ -17,7 +18,7 @@ spi_simple8.mode = 0b01
 spi_c8_a16_d32 = spidev.SpiDev()
 spi_c8_a16_d32.open(0, 1)
 spi_c8_a16_d32.max_speed_hz = int(24e6) # 24e6 works without errors; 25e6 fails often (BER=500e-3)
-spi_c8_a16_d32.mode = 0b01
+spi_c8_a16_d32.mode = 0
 
 def hex(number, width=1):
 	return "%0*x" % (width, number)
@@ -67,8 +68,8 @@ def test_single8(size):
 	previous_value_written = 0
 	for value_written in data_list:
 		value_read, = spi_simple8.xfer([value_written])
-		total_transfers += 1
 		if 0!=i:
+			total_transfers += 1
 			#print hex(previous_value_written, 1) + " " + hex(value_read, 1)
 			if value_read!=previous_value_written:
 				total_errors += 1
@@ -78,7 +79,7 @@ def test_single8(size):
 		#time.sleep(0.05)
 		i += 1
 	if (total_errors):
-		BER = float(total_errors)/total_transfers
+		BER = float(total_errors+1)/total_transfers
 		print "BER<=" + eng(BER, "%.1f")
 	else:
 		print str(size) + " transfers completed successfully"
@@ -112,36 +113,41 @@ def spi_send_command8_address16_data32(bus, device, command, address, data):
 #	result = spi_c8_a16_d32.readbytes(4)
 	return values
 
-def test_command8_address16_data32(size):
+def test_command8_address16_data32(memsize, number_of_passes):
 	# 30k transfers per second on a rpi2 @ 10e6 Hz
 	print "testing spi_command8_address16_data32 peripheral..."
+	size = number_of_passes * memsize
 	total_transfers = 0
 	total_errors = 0
-	command_list = []
-	address_list = []
-	data_list = []
-	for i in range(size):
-		command_list.append(random.randint(0,255))
-		#address_list.append(random.randint(0,2**16-1))
-		#address_list.append(random.randint(0,2**10-1))
-		address_list.append(i)
+	command_list = [ 0 for c in range(memsize) ]
+	address_list = [ a for a in range(memsize) ]
+	data_list = [ 0 for d in range(memsize) ]
+	for i in range(memsize):
+		command_list[i] = (random.randint(0,255))
 		data_list.append(random.randint(0,2**32-1))
+		#data_list[i] = (random.randint(0,2**31-1))
+		data_list[i] &= 0x7fffffff
+		#data_list[i] &= 0xff000000
+		#data_list[i] &= 0x00ff0000
+		#data_list[i] &= 0x0000ff00
+		#data_list[i] &= 0x000000ff
+		#data_list.append(i)
 	start = time.time()
-	for j in range(2):
-		for i in range(size):
-			total_transfers += 1
+	for j in range(number_of_passes):
+		for i in range(memsize):
 			result = spi_send_command8_address16_data32(0, 1, command_list[i], address_list[i], data_list[i])
-			if 1==j:
+			if 0<j:
+				total_transfers += 1
 				value_read = pack32(result[3], result[4], result[5], result[6])
 				if (data_list[i]!=value_read):
 					total_errors += 1
 					print "[" + hex(address_list[i], 4) + "] value_read (" + hex(value_read, 8) + ") != value_written (" + hex(data_list[i], 8) + ")"
 	end = time.time()
 	diff = end - start
-	per = diff / size
+	per = diff / memsize
 	transfers_per_sec = size / diff
 	if (total_errors):
-		BER = float(total_errors)/total_transfers
+		BER = float(total_errors+1)/total_transfers
 		print "BER<=" + eng(BER, "%.1f")
 	else:
 		print str(size) + " transfers completed successfully"
@@ -170,8 +176,8 @@ size = 100000
 #command = 0x01
 #address = 0x3456
 #data = 0x89abcdef
-#spi_send_command8_address16_data32(0, 1, command, address, data)
+#spi_send_twice_and_verify_command8_address16_data32(0, 1, command, address, data)
 
 #test_command8_address16_data32(size)
-test_command8_address16_data32(10)
+test_command8_address16_data32(2**8, 278)
 
