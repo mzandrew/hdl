@@ -179,5 +179,5 @@ size = 100000
 #spi_send_twice_and_verify_command8_address16_data32(0, 1, command, address, data)
 
 #test_command8_address16_data32(size)
-test_command8_address16_data32(2**9, 278)
+test_command8_address16_data32(2**10, 78)
 
