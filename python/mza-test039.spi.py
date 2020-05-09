@@ -86,10 +86,10 @@ def test_single8(size):
 def spi_send_command8_address16_data32(bus, device, command, address, data):
 	address_low  =  address     & 0xff
 	address_high = (address>>8) & 0xff
-	data_0 =  data      & 0xff
-	data_1 = (data>> 8) & 0xff
-	data_2 = (data>>16) & 0xff
-	data_3 = (data>>24) & 0xff
+	data_0 = int( data      & 0xff)
+	data_1 = int((data>> 8) & 0xff)
+	data_2 = int((data>>16) & 0xff)
+	data_3 = int((data>>24) & 0xff)
 	to_send = [ command, address_high, address_low, data_3, data_2, data_1, data_0 ]
 #	spi_c8_a16_d32.writebytes(to_send)
 #	spi_c8_a16_d32.xfer(to_send)
