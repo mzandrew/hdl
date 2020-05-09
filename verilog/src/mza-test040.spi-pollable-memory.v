@@ -357,6 +357,7 @@ module top (
 	wire [10:0] address11 = address16[10:0];
 	wire [9:0] address10 = address16[9:0];
 	wire [8:0] address9 = address16[8:0];
+	wire [7:0] address8 = address16[7:0];
 	wire [3:0] address4 = address16[3:0];
 	wire [31:0] read_data32;
 //	reg write_enable = 0;
@@ -364,10 +365,13 @@ module top (
 //	SPI_slave_simple8 spi_s8 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce0), .data_to_master(data_to_master), .data_from_master(data_from_master), .data_valid(data_valid));
 	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce1), .transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32), .data32_to_master(read_data32));
 //`ifdef xilinx
-	RAM_inferred #(.addr_width(4), .data_width(32)) myram (.reset(reset1),
-		.wclk(clock100), .waddr(address4), .din(data32), .write_en(transaction_valid),
-		.rclk(clock100), .raddr(address4), .dout(read_data32));
+//	RAM_inferred #(.addr_width(4), .data_width(32)) myram (.reset(reset1),
+//		.wclk(clock100), .waddr(address4), .din(data32), .write_en(transaction_valid),
+//		.rclk(clock100), .raddr(address4), .dout(read_data32));
 //`else
+	RAM_ice40_256_32bit myram (.reset(reset1),
+		.write_clock(clock100), .write_address(address8), .write_data(data32), .write_enable(transaction_valid),
+		.read_clock(clock100), .read_address(address8), .read_data(read_data32));
 //	RAM_ice40_512_32bit myram (.reset(reset1),
 //		.write_clock(clock100), .write_address(address9), .write_data(data32), .write_enable(transaction_valid),
 //		.read_clock(clock100), .read_address(address9), .read_data(read_data32));
