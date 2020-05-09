@@ -2,7 +2,7 @@
 
 # written 2020-05-05 by mza
 # based on mza-test039.spi.py
-# last updated 2020-05-08 by mza
+# last updated 2020-05-09 by mza
 
 import time
 import random
@@ -17,7 +17,7 @@ spi_simple8.max_speed_hz = int(24e6) # 24e6 works without errors; 25e6 fails oft
 spi_simple8.mode = 0b01
 spi_c8_a16_d32 = spidev.SpiDev()
 spi_c8_a16_d32.open(0, 1)
-spi_c8_a16_d32.max_speed_hz = int(11e6) # 11e6 works without errors; 12e6 fails often (BER=938e-3)
+spi_c8_a16_d32.max_speed_hz = int(11e6) # 11e6 works without errors; 12e6 fails often (BER=640e-3)
 spi_c8_a16_d32.mode = 0b00
 #spi_c8_a16_d32.mode = 0b01
 #spi_c8_a16_d32.mode = 0b10
@@ -127,9 +127,9 @@ def pack32(datum):
 	if 4!=len(datum):
 		print "error"
 		sys.exit(1)
-	for i in range(len(datum)):
-		datum[i] &= 0xff
-	data = int((datum[0]<<24) | (datum[1]<<16) | (datum[2]<<8) | datum[3])
+#	for i in range(len(datum)):
+#		datum[i] &= 0xff
+	data = int(((datum[0]&0xff)<<24) | ((datum[1]&0xff)<<16) | ((datum[2]&0xff)<<8) | (datum[3]&0xff))
 #	show_d8_4(datum, " pack32")
 #	show_d32(data, " pack32")
 	return data
@@ -231,13 +231,15 @@ def test_command8_address16_data32(memsize, number_of_passes):
 		data_list[i] = random.randint(0,2**32-1)
 		#data_list[i] = random.randint(0,2**31-1)
 		#data_list[i] *= (1<<28) + (1<<24) + (1<<20) + (1<<16) + (1<<12) + (1<<8) + (1<<4) + 1
+	#responses = [ set() for s in range(memsize) ]
+	responses = [ list() for s in range(memsize) ]
 	for i in range(memsize):
 		command_list[i] &= 0xff
 		address_list[i] &= 0xffff
 		data_list[i] &= 0xffffffff
 		#data_list[i] &= 0x7fffffff
 		#data_list[i] &= 0xf0000000
-		#data_list[i] &= 0x0f000000
+		#data_list[i] &= 0xff000000
 		#data_list[i] &= 0x00ff0000
 		#data_list[i] &= 0x0000ff00
 		#data_list[i] &= 0x000000ff
@@ -252,28 +254,64 @@ def test_command8_address16_data32(memsize, number_of_passes):
 		#print hex(data_list[i], 8)
 #		datum = unpack32(data_list[i])
 #		show_d8_4(datum, " test_command8_address16_data32")
+		#data_list[i] = i
 	start = time.time()
-	for j in range(number_of_passes):
+	for j in range(number_of_passes+1):
 		for i in random.sample(range(memsize), memsize):
 #			if 0==j:
 			#print
 			#print "[" + hex(address_list[i], 4) + "]: " + hex(data_list[i], 8)
-			result = spi_send_command8_address16_data32(0, 1, command_list[i], address_list[i], data_list[i])
-			if 7!=len(result):
+			response = spi_send_command8_address16_data32(0, 1, command_list[i], address_list[i], data_list[i])
+			if 7!=len(response):
 				total_errors += 1
-				print "function returned " + str(len(result)) + " words instead of 7"
+				print "function returned " + str(len(response)) + " words instead of 7"
 			if 0<j:
 				total_transfers += 1
-				value_read = pack32(result[3:7])
-				#show_c8_a16_d32(result, " result test_command8_address16_data32")
-				#print "[" + hex(address_list[i], 4) + "] value_read (" + hex(value_read, 8) + ")  value_written (" + hex(data_list[i], 8) + ")"
-				if (data_list[i]!=value_read):
-					total_errors += 1
-					print "[" + hex(address_list[i], 4) + "] value_read (" + hex(value_read, 8) + ") != value_written (" + hex(data_list[i], 8) + ")"
+				#print "response[3:7]=" + str(response[3:7])
+				#print tuple(response[3:7])
+				#responses[i].add(tuple(response[3:7]))
+				responses[i].append(response[3:7])
+				#responses[i].add(response[3:7])
+#				value_read = pack32(response[3:7])
+#				#show_c8_a16_d32(response, " response test_command8_address16_data32")
+#				#print "[" + hex(address_list[i], 4) + "] value_read (" + hex(value_read, 8) + ")  value_written (" + hex(data_list[i], 8) + ")"
+#				if (data_list[i]!=value_read):
+#					total_errors += 1
+#					print "[" + hex(address_list[i], 4) + "] value_read (" + hex(value_read, 8) + ") != value_written (" + hex(data_list[i], 8) + ")"
 	end = time.time()
 	diff = end - start
 	per = diff / memsize
 	transfers_per_sec = size / diff
+	for i in range(memsize):
+		#print str(responses[i])
+		string = "[" + hex(address_list[i], 4) + "]"
+		#temp = pack32(unpack32(data_list[i]))
+		#if temp!=data_list[i]:
+		#	print "whoa!"
+		#string += " value_written=" + hex(temp, 8)
+		string += " value_written=" + hex(data_list[i], 8) + " read:"
+		j = 0
+		errors = 0
+		values = {}
+		for response in responses[i]:
+#			print response
+			value_read = pack32(response)
+			try:
+				values[value_read] += 1
+			except:
+				values[value_read] = 1
+			#temp = data_list[i] & 0x55555555
+			#if (temp!=value_read):
+			if (data_list[i]!=value_read):
+				errors += 1
+			j += 1
+		for key in values.keys():
+			string += " [" + str(values[key]) + "]:" + hex(key, 8)
+		if errors:
+			total_errors += errors
+			print string
+#	print "total_errors=" + str(total_errors)
+#	print "total_transfers=" + str(total_transfers)
 	if (total_errors):
 		BER = float(total_errors+1)/total_transfers
 		print "BER<=" + eng(BER, "%.1f")
@@ -307,5 +345,6 @@ size = 100000
 #spi_send_twice_and_verify_command8_address16_data32(0, 1, command, address, data)
 
 #test_command8_address16_data32(size)
-test_command8_address16_data32(2**8, 1000)
+test_command8_address16_data32(2**8, 40)
+#test_command8_address16_data32(2, 40)
 

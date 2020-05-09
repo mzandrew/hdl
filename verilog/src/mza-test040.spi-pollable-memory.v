@@ -6,13 +6,23 @@
 
 // written 2020-05-07 by mza
 // based on mza-test039.spi.v and mza-test036.function-generator.althea.v and mza-test017.serializer-ram.v
-// last updated 2020-05-08 by mza
+// last updated 2020-05-09 by mza
 
 `include "lib/spi.v"
 
+//`define USE_SLOW_CLOCK
+//`define USE_INFERRED_RAM_16
+`define USE_BRAM_256
+//`define USE_BRAM_512
+//`define USE_BRAM_1K
+//`define USE_BRAM_2K
+
+`ifdef USE_SLOW_CLOCK
+`include "lib/easypll.v"
+`endif
+
 //`ifdef xilinx
 //`else
-//`include "lib/easypll.v"
 //`endif
 
 module RAM_ice40_2k_32bit #(
@@ -195,8 +205,8 @@ module RAM_ice40_512_8bit (
 	input [8:0] read_address,
 	output [7:0] read_data
 );
-	wire [10:0] write_address11 = { 3'b00, write_address };
-	wire [10:0] read_address11  = { 3'b00, read_address };
+	wire [10:0] write_address11 = { 2'b00, write_address };
+	wire [10:0] read_address11  = { 2'b00, read_address };
 	wire [15:0] write_data16 = { 8'h0, write_data };
 	wire [15:0] read_data16;
 	SB_RAM40_4K #( // see SBTICETechnologyLibrary201504.pdf
@@ -208,6 +218,7 @@ module RAM_ice40_512_8bit (
 		.WDATA(write_data16),
 		.WE(write_enable),
 		.WCLKE(1),
+		.MASK(16'b0),
 		.RCLK(read_clock),
 		.RADDR(read_address11),
 		.RDATA(read_data16),
@@ -323,7 +334,19 @@ module top (
 	output led3
 );
 	reg reset1 = 1;
-//	reg reset2 = 1;
+	wire clock_ram;
+	wire clock_spi;
+`ifdef USE_SLOW_CLOCK
+	wire clock16;
+	reg reset2 = 1;
+	wire pll_locked;
+	easypll #(.DIVR(4'd3), .DIVF(7'd40), .DIVQ(3'd6)) mp (.clock_input(clock100), .reset_active_low(~reset1), .global_clock_output(clock16), .pll_is_locked(pll_locked));
+	assign clock_ram = clock16;
+	assign clock_spi = clock16;
+`else
+	assign clock_ram = clock100;
+	assign clock_spi = clock100;
+`endif
 	reg [7:0] reset_counter = 0;
 	always @(posedge clock100) begin
 		if (reset1) begin
@@ -332,18 +355,16 @@ module top (
 			end else begin
 				reset_counter <= reset_counter + 1'b1;
 			end
-//		end else if (reset2) begin
-//			if (pll_locked) begin
-//				reset2 <= 0;
-//			end
+`ifdef USE_SLOW_CLOCK
+		end else if (reset2) begin
+			if (pll_locked) begin
+				reset2 <= 0;
+			end
+`endif
 		end
 	end
-//	wire clock16;
-//	wire pll_locked;
 //`ifdef xilinx
 //	assign clock16 = clock100, pll_locked = 1;
-//`else
-//	easypll #(.DIVR(4'd3), .DIVF(7'd40), .DIVQ(3'd6)) mp (.clock_input(clock100), .reset_active_low(~reset1), .global_clock_output(clock16), .pll_is_locked(pll_locked));
 //	assign clock16 = clock100, pll_locked = 1;
 //`endif
 //	wire [7:0] data_from_master;
@@ -354,29 +375,40 @@ module top (
 	wire [31:0] data32;
 //	wire [15:0] write_data16;
 //	wire [15:0] read_data16;
-	wire [10:0] address11 = address16[10:0];
-	wire [9:0] address10 = address16[9:0];
-	wire [8:0] address9 = address16[8:0];
-	wire [7:0] address8 = address16[7:0];
-	wire [3:0] address4 = address16[3:0];
 	wire [31:0] read_data32;
 //	reg write_enable = 0;
 	wire transaction_valid;
-//	SPI_slave_simple8 spi_s8 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce0), .data_to_master(data_to_master), .data_from_master(data_from_master), .data_valid(data_valid));
-	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce1), .transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32), .data32_to_master(read_data32));
-//`ifdef xilinx
-//	RAM_inferred #(.addr_width(4), .data_width(32)) myram (.reset(reset1),
-//		.wclk(clock100), .waddr(address4), .din(data32), .write_en(transaction_valid),
-//		.rclk(clock100), .raddr(address4), .dout(read_data32));
-//`else
+//	SPI_slave_simple8 spi_s8 (.clock(clock_spi), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce0), .data_to_master(data_to_master), .data_from_master(data_from_master), .data_valid(data_valid));
+	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock_spi),
+		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce1),
+		.transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32), .data32_to_master(read_data32));
+`ifdef USE_INFERRED_RAM_16
+	wire [3:0] address4 = address16[3:0];
+	RAM_inferred #(.addr_width(4), .data_width(32)) myram (.reset(reset1),
+		.wclk(clock_ram), .waddr(address4), .din(data32), .write_en(transaction_valid),
+		.rclk(clock_ram), .raddr(address4), .dout(read_data32));
+`elsif USE_BRAM_256
+	wire [7:0] address8 = address16[7:0];
 	RAM_ice40_256_32bit myram (.reset(reset1),
-		.write_clock(clock100), .write_address(address8), .write_data(data32), .write_enable(transaction_valid),
-		.read_clock(clock100), .read_address(address8), .read_data(read_data32));
-//	RAM_ice40_512_32bit myram (.reset(reset1),
-//		.write_clock(clock100), .write_address(address9), .write_data(data32), .write_enable(transaction_valid),
-//		.read_clock(clock100), .read_address(address9), .read_data(read_data32));
-//`endif
-//	RAM_ice40_1k_16bit myram (.reset(reset2), .write_clock(clock100), .write_address(write_address10), .write_data(write_data16), .write_enable(write_enable), .read_clock(clock100), .read_address(read_address10), .read_data(read_data16));
+		.write_clock(clock_ram), .write_address(address8), .write_data(data32), .write_enable(transaction_valid),
+		.read_clock(clock_ram), .read_address(address8), .read_data(read_data32));
+`elsif USE_BRAM_512
+	wire [8:0] address9 = address16[8:0];
+	RAM_ice40_512_32bit myram (.reset(reset1),
+		.write_clock(clock_ram), .write_address(address9), .write_data(data32), .write_enable(transaction_valid),
+		.read_clock(clock_ram), .read_address(address9), .read_data(read_data32));
+`elsif USE_BRAM_1K
+	wire [9:0] address10 = address16[9:0];
+	RAM_ice40_1k_32bit myram (.reset(reset1),
+		.write_clock(clock_ram), .write_address(address10), .write_data(data32), .write_enable(transaction_valid),
+		.read_clock(clock_ram), .read_address(address10), .read_data(read_data32));
+`elsif USE_BRAM_2K
+	wire [10:0] address11 = address16[10:0];
+	RAM_ice40_2k_32bit myram (.reset(reset1),
+		.write_clock(clock_ram), .write_address(address11), .write_data(data32), .write_enable(transaction_valid),
+		.read_clock(clock_ram), .read_address(address11), .read_data(read_data32));
+`endif
+//	RAM_ice40_1k_16bit myram (.reset(reset2), .write_clock(clock_ram), .write_address(write_address10), .write_data(write_data16), .write_enable(write_enable), .read_clock(clock_ram), .read_address(read_address10), .read_data(read_data16));
 //	reg [7:0] previous_data_from_master = 0;
 //	reg which16 = 0;
 //	always @(posedge clock100) begin
