@@ -15,6 +15,67 @@
 //`include "lib/easypll.v"
 //`endif
 
+module RAM_ice40_2k_32bit #(
+) (
+	input reset,
+	input write_clock,
+	input [10:0] write_address,
+	input [31:0] write_data,
+	input write_enable,
+	input read_clock,
+	input [10:0] read_address,
+	output [31:0] read_data
+);
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_15 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[31:30]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[31:30]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_14 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[29:28]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[29:28]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_13 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[27:26]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[27:26]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_12 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[25:24]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[25:24]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_11 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[23:22]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[23:22]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_10 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[21:20]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[21:20]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_09 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[19:18]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[19:18]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_08 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[17:16]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[17:16]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_07 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[15:14]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[15:14]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_06 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[13:12]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[13:12]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_05 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[11:10]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[11:10]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_04 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[9:8]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[9:8]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_03 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[7:6]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[7:6]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_02 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[5:4]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[5:4]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_01 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[3:2]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[3:2]));
+	RAM_ice40_2k_2bit RAM_ice40_2k_2bit_00 (.reset(reset),
+		.write_clock(write_clock), .write_address(write_address), .write_data(write_data[1:0]), .write_enable(write_enable),
+		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[1:0]));
+endmodule
+
 module RAM_ice40_1k_32bit #(
 ) (
 	input reset,
@@ -188,6 +249,36 @@ module RAM_ice40_1k_4bit (
 	assign read_data = read_data16[3:0];
 endmodule
 
+module RAM_ice40_2k_2bit (
+	input reset,
+	input write_clock,
+	input [10:0] write_address,
+	input [1:0] write_data,
+	input write_enable,
+	input read_clock,
+	input [10:0] read_address,
+	output [1:0] read_data
+);
+	wire [15:0] write_data16 = { 14'h0, write_data };
+	wire [15:0] read_data16;
+	SB_RAM40_4K #( // see MemoryUsageGuideforiCE40Devices.pdf
+		.WRITE_MODE(3), // configured as 2kx2
+		.READ_MODE(3)   // configured as 2kx2
+	) ram40_1024x4_inst (
+		.WCLK(write_clock),
+		.WADDR(write_address),
+		.WDATA(write_data16),
+		.WE(write_enable),
+		.WCLKE(1),
+		.RCLK(read_clock),
+		.RADDR(read_address),
+		.RDATA(read_data16),
+		.RE(1),
+		.RCLKE(1)
+	);
+	assign read_data = read_data16[1:0];
+endmodule
+
 // modified from MemoryUsageGuideforiCE40Devices.pdf
 module RAM_inferred #(
 	parameter addr_width = 9,
@@ -223,6 +314,10 @@ module top (
 	output rpi_spi_miso,
 	input rpi_spi_ce0,
 	input rpi_spi_ce1,
+	output pmod4_5,
+	output pmod4_6,
+	output pmod4_7,
+	output pmod4_8,
 	output led1,
 	output led2,
 	output led3
@@ -259,21 +354,24 @@ module top (
 	wire [31:0] data32;
 //	wire [15:0] write_data16;
 //	wire [15:0] read_data16;
+	wire [10:0] address11 = address16[10:0];
 	wire [9:0] address10 = address16[9:0];
+	wire [8:0] address9 = address16[8:0];
+	wire [3:0] address4 = address16[3:0];
 	wire [31:0] read_data32;
 //	reg write_enable = 0;
 	wire transaction_valid;
 //	SPI_slave_simple8 spi_s8 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce0), .data_to_master(data_to_master), .data_from_master(data_from_master), .data_valid(data_valid));
 	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce1), .transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32), .data32_to_master(read_data32));
-`ifdef xilinx
-	RAM_inferred #(.addr_width(10), .data_width(32)) myram (.reset(reset1),
-		.wclk(clock100), .waddr(address10), .din(data32), .write_en(transaction_valid), 
-		.rclk(clock100), .raddr(address10), .dout(read_data32));
-`else
-	RAM_ice40_1k_32bit myram (.reset(reset1),
-		.write_clock(clock100), .write_address(address10), .write_data(data32), .write_enable(transaction_valid),
-		.read_clock(clock100), .read_address(address10), .read_data(read_data32));
-`endif
+//`ifdef xilinx
+	RAM_inferred #(.addr_width(4), .data_width(32)) myram (.reset(reset1),
+		.wclk(clock100), .waddr(address4), .din(data32), .write_en(transaction_valid),
+		.rclk(clock100), .raddr(address4), .dout(read_data32));
+//`else
+//	RAM_ice40_512_32bit myram (.reset(reset1),
+//		.write_clock(clock100), .write_address(address9), .write_data(data32), .write_enable(transaction_valid),
+//		.read_clock(clock100), .read_address(address9), .read_data(read_data32));
+//`endif
 //	RAM_ice40_1k_16bit myram (.reset(reset2), .write_clock(clock100), .write_address(write_address10), .write_data(write_data16), .write_enable(write_enable), .read_clock(clock100), .read_address(read_address10), .read_data(read_data16));
 //	reg [7:0] previous_data_from_master = 0;
 //	reg which16 = 0;
@@ -299,6 +397,10 @@ module top (
 //	assign pmod4_7 = rpi_spi_ce0;
 //	assign pmod4_8 = rpi_spi_ce1;
 //	assign rpi_spi_miso = 0;
+	assign pmod4_5 = rpi_spi_sclk;
+	assign pmod4_6 = rpi_spi_mosi;
+	assign pmod4_7 = rpi_spi_miso;
+	assign pmod4_8 = rpi_spi_ce1;
 endmodule
 
 module top_tb;

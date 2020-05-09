@@ -17,8 +17,11 @@ spi_simple8.max_speed_hz = int(24e6) # 24e6 works without errors; 25e6 fails oft
 spi_simple8.mode = 0b01
 spi_c8_a16_d32 = spidev.SpiDev()
 spi_c8_a16_d32.open(0, 1)
-spi_c8_a16_d32.max_speed_hz = int(24e6) # 24e6 works without errors; 25e6 fails often (BER=500e-3)
-spi_c8_a16_d32.mode = 0
+spi_c8_a16_d32.max_speed_hz = int(11e6) # 11e6 works without errors; 12e6 fails often (BER=938e-3)
+spi_c8_a16_d32.mode = 0b00
+#spi_c8_a16_d32.mode = 0b01
+#spi_c8_a16_d32.mode = 0b10
+#spi_c8_a16_d32.mode = 0b11
 
 def hex(number, width=1):
 	return "%0*x" % (width, number)
@@ -84,33 +87,133 @@ def test_single8(size):
 	else:
 		print str(size) + " transfers completed successfully"
 
-def unpack32(data):
-	data_3 = (data>>24) & 0xff
-	data_2 = (data>>16) & 0xff
-	data_1 = (data>> 8) & 0xff
-	data_0 =  data      & 0xff
-	return data_3, data_2, data_1, data_0
+def show_c8_a16_d32(c8_a16_d32, suffix_string=""):
+	if 7!=len(c8_a16_d32):
+		print "blah"
+	else:
+		#print hex(c8_a16_d32[0],2)
+		#print hex(c8_a16_d32[1],2) + " " + hex(c8_a16_d32[2],2)
+		print hex(c8_a16_d32[3],2) + " " + hex(c8_a16_d32[4],2) + " " + hex(c8_a16_d32[5],2) + " " + hex(c8_a16_d32[6],2) + suffix_string
 
-def pack32(data_3, data_2, data_1, data_0):
-	data_3 &= 0xff
-	data_2 &= 0xff
-	data_1 &= 0xff
-	data_0 &= 0xff
-	data = (data_3<<24) | (data_2<<16) | (data_1<<8) | data_0
+def show_d8_4(datum, suffix_string=""):
+	if 4!=len(datum):
+		print "blah_datum"
+		sys.exit(1)
+	else:
+		print hex(datum[0],2) + " " + hex(datum[1],2) + " " + hex(datum[2],2) + " " + hex(datum[3],2) + suffix_string
+
+def show_d32(d32, suffix_string=""):
+	print hex((d32>>24)&0xff,2) + " " + hex((d32>>16)&0xff,2) + " " + hex((d32>>8)&0xff,2) + " " + hex((d32>>0)&0xff,2) + suffix_string
+
+import copy
+def unpack32(data):
+#	string = "unpack32(" + hex(data, 8) + ")="
+#	print string
+	datum = [ 0 for d in range(4) ]
+	datum[0] = int((data>>24) & 0xff) # the weird bug was here
+	datum[1] = int((data>>16) & 0xff) # the weird bug was here
+	datum[2] = int((data>> 8) & 0xff) # the weird bug was here
+	datum[3] = int( data      & 0xff) # the weird bug was here
+#	show_d32(data, " unpack32")
+#	show_d8_4(datum, " unpack32")
+	#result = copy.copy(datum)
+	#return result
+	return datum
+
+def pack32(datum):
+#	show_d8_4(datum, " pack32")
+#	string = "pack32(" + hex(datum[0], 2) + "," + hex(datum[1], 2) + "," + hex(datum[2], 2) + "," + hex(datum[3], 2) + ")="
+#	print string
+	if 4!=len(datum):
+		print "error"
+		sys.exit(1)
+	for i in range(len(datum)):
+		datum[i] &= 0xff
+	data = int((datum[0]<<24) | (datum[1]<<16) | (datum[2]<<8) | datum[3])
+#	show_d8_4(datum, " pack32")
+#	show_d32(data, " pack32")
 	return data
 
+#import hypothesis # sudo apt install python-hypothesis python-hypothesis-doc
+##@hypothesis.given(hypothesis.strategies.text())
+##def test_decode_inverts_encode(s):
+##	assert pack32(unpack32(s)) == s
+#import unittest # sudo apt install python-unittest2
+#class TestEncoding(unittest.TestCase):
+#	@hypothesis.given(hypothesis.strategies.integers(-1, 2**32))
+#	#@hypothesis.given(hypothesis.strategies.integers(-1, 2**8))
+#	#def test_decode_inverts_encode(self, s):
+#	#def test_decode_inverts_encode(self, a, b, c, d):
+#		#self.assertEqual(pack32(unpack32(s)), s)
+#		#self.assertEqual(unpack32(pack32(a, b, c, d)), a, b, c, d)
+#	def execute_example(self, f, e):
+#		a, b, c, d = f(s)
+#		s_prime = e(a, b, c, d)
+#		selt.assertEqual(s_prime, s)
+##unittest.main()
+##include pytest # sudo apt install python-pytest
+
+#unpack32(0xff000000)
+#sys.exit(1)
+
 def spi_send_command8_address16_data32(bus, device, command, address, data):
+	command &= 0xff
 	address_low  =  address     & 0xff
 	address_high = (address>>8) & 0xff
-	data_3, data_2, data_1, data_0 = unpack32(data)
-	to_send = [ command, address_high, address_low, data_3, data_2, data_1, data_0 ]
+	datum = unpack32(data)
+	to_send = [ command, address_high, address_low, datum[0], datum[1], datum[2], datum[3] ]
+#	show_d8_4(datum, " datum spi_send_command8_address16_data32")
+	#to_send_a = [ command, address_high, address_low, 0x80, 0x0f, 0x00, 0xf0 ]
+#	to_send_a = []
+#	to_send_a.append(command)
+#	to_send_a.append(address_high)
+#	to_send_a.append(address_low)
+#	to_send_a.append(0x80)
+#	to_send_a.append(0x0f)
+#	to_send_a.append(0x00)
+#	to_send_a.append(0xf0)
+#	to_send = [ 0 for cad in range(7) ]
+#	to_send.append(command)
+#	to_send.append(address_high)
+#	to_send.append(address_low)
+#	to_send[0] = command
+#	to_send[1] = address_high
+#	to_send[2] = address_low
+#	to_send[3] = datum[0]
+#	to_send[4] = datum[1]
+#	to_send[5] = datum[2]
+#	to_send[6] = datum[3]
+#	if 0x80!=datum[0]:
+	#print hex(datum[0], 2)
+#	to_send_b.append(0x80)
+	#to_send_b.append(int(datum[0]))
+	#to_send_b.append(copy.copy(datum[0]))
+	#to_send_b.append(copy.deepcopy(datum[0]))
+#	to_send_b.append(0x0f)
+	#to_send_b.append(datum[1])
+#	to_send_b.append(0x00)
+	#to_send_b.append(datum[2])
+#	to_send_b.append(0xf0)
+	#to_send_b.append(datum[3])
+#	to_send_b[3] = datum[0]
+	#to_send_b[3] = 0x80
+	#to_send_b = [ command, address_high, address_low, data_3, data_2, data_1, data_0 ]
+#	show_c8_a16_d32(to_send_a, " to_send_a spi_send_command8_address16_data32")
+#	show_c8_a16_d32(to_send_b, " to_send_b spi_send_command8_address16_data32")
 #	spi_c8_a16_d32.writebytes(to_send)
 #	spi_c8_a16_d32.xfer(to_send)
+	#values = spi_c8_a16_d32.xfer2(copy.deepcopy(to_send_b))
+	#to_send = to_send_b
+#	to_send = copy.deepcopy(to_send_b)
+	if 7!=len(to_send):
+		print "message to send is not length 7"
+		sys.exit(2)
 	values = spi_c8_a16_d32.xfer2(to_send)
 #	spi_c8_a16_d32.xfer3(to_send)
 #	time.sleep(0.001)
 #	spi_c8_a16_d32.writebytes2(to_send)
 #	result = spi_c8_a16_d32.readbytes(4)
+#	show_c8_a16_d32(values, " values spi_send_command8_address16_data32")
 	return values
 
 def test_command8_address16_data32(memsize, number_of_passes):
@@ -119,26 +222,51 @@ def test_command8_address16_data32(memsize, number_of_passes):
 	size = number_of_passes * memsize
 	total_transfers = 0
 	total_errors = 0
-	command_list = [ 0 for c in range(memsize) ]
+	command_list = [ c for c in range(memsize) ]
 	address_list = [ a for a in range(memsize) ]
-	data_list = [ 0 for d in range(memsize) ]
+	data_list = [ d for d in range(memsize) ]
 	for i in range(memsize):
-		command_list[i] = (random.randint(0,255))
-		data_list.append(random.randint(0,2**32-1))
-		#data_list[i] = (random.randint(0,2**31-1))
-		data_list[i] &= 0x7fffffff
-		#data_list[i] &= 0xff000000
+		#pass
+		#command_list[i] = random.randint(0,255)
+		data_list[i] = random.randint(0,2**32-1)
+		#data_list[i] = random.randint(0,2**31-1)
+		#data_list[i] *= (1<<28) + (1<<24) + (1<<20) + (1<<16) + (1<<12) + (1<<8) + (1<<4) + 1
+	for i in range(memsize):
+		command_list[i] &= 0xff
+		address_list[i] &= 0xffff
+		data_list[i] &= 0xffffffff
+		#data_list[i] &= 0x7fffffff
+		#data_list[i] &= 0xf0000000
+		#data_list[i] &= 0x0f000000
 		#data_list[i] &= 0x00ff0000
 		#data_list[i] &= 0x0000ff00
 		#data_list[i] &= 0x000000ff
-		#data_list.append(i)
+		#data_list[i] = (i%2)<<31
+		#if i%2:
+		#	data_list[i] = 0x7fffffff
+		#else:
+		#	data_list[i] = 0xff000000
+		#data_list[i] = 0xff00ff00
+		#data_list[i] = 0x00ff00ff
+		#data_list[i] = 0x800f00f0
+		#print hex(data_list[i], 8)
+#		datum = unpack32(data_list[i])
+#		show_d8_4(datum, " test_command8_address16_data32")
 	start = time.time()
 	for j in range(number_of_passes):
-		for i in range(memsize):
+		for i in random.sample(range(memsize), memsize):
+#			if 0==j:
+			#print
+			#print "[" + hex(address_list[i], 4) + "]: " + hex(data_list[i], 8)
 			result = spi_send_command8_address16_data32(0, 1, command_list[i], address_list[i], data_list[i])
+			if 7!=len(result):
+				total_errors += 1
+				print "function returned " + str(len(result)) + " words instead of 7"
 			if 0<j:
 				total_transfers += 1
-				value_read = pack32(result[3], result[4], result[5], result[6])
+				value_read = pack32(result[3:7])
+				#show_c8_a16_d32(result, " result test_command8_address16_data32")
+				#print "[" + hex(address_list[i], 4) + "] value_read (" + hex(value_read, 8) + ")  value_written (" + hex(data_list[i], 8) + ")"
 				if (data_list[i]!=value_read):
 					total_errors += 1
 					print "[" + hex(address_list[i], 4) + "] value_read (" + hex(value_read, 8) + ") != value_written (" + hex(data_list[i], 8) + ")"
@@ -179,5 +307,5 @@ size = 100000
 #spi_send_twice_and_verify_command8_address16_data32(0, 1, command, address, data)
 
 #test_command8_address16_data32(size)
-test_command8_address16_data32(2**10, 78)
+test_command8_address16_data32(2**4, 1000)
 
