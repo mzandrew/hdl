@@ -17,7 +17,7 @@
   <files>
     <file xil_pn:name="../verilog/src/mza-test041.spi-pollable-memory.althea.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="1"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="2"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="3"/>
     </file>
     <file xil_pn:name="../verilog/src/mza-test041.spi-pollable-memory.althea.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
@@ -399,6 +399,7 @@
     <!-- project is analyzed based on files automatically identified as       -->
     <!-- include files.                                                       -->
     <file xil_pn:name="../verilog/src/lib/spi.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="../verilog/src/lib/RAM8.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>

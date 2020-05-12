@@ -7,11 +7,12 @@
 // last updated 2020-05-11 by mza
 
 `include "lib/spi.v"
+`include "lib/RAM8.v"
 
 //`define USE_SLOW_CLOCK
-`define USE_INFERRED_RAM_16
+//`define USE_INFERRED_RAM_16
 //`define USE_BRAM_256
-//`define USE_BRAM_512
+`define USE_BRAM_512
 //`define USE_BRAM_1K
 //`define USE_BRAM_2K
 
@@ -22,34 +23,6 @@
 //`ifdef xilinx
 //`else
 //`endif
-
-// modified from MemoryUsageGuideforiCE40Devices.pdf
-module RAM_inferred #(
-	parameter addr_width = 9,
-	parameter data_width = 8
-) (
-	input reset,
-	input [addr_width-1:0] waddr, raddr,
-	input [data_width-1:0] din,
-	input write_en, wclk, rclk,
-	output reg [data_width-1:0] dout = 0
-);
-	reg [data_width-1:0] mem [(1<<addr_width)-1:0];
-	always @(posedge wclk) begin
-		if (reset) begin
-//			for (i=0; i<waddr
-		end else begin
-			if (write_en) begin
-				mem[waddr] <= din;
-			end
-		end
-	end
-	always @(posedge rclk) begin
-		if (~reset) begin
-			dout <= mem[raddr];
-		end
-	end
-endmodule
 
 module top (
 	input clock50_p, clock50_n,
@@ -117,7 +90,11 @@ module top (
 	RAM_inferred #(.addr_width(4), .data_width(32)) myram (.reset(reset1),
 		.wclk(clock_ram), .waddr(address4), .din(data32), .write_en(transaction_valid),
 		.rclk(clock_ram), .raddr(address4), .dout(read_data32));
-`elsif USE_BRAM_256
+`elsif USE_BRAM_512
+	wire [8:0] address9 = address16[8:0];
+	RAM_s6_512_32bit mem (.reset(reset1),
+		.write_clock(clock_ram), .write_address(address9), .data_in(data32), .write_enable(transaction_valid),
+		.read_clock(clock_ram), .read_address(address9), .data_out(read_data32), .read_enable(1'b1));
 `endif
 	//wire [7:0] leds = { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 };
 	//assign leds = data32[7:0];
