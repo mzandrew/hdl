@@ -4,10 +4,11 @@
 
 // written 2020-05-07 by mza
 // based on mza-test040.spi-pollable-memory.v and modified to work on an althea
-// last updated 2020-05-11 by mza
+// last updated 2020-05-12 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
+`include "lib/serdes_pll.v"
 
 //`define USE_SLOW_CLOCK
 //`define USE_INFERRED_RAM_16
@@ -26,6 +27,7 @@
 
 module top (
 	input clock50_p, clock50_n,
+	output lemo,
 	input rpi_spi_sclk,
 	input rpi_spi_mosi,
 	output rpi_spi_miso,
@@ -47,8 +49,8 @@ module top (
 	assign clock_ram = clock16;
 	assign clock_spi = clock16;
 `else
-	assign clock_ram = clock50;
-	assign clock_spi = clock50;
+	assign clock_ram = word_clock;
+	assign clock_spi = word_clock;
 `endif
 	reg [7:0] reset_counter = 0;
 	always @(posedge clock50) begin
@@ -99,6 +101,10 @@ module top (
 	wire [7:0] leds;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
 	assign leds = data32[7:0];
+	wire word_clock;
+	wire [7:0] word = read_data32[7:0];
+	wire pll_oserdes_locked;
+	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock50), .reset(reset1), .word_clock_out(word_clock), .word_in(word), .D_out(lemo), .locked(pll_oserdes_locked));
 endmodule
 
 module mza_test041_spi_pollable_memory_althea_top (
@@ -111,10 +117,9 @@ module mza_test041_spi_pollable_memory_althea_top (
 	input d_p,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
-	assign lemo = 0;
 	top mytop (
 		.clock50_p(clock50_p), .clock50_n(clock50_n),
-//		.lemo(lemo),
+		.lemo(lemo),
 		.rpi_spi_mosi(d_p), .rpi_spi_miso(d_n), .rpi_spi_sclk(c_p), .rpi_spi_ce0(c_n), .rpi_spi_ce1(a_p),
 		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
 		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
