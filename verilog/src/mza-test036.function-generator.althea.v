@@ -4,7 +4,7 @@
 // content borrowed from mza-test031.clock509_and_revo_generator.althea.v
 // content borrowed from mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v
 // grabs output from XRM.py corresponding to an array from the bunch current monitor
-// last updated 2020-04-26 by mza
+// last updated 2020-05-11 by mza
 
 // todo:
 // implement A/B so we can write into an array while playing back the other
@@ -26,7 +26,7 @@ module function_generator_althea #(
 	output led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0
 );
 	wire clock50;
-	IBUFDS clocky (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(clock50));
+	IBUFGDS clocky (.I(local_clock50_in_p), .IB(local_clock50_in_n), .O(clock50));
 	reg reset1 = 1;
 	reg reset2 = 1;
 	reg reset3 = 1;
