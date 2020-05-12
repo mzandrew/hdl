@@ -96,16 +96,9 @@ module top (
 		.write_clock(clock_ram), .write_address(address9), .data_in(data32), .write_enable(transaction_valid),
 		.read_clock(clock_ram), .read_address(address9), .data_out(read_data32), .read_enable(1'b1));
 `endif
-	//wire [7:0] leds = { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 };
-	//assign leds = data32[7:0];
-	assign led_0 = 0;
-	assign led_1 = 0;
-	assign led_2 = 0;
-	assign led_3 = 0;
-	assign led_4 = 0;
-	assign led_5 = 0;
-	assign led_6 = 0;
-	assign led_7 = 0;
+	wire [7:0] leds;
+	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
+	assign leds = data32[7:0];
 endmodule
 
 module mza_test041_spi_pollable_memory_althea_top (
