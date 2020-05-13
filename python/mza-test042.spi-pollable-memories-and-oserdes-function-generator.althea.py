@@ -185,14 +185,7 @@ def spi_send_command8_address16_data32(spi, command, address, data):
 #	show_c8_a16_d32(values, " values spi_send_command8_address16_data32")
 	return values
 
-def test_command8_address16_data32(spi, memsize, number_of_passes):
-	# 30k transfers per second on a rpi2 @ 10e6 Hz
-	print "testing spi_command8_address16_data32 peripheral..."
-	size = number_of_passes * memsize
-	total_transfers = 0
-	total_errors = 0
-	command_list = [ c for c in range(memsize) ]
-	address_list = [ a for a in range(memsize) ]
+def prepare_list_with_pseudorandom_values(memsize):
 	data_list = [ d for d in range(memsize) ]
 	for i in range(memsize):
 		#pass
@@ -201,10 +194,7 @@ def test_command8_address16_data32(spi, memsize, number_of_passes):
 		#data_list[i] = random.randint(0,2**31-1)
 		#data_list[i] *= (1<<28) + (1<<24) + (1<<20) + (1<<16) + (1<<12) + (1<<8) + (1<<4) + 1
 	#responses = [ set() for s in range(memsize) ]
-	responses = [ list() for s in range(memsize) ]
 	for i in range(memsize):
-		command_list[i] &= 0xff
-		address_list[i] &= 0xffff
 		data_list[i] &= 0xffffffff
 		#data_list[i] &= 0x7fffffff
 		#data_list[i] &= 0xf0000000
@@ -232,37 +222,46 @@ def test_command8_address16_data32(spi, memsize, number_of_passes):
 #			data_list[i] = 0xffffffff
 #		if 134==i:
 #			data_list[i] = 0xff773311
-		if 0==i or 1==i or 2==i or 3==i:
+		if i<16:
 			data_list[i] = 0
 #		else:
 #			data_list[i] = i
-	start = time.time()
-	for j in range(number_of_passes+1):
-		for i in random.sample(range(memsize), memsize):
-#			if 0==j:
-			#print
-			#print "[" + hex(address_list[i], 4) + "]: " + hex(data_list[i], 8)
-			response = spi_send_command8_address16_data32(spi, command_list[i], address_list[i], data_list[i])
-			if 7!=len(response):
-				total_errors += 1
-				print "function returned " + str(len(response)) + " words instead of 7"
-			if 0<j:
-				total_transfers += 1
-				#print "response[3:7]=" + str(response[3:7])
-				#print tuple(response[3:7])
-				#responses[i].add(tuple(response[3:7]))
-				responses[i].append(response[3:7])
-				#responses[i].add(response[3:7])
-#				value_read = pack32(response[3:7])
-#				#show_c8_a16_d32(response, " response test_command8_address16_data32")
-#				#print "[" + hex(address_list[i], 4) + "] value_read (" + hex(value_read, 8) + ")  value_written (" + hex(data_list[i], 8) + ")"
-#				if (data_list[i]!=value_read):
-#					total_errors += 1
-#					print "[" + hex(address_list[i], 4) + "] value_read (" + hex(value_read, 8) + ") != value_written (" + hex(data_list[i], 8) + ")"
-	end = time.time()
-	diff = end - start
-	per = diff / memsize
-	transfers_per_sec = size / diff
+	return data_list
+
+def write_list_to_spi_pollable_memory_in_pseudorandom_order(spi, memsize, command_list, address_list, data_list):
+	global total_errors
+	for i in random.sample(range(memsize), memsize):
+		response = spi_send_command8_address16_data32(spi, command_list[i], address_list[i], data_list[i])
+		if 7!=len(response):
+			total_errors += 1
+			print "function returned " + str(len(response)) + " words instead of 7"
+
+def write_list_to_spi_pollable_memory_in_pseudorandom_order_and_record_responses_for_each_one(spi, memsize, command_list, address_list, data_list):
+	global responses
+	try:
+		responses[i]
+	except:
+		responses = [ list() for s in range(memsize) ]
+	global total_transfers
+	try:
+		total_transfers
+	except:
+		total_transfers = 0
+	global total_errors
+	try:
+		total_errors
+	except:
+		total_errors = 0
+	for i in random.sample(range(memsize), memsize):
+		response = spi_send_command8_address16_data32(spi, command_list[i], address_list[i], data_list[i])
+		if 7!=len(response):
+			total_errors += 1
+			print "function returned " + str(len(response)) + " words instead of 7"
+		total_transfers += 1
+		responses[i].append(response[3:7])
+
+def verify_responses_match_input_data(spi, memsize, data_list, address_list):
+	global responses
 	for i in range(memsize):
 		#print str(responses[i])
 		string = "[" + hex(address_list[i], 4) + "]"
@@ -291,6 +290,32 @@ def test_command8_address16_data32(spi, memsize, number_of_passes):
 		if errors:
 			total_errors += errors
 			print string
+
+def test_command8_address16_data32(spi, memsize, number_of_passes):
+	# 30k transfers per second on a rpi2 @ 10e6 Hz
+	print "testing spi_command8_address16_data32 peripheral..."
+	size = number_of_passes * memsize
+	global total_transfers
+	total_transfers = 0
+	global total_errors
+	total_errors = 0
+	command_list = [ c for c in range(memsize) ]
+	address_list = [ a for a in range(memsize) ]
+	global responses
+	responses = [ list() for s in range(memsize) ]
+	for i in range(memsize):
+		command_list[i] &= 0xff
+		address_list[i] &= 0xffff
+	data_list = prepare_list_with_pseudorandom_values(memsize)
+	start = time.time()
+	write_list_to_spi_pollable_memory_in_pseudorandom_order(spi, memsize, command_list, address_list, data_list)
+	for j in range(number_of_passes):
+		write_list_to_spi_pollable_memory_in_pseudorandom_order_and_record_responses_for_each_one(spi, memsize, command_list, address_list, data_list)
+	end = time.time()
+	diff = end - start
+	per = diff / memsize
+	transfers_per_sec = size / diff
+	verify_responses_match_input_data(spi, memsize, data_list, address_list)
 #	print "total_errors=" + str(total_errors)
 #	print "total_transfers=" + str(total_transfers)
 	if (total_errors):
@@ -300,34 +325,19 @@ def test_command8_address16_data32(spi, memsize, number_of_passes):
 		print str(size) + " transfers completed successfully"
 	print eng(transfers_per_sec) + " transfers per second"
 
-size = 100000
+def write_list_to_pollable_memory_and_then_verify(spi, memsize, command_list, address_list, data_list):
+	write_list_to_spi_pollable_memory_in_pseudorandom_order(spi, memsize, command_list, address_list, data_list)
+	write_list_to_spi_pollable_memory_in_pseudorandom_order_and_record_responses_for_each_one(spi, memsize, command_list, address_list, data_list)
+	verify_responses_match_input_data(spi, memsize, data_list, address_list)
 
-#byte_list = []
-#for i in range(size):
-#	byte_list.append(random.randint(0,255))
+def write_pseudorandom_values_to_spi_pollable_memory_and_verify(spi, memsize):
+	command_list = [ c for c in range(memsize) ]
+	address_list = [ a for a in range(memsize) ]
+	data_list = prepare_list_with_pseudorandom_values(memsize)
+	write_list_to_pollable_memory_and_then_verify(spi, memsize, command_list, address_list, data_list)
 
-# 1.14 MB/sec on a rpi2 @ 10e6 Hz
-#while True:
-#	start = time.time()
-#	spi.writebytes2(byte_list)
-#	end = time.time()
-#	diff = end - start
-#	per = diff / size
-#	MB_per_sec = size / diff / 1.0e6
-#	#print diff
-#	#print per
-#	print MB_per_sec
+#test_command8_address16_data32(spi_ce0, 2**4, 40)
+#test_command8_address16_data32(spi_ce1, 2**12, 10)
 
-#test_single8(size)
-
-#command = 0x01
-#address = 0x3456
-#data = 0x89abcdef
-#spi_send_twice_and_verify_command8_address16_data32(0, 1, command, address, data)
-
-#test_command8_address16_data32(spi_ce1, 2**4, 40)
-#test_command8_address16_data32(spi_ce1, 2**9, 40)
-test_command8_address16_data32(spi_ce1, 2**12, 10)
-
-test_command8_address16_data32(spi_ce0, 2**4, 40)
+write_pseudorandom_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12)
 
