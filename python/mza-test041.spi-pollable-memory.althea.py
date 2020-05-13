@@ -2,7 +2,7 @@
 
 # written 2020-05-11 by mza
 # based on mza-test040.spi-pollable-memory.py
-# last updated 2020-05-11 by mza
+# last updated 2020-05-12 by mza
 
 import time
 import random
@@ -254,7 +254,19 @@ def test_command8_address16_data32(memsize, number_of_passes):
 		#print hex(data_list[i], 8)
 #		datum = unpack32(data_list[i])
 #		show_d8_4(datum, " test_command8_address16_data32")
-		#data_list[i] = i
+#		data_list[i] = 0
+#		if 128==i:
+#			data_list[i] = 0xffffffff
+#		if 128<i and i<132:
+#			data_list[i] = i
+#		if 132==i:
+#			data_list[i] = 0xffffffff
+#		if 134==i:
+#			data_list[i] = 0xff773311
+		if 0==i or 1==i or 2==i or 3==i:
+			data_list[i] = 0
+#		else:
+#			data_list[i] = i
 	start = time.time()
 	for j in range(number_of_passes+1):
 		for i in random.sample(range(memsize), memsize):
