@@ -2,7 +2,7 @@
 
 # written 2020-05-11 by mza
 # based on mza-test040.spi-pollable-memory.py
-# last updated 2020-05-12 by mza
+# last updated 2020-05-13 by mza
 
 import time
 import random
@@ -357,5 +357,6 @@ size = 100000
 #spi_send_twice_and_verify_command8_address16_data32(0, 1, command, address, data)
 
 #test_command8_address16_data32(2**4, 40)
-test_command8_address16_data32(2**9, 40)
+#test_command8_address16_data32(2**9, 40)
+test_command8_address16_data32(2**12, 10)
 
