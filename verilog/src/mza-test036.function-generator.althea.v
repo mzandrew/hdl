@@ -4,7 +4,7 @@
 // content borrowed from mza-test031.clock509_and_revo_generator.althea.v
 // content borrowed from mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v
 // grabs output from XRM.py corresponding to an array from the bunch current monitor
-// last updated 2020-05-11 by mza
+// last updated 2020-05-12 by mza
 
 // todo:
 // implement A/B so we can write into an array while playing back the other
@@ -197,7 +197,7 @@ module function_generator_althea #(
 //		.output_4(led_4), .output_5(led_5), .output_6(led_6), .output_7(led_7)
 	);
 	wire oserdes_pll_locked;
-	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) single (.clock_in(clock), .reset(reset3), .word_clock_out(), .word_in(data_out), .D_out(bit_out), .locked(oserdes_pll_locked));
+	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) single (.clock_in(clock), .reset(reset3), .word_clock_out(), .word_in(data_out), .D_out(bit_out), .locked(oserdes_pll_locked));
 	wire [7:0] leds;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
 	assign leds[7:6] = 0;

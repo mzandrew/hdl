@@ -9,6 +9,7 @@
 `include "lib/spi.v"
 `include "lib/RAM8.v"
 `include "lib/serdes_pll.v"
+`include "lib/dcm.v"
 
 //`define USE_SLOW_CLOCK
 //`define USE_INFERRED_RAM_16
@@ -16,10 +17,6 @@
 `define USE_BRAM_512
 //`define USE_BRAM_1K
 //`define USE_BRAM_2K
-
-`ifdef USE_SLOW_CLOCK
-`include "lib/easypll.v"
-`endif
 
 //`ifdef xilinx
 //`else
@@ -36,22 +33,23 @@ module top (
 	output led_0, led_1, led_2, led_3,
 	output led_4, led_5, led_6, led_7
 );
+	reg reset1 = 1;
+	reg reset2 = 1;
+	reg reset3 = 1;
 	wire clock50;
 	IBUFGDS mybuf (.I(clock50_p), .IB(clock50_n), .O(clock50));
-	reg reset1 = 1;
+	wire rawclock125;
+	wire pll_locked;
+	simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
+	wire clock125;
+	BUFG mrt (.I(rawclock125), .O(clock125));
+	wire word_clock;
+	wire [7:0] oserdes_word_out;
+	wire pll_oserdes_locked;
 	wire clock_ram;
 	wire clock_spi;
-`ifdef USE_SLOW_CLOCK
-	wire clock16;
-	reg reset2 = 1;
-	wire pll_locked;
-	easypll #(.DIVR(4'd3), .DIVF(7'd40), .DIVQ(3'd6)) mp (.clock_input(clock50), .reset_active_low(~reset1), .global_clock_output(clock16), .pll_is_locked(pll_locked));
-	assign clock_ram = clock16;
-	assign clock_spi = clock16;
-`else
 	assign clock_ram = word_clock;
 	assign clock_spi = word_clock;
-`endif
 	reg [7:0] reset_counter = 0;
 	always @(posedge clock50) begin
 		if (reset1) begin
@@ -60,12 +58,14 @@ module top (
 			end else begin
 				reset_counter <= reset_counter + 1'b1;
 			end
-`ifdef USE_SLOW_CLOCK
 		end else if (reset2) begin
 			if (pll_locked) begin
 				reset2 <= 0;
 			end
-`endif
+		end else if (reset3) begin
+			if (pll_oserdes_locked) begin
+				reset3 <= 0;
+			end
 		end
 	end
 //`ifdef xilinx
@@ -77,34 +77,53 @@ module top (
 //	wire data_valid;
 	wire [7:0] command8;
 	wire [15:0] address16;
-	wire [31:0] data32;
+	wire [31:0] data32_0123;
+	wire [31:0] data32_3210;
+	assign data32_0123[7:0]   = data32_3210[31:24];
+	assign data32_0123[15:8]  = data32_3210[23:16];
+	assign data32_0123[23:16] = data32_3210[15:8];
+	assign data32_0123[31:24] = data32_3210[7:0];
 //	wire [15:0] write_data16;
 //	wire [15:0] read_data16;
-	wire [31:0] read_data32;
+	wire [31:0] read_data32_0123;
+	wire [31:0] read_data32_3210;
+	assign read_data32_3210[7:0]   = read_data32_0123[31:24];
+	assign read_data32_3210[15:8]  = read_data32_0123[23:16];
+	assign read_data32_3210[23:16] = read_data32_0123[15:8];
+	assign read_data32_3210[31:24] = read_data32_0123[7:0];
 //	reg write_enable = 0;
 	wire transaction_valid;
 //	SPI_slave_simple8 spi_s8 (.clock(clock_spi), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce0), .data_to_master(data_to_master), .data_from_master(data_from_master), .data_valid(data_valid));
 	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock_spi),
 		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce1),
-		.transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32), .data32_to_master(read_data32));
+		.transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32_3210), .data32_to_master(read_data32_3210));
 `ifdef USE_INFERRED_RAM_16
 	wire [3:0] address4 = address16[3:0];
-	RAM_inferred #(.addr_width(4), .data_width(32)) myram (.reset(reset1),
-		.wclk(clock_ram), .waddr(address4), .din(data32), .write_en(transaction_valid),
-		.rclk(clock_ram), .raddr(address4), .dout(read_data32));
+	RAM_inferred #(.addr_width(4), .data_width(32)) myram (.reset(reset3),
+		.wclk(clock_ram), .waddr(address4), .din(data32_0123), .write_en(transaction_valid),
+		.rclk(clock_ram), .raddr(address4), .dout(read_data32_0123));
 `elsif USE_BRAM_512
 	wire [8:0] address9 = address16[8:0];
-	RAM_s6_512_32bit mem (.reset(reset1),
-		.write_clock(clock_ram), .write_address(address9), .data_in(data32), .write_enable(transaction_valid),
-		.read_clock(clock_ram), .read_address(address9), .data_out(read_data32), .read_enable(1'b1));
+	wire [10:0] read_address11 = read_address[10:0];
+//	RAM_s6_512_32bit mem (.reset(reset3),
+//		.write_clock(clock_ram), .write_address(address9), .data_in(data32), .write_enable(transaction_valid),
+//		.read_clock(clock_ram), .read_address(address9), .data_out(read_data32), .read_enable(1'b1));
+	RAM_s6_512_32bit_8bit mem (.reset(reset3),
+		.clock_a(clock_ram), .address_a(address9), .data_in_a(data32_0123), .write_enable_a(transaction_valid), .data_out_a(read_data32_0123),
+		.clock_b(clock_ram), .address_b(read_address11), .data_out_b(oserdes_word_out));
 `endif
+	reg [15:0] read_address = 0;
 	wire [7:0] leds;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
-	assign leds = data32[7:0];
-	wire word_clock;
-	wire [7:0] word = read_data32[7:0];
-	wire pll_oserdes_locked;
-	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock50), .reset(reset1), .word_clock_out(word_clock), .word_in(word), .D_out(lemo), .locked(pll_oserdes_locked));
+	assign leds = oserdes_word_out;
+	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(lemo), .locked(pll_oserdes_locked));
+	always @(posedge word_clock) begin
+		if (reset3) begin
+			read_address <= 0;
+		end else begin
+			read_address <= read_address + 1'b1;
+		end
+	end
 endmodule
 
 module mza_test041_spi_pollable_memory_althea_top (
