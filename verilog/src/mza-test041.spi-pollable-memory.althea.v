@@ -4,7 +4,7 @@
 
 // written 2020-05-07 by mza
 // based on mza-test040.spi-pollable-memory.v and modified to work on an althea
-// last updated 2020-05-12 by mza
+// last updated 2020-05-13 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
@@ -13,10 +13,8 @@
 
 //`define USE_SLOW_CLOCK
 //`define USE_INFERRED_RAM_16
-//`define USE_BRAM_256
-`define USE_BRAM_512
-//`define USE_BRAM_1K
-//`define USE_BRAM_2K
+//`define USE_BRAM_512
+`define USE_BRAM_4K
 
 //`ifdef xilinx
 //`else
@@ -68,13 +66,6 @@ module top (
 			end
 		end
 	end
-//`ifdef xilinx
-//	assign clock16 = clock50, pll_locked = 1;
-//	assign clock16 = clock50, pll_locked = 1;
-//`endif
-//	wire [7:0] data_from_master;
-//	wire [7:0] data_to_master;
-//	wire data_valid;
 	wire [7:0] command8;
 	wire [15:0] address16;
 	wire [31:0] data32_0123;
@@ -83,17 +74,13 @@ module top (
 	assign data32_0123[15:8]  = data32_3210[23:16];
 	assign data32_0123[23:16] = data32_3210[15:8];
 	assign data32_0123[31:24] = data32_3210[7:0];
-//	wire [15:0] write_data16;
-//	wire [15:0] read_data16;
 	wire [31:0] read_data32_0123;
 	wire [31:0] read_data32_3210;
 	assign read_data32_3210[7:0]   = read_data32_0123[31:24];
 	assign read_data32_3210[15:8]  = read_data32_0123[23:16];
 	assign read_data32_3210[23:16] = read_data32_0123[15:8];
 	assign read_data32_3210[31:24] = read_data32_0123[7:0];
-//	reg write_enable = 0;
 	wire transaction_valid;
-//	SPI_slave_simple8 spi_s8 (.clock(clock_spi), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce0), .data_to_master(data_to_master), .data_from_master(data_from_master), .data_valid(data_valid));
 	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock_spi),
 		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce1),
 		.transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32_3210), .data32_to_master(read_data32_3210));
@@ -105,12 +92,15 @@ module top (
 `elsif USE_BRAM_512
 	wire [8:0] address9 = address16[8:0];
 	wire [10:0] read_address11 = read_address[10:0];
-//	RAM_s6_512_32bit mem (.reset(reset3),
-//		.write_clock(clock_ram), .write_address(address9), .data_in(data32), .write_enable(transaction_valid),
-//		.read_clock(clock_ram), .read_address(address9), .data_out(read_data32), .read_enable(1'b1));
 	RAM_s6_512_32bit_8bit mem (.reset(reset3),
 		.clock_a(clock_ram), .address_a(address9), .data_in_a(data32_0123), .write_enable_a(transaction_valid), .data_out_a(read_data32_0123),
 		.clock_b(clock_ram), .address_b(read_address11), .data_out_b(oserdes_word_out));
+`elsif USE_BRAM_4K
+	wire [11:0] address12 = address16[11:0];
+	wire [13:0] read_address14 = read_address[13:0];
+	RAM_s6_4k_32bit_8bit mem (.reset(reset3),
+		.clock_a(clock_ram), .address_a(address12), .data_in_a(data32_0123), .write_enable_a(transaction_valid), .data_out_a(read_data32_0123),
+		.clock_b(clock_ram), .address_b(read_address14), .data_out_b(oserdes_word_out));
 `endif
 	reg [15:0] read_address = 0;
 	wire [7:0] leds;

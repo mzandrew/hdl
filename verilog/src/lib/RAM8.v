@@ -1,4 +1,6 @@
-// last updated 2020-05-12 by mza
+// last updated 2020-05-13 by mza
+
+`include "generic.v"
 
 // modified from MemoryUsageGuideforiCE40Devices.pdf
 module RAM_inferred #(
@@ -51,14 +53,6 @@ module RAM_s6_16k_8bit #(
 	for (i=0; i<8; i=i+1) begin : mem_array
 		RAM_s6_2k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[i]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[i]), .read_enable(1'b1));
 	end
-//	RAM_s6_2k_8bit mem0 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[0]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[0]), .read_enable(1'b1));
-//	RAM_s6_2k_8bit mem1 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[1]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[1]), .read_enable(1'b1));
-//	RAM_s6_2k_8bit mem2 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[2]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[2]), .read_enable(1'b1));
-//	RAM_s6_2k_8bit mem3 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[3]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[3]), .read_enable(1'b1));
-//	RAM_s6_2k_8bit mem4 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[4]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[4]), .read_enable(1'b1));
-//	RAM_s6_2k_8bit mem5 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[5]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[5]), .read_enable(1'b1));
-//	RAM_s6_2k_8bit mem6 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[6]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[6]), .read_enable(1'b1));
-//	RAM_s6_2k_8bit mem7 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[7]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[7]), .read_enable(1'b1));
 	reg [2:0] buffered_sel_0 = 0;
 	wire [7:0] buffered_data_out_0;
 	reg [7:0] buffered_data_out_1 = 0;
@@ -392,7 +386,61 @@ module RAM_s6_512_32bit #(
 	);
 endmodule
 
-//RAM_s6_512_32bit_8bit asdf (.reset(),
+//	RAM_s6_4k_32bit_8bit mem (.reset(),
+//		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
+//		.clock_b(), .address_b(), .data_out_b());
+module RAM_s6_4k_32bit_8bit (
+	input reset,
+	input clock_a,
+	input [11:0] address_a,
+	input [31:0] data_in_a,
+	input write_enable_a,
+	output [31:0] data_out_a,
+	input clock_b,
+	input [13:0] address_b,
+	output [7:0] data_out_b
+);
+	wire [31:0] data_out_a_array [7:0];
+	wire [7:0] data_out_b_array [7:0];
+	wire [7:0] write_enable_a_array;
+	genvar i;
+	for (i=0; i<8; i=i+1) begin : mem_array
+//		RAM_s6_2k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[i]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[i]), .read_enable(1'b1));
+		RAM_s6_512_32bit_8bit mem (.reset(reset),
+			.clock_a(clock_a), .address_a(address_a[8:0]), .data_in_a(data_in_a), .write_enable_a(write_enable_a_array[i]), .data_out_a(data_out_a_array[i]),
+			.clock_b(clock_b), .address_b(address_b[10:0]), .data_out_b(data_out_b_array[i]));
+	end
+	reg [2:0] buffered_sel_a_0 = 0;
+	reg [2:0] buffered_sel_b_0 = 0;
+	wire [31:0] buffered_data_out_a_0;
+	wire [7:0] buffered_data_out_b_0;
+	reg [31:0] buffered_data_out_a_1 = 0;
+	reg [7:0] buffered_data_out_b_1 = 0;
+	always @(posedge clock_a) begin
+		buffered_sel_a_0 <= address_a[11:9];
+		buffered_data_out_a_1 <= buffered_data_out_a_0;
+	end
+	always @(posedge clock_b) begin
+		buffered_sel_b_0 <= address_b[13:11];
+		buffered_data_out_b_1 <= buffered_data_out_b_0;
+	end
+	assign data_out_a = buffered_data_out_a_1;
+	assign data_out_b = buffered_data_out_b_1;
+	mux_8to1 #(.WIDTH(32)) db_a (
+		.in0(data_out_a_array[0]), .in1(data_out_a_array[1]), .in2(data_out_a_array[2]), .in3(data_out_a_array[3]),
+		.in4(data_out_a_array[4]), .in5(data_out_a_array[5]), .in6(data_out_a_array[6]), .in7(data_out_a_array[7]),
+		.sel(buffered_sel_a_0), .out(buffered_data_out_a_0));
+	mux_8to1 #(.WIDTH(8)) db_b (
+		.in0(data_out_b_array[0]), .in1(data_out_b_array[1]), .in2(data_out_b_array[2]), .in3(data_out_b_array[3]),
+		.in4(data_out_b_array[4]), .in5(data_out_b_array[5]), .in6(data_out_b_array[6]), .in7(data_out_b_array[7]),
+		.sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
+	demux_1to8 we (
+		.in(write_enable_a), .sel(address_a[11:9]),
+		.out0(write_enable_a_array[0]), .out1(write_enable_a_array[1]), .out2(write_enable_a_array[2]), .out3(write_enable_a_array[3]),
+		.out4(write_enable_a_array[4]), .out5(write_enable_a_array[5]), .out6(write_enable_a_array[6]), .out7(write_enable_a_array[7]));
+endmodule
+
+//RAM_s6_512_32bit_8bit mem (.reset(),
 //	.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
 //	.clock_b(), .address_b(), .data_out_b());
 // RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)

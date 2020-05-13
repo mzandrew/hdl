@@ -402,6 +402,7 @@
     <file xil_pn:name="../verilog/src/lib/RAM8.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/serdes_pll.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/dcm.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="../verilog/src/lib/generic.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>
