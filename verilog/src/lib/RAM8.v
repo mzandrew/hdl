@@ -30,6 +30,38 @@ module RAM_inferred #(
 	end
 endmodule
 
+module RAM_inferred_with_register_outputs #(
+	parameter addr_width = 9,
+	parameter data_width = 8
+) (
+	input reset,
+	input [addr_width-1:0] waddr, raddr,
+	input [data_width-1:0] din,
+	input write_en, wclk, rclk,
+	output reg [data_width-1:0] dout = 0,
+	output [31:0] register0, register1, register2, register3
+);
+	reg [data_width-1:0] mem [(1<<addr_width)-1:0];
+	always @(posedge wclk) begin
+		if (reset) begin
+//			for (i=0; i<waddr
+		end else begin
+			if (write_en) begin
+				mem[waddr] <= din;
+			end
+		end
+	end
+	always @(posedge rclk) begin
+		if (~reset) begin
+			dout <= mem[raddr];
+		end
+	end
+	assign register0 = mem[0];
+	assign register1 = mem[1];
+	assign register2 = mem[2];
+	assign register3 = mem[3];
+endmodule
+
 //(* keep_hierarchy = "yes" *)
 //(* BMM_INFO = " " *)
 //(* BMM_INFO = "ADDRESS_SPACE map_name RAMB16 [start:end] END_ADDRESS_MAP;" *)

@@ -68,6 +68,12 @@ module top (
 		end
 	end
 	// ----------------------------------------------------------------------
+	reg sync_read_address = 0;
+	reg [15:0] read_address = 0;
+	wire [31:0] start_read_address;
+	wire [31:0] end_read_address;
+	reg [15:0] last_read_address = 16'd4095;
+	// ----------------------------------------------------------------------
 	wire miso_ce0;
 	wire miso_ce1;
 	//assign rpi_spi_miso = rpi_spi_ce1 ? miso_ce0 : miso_ce1;
@@ -82,9 +88,10 @@ module top (
 		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(miso_ce0), .SSEL(rpi_spi_ce0),
 		.transaction_valid(transaction_valid_ce0), .command8(command8_ce0), .address16(address16_ce0), .data32(data32_ce0), .data32_to_master(read_data32_ce0));
 	wire [3:0] address4_ce0 = address16_ce0[3:0];
-	RAM_inferred #(.addr_width(4), .data_width(32)) myram (.reset(reset3),
+	RAM_inferred_with_register_outputs #(.addr_width(4), .data_width(32)) myram (.reset(reset3),
 		.wclk(clock_ram), .waddr(address4_ce0), .din(data32_ce0), .write_en(transaction_valid_ce0),
-		.rclk(clock_ram), .raddr(address4_ce0), .dout(read_data32_ce0));
+		.rclk(clock_ram), .raddr(address4_ce0), .dout(read_data32_ce0),
+		.register0(start_read_address), .register1(end_read_address), .register2(), .register3());
 	// ----------------------------------------------------------------------
 	wire [7:0] command8;
 	wire [15:0] address16;
@@ -118,12 +125,18 @@ module top (
 		.clock_b(clock_ram), .address_b(read_address14), .data_out_b(oserdes_word_out));
 `endif
 	// ----------------------------------------------------------------------
-	reg [15:0] read_address = 0;
 	always @(posedge word_clock) begin
 		if (reset3) begin
 			read_address <= 0;
+			read_address <= start_read_address[15:0];
+			last_read_address <= end_read_address[15:0] - 1'b1;
 		end else begin
-			read_address <= read_address + 1'b1;
+			if (read_address==last_read_address || sync_read_address) begin
+				read_address <= start_read_address[15:0];
+				last_read_address <= end_read_address[15:0] - 1'b1;
+			end else begin
+				read_address <= read_address + 1'b1;
+			end
 		end
 	end
 	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(lemo), .locked(pll_oserdes_locked));
