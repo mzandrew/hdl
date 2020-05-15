@@ -194,8 +194,8 @@ def prepare_list_with_pseudorandom_values(memsize):
 		#data_list[i] = random.randint(0,2**31-1)
 		#data_list[i] *= (1<<28) + (1<<24) + (1<<20) + (1<<16) + (1<<12) + (1<<8) + (1<<4) + 1
 	#responses = [ set() for s in range(memsize) ]
-	for i in range(memsize):
-		data_list[i] &= 0xffffffff
+#	for i in range(memsize):
+		#data_list[i] &= 0xffffffff
 		#data_list[i] &= 0x7fffffff
 		#data_list[i] &= 0xf0000000
 		#data_list[i] &= 0xff000000
@@ -222,19 +222,22 @@ def prepare_list_with_pseudorandom_values(memsize):
 #			data_list[i] = 0xffffffff
 #		if 134==i:
 #			data_list[i] = 0xff773311
-		if i<16:
-			data_list[i] = 0
+#		if i<16:
+#			data_list[i] = 0
 #		else:
 #			data_list[i] = i
+	for i in range(1):
+		data_list[i] = 0
 	return data_list
 
 def write_list_to_spi_pollable_memory_in_pseudorandom_order(spi, memsize, command_list, address_list, data_list):
 	global total_errors
 	for i in random.sample(range(memsize), memsize):
-		response = spi_send_command8_address16_data32(spi, command_list[i], address_list[i], data_list[i])
-		if 7!=len(response):
-			total_errors += 1
-			print "function returned " + str(len(response)) + " words instead of 7"
+		if 0<=address_list[i] and address_list[i]<memsize:
+			response = spi_send_command8_address16_data32(spi, command_list[i], address_list[i], data_list[i])
+			if 7!=len(response):
+				total_errors += 1
+				print "function returned " + str(len(response)) + " words instead of 7"
 
 def write_list_to_spi_pollable_memory_in_pseudorandom_order_and_record_responses_for_each_one(spi, memsize, command_list, address_list, data_list):
 	global responses
@@ -253,12 +256,17 @@ def write_list_to_spi_pollable_memory_in_pseudorandom_order_and_record_responses
 	except:
 		total_errors = 0
 	for i in random.sample(range(memsize), memsize):
-		response = spi_send_command8_address16_data32(spi, command_list[i], address_list[i], data_list[i])
-		if 7!=len(response):
-			total_errors += 1
-			print "function returned " + str(len(response)) + " words instead of 7"
-		total_transfers += 1
-		responses[i].append(response[3:7])
+		if 0<=address_list[i] and address_list[i]<memsize:
+			response = spi_send_command8_address16_data32(spi, command_list[i], address_list[i], data_list[i])
+			if 7!=len(response):
+				total_errors += 1
+				print "function returned " + str(len(response)) + " words instead of 7"
+			total_transfers += 1
+			responses[i].append(response[3:7])
+		else:
+			#total_errors += 1
+			#responses[i].append([0,0,0,0])
+			responses[i].append(unpack32(data_list[i])) # fake the response for addresses above memsize-1
 
 def verify_responses_match_input_data(spi, memsize, data_list, address_list):
 	global responses
@@ -288,8 +296,18 @@ def verify_responses_match_input_data(spi, memsize, data_list, address_list):
 		for key in values.keys():
 			string += " [" + str(values[key]) + "]:" + hex(key, 8)
 		if errors:
-			total_errors += errors
+			try:
+				total_errors += errors
+			except:
+				total_errors = errors
 			print string
+
+def regularize_lists(memsize, command_list, address_list, data_list):
+	for i in range(memsize):
+		command_list[i] = int(command_list[i]) &       0xff
+		address_list[i] = int(address_list[i])
+		data_list[i]    = int(data_list[i])    & 0xffffffff
+	return command_list, address_list, data_list
 
 def test_command8_address16_data32(spi, memsize, number_of_passes):
 	# 30k transfers per second on a rpi2 @ 10e6 Hz
@@ -303,9 +321,9 @@ def test_command8_address16_data32(spi, memsize, number_of_passes):
 	address_list = [ a for a in range(memsize) ]
 	global responses
 	responses = [ list() for s in range(memsize) ]
-	for i in range(memsize):
-		command_list[i] &= 0xff
-		address_list[i] &= 0xffff
+#	for i in range(memsize):
+#		command_list[i] &= 0xff
+#		address_list[i] &= 0xffff
 	data_list = prepare_list_with_pseudorandom_values(memsize)
 	start = time.time()
 	write_list_to_spi_pollable_memory_in_pseudorandom_order(spi, memsize, command_list, address_list, data_list)
@@ -326,20 +344,36 @@ def test_command8_address16_data32(spi, memsize, number_of_passes):
 	print eng(transfers_per_sec) + " transfers per second"
 
 def write_list_to_pollable_memory_and_then_verify(spi, memsize, command_list, address_list, data_list):
+	command_list, address_list, data_list = regularize_lists(memsize, command_list, address_list, data_list)
 	write_list_to_spi_pollable_memory_in_pseudorandom_order(spi, memsize, command_list, address_list, data_list)
 	write_list_to_spi_pollable_memory_in_pseudorandom_order_and_record_responses_for_each_one(spi, memsize, command_list, address_list, data_list)
 	verify_responses_match_input_data(spi, memsize, data_list, address_list)
 
-def write_pseudorandom_values_to_spi_pollable_memory_and_verify(spi, memsize):
+def write_pseudorandom_values_to_spi_pollable_memory_and_verify(spi, memsize, offset=0):
 	command_list = [ c for c in range(memsize) ]
-	address_list = [ a for a in range(memsize) ]
+	address_list = [ offset+a for a in range(memsize) ]
 	data_list = prepare_list_with_pseudorandom_values(memsize)
 	write_list_to_pollable_memory_and_then_verify(spi, memsize, command_list, address_list, data_list)
 
-def write_zero_values_to_spi_pollable_memory_and_verify(spi, memsize):
+def write_zero_values_to_spi_pollable_memory_and_verify(spi, memsize, offset=0):
 	command_list = [ c for c in range(memsize) ]
-	address_list = [ a for a in range(memsize) ]
+	address_list = [ offset+a for a in range(memsize) ]
 	data_list = [ 0 for d in range(memsize) ]
+	write_list_to_pollable_memory_and_then_verify(spi, memsize, command_list, address_list, data_list)
+
+def write_values_to_spi_pollable_memory_and_verify(spi, memsize, data_list, offset=0):
+	command_list = [ c for c in range(memsize) ]
+	address_list = [ offset+a for a in range(memsize) ]
+	#data_list = [ 0 for d in range(memsize) ]
+	if len(data_list)<memsize:
+		for i in range(len(data_list), memsize):
+			data_list.append(0)
+	write_list_to_pollable_memory_and_then_verify(spi, memsize, command_list, address_list, data_list)
+
+def write_sequential_values_to_spi_pollable_memory_and_verify(spi, memsize, offset=0):
+	command_list = [ c for c in range(memsize) ]
+	address_list = [ offset+a for a in range(memsize) ]
+	data_list = [ d for d in range(memsize) ]
 	write_list_to_pollable_memory_and_then_verify(spi, memsize, command_list, address_list, data_list)
 
 import os
@@ -362,6 +396,9 @@ def read_bcm_csv(input_filename, date_string):
 				if not count==scaling*RF_buckets:
 					#warning("read in " + str(count) + " datapoints")
 					pass
+	else:
+		print "can't open file \"" + input_filename + "\""
+		sys.exit(1)
 	return values
 
 def normalize_bcm_data(values, max_for_normalization):
@@ -382,9 +419,9 @@ def normalize_bcm_data(values, max_for_normalization):
 		values[i] = int(values[i]*normalization)
 	return values
 
-def write_bcm_values_to_spi_pollable_memory_and_verify(spi, memsize, input_filename, date_string, max_for_normalization=6.0):
+def write_bcm_values_to_spi_pollable_memory_and_verify(spi, memsize, offset, input_filename, date_string, max_for_normalization=6.0):
 	command_list = [ c for c in range(memsize) ]
-	address_list = [ a for a in range(memsize) ]
+	address_list = [ offset+a for a in range(memsize) ]
 	data_list = [ 0 for d in range(memsize) ]
 	if 1:
 		bcm_list = read_bcm_csv(input_filename, date_string)
@@ -424,18 +461,7 @@ def write_bcm_values_to_spi_pollable_memory_and_verify(spi, memsize, input_filen
 #		if i<64:
 #			data_list[i] = 0
 #	print len(data_list)
-	for i in range(memsize):
-		data_list[i] &= 0xffffffff
 	print "uploading bcm timeseries to device..."
-	write_list_to_pollable_memory_and_then_verify(spi, memsize, command_list, address_list, data_list)
-
-def write_values_to_spi_pollable_memory_and_verify(spi, memsize, data_list):
-	command_list = [ c for c in range(memsize) ]
-	address_list = [ a for a in range(memsize) ]
-	#data_list = [ 0 for d in range(memsize) ]
-	if len(data_list)<memsize:
-		for i in range(len(data_list), memsize):
-			data_list.append(0)
 	write_list_to_pollable_memory_and_then_verify(spi, memsize, command_list, address_list, data_list)
 
 #test_command8_address16_data32(spi_ce0, 2**4, 40)
@@ -444,17 +470,32 @@ def write_values_to_spi_pollable_memory_and_verify(spi, memsize, data_list):
 # 10240 samples per revolution
 # 1 address per 8 samples
 # 10240/8=1280 addresses per revolution
-# 9*10240/8=9*1280 addresses per revolution
-#write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ 0, 1*1280 ])
-write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ 0, 9*1280 ])
-#for i in range(0, 1280, 16):
-#	for j in range(640, 1280, 16):
-#		print str(i) + "," + str(j)
-#		write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ 0, j ])
-#		time.sleep(1.0)
+# 9*10240/8=9*1280 addresses per revo9
+# updated firmware so that the start/end limits are in units of RF_buckets
+# but keep in mind that the 2 least significant bits are discarded
+#write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ 0, 1*RF_buckets ])
+#write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ 0.5*RF_buckets, 3.2*RF_buckets ])
+#write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ 0, 9*RF_buckets ])
+if 0:
+	while True:
+		for i in range(0, 640, 16):
+			j = i + 640
+			#for j in range(640, 1280, 16):
+			#	print str(i) + "," + str(j)
+			write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ i, j ])
+			time.sleep(0.01)
+
+#write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ 4079, 4095 ])
 
 #write_pseudorandom_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12)
 #write_zero_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12)
+write_zero_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12)
+write_sequential_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 16)
+write_zero_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 32)
+
 date_string = "2019-11-15.075530"
-write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, "bcm.csv", date_string, 2.0)
+write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 1.0*RF_buckets/32, "bcm.csv", date_string, 2.0)
+#write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 0*RF_buckets, "bcm.csv", date_string, 8.0)
+
+write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ 0, 1.5*RF_buckets ])
 
