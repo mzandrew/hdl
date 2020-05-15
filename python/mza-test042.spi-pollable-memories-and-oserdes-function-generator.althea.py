@@ -420,6 +420,7 @@ def normalize_bcm_data(values, max_for_normalization):
 	return values
 
 def write_bcm_values_to_spi_pollable_memory_and_verify(spi, memsize, offset, input_filename, date_string, max_for_normalization=6.0):
+	offset = int(offset/16.0)
 	command_list = [ c for c in range(memsize) ]
 	address_list = [ offset+a for a in range(memsize) ]
 	data_list = [ 0 for d in range(memsize) ]
@@ -489,13 +490,20 @@ if 0:
 
 #write_pseudorandom_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12)
 #write_zero_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12)
-write_zero_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12)
-write_sequential_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 16)
-write_zero_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 32)
+#write_zero_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12)
+#write_sequential_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 16)
+#write_zero_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 32)
 
 date_string = "2019-11-15.075530"
-write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 1.0*RF_buckets/32, "bcm.csv", date_string, 2.0)
-#write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 0*RF_buckets, "bcm.csv", date_string, 8.0)
+write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 0.0*RF_buckets, "bcm.csv", date_string, 0.0)
+write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 1.0*RF_buckets, "bcm.csv", date_string, 1.0)
+write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 2.0*RF_buckets, "bcm.csv", date_string, 2.0)
+write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 3.0*RF_buckets, "bcm.csv", date_string, 3.0)
+write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 4.0*RF_buckets, "bcm.csv", date_string, 4.0)
+write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 5.0*RF_buckets, "bcm.csv", date_string, 5.0)
+write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 6.0*RF_buckets, "bcm.csv", date_string, 6.0)
+write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 7.0*RF_buckets, "bcm.csv", date_string, 7.0)
+write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, 2**12, 8.0*RF_buckets, "bcm.csv", date_string, 8.0)
 
-write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ 0, 1.5*RF_buckets ])
+write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2**4, [ 0, 9.0*RF_buckets ])
 
