@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-05-13 by mza
+// last updated 2020-05-15 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
@@ -28,6 +28,7 @@ module top (
 	output rpi_spi_miso,
 	input rpi_spi_ce0,
 	input rpi_spi_ce1,
+	output sync_out,
 	output led_0, led_1, led_2, led_3,
 	output led_4, led_5, led_6, led_7
 );
@@ -125,20 +126,25 @@ module top (
 		.clock_b(clock_ram), .address_b(read_address14), .data_out_b(oserdes_word_out));
 `endif
 	// ----------------------------------------------------------------------
+	reg sync_out_raw = 0;
+	reg [3:0] sync_out_stream = 0;
 	always @(posedge word_clock) begin
+		sync_out_raw <= 0;
 		if (reset3) begin
-			read_address <= 0;
-			read_address <= start_read_address[15:0];
-			last_read_address <= end_read_address[15:0] - 1'b1;
+			read_address <= start_read_address[17:2];
+			last_read_address <= end_read_address[17:2] - 1'b1;
 		end else begin
 			if (read_address==last_read_address || sync_read_address) begin
-				read_address <= start_read_address[15:0];
-				last_read_address <= end_read_address[15:0] - 1'b1;
+				read_address <= start_read_address[17:2];
+				last_read_address <= end_read_address[17:2] - 1'b1;
+				sync_out_raw <= 1;
 			end else begin
 				read_address <= read_address + 1'b1;
 			end
 		end
+		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
+	assign sync_out = sync_out_stream[2];
 	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(lemo), .locked(pll_oserdes_locked));
 	// ----------------------------------------------------------------------
 	if (0) begin
@@ -168,12 +174,14 @@ module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_t
 	input c_p,
 	output d_n,
 	input d_p,
+	output g_n,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	top mytop (
 		.clock50_p(clock50_p), .clock50_n(clock50_n),
 		.lemo(lemo),
 		.rpi_spi_mosi(d_p), .rpi_spi_miso(d_n), .rpi_spi_sclk(c_p), .rpi_spi_ce0(c_n), .rpi_spi_ce1(a_p),
+		.sync_out(g_n),
 		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
 		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
 	);

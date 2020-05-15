@@ -17,6 +17,7 @@ timespec "ts_clock50_p" = period "tnm_clock50_p" 20.0 ns high 50%; # 50 MHz
 #net "d_p" tnm_net = ftsw_p;
 #timespec "ts_ftsw_p" = period "ftsw_p" 7.8 ns high 50%; # 128.205 MHz
 
+# first column, closest to FPGA on left side of board
 #net a_n loc=p111 | iostandard=lvds_25; # A- bank0 TR
 net a_p loc=p112 | iostandard=lvcmos25; # A+ bank0 TR
 net c_n loc=p116 | iostandard=lvcmos25; # C- bank0 TR
@@ -26,28 +27,27 @@ net d_p loc=p124 | iostandard=lvcmos25; # D+ bank0 TR GCLK
 #net f_n loc=p141 | iostandard=lvds_25; # F- bank0 TL
 #net f_p loc=p142 | iostandard=lvds_25; # F+ bank0 TL
 
+# second column, on left side of board
 #net b_n loc=p114 | iostandard=lvds_25; # B- bank0 TR
 #net b_p loc=p115 | iostandard=lvds_25; # B+ bank0 TR
 #net e_n loc=p137 | iostandard=lvds_25; # E- bank0 TL
 #net e_p loc=p138 | iostandard=lvds_25; # E+ bank0 TL
 
-#net g_p loc=p41  | iostandard=lvcmos25; # G+ bank3 BL
-#net g_n loc=p40  | iostandard=lvcmos25; # G- bank3 BL
-#net g_p loc=p41  | iostandard=lvcmos25; # G+ bank3 BL
-#net g_n loc=p40  | iostandard=lvcmos25 | pulldown; # G- bank3 BL
-#net h_p loc=p48  | iostandard=lvds_25 | diff_term=true; # H+ bank3 BL
-#net h_n loc=p47  | iostandard=lvds_25 | diff_term=true; # H- bank3 BL
-#net j_p loc=p51  | iostandard=lvds_25 | diff_term=true; # J+ bank3 BL GCLK
-#net j_n loc=p50  | iostandard=lvds_25 | diff_term=true; # J- bank3 BL GCLK
-
-#net k_p loc=p56  | iostandard=lvds_25 | diff_term=true; # K+ bank3 BR GCLK
-#net k_n loc=p55  | iostandard=lvds_25 | diff_term=true; # K- bank3 BR GCLK
-#net l_p loc=p58  | iostandard=lvds_25; # L+ bank3 BR
-#net l_n loc=p57  | iostandard=lvds_25; # L- bank3 BR
-#net l_p loc=p58  | iostandard=lvcmos25; # L+ bank3 BR
-#net l_n loc=p57  | iostandard=lvcmos25; # L- bank3 BR
+# first column, closest to FPGA on right side of board
 #net m_p loc=p67  | iostandard=lvds_25 | diff_term=true; # M+ bank3 BR
 #net m_n loc=p66  | iostandard=lvds_25 | diff_term=true; # M- bank3 BR
+#net l_p loc=p58  | iostandard=lvcmos25; # L+ bank3 BR
+#net l_n loc=p57  | iostandard=lvcmos25; # L- bank3 BR
+#net j_p loc=p51  | iostandard=lvds_25 | diff_term=true; # J+ bank3 BL GCLK
+#net j_n loc=p50  | iostandard=lvds_25 | diff_term=true; # J- bank3 BL GCLK
+#net g_p loc=p41  | iostandard=lvcmos25; # G+ bank3 BL
+net g_n loc=p40  | iostandard=lvcmos25; # G- bank3 BL
+
+# second column, on right side of board
+#net k_p loc=p56  | iostandard=lvds_25 | diff_term=true; # K+ bank3 BR GCLK
+#net k_n loc=p55  | iostandard=lvds_25 | diff_term=true; # K- bank3 BR GCLK
+#net h_p loc=p48  | iostandard=lvds_25 | diff_term=true; # H+ bank3 BL
+#net h_n loc=p47  | iostandard=lvds_25 | diff_term=true; # H- bank3 BL
 
 net led_0 loc=p12 | iostandard=lvcmos25;
 net led_1 loc=p11 | iostandard=lvcmos25;
