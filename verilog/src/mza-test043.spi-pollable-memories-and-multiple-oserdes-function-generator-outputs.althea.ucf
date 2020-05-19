@@ -1,0 +1,123 @@
+# written 2020-05-18 by mza
+# based off of mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea
+# for an althea revB attached to a raspberry pi
+# last updated 2020-05-18 by mza
+
+# 100 MHz local oscillator:
+net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
+net clock100_n loc=p126 | iostandard=lvds_33 | diff_term=true; # CLOCK100-
+net "clock100_p" tnm_net = tnm_clock100_p;
+timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
+
+#net "k_p" tnm_net = tnm_remote_clock_p;
+#timespec "ts_remote_clock_p" = period "tnm_remote_clock_p" 1.965 ns high 50%; # 508.9 MHz
+#net "j_p" tnm_net = tnm_local_clock_p;
+#timespec "ts_local_clock_p" = period "tnm_local_clock_p" 1.965 ns high 50%; # 508.9 MHz
+
+#net "d_p" tnm_net = ftsw_p;
+#timespec "ts_ftsw_p" = period "ftsw_p" 7.8 ns high 50%; # 128.205 MHz
+
+# first column, closest to FPGA on left side of board
+#net a_n loc=p116 | iostandard=lvcmos33; # A- bank0 TR
+#net a_p loc=p117 | iostandard=lvcmos33; # A+ bank0 TR
+#net c_n loc=p131 | iostandard=lvcmos33; # C- bank0 TR
+#net c_p loc=p132 | iostandard=lvcmos33; # C+ bank0 TR
+#net d_n loc=p139 | iostandard=lvcmos33; # D- bank0 TR
+#net d_p loc=p140 | iostandard=lvcmos33; # D+ bank0 TR
+#net f_n loc=p141 | iostandard=lvcmos33; # F- bank0 TL
+#net f_p loc=p142 | iostandard=lvcmos33; # F+ bank0 TL
+
+# second column, on left side of board
+#net b_n loc=p123 | iostandard=lvcmos33; # B- bank0 TR
+#net b_p loc=p124 | iostandard=lvcmos33; # B+ bank0 TR
+#net e_n loc=p133 | iostandard=lvcmos33; # E- bank0 TL
+#net e_p loc=p134 | iostandard=lvcmos33; # E+ bank0 TL
+
+# third column, on left side of board
+#net z loc=p17  | iostandard=lvcmos33; # Z bank3 TL
+#net y loc=p15  | iostandard=lvcmos33; # Y bank3 TL
+#net x loc=p12  | iostandard=lvcmos33; # X bank3 TL
+#net w loc=p10  | iostandard=lvcmos33; # W bank3 TL
+#net v loc=p8   | iostandard=lvcmos33; # V bank3 TL
+#net u loc=p2   | iostandard=lvcmos33; # U bank3 TL
+
+# first column, closest to FPGA on right side of board
+#net m_p loc=p58  | iostandard=lvcmos33; # M+ bank2 BR
+#net m_n loc=p57  | iostandard=lvcmos33; # M- bank2 BR
+#net l_p loc=p48  | iostandard=lvcmos33; # L+ bank2 BR
+#net l_n loc=p47  | iostandard=lvcmos33; # L- bank2 BR
+#net j_p loc=p46  | iostandard=lvcmos33; # J+ bank2 BL
+#net j_n loc=p45  | iostandard=lvcmos33; # J- bank2 BL
+#net g_p loc=p41  | iostandard=lvcmos33; # G+ bank2 BL
+#net g_n loc=p40  | iostandard=lvcmos33; # G- bank2 BL
+
+# second column, on right side of board
+#net k_p loc=p56  | iostandard=lvcmos33; # K+ bank2 BR
+#net k_n loc=p55  | iostandard=lvcmos33; # K- bank2 BR
+#net h_p loc=p44  | iostandard=lvcmos33; # H+ bank2 BL
+#net h_n loc=p43  | iostandard=lvcmos33; # H- bank2 BL
+
+# third column, on right side of board
+#net n loc=p81  | iostandard=lvcmos33; # N bank1 TL
+#net p loc=p35  | iostandard=lvcmos33; # P bank3 TL
+#net q loc=p33  | iostandard=lvcmos33; # Q bank3 TL
+#net r loc=p27  | iostandard=lvcmos33; # R bank3 TL
+#net s loc=p24  | iostandard=lvcmos33; # S bank3 TL
+#net t loc=p22  | iostandard=lvcmos33; # T bank3 TL
+
+# raspberry pi 40pin headers, general purpose IO:
+#net gpio2_i2c1_sda loc=p138 | iostandard=lvcmos33; # bank0
+#net gpio3_i2c1_scl loc=p137 | iostandard=lvcmos33; # bank0
+#net gpio4_gclk0 loc=p93 | iostandard=lvcmos33; # bank1
+#net gpio5_gclk1 loc=p66 | iostandard=lvcmos33; # bank2
+#net gpio6_gclk2 loc=p51 | iostandard=lvcmos33; # bank2
+#net gpio13 loc=p61  | iostandard=lvcmos33; # bank2
+#net gpio14 loc=p87  | iostandard=lvcmos33; # bank1
+#net gpio15 loc=p118 | iostandard=lvcmos33; # bank0
+#net gpio19 loc=p85  | iostandard=lvcmos33; # bank1
+#net gpio20 loc=p83  | iostandard=lvcmos33; # bank1
+#net gpio21 loc=p84  | iostandard=lvcmos33; # bank1
+#net gpio22 loc=p115 | iostandard=lvcmos33; # bank0
+#net gpio23 loc=p101 | iostandard=lvcmos33; # bank1
+#net gpio24 loc=p100 | iostandard=lvcmos33; # bank1
+#net gpio26 loc=p59  | iostandard=lvcmos33; # bank2
+
+# raspberry pi 40pin headers, broadcom spi peripheral:
+net rpi_spi_ce0  loc=p82  | iostandard=lvcmos33; # bank1
+net rpi_spi_ce1  loc=p80  | iostandard=lvcmos33; # bank1
+net rpi_spi_sclk loc=p114 | iostandard=lvcmos33; # bank0
+net rpi_spi_mosi loc=p111 | iostandard=lvcmos33; # bank0
+net rpi_spi_miso loc=p112 | iostandard=lvcmos33; # bank0
+
+# hexadecimal rotary encoder:
+#net rot_1 loc=p74 | iostandard=lvcmos33 | pullup; # bank1
+#net rot_2 loc=p50 | iostandard=lvcmos33 | pullup; # bank2
+#net rot_4 loc=p67 | iostandard=lvcmos33 | pullup; # bank2
+#net rot_8 loc=p62 | iostandard=lvcmos33 | pullup; # bank2
+
+# momentary pushbutton, normally open:
+#net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3
+
+# array of 8 LEDs:
+net led_0 loc=p29 | iostandard=lvcmos33;
+net led_1 loc=p26 | iostandard=lvcmos33;
+net led_2 loc=p23 | iostandard=lvcmos33;
+net led_3 loc=p21 | iostandard=lvcmos33;
+net led_4 loc=p16 | iostandard=lvcmos33;
+net led_5 loc=p14 | iostandard=lvcmos33;
+net led_6 loc=p11 | iostandard=lvcmos33;
+net led_7 loc=p9  | iostandard=lvcmos33;
+
+# 4 more LEDs, one next to each of the first 4 coax connectors:
+#net coax_led<0> loc=p98  | iostandard=lvcmos33;
+#net coax_led<1> loc=p94  | iostandard=lvcmos33;
+#net coax_led<2> loc=p92  | iostandard=lvcmos33;
+#net coax_led<3> loc=p88  | iostandard=lvcmos33;
+
+net coax<0> loc=p105 | iostandard=lvcmos33 | drive = 24 | slew = fast;
+net coax<1> loc=p102 | iostandard=lvcmos33 | drive = 24 | slew = fast;
+net coax<2> loc=p79  | iostandard=lvcmos33 | drive = 24 | slew = fast;
+net coax<3> loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast;
+net coax<4> loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast;
+net coax<5> loc=p30  | iostandard=lvcmos33 | drive = 24 | slew = fast;
+
