@@ -143,12 +143,36 @@ module top (
 		end
 		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
-	assign coax[5] = sync_out_stream[2];
-	//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(coax[0]), .locked(pll_oserdes_locked));
-	ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
-		.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
-		.word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out), .word4_in(oserdes_word_out),
-		.D1_out(coax[0]), .D2_out(coax[1]), .D3_out(coax[2]), .D4_out(coax[3]));
+	//assign coax[5] = sync_out_stream[2];
+	if (0) begin
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(coax[0]), .locked(pll_oserdes_locked));
+		assign coax[1] = 0;
+		assign coax[2] = 0;
+		assign coax[3] = 0;
+		assign coax[4] = 0;
+		assign coax[5] = 0;
+	end else if (0) begin
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock),
+			.word0_in(oserdes_word_out), .D0_out(coax[0]),
+			.word1_in(oserdes_word_out), .D1_out(coax[1]),
+			.locked(pll_oserdes_locked));
+		assign coax[2] = 0;
+		assign coax[3] = 0;
+		assign coax[4] = 0;
+		assign coax[5] = 0;
+	end else if (1) begin
+		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
+			.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
+			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out),
+			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
+		assign coax[4] = 0;
+		assign coax[5] = 0;
+	end else begin
+		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
+			.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
+			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out), .word4_in(oserdes_word_out), .word5_in(oserdes_word_out),
+			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]), .D4_out(coax[4]), .D5_out(coax[5]));
+	end
 	// ----------------------------------------------------------------------
 	if (0) begin
 		wire [7:0] leds;
@@ -167,8 +191,6 @@ module top (
 		//assign led_1 = data32_ce0[1];
 		//assign led_0 = data32_ce0[0];
 	end
-	assign coax[4] = 0;
-	//assign coax[5] = 0;
 endmodule
 
 module mza_test043_spi_pollable_memories_and_multiple_oserdes_function_generator_outputs_althea_top (

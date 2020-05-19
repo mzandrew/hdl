@@ -25,7 +25,7 @@ net c_p loc=p117 | iostandard=lvcmos25; # C+ bank0 TR
 net d_n loc=p123 | iostandard=lvcmos25; # D- bank0 TR GCLK
 net d_p loc=p124 | iostandard=lvcmos25; # D+ bank0 TR GCLK
 #net f_n loc=p141 | iostandard=lvds_25; # F- bank0 TL
-#net f_p loc=p142 | iostandard=lvds_25; # F+ bank0 TL
+#net f_p loc=p142 | iostandard=lvcmos25; # F+ bank0 TL
 
 # second column, on left side of board
 #net b_n loc=p114 | iostandard=lvds_25; # B- bank0 TR
@@ -34,14 +34,14 @@ net d_p loc=p124 | iostandard=lvcmos25; # D+ bank0 TR GCLK
 #net e_p loc=p138 | iostandard=lvds_25; # E+ bank0 TL
 
 # first column, closest to FPGA on right side of board
-#net m_p loc=p67  | iostandard=lvds_25 | diff_term=true; # M+ bank3 BR
-#net m_n loc=p66  | iostandard=lvds_25 | diff_term=true; # M- bank3 BR
-#net l_p loc=p58  | iostandard=lvcmos25; # L+ bank3 BR
+net m_p loc=p67  | iostandard=lvcmos25 | drive = 12 | slew = fast; # M+ bank3 BR
+#net m_n loc=p66  | iostandard=lvcmos25; # M- bank3 BR
+net l_p loc=p58  | iostandard=lvcmos25 | drive = 12 | slew = fast; # L+ bank3 BR
 #net l_n loc=p57  | iostandard=lvcmos25; # L- bank3 BR
 #net j_p loc=p51  | iostandard=lvds_25 | diff_term=true; # J+ bank3 BL GCLK
 #net j_n loc=p50  | iostandard=lvds_25 | diff_term=true; # J- bank3 BL GCLK
 #net g_p loc=p41  | iostandard=lvcmos25; # G+ bank3 BL
-net g_n loc=p40  | iostandard=lvcmos25; # G- bank3 BL
+#net g_n loc=p40  | iostandard=lvcmos25; # G- bank3 BL
 
 # second column, on right side of board
 #net k_p loc=p56  | iostandard=lvds_25 | diff_term=true; # K+ bank3 BR GCLK

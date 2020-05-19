@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-05-15 by mza
+// last updated 2020-05-19 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
@@ -23,12 +23,13 @@
 module top (
 	input clock50_p, clock50_n,
 	output lemo,
+	output other0,
+	output other1,
 	input rpi_spi_sclk,
 	input rpi_spi_mosi,
 	output rpi_spi_miso,
 	input rpi_spi_ce0,
 	input rpi_spi_ce1,
-	output sync_out,
 	output led_0, led_1, led_2, led_3,
 	output led_4, led_5, led_6, led_7
 );
@@ -144,8 +145,16 @@ module top (
 		end
 		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
-	assign sync_out = sync_out_stream[2];
-	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(lemo), .locked(pll_oserdes_locked));
+	if (0) begin
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(lemo), .locked(pll_oserdes_locked));
+		assign other0 = 0;
+		assign other1 = sync_out_stream[2];
+	end else begin
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .D0_out(other0), .D1_out(other1), .locked(pll_oserdes_locked));
+		assign lemo = sync_out_stream[2];
+		//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei0 (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(lemo), .locked(pll_oserdes_locked));
+		//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(other), .locked(pll_oserdes_locked));
+	end
 	// ----------------------------------------------------------------------
 	if (0) begin
 		wire [7:0] leds;
@@ -168,20 +177,22 @@ endmodule
 
 module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_top (
 	input clock50_p, clock50_n,
+	output m_p,
+	output l_p,
 	output lemo,
 	input a_p,
 	input c_n,
 	input c_p,
 	output d_n,
 	input d_p,
-	output g_n,
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	top mytop (
 		.clock50_p(clock50_p), .clock50_n(clock50_n),
 		.lemo(lemo),
+		.other0(m_p),
+		.other1(l_p),
 		.rpi_spi_mosi(d_p), .rpi_spi_miso(d_n), .rpi_spi_sclk(c_p), .rpi_spi_ce0(c_n), .rpi_spi_ce1(a_p),
-		.sync_out(g_n),
 		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
 		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
 	);

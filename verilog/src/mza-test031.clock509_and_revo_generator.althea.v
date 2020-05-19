@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-08-26 by mza
-// last updated 2019-09-22 by mza
-// this code runs on an althea connected to a JoeStrummer board
+// this code runs on an althea revA connected to a JoeStrummer board
+// last updated 2020-05-19 by mza
 
 module mza_test031_clock509_and_revo_generator_althea #(
 	parameter PHASE = 45.0
@@ -58,8 +58,8 @@ module mza_test031_clock509_and_revo_generator_althea #(
 	BUFG peter (.I(rawclock127), .O(clock127));
 	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(0.0)) mylei1 (.clock_in(clock127), .reset(reset), .word_clock_out(), .word_in(clock_word), .D_out(clock509_oddr), .locked(oserdes_pll_locked1));
 	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .MODE("WORD_CLOCK_IN"), .PHASE(PHASE)) mylei2 (.clock_in(clock127), .reset(reset), .word_clock_out(word_clock2), .word_in(revo_word), .D_out(revo_oddr), .locked(oserdes_pll_locked2));
-//	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(1.965), .DIVIDE(2), .MULTIPLY(4), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock509), .reset(reset), .word_clock_out(word_clock), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr), .D2_out(revo_oddr), .locked(oserdes_pll_locked));
-//	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(1.965), .DIVIDE(2), .MULTIPLY(4), .SCOPE("BUFPLL")) mylei2 (.clock_in(clock509), .reset(reset), .word_clock_out(word_clock2), .word1_in(clock_word), .word2_in(revo_word), .D1_out(clock509_oddr2), .D2_out(revo_oddr2), .locked(oserdes_pll_locked2));
+//	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(1.965), .DIVIDE(2), .MULTIPLY(4), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock509), .reset(reset), .word_clock_out(word_clock), .word0_in(clock_word), .word1_in(revo_word), .D0_out(clock509_oddr), .D1_out(revo_oddr), .locked(oserdes_pll_locked));
+//	ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(1.965), .DIVIDE(2), .MULTIPLY(4), .SCOPE("BUFPLL")) mylei2 (.clock_in(clock509), .reset(reset), .word_clock_out(word_clock2), .word0_in(clock_word), .word1_in(revo_word), .D0_out(clock509_oddr2), .D1_out(revo_oddr2), .locked(oserdes_pll_locked2));
 	OBUFDS out1 (.I(1'b0), .O(clk78_p), .OB(clk78_n));
 	OBUFDS out2 (.I(revo_oddr), .O(trg36_p), .OB(trg36_n));
 	assign lemo = clock509_oddr;
