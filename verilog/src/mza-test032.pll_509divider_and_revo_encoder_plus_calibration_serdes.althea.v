@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2019-10-04 by mza
+// last updated 2020-05-20 by mza
 // this code runs on an althea connected to a RAFFERTY board
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
@@ -196,7 +196,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_b (.I0(clock127_0s), .I1(clock127_1s), .S(~select2[1]), .O(clock127b));
 	// ----------------------------------------------------------------------
 	wire [3:0] other_revo_stream127;
-	ssynchronizer_pnp #(.WIDTH(4)) revo_stream_synchronizer (.clock1(revo_stream_clock127), .clock2(clock127), .reset(revo_stream_synchronizer_reset), .in1(pulse_revo_stream127), .out2(other_revo_stream127));
+	ssynchronizer_pnp #(.WIDTH(4)) revo_stream_synchronizer (.clock1(revo_stream_clock127), .clock2(clock127), .reset1(revo_stream_synchronizer_reset), .reset2(1'b0), .in1(pulse_revo_stream127), .out2(other_revo_stream127));
 	reg long_trg = 0;
 	wire short_trg;
 	reg trg = 0;
@@ -235,7 +235,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 		wire [7:0] word_trg  = 8'b11001100;
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(7.86), .DIVIDE(2), .MULTIPLY(16), .SCOPE("BUFPLL")) mylei (.clock_in(clock127), .reset(oserdes_reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .locked(pll_oserdes_locked));
 		wire trg_again;
-		ssynchronizer_pnp trg_synchronizer (.clock1(clock127), .clock2(word_clock), .reset(oserdes_reset), .in1(trg), .out2(trg_again));
+		ssynchronizer_pnp trg_synchronizer (.clock1(clock127), .clock2(word_clock), .reset1(oserdes_reset), .reset2(1'b0), .in1(trg), .out2(trg_again));
 		always @(posedge word_clock or posedge oserdes_reset or negedge pll_oserdes_locked) begin
 			if (oserdes_reset | ~pll_oserdes_locked) begin
 				word <= word_null;

@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2019-09-21 by mza
+// last updated 2020-05-19 by mza
 
 module iserdes_single4 #(
 	parameter WIDTH = 4
@@ -59,188 +59,39 @@ module iserdes_single4 #(
 //		);
 endmodule
 
-module ocyrus_quad8 #(
-	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
-	parameter BIT_WIDTH=1, // how many bits come out in parallel
-	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
-	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	PERIOD = 20.0,
-	DIVIDE = 2,
-	MULTIPLY = 40
+//	ocyrus_single8_inner #(.BIT_RATIO(8)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
+module ocyrus_single8_inner #(
+	parameter BIT_RATIO=8 // how many fast_clock cycles per word_clock
 ) (
-	input clock_in,
-	output word_clock_out,
+	input word_clock,
+	input bit_clock,
+	input bit_strobe,
 	input reset,
-	input [BIT_DEPTH-1:0] word1_in, word2_in, word3_in, word4_in,
-	output D1_out, D2_out, D3_out, D4_out,
-	output locked
+	input [BIT_RATIO-1:0] word_in,
+	output bit_out
 );
-	wire ioclk_D;
-	wire ioclk_D1, ioclk_D2, ioclk_D3, ioclk_D4;
-	wire ioce_D1, ioce_D2, ioce_D3, ioce_D4;
+	wire cascade_do1, cascade_to1, cascade_di1, cascade_ti1;
+	wire cascade_do2, cascade_to2, cascade_di2, cascade_ti2;
 	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
-	wire cascade_1do2, cascade_1to2, cascade_1di2, cascade_1ti2;
-	wire cascade_2do2, cascade_2to2, cascade_2di2, cascade_2ti2;
-	wire cascade_3do2, cascade_3to2, cascade_3di2, cascade_3ti2;
-	wire cascade_4do2, cascade_4to2, cascade_4di2, cascade_4ti2;
 	// want MSB of word to come out first
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master_D1
-	         (.OQ(D1_out), .TQ(), .CLK0(ioclk_D1), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word1_in[3]), .D2(word1_in[2]), .D3(word1_in[1]), .D4(word1_in[0]),
-	         .IOCE(ioce_D1), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_1do2), .SHIFTIN4(cascade_1to2), 
-	         .SHIFTOUT1(cascade_1di2), .SHIFTOUT2(cascade_1ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
+	         osirus_master_D
+	         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
+	         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
+	         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2), 
+	         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave_D1
-	         (.OQ(), .TQ(), .CLK0(ioclk_D1), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word1_in[7]), .D2(word1_in[6]), .D3(word1_in[5]), .D4(word1_in[4]),
-	         .IOCE(ioce_D1), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(cascade_1di2), .SHIFTIN2(cascade_1ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_1do2), .SHIFTOUT4(cascade_1to2),
+	         osirus_slave_D
+	         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
+	         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
+	         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	// ----------------------------------------------------------------------
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master_D2
-	         (.OQ(D2_out), .TQ(), .CLK0(ioclk_D2), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word2_in[3]), .D2(word2_in[2]), .D3(word2_in[1]), .D4(word2_in[0]),
-	         .IOCE(ioce_D2), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_2do2), .SHIFTIN4(cascade_2to2), 
-	         .SHIFTOUT1(cascade_2di2), .SHIFTOUT2(cascade_2ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave_D2
-	         (.OQ(), .TQ(), .CLK0(ioclk_D2), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word2_in[7]), .D2(word2_in[6]), .D3(word2_in[5]), .D4(word2_in[4]),
-	         .IOCE(ioce_D2), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(cascade_2di2), .SHIFTIN2(cascade_2ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_2do2), .SHIFTOUT4(cascade_2to2),
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	// ----------------------------------------------------------------------
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master_D3
-	         (.OQ(D3_out), .TQ(), .CLK0(ioclk_D3), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word3_in[3]), .D2(word3_in[2]), .D3(word3_in[1]), .D4(word3_in[0]),
-	         .IOCE(ioce_D3), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_3do2), .SHIFTIN4(cascade_3to2), 
-	         .SHIFTOUT1(cascade_3di2), .SHIFTOUT2(cascade_3ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave_D3
-	         (.OQ(), .TQ(), .CLK0(ioclk_D3), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word3_in[7]), .D2(word3_in[6]), .D3(word3_in[5]), .D4(word3_in[4]),
-	         .IOCE(ioce_D3), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(cascade_3di2), .SHIFTIN2(cascade_3ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_3do2), .SHIFTOUT4(cascade_3to2),
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	// ----------------------------------------------------------------------
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master_D4
-	         (.OQ(D4_out), .TQ(), .CLK0(ioclk_D4), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word4_in[3]), .D2(word4_in[2]), .D3(word4_in[1]), .D4(word4_in[0]),
-	         .IOCE(ioce_D4), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_4do2), .SHIFTIN4(cascade_4to2), 
-	         .SHIFTOUT1(cascade_4di2), .SHIFTOUT2(cascade_4ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave_D4
-	         (.OQ(), .TQ(), .CLK0(ioclk_D4), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word4_in[7]), .D2(word4_in[6]), .D3(word4_in[5]), .D4(word4_in[4]),
-	         .IOCE(ioce_D4), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(cascade_4di2), .SHIFTIN2(cascade_4ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_4do2), .SHIFTOUT4(cascade_4to2),
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	assign ioclk_D1 = ioclk_D;
-	assign ioclk_D2 = ioclk_D;
-	assign ioclk_D3 = ioclk_D;
-	assign ioclk_D4 = ioclk_D;
-	assign ioce_D1 = ioce_D;
-	assign ioce_D2 = ioce_D;
-	assign ioce_D3 = ioce_D;
-	assign ioce_D4 = ioce_D;
-	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
-		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
-		.serializer_clock_out(ioclk_D), .serializer_strobe_out(ioce_D), .locked(locked)
-	);
-endmodule
-
-module ocyrus_double8 #(
-	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
-	parameter BIT_WIDTH=1, // how many bits come out in parallel
-	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
-	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	PERIOD = 20.0,
-	DIVIDE = 2,
-	MULTIPLY = 40
-) (
-	input clock_in,
-	output word_clock_out,
-	input reset,
-	input [BIT_DEPTH-1:0] word1_in, word2_in,
-	output D1_out, D2_out,
-	output locked
-);
-	wire ioclk_D;
-	wire ioclk_D1, ioclk_D2;
-	wire ioce_D1, ioce_D2;
-	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
-	wire cascade_1do2, cascade_1to2, cascade_1di2, cascade_1ti2;
-	wire cascade_2do2, cascade_2to2, cascade_2di2, cascade_2ti2;
-	// want MSB of word to come out first
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master_D1
-	         (.OQ(D1_out), .TQ(), .CLK0(ioclk_D1), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word1_in[3]), .D2(word1_in[2]), .D3(word1_in[1]), .D4(word1_in[0]),
-	         .IOCE(ioce_D1), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_1do2), .SHIFTIN4(cascade_1to2), 
-	         .SHIFTOUT1(cascade_1di2), .SHIFTOUT2(cascade_1ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave_D1
-	         (.OQ(), .TQ(), .CLK0(ioclk_D1), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word1_in[7]), .D2(word1_in[6]), .D3(word1_in[5]), .D4(word1_in[4]),
-	         .IOCE(ioce_D1), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(cascade_1di2), .SHIFTIN2(cascade_1ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_1do2), .SHIFTOUT4(cascade_1to2),
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	// ----------------------------------------------------------------------
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master_D2
-	         (.OQ(D2_out), .TQ(), .CLK0(ioclk_D2), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word2_in[3]), .D2(word2_in[2]), .D3(word2_in[1]), .D4(word2_in[0]),
-	         .IOCE(ioce_D2), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_2do2), .SHIFTIN4(cascade_2to2), 
-	         .SHIFTOUT1(cascade_2di2), .SHIFTOUT2(cascade_2ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave_D2
-	         (.OQ(), .TQ(), .CLK0(ioclk_D2), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word2_in[7]), .D2(word2_in[6]), .D3(word2_in[5]), .D4(word2_in[4]),
-	         .IOCE(ioce_D2), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(cascade_2di2), .SHIFTIN2(cascade_2ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_2do2), .SHIFTOUT4(cascade_2to2),
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	assign ioclk_D1 = ioclk_D;
-	assign ioclk_D2 = ioclk_D;
-	assign ioce_D1 = ioce_D;
-	assign ioce_D2 = ioce_D;
-	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
-		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
-		.serializer_clock_out(ioclk_D), .serializer_strobe_out(ioce_D), .locked(locked)
-	);
 endmodule
 
 module ocyrus_single8 #(
@@ -260,33 +111,96 @@ module ocyrus_single8 #(
 	output D_out,
 	output locked
 );
-	wire ioclk_D;
-	wire ioce_D;
-	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
-	wire cascade_do1, cascade_to1, cascade_di1, cascade_ti1;
-	wire cascade_do2, cascade_to2, cascade_di2, cascade_ti2;
-	// want MSB of word to come out first
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master_D
-	         (.OQ(D_out), .TQ(), .CLK0(ioclk_D), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
-	         .IOCE(ioce_D), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2), 
-	         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_DEPTH),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave_D
-	         (.OQ(), .TQ(), .CLK0(ioclk_D), .CLK1(1'b0), .CLKDIV(word_clock_out),
-	         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
-	         .IOCE(ioce_D), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	wire bit_clock;
+	wire bit_strobe;
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(D_out));
 	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE), .PHASE(PHASE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
-		.serializer_clock_out(ioclk_D), .serializer_strobe_out(ioce_D), .locked(locked)
+		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
+	);
+endmodule
+
+module ocyrus_double8 #(
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
+	parameter BIT_WIDTH=1, // how many bits come out in parallel
+	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
+	PERIOD = 20.0,
+	DIVIDE = 2,
+	MULTIPLY = 40
+) (
+	input clock_in,
+	output word_clock_out,
+	input reset,
+	input [BIT_DEPTH-1:0] word0_in, word1_in,
+	output D0_out, D1_out,
+	output locked
+);
+	wire bit_clock;
+	wire bit_strobe;
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
+		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
+	);
+endmodule
+
+module ocyrus_quad8 #(
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
+	parameter BIT_WIDTH=1, // how many bits come out in parallel
+	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
+	PERIOD = 20.0,
+	DIVIDE = 2,
+	MULTIPLY = 40
+) (
+	input clock_in,
+	output word_clock_out,
+	input reset,
+	input [BIT_DEPTH-1:0] word0_in, word1_in, word2_in, word3_in,
+	output D0_out, D1_out, D2_out, D3_out,
+	output locked
+);
+	wire bit_clock;
+	wire bit_strobe;
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei3 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
+		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
+	);
+endmodule
+
+module ocyrus_hex8 #(
+	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
+	parameter BIT_WIDTH=1, // how many bits come out in parallel
+	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
+	PERIOD = 20.0,
+	DIVIDE = 2,
+	MULTIPLY = 40
+) (
+	input clock_in,
+	output word_clock_out,
+	input reset,
+	input [BIT_DEPTH-1:0] word0_in, word1_in, word2_in, word3_in, word4_in, word5_in,
+	output D0_out, D1_out, D2_out, D3_out, D4_out, D5_out,
+	output locked
+);
+	wire bit_clock;
+	wire bit_strobe;
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei3 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei4 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word4_in), .bit_out(D4_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei5 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word5_in), .bit_out(D5_out));
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
+		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
 	);
 endmodule
 
