@@ -520,7 +520,7 @@ for i in range(9):
 	write_bcm_values_to_spi_pollable_memory_and_verify(spi_ce1, size, i*RF_buckets, "bcm.csv", date_string, i)
 	time.sleep(0.1)
 
-#write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2, [ 0, 9.0*RF_buckets ]) # revo9 periodic
+write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2, [ 0, 9.0*RF_buckets ]) # revo9 periodic
 #write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2, [ 0, 12.7*RF_buckets ]) # whole memory
 
 def cycle():
@@ -536,5 +536,5 @@ def cycle():
 		i += 1
 		time.sleep(0.001)
 
-cycle()
+#cycle()
 
