@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2019-09-06 by mza
+// last updated 2020-05-19 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
@@ -119,41 +119,6 @@ module ssynchronizer_pnppp #(
 			intermediate_s2 <= 0;
 		end else begin
 			intermediate_s2 <= intermediate_s1;
-		end
-	end
-	assign out2 = intermediate_s2;
-endmodule
-
-module ssynchronizer #(
-	parameter WIDTH=1
-) (
-	input clock1, clock2,
-	input reset,
-	input [WIDTH-1:0] in1,
-	output [WIDTH-1:0] out2
-);
-	reg [WIDTH-1:0] intermediate_f1;
-	reg [WIDTH-1:0] intermediate_f2;
-	reg [WIDTH-1:0] intermediate_s1;
-	reg [WIDTH-1:0] intermediate_s2;
-	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
-	always @(posedge clock1) begin
-		if (reset) begin
-			intermediate_f1 <= 0;
-			intermediate_f2 <= 0;
-		end else begin
-			intermediate_f2 <= intermediate_f1;
-			intermediate_f1 <= in1;
-		end
-	end
-	assign cdc = intermediate_f2;
-	always @(posedge clock2) begin
-		if (reset) begin
-			intermediate_s1 <= 0;
-			intermediate_s2 <= 0;
-		end else begin
-			intermediate_s2 <= intermediate_s1;
-			intermediate_s1 <= cdc;
 		end
 	end
 	assign out2 = intermediate_s2;

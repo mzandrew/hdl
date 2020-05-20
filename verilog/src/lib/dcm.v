@@ -1,6 +1,6 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2020-04-03 by mza
+// last updated 2020-05-20 by mza
 
 // can only be used to directly feed a DCM
 //simplepll_ADV #(.overall_divide(1), .multiply(10), .divide(4), .period(20.0)) mypll (.clockin(clock50), .reset(reset), .clockout(clock), .locked()); // 50->125
@@ -71,7 +71,6 @@ module simplepll_ADV #(parameter overall_divide=1, multiply=4, divide=1, period=
 	);
 endmodule
 
-
 //wire rawclock125;
 //simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) other (.clockin(clock50), .reset(reset), .clock0out(rawclock125), .locked(other_pll_locked)); // 50->125
 //wire clock125;
@@ -139,6 +138,11 @@ module simplepll_BASE #(
 	);
 endmodule
 
+//	simpledcm_CLKGEN #(.multiply(), .divide(), .period()) mydcm (.clockin(), .reset(), .clockout(), .clockout180(), .locked());
+// clockin: 0.5-375 MHz (ds162.pdf)
+// clockout: 5-375 MHz (ds162.pdf)
+// multiply: 2-256
+// divide: 1-256
 module simpledcm_CLKGEN #(parameter multiply=4, divide=1, period="10.0") (
 	input clockin,
 	input reset,
@@ -187,6 +191,9 @@ module simpledcm_CLKGEN #(parameter multiply=4, divide=1, period="10.0") (
 	);
 endmodule
 
+//	simpledcm_SP #(.multiply(), .divide(), .alt_clockout_divide(), .period()) mydcm (.clockin(), .reset(), .clockout(), .clockout180(), .alt_clockout(), .locked());
+// multiply: 2-32
+// divide: 1-32
 module simpledcm_SP #(
 	parameter alt_clockout_divide=2.0, multiply=4, divide=1, period=10.0
 ) (
@@ -217,7 +224,7 @@ module simpledcm_SP #(
 		.PHASE_SHIFT(0), // Amount of fixed phase shift from -255 to 255
 		.STARTUP_WAIT("FALSE") // Delay configuration DONE until DCM LOCK, TRUE/FALSE
 	) DCM_SP_inst (
-		.CLK0(clockfb_out), // 0 degree DCM CLK output
+		.CLK0(fb), // 0 degree DCM CLK output
 		.CLK180(), // 180 degree DCM CLK output
 		.CLK270(), // 270 degree DCM CLK output
 		.CLK2X(), // 2X DCM CLK output
@@ -230,7 +237,7 @@ module simpledcm_SP #(
 		.PSDONE(), // Dynamic phase adjust done output
 		.STATUS(), // 8-bit DCM status bits output
 		.CLKFB(fb), // DCM clock feedback
-		.CLKIN(fb), // Clock input (from IBUFG, BUFG or DCM)
+		.CLKIN(clockin), // Clock input (from IBUFG, BUFG or DCM)
 		.PSCLK(1'b0), // Dynamic phase adjust clock input
 		.PSEN(1'b0), // Dynamic phase adjust enable input
 		.PSINCDEC(1'b0), // Dynamic phase adjust increment/decrement

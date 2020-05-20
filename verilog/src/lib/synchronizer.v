@@ -1,13 +1,49 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
 // based partly off mza-test029
-// last updated 2020-05-05 by mza
+// last updated 2020-05-19 by mza
+
+//	ssynchronizer #(.WIDTH(1)) mysin (.clock1(), .clock2(), .reset1(), .reset2(), .in1(), .out2());
+module ssynchronizer #(
+	parameter WIDTH=1
+) (
+	input clock1, clock2,
+	input reset1, reset2,
+	input [WIDTH-1:0] in1,
+	output [WIDTH-1:0] out2
+);
+	reg [WIDTH-1:0] intermediate_f1;
+	reg [WIDTH-1:0] intermediate_f2;
+	reg [WIDTH-1:0] intermediate_s1;
+	reg [WIDTH-1:0] intermediate_s2;
+	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
+	always @(posedge clock1) begin
+		if (reset1) begin
+			intermediate_f1 <= 0;
+			intermediate_f2 <= 0;
+		end else begin
+			intermediate_f2 <= intermediate_f1;
+			intermediate_f1 <= in1;
+		end
+	end
+	assign cdc = intermediate_f2;
+	always @(posedge clock2) begin
+		if (reset2) begin
+			intermediate_s1 <= 0;
+			intermediate_s2 <= 0;
+		end else begin
+			intermediate_s2 <= intermediate_s1;
+			intermediate_s1 <= cdc;
+		end
+	end
+	assign out2 = intermediate_s2;
+endmodule
 
 module ssynchronizer_pnp #(
 	parameter WIDTH=1
 ) (
 	input clock1, clock2,
-	input reset,
+	input reset1, reset2,
 	input [WIDTH-1:0] in1,
 	output [WIDTH-1:0] out2
 );
@@ -15,23 +51,23 @@ module ssynchronizer_pnp #(
 	reg [WIDTH-1:0] intermediate_s1;
 	reg [WIDTH-1:0] intermediate_s2;
 //	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
-	always @(posedge clock1 or posedge reset) begin
-		if (reset) begin
+	always @(posedge clock1 or posedge reset1) begin
+		if (reset1) begin
 			intermediate_f1 <= 0;
 		end else begin
 			intermediate_f1 <= in1;
 		end
 	end
 //	assign cdc = intermediate_f3;
-	always @(negedge clock2 or posedge reset) begin
-		if (reset) begin
+	always @(negedge clock2 or posedge reset2) begin
+		if (reset2) begin
 			intermediate_s1 <= 0;
 		end else begin
 			intermediate_s1 <= intermediate_f1;
 		end
 	end
-	always @(posedge clock2 or posedge reset) begin
-		if (reset) begin
+	always @(posedge clock2 or posedge reset2) begin
+		if (reset2) begin
 			intermediate_s2 <= 0;
 		end else begin
 			intermediate_s2 <= intermediate_s1;

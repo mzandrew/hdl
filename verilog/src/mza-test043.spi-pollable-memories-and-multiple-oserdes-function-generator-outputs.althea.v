@@ -36,11 +36,15 @@ module top (
 	reg reset3 = 1;
 	wire clock100;
 	IBUFGDS mybuf (.I(clock100_p), .IB(clock100_n), .O(clock100));
-	wire rawclock125;
 	wire pll_locked;
-	simplepll_BASE #(.overall_divide(1), .multiply(5), .divide0(4), .phase0(0.0), .period(10.0)) kronos (.clockin(clock100), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 100->125
+	wire rawclock125;
 	wire clock125;
 	BUFG mrt (.I(rawclock125), .O(clock125));
+	if (0) begin
+		simplepll_BASE #(.overall_divide(1), .multiply(5), .divide0(4), .phase0(0.0), .period(10.0)) kronos (.clockin(clock100), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 100->125
+	end else begin
+		simpledcm_SP #(.multiply(5), .divide(4), .alt_clockout_divide(2), .period(10.0)) mydcm (.clockin(clock100), .reset(reset1), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked));
+	end
 	// ----------------------------------------------------------------------
 	wire word_clock;
 	wire [7:0] oserdes_word_out;
@@ -160,7 +164,7 @@ module top (
 		assign coax[3] = 0;
 		assign coax[4] = 0;
 		assign coax[5] = 0;
-	end else if (1) begin
+	end else if (0) begin
 		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
 			.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
 			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out),
@@ -168,10 +172,22 @@ module top (
 		assign coax[4] = 0;
 		assign coax[5] = 0;
 	end else begin
-		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
-			.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
-			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out), .word4_in(oserdes_word_out), .word5_in(oserdes_word_out),
-			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]), .D4_out(coax[4]), .D5_out(coax[5]));
+		// hex8 won't work because each bufpll only covers a single bank
+//		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
+//			.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
+//			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out), .word4_in(oserdes_word_out), .word5_in(oserdes_word_out),
+//			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]), .D4_out(coax[4]), .D5_out(coax[5]));
+		wire pll_oserdes_locked_1;
+		wire pll_oserdes_locked_2;
+		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
+			.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
+			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out),
+			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(),
+			.word0_in(oserdes_word_out), .D0_out(coax[4]),
+			.word1_in(oserdes_word_out), .D1_out(coax[5]),
+			.locked(pll_oserdes_locked_2));
+		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
 	end
 	// ----------------------------------------------------------------------
 	if (0) begin
