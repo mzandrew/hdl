@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-05-18 by mza
+// last updated 2020-05-20 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
@@ -32,8 +32,8 @@ module top (
 	output led_4, led_5, led_6, led_7
 );
 	reg reset1 = 1;
-	reg reset2 = 1;
-	reg reset3 = 1;
+	reg reset2_clock125 = 1;
+	reg reset3_word_clock = 1;
 	wire clock100;
 	IBUFGDS mybuf (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	wire pll_locked;
@@ -61,13 +61,19 @@ module top (
 			end else begin
 				reset_counter <= reset_counter + 1'b1;
 			end
-		end else if (reset2) begin
+		end
+	end
+	always @(posedge clock125) begin
+		if (reset2_clock125) begin
 			if (pll_locked) begin
-				reset2 <= 0;
+				reset2_clock125 <= 0;
 			end
-		end else if (reset3) begin
+		end
+	end
+	always @(posedge word_clock) begin
+		if (reset3_word_clock) begin
 			if (pll_oserdes_locked) begin
-				reset3 <= 0;
+				reset3_word_clock <= 0;
 			end
 		end
 	end
@@ -92,7 +98,7 @@ module top (
 		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(miso_ce0), .SSEL(rpi_spi_ce0),
 		.transaction_valid(transaction_valid_ce0), .command8(command8_ce0), .address16(address16_ce0), .data32(data32_ce0), .data32_to_master(read_data32_ce0));
 	wire [3:0] address4_ce0 = address16_ce0[3:0];
-	RAM_inferred_with_register_outputs #(.addr_width(4), .data_width(32)) myram (.reset(reset3),
+	RAM_inferred_with_register_outputs #(.addr_width(4), .data_width(32)) myram (.reset(reset3_word_clock),
 		.wclk(clock_ram), .waddr(address4_ce0), .din(data32_ce0), .write_en(transaction_valid_ce0),
 		.rclk(clock_ram), .raddr(address4_ce0), .dout(read_data32_ce0),
 		.register0(start_read_address), .register1(end_read_address), .register2(), .register3());
@@ -118,13 +124,13 @@ module top (
 `ifdef USE_BRAM_512
 	wire [8:0] address9 = address16[8:0];
 	wire [10:0] read_address11 = read_address[10:0];
-	RAM_s6_512_32bit_8bit mem (.reset(reset3),
+	RAM_s6_512_32bit_8bit mem (.reset(reset3_word_clock),
 		.clock_a(clock_ram), .address_a(address9), .data_in_a(data32_0123), .write_enable_a(transaction_valid_ce1), .data_out_a(read_data32_0123),
 		.clock_b(clock_ram), .address_b(read_address11), .data_out_b(oserdes_word_out));
 `elsif USE_BRAM_4K
 	wire [11:0] address12 = address16[11:0];
 	wire [13:0] read_address14 = read_address[13:0];
-	RAM_s6_4k_32bit_8bit mem (.reset(reset3),
+	RAM_s6_4k_32bit_8bit mem (.reset(reset3_word_clock),
 		.clock_a(clock_ram), .address_a(address12), .data_in_a(data32_0123), .write_enable_a(transaction_valid_ce1), .data_out_a(read_data32_0123),
 		.clock_b(clock_ram), .address_b(read_address14), .data_out_b(oserdes_word_out));
 `endif
@@ -133,7 +139,7 @@ module top (
 	reg [3:0] sync_out_stream = 0;
 	always @(posedge word_clock) begin
 		sync_out_raw <= 0;
-		if (reset3) begin
+		if (reset3_word_clock) begin
 			read_address <= start_read_address[17:2];
 			last_read_address <= end_read_address[17:2] - 1'b1;
 		end else begin
@@ -149,14 +155,14 @@ module top (
 	end
 	//assign coax[5] = sync_out_stream[2];
 	if (0) begin
-		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(coax[0]), .locked(pll_oserdes_locked));
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(coax[0]), .locked(pll_oserdes_locked));
 		assign coax[1] = 0;
 		assign coax[2] = 0;
 		assign coax[3] = 0;
 		assign coax[4] = 0;
 		assign coax[5] = 0;
 	end else if (0) begin
-		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock),
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock),
 			.word0_in(oserdes_word_out), .D0_out(coax[0]),
 			.word1_in(oserdes_word_out), .D1_out(coax[1]),
 			.locked(pll_oserdes_locked));
@@ -166,7 +172,7 @@ module top (
 		assign coax[5] = 0;
 	end else if (0) begin
 		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
-			.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
+			.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
 			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out),
 			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
 		assign coax[4] = 0;
@@ -174,16 +180,16 @@ module top (
 	end else begin
 		// hex8 won't work because each bufpll only covers a single bank
 //		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
-//			.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
+//			.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
 //			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out), .word4_in(oserdes_word_out), .word5_in(oserdes_word_out),
 //			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]), .D4_out(coax[4]), .D5_out(coax[5]));
 		wire pll_oserdes_locked_1;
 		wire pll_oserdes_locked_2;
-		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
-			.clock_in(clock125), .reset(reset2), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
+		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
+			.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
 			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out),
 			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
-		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2), .word_clock_out(),
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE1("n")) mylei2 (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(),
 			.word0_in(oserdes_word_out), .D0_out(coax[4]),
 			.word1_in(oserdes_word_out), .D1_out(coax[5]),
 			.locked(pll_oserdes_locked_2));
@@ -196,8 +202,8 @@ module top (
 		assign leds = oserdes_word_out;
 	end else begin
 		assign led_7 = reset1;
-		assign led_6 = reset2;
-		assign led_5 = reset3;
+		assign led_6 = reset2_clock125;
+		assign led_5 = reset3_word_clock;
 		assign led_4 = ~rpi_spi_ce0;
 		assign led_3 = ~rpi_spi_ce1;
 		assign led_2 = 0;

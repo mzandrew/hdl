@@ -1,7 +1,7 @@
 # written 2020-05-18 by mza
 # based off of mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea
 # for an althea revB attached to a raspberry pi
-# last updated 2020-05-18 by mza
+# last updated 2020-05-20 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
@@ -58,7 +58,7 @@ timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
 #net h_n loc=p43  | iostandard=lvcmos33; # H- bank2 BL
 
 # third column, on right side of board
-#net n loc=p81  | iostandard=lvcmos33; # N bank1 TL
+#net n loc=p30  | iostandard=lvcmos33; # N bank3 TL
 #net p loc=p35  | iostandard=lvcmos33; # P bank3 TL
 #net q loc=p33  | iostandard=lvcmos33; # Q bank3 TL
 #net r loc=p27  | iostandard=lvcmos33; # R bank3 TL
@@ -114,10 +114,11 @@ net led_7 loc=p9  | iostandard=lvcmos33;
 #net coax_led<2> loc=p92  | iostandard=lvcmos33;
 #net coax_led<3> loc=p88  | iostandard=lvcmos33;
 
-net coax<0> loc=p105 | iostandard=lvcmos33 | drive = 24 | slew = fast;
-net coax<1> loc=p102 | iostandard=lvcmos33 | drive = 24 | slew = fast;
-net coax<2> loc=p79  | iostandard=lvcmos33 | drive = 24 | slew = fast;
-net coax<3> loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast;
-net coax<4> loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast;
-net coax<5> loc=p30  | iostandard=lvcmos33 | drive = 24 | slew = fast;
+net coax<0> loc=p105 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
+net coax<1> loc=p102 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
+net coax<2> loc=p79  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
+net coax<3> loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
+net coax<4> loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3
+net coax<5> loc=p34  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3; on an _n pin
+#net coax<5> loc=p34  | iostandard=lvcmos33; # bank3; on an _n pin
 

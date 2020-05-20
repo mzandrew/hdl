@@ -160,7 +160,7 @@ module top (
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(lemo), .locked(pll_oserdes_locked));
 		assign other0 = 0;
 		assign other1 = sync_out_stream[2];
-	end else if (1) begin
+	end else if (0) begin
 		wire pll_oserdes_locked_1;
 		wire pll_oserdes_locked_2;
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei0 (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(lemo), .locked(pll_oserdes_locked_1));
@@ -175,7 +175,7 @@ module top (
 		assign other1 = sync_out_stream[2];
 		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
 	end else begin
-		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .D0_out(other0), .D1_out(other1), .locked(pll_oserdes_locked));
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei2 (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .D0_out(other0), .D1_out(other1), .locked(pll_oserdes_locked));
 		assign lemo = sync_out_stream[2];
 	end
 	// ----------------------------------------------------------------------

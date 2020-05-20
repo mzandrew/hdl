@@ -1,6 +1,23 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2020-05-19 by mza
+// last updated 2020-05-20 by mza
+
+// the following message:
+//Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
+//   component mytop/mylei/mylei0/osirus_master_D of type OLOGIC for the following
+//   reason.
+//   The reason for this issue:
+//   Some of the logic associated with this structure is locked. This should cause
+//   the rest of the logic to be locked.A problem was found at site OLOGIC_X11Y2
+//   where we must place OLOGIC mytop/mylei/mylei0/osirus_slave_D in order to
+//   satisfy the relative placement requirements of this logic.  OLOGIC
+//   mytop/mylei/mylei1/osirus_master_D appears to already be placed there which
+//   makes this design unplaceable.  The following components are part of this
+//   structure:
+//      OLOGIC   mytop/mylei/mylei0/osirus_master_D
+//      OLOGIC   mytop/mylei/mylei0/osirus_slave_D
+// means that you have an p/n (master/slave) output connected to a oserdes n/p (slave/master) primitive, so change it to an oserdes p/n (maser/slave) primitive, like so:
+// either set .PINTYPE("n") or .PINTYPE("p") as appropriate
 
 module iserdes_single4 #(
 	parameter WIDTH = 4
@@ -61,6 +78,7 @@ endmodule
 
 //	ocyrus_single8_inner #(.BIT_RATIO(8)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
 module ocyrus_single8_inner #(
+	parameter PINTYPE = "p", // "p" (master) or "n" (slave)
 	parameter BIT_RATIO=8 // how many fast_clock cycles per word_clock
 ) (
 	input word_clock,
@@ -74,24 +92,45 @@ module ocyrus_single8_inner #(
 	wire cascade_do2, cascade_to2, cascade_di2, cascade_ti2;
 	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
 	// want MSB of word to come out first
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master_D
-	         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-	         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
-	         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2), 
-	         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave_D
-	         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-	         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
-	         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	if (PINTYPE=="p") begin
+		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
+		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
+		         osirus_master_D
+		         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
+		         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
+		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+		         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2), 
+		         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
+		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
+		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
+		         osirus_slave_D
+		         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
+		         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
+		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+		         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+		         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
+		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	end else begin
+		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
+		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
+		         osirus_master_D
+		         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
+		         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
+		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+		         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2), 
+		         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
+		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
+		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
+		         osirus_slave_D
+		         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
+		         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
+		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+		         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+		         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
+		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	end
 endmodule
 
 module ocyrus_single8 #(
@@ -99,10 +138,11 @@ module ocyrus_single8 #(
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
+	parameter PINTYPE = "p",
 	parameter PHASE = 0.0,
-	PERIOD = 20.0,
-	DIVIDE = 2,
-	MULTIPLY = 40
+	parameter PERIOD = 20.0,
+	parameter DIVIDE = 2,
+	parameter MULTIPLY = 40
 ) (
 	input clock_in,
 	output word_clock_out,
@@ -113,7 +153,7 @@ module ocyrus_single8 #(
 );
 	wire bit_clock;
 	wire bit_strobe;
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(D_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE)) mylei (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(D_out));
 	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE), .PHASE(PHASE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
@@ -125,9 +165,11 @@ module ocyrus_double8 #(
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	PERIOD = 20.0,
-	DIVIDE = 2,
-	MULTIPLY = 40
+	parameter PINTYPE0 = "p",
+	parameter PINTYPE1 = "p",
+	parameter PERIOD = 20.0,
+	parameter DIVIDE = 2,
+	parameter MULTIPLY = 40
 ) (
 	input clock_in,
 	output word_clock_out,
@@ -138,8 +180,8 @@ module ocyrus_double8 #(
 );
 	wire bit_clock;
 	wire bit_strobe;
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
 	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
@@ -151,9 +193,13 @@ module ocyrus_quad8 #(
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	PERIOD = 20.0,
-	DIVIDE = 2,
-	MULTIPLY = 40
+	parameter PINTYPE0 = "p",
+	parameter PINTYPE1 = "p",
+	parameter PINTYPE2 = "p",
+	parameter PINTYPE3 = "p",
+	parameter PERIOD = 20.0,
+	parameter DIVIDE = 2,
+	parameter MULTIPLY = 40
 ) (
 	input clock_in,
 	output word_clock_out,
@@ -164,10 +210,10 @@ module ocyrus_quad8 #(
 );
 	wire bit_clock;
 	wire bit_strobe;
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei3 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE3)) mylei3 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
 	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
@@ -179,9 +225,15 @@ module ocyrus_hex8 #(
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	PERIOD = 20.0,
-	DIVIDE = 2,
-	MULTIPLY = 40
+	parameter PINTYPE0 = "p",
+	parameter PINTYPE1 = "p",
+	parameter PINTYPE2 = "p",
+	parameter PINTYPE3 = "p",
+	parameter PINTYPE4 = "p",
+	parameter PINTYPE5 = "p",
+	parameter PERIOD = 20.0,
+	parameter DIVIDE = 2,
+	parameter MULTIPLY = 40
 ) (
 	input clock_in,
 	output word_clock_out,
@@ -192,12 +244,12 @@ module ocyrus_hex8 #(
 );
 	wire bit_clock;
 	wire bit_strobe;
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei3 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei4 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word4_in), .bit_out(D4_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH)) mylei5 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word5_in), .bit_out(D5_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE3)) mylei3 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE4)) mylei4 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word4_in), .bit_out(D4_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE5)) mylei5 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word5_in), .bit_out(D5_out));
 	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
