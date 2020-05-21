@@ -2,7 +2,7 @@
 
 # written 2020-05-11 by mza
 # based on mza-test041.spi-pollable-memory.althea.py
-# last updated 2020-05-13 by mza
+# last updated 2020-05-20 by mza
 
 import time
 import random
@@ -537,4 +537,6 @@ def cycle():
 		time.sleep(0.001)
 
 #cycle()
+
+write_values_to_spi_pollable_memory_and_verify(spi_ce0, 2, [ 2, 0 ], 2) # test idelay inc/dec functionality
 
