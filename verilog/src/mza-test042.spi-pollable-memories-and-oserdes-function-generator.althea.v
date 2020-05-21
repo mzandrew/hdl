@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-05-20 by mza
+// last updated 2020-05-21 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
@@ -87,6 +87,9 @@ module top (
 	wire [31:0] end_read_address;
 	reg [15:0] last_read_address = 16'd4095;
 	// ----------------------------------------------------------------------
+	wire [31:0] idelay_up_amount;
+	wire [31:0] idelay_down_amount;
+	// ----------------------------------------------------------------------
 	wire miso_ce0;
 	wire miso_ce1;
 	//assign rpi_spi_miso = rpi_spi_ce1 ? miso_ce0 : miso_ce1;
@@ -104,7 +107,7 @@ module top (
 	RAM_inferred_with_register_outputs #(.addr_width(4), .data_width(32)) myram (.reset(reset3_word_clock),
 		.wclk(clock_spi), .waddr(address4_ce0), .din(data32_ce0), .write_en(transaction_valid_ce0),
 		.rclk(word_clock), .raddr(address4_ce0), .dout(read_data32_ce0),
-		.register0(start_read_address), .register1(end_read_address), .register2(), .register3());
+		.register0(start_read_address), .register1(end_read_address), .register2(idelay_up_amount), .register3(idelay_down_amount));
 	// ----------------------------------------------------------------------
 	wire [7:0] command8;
 	wire [15:0] address16;
@@ -156,6 +159,9 @@ module top (
 		end
 		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
+	wire bit_clock;
+	wire bit_strobe;
+	wire other1_raw;
 	if (0) begin
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(lemo), .locked(pll_oserdes_locked));
 		assign other0 = 0;
@@ -175,9 +181,43 @@ module top (
 		assign other1 = sync_out_stream[2];
 		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
 	end else begin
-		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei2 (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .D0_out(other0), .D1_out(other1), .locked(pll_oserdes_locked));
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei2 (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .D0_out(other0), .D1_out(other1_raw), .locked(pll_oserdes_locked), .bit_clock(bit_clock), .bit_strobe(bit_strobe));
 		assign lemo = sync_out_stream[2];
 	end
+	reg [31:0] idelay_counter = 0;
+	reg inc_not_dec = 0;
+	reg strobe = 0;
+	reg [2:0] cnt = 0 ;
+	always @(posedge word_clock) begin
+		strobe <= 0;
+		if (reset3_word_clock) begin
+			idelay_counter <= 0;
+		end else begin
+			if (idelay_counter==32'h12345678) begin
+				inc_not_dec <= 1;
+				if (0!=idelay_up_amount) begin
+					strobe <= 1;
+					cnt <= cnt + 1'b1;
+				//idelay_counter <= idelay_up_amount;
+				end
+			end else if (idelay_counter==32'h56781234) begin
+				inc_not_dec <= 0;
+				if (0!=idelay_down_amount) begin
+					strobe <= 1;
+				end
+				//idelay_counter <= idelay_down_amount;
+			end
+			idelay_counter <= idelay_counter + 1'b1;
+		end
+	end
+	if (0) begin
+		odelay_fixed #(.AMOUNT(0)) twoturntables (.bit_in(other1_raw), .bit_out(other1)); // 1264 ps
+	end else if (0) begin
+		odelay_fixed #(.AMOUNT(255)) andamicrophone (.bit_in(other1_raw), .bit_out(other1)); // 3303 ps
+	end else begin
+		assign other1 = other1_raw; // 330 ps
+	end
+//	idelay nirvana (.clock(word_clock), .reset(reset3_word_clock), .inc_not_dec(inc_not_dec), .strobe(strobe), .bit_clock(bit_clock), .bit_in(), .bit_out(), .initiate_cal(1'b0), .busy());
 	// ----------------------------------------------------------------------
 	if (0) begin
 		wire [7:0] leds;
@@ -189,9 +229,9 @@ module top (
 		assign led_5 = reset3_word_clock;
 		assign led_4 = ~rpi_spi_ce0;
 		assign led_3 = ~rpi_spi_ce1;
-		assign led_2 = 0;
-		assign led_1 = 0;
-		assign led_0 = 0;
+		assign led_2 = cnt[2];
+		assign led_1 = cnt[1];
+		assign led_0 = cnt[0];
 	end
 endmodule
 

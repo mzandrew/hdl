@@ -1,6 +1,6 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2020-05-20 by mza
+// last updated 2020-05-21 by mza
 
 // can only be used to directly feed a DCM
 //simplepll_ADV #(.overall_divide(1), .multiply(10), .divide(4), .period(20.0)) mypll (.clockin(clock50), .reset(reset), .clockout(clock), .locked()); // 50->125
@@ -151,6 +151,7 @@ module simpledcm_CLKGEN #(parameter multiply=4, divide=1, period="10.0") (
 	output locked
 );
 	DCM_CLKGEN #(
+//		.DFS_OSCILLATOR_MODE("PHASE_FREQ_LOCK"), // "The DCM has the attribute DFS_OSCILLATOR_MODE not set to PHASE_FREQ_LOCK. No phase relationship exists between the input clock and CLKFX or CLKFX180 outputs of this DCM. Data paths between these clock domains must be constrained using FROM/TO constraints" but "Module DCM_CLKGEN does not have a parameter named DFS_OSCILLATOR_MODE"
 		.CLKFXDV_DIVIDE(2), // Specifies divide value for CLKFXDV.
 		.CLKFX_DIVIDE(divide), // This value in conjunction with the input frequency and CLKFX_MULTIPLY
 		// value determine the resultant output frequency for the CLKFX and

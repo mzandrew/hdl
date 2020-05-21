@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2020-05-20 by mza
+// last updated 2020-05-21 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -176,10 +176,10 @@ module ocyrus_double8 #(
 	input reset,
 	input [BIT_DEPTH-1:0] word0_in, word1_in,
 	output D0_out, D1_out,
+	output bit_clock,
+	output bit_strobe,
 	output locked
 );
-	wire bit_clock;
-	wire bit_strobe;
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
 	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
@@ -424,5 +424,95 @@ module oserdes_pll #(
 	end
 	assign locked = pll_is_locked & buffered_pll_is_locked_and_strobe_is_aligned;
 	BUFG bufg_tx (.I(clock_1x), .O(word_clock_out));
+endmodule
+
+//	odelay_fixed #(.AMOUNT()) beckham (.bit_in(), .bit_out());
+// spartan6 errata (EN148) says not to go above a delay tap value of 6 when used in ODELAY mode to get full performance (1080 MHz)
+// otherwise, limit the data rate to 800 MHz for the commercial grade -3 part
+module odelay_fixed #(
+	parameter AMOUNT = 0
+) (
+	// "With IDELAY_TYPE programming FIXED or DEFAULT any active input pins INC, RST, CE and C are not used and will be ignored"
+	// "The use IDELAY_TYPE of FIXED or DEFAULT means that pins CLK, IOCLK0 and IOCLK1 are ignored"
+	input bit_in,
+	output bit_out
+);
+// from Xilinx HDL Libraries Guide, version 14.5 (ug615)
+	IODELAY2 #(
+		.COUNTER_WRAPAROUND("WRAPAROUND"), // "STAY_AT_LIMIT" or "WRAPAROUND"
+		.DATA_RATE("SDR"), // "SDR" or "DDR"
+		.DELAY_SRC("ODATAIN"), // "IO", "ODATAIN" or "IDATAIN"
+		.IDELAY2_VALUE(0), // Delay value when IDELAY_MODE="PCI" (0-255)
+		.IDELAY_MODE("NORMAL"), // "NORMAL" or "PCI"
+		.IDELAY_TYPE("FIXED"), // "FIXED", "DEFAULT", "VARIABLE_FROM_ZERO", "VARIABLE_FROM_HALF_MAX" or "DIFF_PHASE_DETECTOR"
+		.IDELAY_VALUE(), // Amount of taps for fixed input delay (0-255)
+		.ODELAY_VALUE(AMOUNT), // Amount of taps for fixed output delay (0-255)
+		.SERDES_MODE("NONE"), // "NONE", "MASTER" or "SLAVE" (idelay only according to ug381)
+		.SIM_TAPDELAY_VALUE(75) // Per tap delay used for simulation in ps
+	) beck (
+		.CLK(1'b0), // 1-bit input: Clock input
+		.RST(1'b0), // 1-bit input: Reset to zero or 1/2 of total delay period
+		.INC(1'b0), // 1-bit input: Increment / decrement input - "INC should only be asserted High when CE is also asserted High" (ug381)
+		.CE(1'b0), // 1-bit input: Enable INC input
+		.IOCLK0(1'b0), // 1-bit input: Input from the I/O clock network
+		.IOCLK1(1'b0), // 1-bit input: Input from the I/O clock network
+		.ODATAIN(bit_in), // 1-bit input: Output data input from output register or OSERDES2.
+		.DOUT(bit_out), // 1-bit output: Delayed data output
+		.CAL(1'b0), // 1-bit input: Initiate calibration input
+		.BUSY(), // 1-bit output: Busy output after CAL
+		.T(1'b0), // 1-bit input: 3-state input signal
+		.TOUT(), // 1-bit output: Delayed 3-state output
+		.IDATAIN(1'b0), // 1-bit input: Data input (connect to top-level port or I/O buffer)
+		.DATAOUT(), // 1-bit output: Delayed data output to ISERDES/input register
+		.DATAOUT2() // 1-bit output: Delayed data output to general FPGA fabric
+	);
+endmodule
+
+//	idelay nirvana (.clock(), .reset(), .inc_not_dec(), .strobe(), .bit_clock(), .bit_in(), .bit_out(), .initiate_cal(), .busy());
+// spartan6 errata (EN148) says not to go above a delay tap value of 6 when used in ODELAY mode to get full performance (1080 MHz)
+// otherwise, limit the data rate to 800 MHz for the commercial grade -3 part
+module idelay #(
+	parameter MODE = "MASTER" // "NONE", "MASTER" or "SLAVE"
+) (
+	// "The output delay path is only available in a fixed delay"
+	input clock,
+	input reset,
+	input inc_not_dec,
+	input strobe,
+	input bit_clock,
+	input bit_in,
+	output bit_out,
+	input initiate_cal, // must issue reset after first cal
+	output busy
+);
+// from Xilinx HDL Libraries Guide, version 14.5 (ug615)
+	IODELAY2 #(
+		.COUNTER_WRAPAROUND("WRAPAROUND"), // "STAY_AT_LIMIT" or "WRAPAROUND"
+		.DATA_RATE("SDR"), // "SDR" or "DDR"
+		.DELAY_SRC("IDATAIN"), // "IO", "ODATAIN" or "IDATAIN"
+		.IDELAY2_VALUE(0), // Delay value when IDELAY_MODE="PCI" (0-255)
+		.IDELAY_MODE("NORMAL"), // "NORMAL" or "PCI"
+		.IDELAY_TYPE("VARIABLE_FROM_ZERO"), // "FIXED", "DEFAULT", "VARIABLE_FROM_ZERO", "VARIABLE_FROM_HALF_MAX" or "DIFF_PHASE_DETECTOR"
+		.IDELAY_VALUE(0), // Amount of taps for fixed input delay (0-255)
+		.ODELAY_VALUE(0), // Amount of taps for fixed output delay (0-255)
+		.SERDES_MODE(MODE), // "NONE", "MASTER" or "SLAVE" (idelay only according to ug381)
+		.SIM_TAPDELAY_VALUE(75) // Per tap delay used for simulation in ps
+	) stp (
+		.CLK(clock), // 1-bit input: Clock input
+		.RST(reset), // 1-bit input: Reset to zero or 1/2 of total delay period
+		.INC(inc_not_dec && strobe), // 1-bit input: Increment / decrement input - "INC should only be asserted High when CE is also asserted High" (ug381)
+		.CE(strobe), // 1-bit input: Enable INC input
+		.IOCLK0(bit_clock), // 1-bit input: Input from the I/O clock network
+		.IOCLK1(1'b0), // 1-bit input: Input from the I/O clock network
+		.ODATAIN(1'b0), // 1-bit input: Output data input from output register or OSERDES2.
+		.DOUT(), // 1-bit output: Delayed data output
+		.CAL(initiate_cal), // 1-bit input: Initiate calibration input
+		.BUSY(busy), // 1-bit output: Busy output after CAL
+		.T(1'b0), // 1-bit input: 3-state input signal
+		.TOUT(), // 1-bit output: Delayed 3-state output
+		.IDATAIN(bit_in), // 1-bit input: Data input (connect to top-level port or I/O buffer)
+		.DATAOUT(bit_out), // 1-bit output: Delayed data output to ISERDES/input register
+		.DATAOUT2() // 1-bit output: Delayed data output to general FPGA fabric
+	);
 endmodule
 
