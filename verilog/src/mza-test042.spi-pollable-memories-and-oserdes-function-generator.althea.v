@@ -273,11 +273,9 @@ endmodule
 
 module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_top (
 	input clock50_p, clock50_n,
-	output m_p,
-	output l_p,
-	output lemo,
+	output lemo, // oserdes/trig output
 	input b_n, // rpi_spi_mosi
-//	input b_p, // nothing with the 4 pin wire
+	output b_p, // oserdes/trig output other0
 	output a_n, // rpi_spi_miso
 	input a_p, // rpi_spi_cs1
 	input c_n, // rpi_spi_cs0
@@ -286,13 +284,14 @@ module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_t
 	input d_p, // rpi_gpio6_gpclk2
 	input e_n, // rpi_gpio13
 	input e_p, // rpi_gpio19
+	output f_p, // oserdes/trig output other1
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	top mytop (
 		.clock50_p(clock50_p), .clock50_n(clock50_n),
 		.lemo(lemo),
-		.other0(m_p),
-		.other1(l_p),
+		.other0(b_p),
+		.other1(f_p),
 		.rpi_spi_mosi(b_n), .rpi_spi_miso(a_n), .rpi_spi_sclk(c_p), .rpi_spi_ce0(c_n), .rpi_spi_ce1(a_p),
 		.rpi_gpio5(d_n), .rpi_gpio6_gpclk2(d_p), .rpi_gpio13(e_n), .rpi_gpio19(e_p),
 		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
