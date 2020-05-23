@@ -474,6 +474,9 @@ def write_bcm_values_to_spi_pollable_memory_and_verify(spi, length, offset, inpu
 	print "uploading bcm timeseries to device..."
 	write_list_to_pollable_memory_and_then_verify(spi, length, command_list, address_list, data_list)
 
+import althea
+althea.reset()
+
 #test_command8_address16_data32(spi_ce0, 2**4, 40)
 #test_command8_address16_data32(spi_ce1, 2**12, 10)
 
