@@ -75,6 +75,9 @@ endmodule
 //simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) other (.clockin(clock50), .reset(reset), .clock0out(rawclock125), .locked(other_pll_locked)); // 50->125
 //wire clock125;
 //BUFG mrt (.I(rawclock125), .O(clock125));
+// divclk_divide 1 to 52
+// mult 1 to 64
+// clkout_divide 1 to 128
 module simplepll_BASE #(
 	parameter
 	period=10.0,
@@ -143,6 +146,7 @@ endmodule
 // clockout: 5-375 MHz (ds162.pdf)
 // multiply: 2-256
 // divide: 1-256
+// clkfxdv_divide:2, 4, 8, 16, 32
 module simpledcm_CLKGEN #(parameter multiply=4, divide=1, period="10.0") (
 	input clockin,
 	input reset,

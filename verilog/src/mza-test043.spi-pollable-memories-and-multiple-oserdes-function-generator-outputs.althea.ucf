@@ -1,7 +1,7 @@
 # written 2020-05-18 by mza
 # based off of mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea
 # for an althea revB attached to a raspberry pi
-# last updated 2020-05-20 by mza
+# last updated 2020-05-23 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
@@ -27,7 +27,7 @@ timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
 #net f_n loc=p141 | iostandard=lvcmos33; # F- bank0 TL
 #net f_p loc=p142 | iostandard=lvcmos33; # F+ bank0 TL
 
-# second column, on left side of board
+# middle column, on left side of board
 #net b_n loc=p123 | iostandard=lvcmos33; # B- bank0 TR
 #net b_p loc=p124 | iostandard=lvcmos33; # B+ bank0 TR
 #net e_n loc=p133 | iostandard=lvcmos33; # E- bank0 TL
@@ -51,7 +51,7 @@ timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
 #net g_p loc=p41  | iostandard=lvcmos33; # G+ bank2 BL
 #net g_n loc=p40  | iostandard=lvcmos33; # G- bank2 BL
 
-# second column, on right side of board
+# middle column, on right side of board
 #net k_p loc=p56  | iostandard=lvcmos33; # K+ bank2 BR
 #net k_n loc=p55  | iostandard=lvcmos33; # K- bank2 BR
 #net h_p loc=p44  | iostandard=lvcmos33; # H+ bank2 BL
@@ -66,21 +66,21 @@ timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
 #net t loc=p22  | iostandard=lvcmos33; # T bank3 TL
 
 # raspberry pi 40pin headers, general purpose IO:
-#net gpio2_i2c1_sda loc=p138 | iostandard=lvcmos33; # bank0
-#net gpio3_i2c1_scl loc=p137 | iostandard=lvcmos33; # bank0
-#net gpio4_gclk0 loc=p93 | iostandard=lvcmos33; # bank1
-#net gpio5_gclk1 loc=p66 | iostandard=lvcmos33; # bank2
-#net gpio6_gclk2 loc=p51 | iostandard=lvcmos33; # bank2
-#net gpio13 loc=p61  | iostandard=lvcmos33; # bank2
-#net gpio14 loc=p87  | iostandard=lvcmos33; # bank1
-#net gpio15 loc=p118 | iostandard=lvcmos33; # bank0
-#net gpio19 loc=p85  | iostandard=lvcmos33; # bank1
-#net gpio20 loc=p83  | iostandard=lvcmos33; # bank1
-#net gpio21 loc=p84  | iostandard=lvcmos33; # bank1
-#net gpio22 loc=p115 | iostandard=lvcmos33; # bank0
-#net gpio23 loc=p101 | iostandard=lvcmos33; # bank1
-#net gpio24 loc=p100 | iostandard=lvcmos33; # bank1
-#net gpio26 loc=p59  | iostandard=lvcmos33; # bank2
+#net rpi_gpio2_i2c1_sda loc=p138 | iostandard=lvcmos33; # bank0
+#net rpi_gpio3_i2c1_scl loc=p137 | iostandard=lvcmos33; # bank0
+#net rpi_gpio4_gpclk0 loc=p93 | iostandard=lvcmos33; # bank1
+#net rpi_gpio5        loc=p66 | iostandard=lvcmos33; # bank2
+#net rpi_gpio6_gpclk2 loc=p51 | iostandard=lvcmos33; # bank2
+#net rpi_gpio13 loc=p61  | iostandard=lvcmos33; # bank2
+#net rpi_gpio14 loc=p87  | iostandard=lvcmos33; # bank1
+#net rpi_gpio15 loc=p118 | iostandard=lvcmos33; # bank0
+#net rpi_gpio19 loc=p85  | iostandard=lvcmos33; # bank1
+#net rpi_gpio20 loc=p83  | iostandard=lvcmos33; # bank1
+#net rpi_gpio21 loc=p84  | iostandard=lvcmos33; # bank1
+#net rpi_gpio22 loc=p115 | iostandard=lvcmos33; # bank0
+#net rpi_gpio23 loc=p101 | iostandard=lvcmos33; # bank1
+#net rpi_gpio24 loc=p100 | iostandard=lvcmos33; # bank1
+#net rpi_gpio26 loc=p59  | iostandard=lvcmos33; # bank2
 
 # raspberry pi 40pin headers, broadcom spi peripheral:
 net rpi_spi_ce0  loc=p82  | iostandard=lvcmos33; # bank1
@@ -120,5 +120,4 @@ net coax<2> loc=p79  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
 net coax<3> loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
 net coax<4> loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3
 net coax<5> loc=p34  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3; on an _n pin
-#net coax<5> loc=p34  | iostandard=lvcmos33; # bank3; on an _n pin
 

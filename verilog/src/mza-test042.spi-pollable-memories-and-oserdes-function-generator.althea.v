@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-05-21 by mza
+// last updated 2020-05-22 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
@@ -31,12 +31,47 @@ module top (
 	output rpi_spi_miso,
 	input rpi_spi_ce0,
 	input rpi_spi_ce1,
+	input rpi_gpio5, rpi_gpio6_gpclk2,
+	input rpi_gpio13, rpi_gpio19,
 	output led_0, led_1, led_2, led_3,
 	output led_4, led_5, led_6, led_7
 );
-	reg reset1_clock50 = 1;
 	wire clock50;
-	IBUFGDS mybuf (.I(clock50_p), .IB(clock50_n), .O(clock50));
+//	if (1) begin
+		reg [7:0] reset_counter_alt = 0;
+		reg reset1_clock_alt = 1;
+		wire clock_alt;
+		IBUFG mybuf0 (.I(rpi_gpio6_gpclk2), .O(clock_alt));
+		always @(posedge clock_alt) begin
+			if (reset1_clock_alt) begin
+				if (reset_counter_alt[7]) begin
+					reset1_clock_alt <= 0;
+				end else begin
+					reset_counter_alt <= reset_counter_alt + 1'b1;
+				end
+			end
+		end
+		wire pll_locked_alt;
+		wire clock50_raw;
+		simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm (.clockin(clock_alt), .reset(reset1_clock_alt), .clockout(clock50_raw), .clockout180(), .locked(pll_locked_alt)); // 50->125
+		BUFG mybuf1 (.I(clock50_raw), .O(clock50));
+		IBUFGDS mybuf2 (.I(clock50_p), .IB(clock50_n), .O());
+//	end else begin
+//		IBUFGDS mybuf3 (.I(clock50_p), .IB(clock50_n), .O(clock50));
+//	end
+	// ----------------------------------------------------------------------
+	reg reset1_clock50 = 1;
+	reg [7:0] reset_counter = 0;
+	always @(posedge clock50) begin
+		if (reset1_clock50) begin
+			if (reset_counter[7]) begin
+				reset1_clock50 <= 0;
+			end else begin
+				reset_counter <= reset_counter + 1'b1;
+			end
+		end
+	end
+	// ----------------------------------------------------------------------
 	wire pll_locked;
 	wire rawclock125;
 	wire clock125;
@@ -49,21 +84,6 @@ module top (
 		simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm (.clockin(clock50), .reset(reset1_clock50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
 	end
 	// ----------------------------------------------------------------------
-	wire word_clock;
-	wire [7:0] oserdes_word_out;
-	wire pll_oserdes_locked;
-	wire clock_spi;
-	assign clock_spi = word_clock;
-	reg [7:0] reset_counter = 0;
-	always @(posedge clock50) begin
-		if (reset1_clock50) begin
-			if (reset_counter[7]) begin
-				reset1_clock50 <= 0;
-			end else begin
-				reset_counter <= reset_counter + 1'b1;
-			end
-		end
-	end
 	reg reset2_clock125 = 1;
 	always @(posedge clock125) begin
 		if (reset2_clock125) begin
@@ -72,6 +92,11 @@ module top (
 			end
 		end
 	end
+	wire word_clock;
+	wire clock_spi;
+	assign clock_spi = word_clock;
+	wire [7:0] oserdes_word_out;
+	wire pll_oserdes_locked;
 	reg reset3_word_clock = 1;
 	always @(posedge word_clock) begin
 		if (reset3_word_clock) begin
@@ -224,12 +249,12 @@ module top (
 		assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
 		assign leds = oserdes_word_out;
 	end else begin
-		assign led_7 = reset1_clock50;
-		assign led_6 = reset2_clock125;
-		assign led_5 = reset3_word_clock;
-		assign led_4 = ~rpi_spi_ce0;
-		assign led_3 = ~rpi_spi_ce1;
-		assign led_2 = cnt[2];
+		assign led_7 = reset1_clock_alt;
+		assign led_6 = reset1_clock50;
+		assign led_5 = reset2_clock125;
+		assign led_4 = reset3_word_clock;
+		assign led_3 = ~rpi_spi_ce0;
+		assign led_2 = ~rpi_spi_ce1;
 		assign led_1 = cnt[1];
 		assign led_0 = cnt[0];
 	end
@@ -240,11 +265,16 @@ module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_t
 	output m_p,
 	output l_p,
 	output lemo,
-	input a_p,
-	input c_n,
-	input c_p,
-	output d_n,
-	input d_p,
+	input b_n, // rpi_spi_mosi
+//	input b_p, // nothing with the 4 pin wire
+	output a_n, // rpi_spi_miso
+	input a_p, // rpi_spi_cs1
+	input c_n, // rpi_spi_cs0
+	input c_p, // rpi_spi_sclk
+	input d_n, // rpi_gpio5
+	input d_p, // rpi_gpio6_gpclk2
+	input e_n, // rpi_gpio13
+	input e_p, // rpi_gpio19
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	top mytop (
@@ -252,7 +282,8 @@ module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_t
 		.lemo(lemo),
 		.other0(m_p),
 		.other1(l_p),
-		.rpi_spi_mosi(d_p), .rpi_spi_miso(d_n), .rpi_spi_sclk(c_p), .rpi_spi_ce0(c_n), .rpi_spi_ce1(a_p),
+		.rpi_spi_mosi(b_n), .rpi_spi_miso(a_n), .rpi_spi_sclk(c_p), .rpi_spi_ce0(c_n), .rpi_spi_ce1(a_p),
+		.rpi_gpio5(d_n), .rpi_gpio6_gpclk2(d_p), .rpi_gpio13(e_n), .rpi_gpio19(e_p),
 		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
 		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
 	);
