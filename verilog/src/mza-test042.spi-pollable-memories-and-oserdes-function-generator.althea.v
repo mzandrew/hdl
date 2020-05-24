@@ -10,6 +10,7 @@
 `include "lib/RAM8.v"
 `include "lib/serdes_pll.v"
 `include "lib/dcm.v"
+`include "lib/reset.v"
 //`include "lib/synchronizer.v"
 
 //`define USE_SLOW_CLOCK
@@ -31,55 +32,63 @@ module top (
 	output rpi_spi_miso,
 	input rpi_spi_ce0,
 	input rpi_spi_ce1,
-	input rpi_gpio5, rpi_gpio6_gpclk2,
+	output rpi_gpio5,
+	input rpi_gpio6_gpclk2,
 	input rpi_gpio13, rpi_gpio19,
 	output led_0, led_1, led_2, led_3,
 	output led_4, led_5, led_6, led_7
 );
 	wire global_reset = rpi_gpio19;
 	wire clock50;
-//	if (1) begin
-		reg [7:0] reset_counter_alt = 0;
-		reg reset1_clock_alt = 1;
-		wire clock_alt;
-		IBUFG mybuf0 (.I(rpi_gpio6_gpclk2), .O(clock_alt));
-		always @(posedge clock_alt) begin
-			if (global_reset) begin
-				reset_counter_alt <= 0;
-				reset1_clock_alt <= 1;
-			end else if (reset1_clock_alt) begin
-				if (reset_counter_alt[7]) begin
-					reset1_clock_alt <= 0;
-				end else begin
-					reset_counter_alt <= reset_counter_alt + 1'b1;
-				end
-			end
-		end
-		wire pll_locked_alt;
-		wire clock50_raw;
-		simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm (.clockin(clock_alt), .reset(reset1_clock_alt), .clockout(clock50_raw), .clockout180(), .locked(pll_locked_alt)); // 50->125
-		BUFG mybuf1 (.I(clock50_raw), .O(clock50));
-		IBUFGDS mybuf2 (.I(clock50_p), .IB(clock50_n), .O());
+	wire clock_alt;
+	IBUFG mybuf0 (.I(rpi_gpio6_gpclk2), .O(clock_alt));
+	wire reset1_clock_alt;
+	wire pll_locked_alt;
+	reset #(.FREQUENCY(10000000)) reset1 (.upstream_clock(clock_alt), .upstream_reset(global_reset), .downstream_pll_locked(pll_locked_alt), .downstream_reset(reset1_clock_alt));
+//	always @(posedge clock_alt, posedge global_reset, negedge pll_locked_alt) begin
+//		if (global_reset) begin
+//			reset_counter_alt <= 0;
+//			reset1_clock_alt <= 1;
+//		end else if (reset1_clock_alt) begin
+//			if (reset_counter_alt[19]) begin
+//				reset1_clock_alt <= 0;
+//			end else begin
+//				reset_counter_alt <= reset_counter_alt + 1'b1;
+//			end
+//		end else if (~pll_locked_alt) begin
+//			reset_counter_alt <= 0;
+//			reset1_clock_alt <= 1;
+//		end
+//	end
+	wire clock50_raw;
+	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm (.clockin(clock_alt), .reset(reset1_clock_alt), .clockout(clock50_raw), .clockout180(), .locked(pll_locked_alt)); // 10->50
+	BUFG mybuf1 (.I(clock50_raw), .O(clock50));
+	IBUFGDS mybuf2 (.I(clock50_p), .IB(clock50_n), .O());
 //	end else begin
+//		pll_locked_alt <= 1;
 //		IBUFGDS mybuf3 (.I(clock50_p), .IB(clock50_n), .O(clock50));
 //	end
 	// ----------------------------------------------------------------------
-	reg reset2_clock50 = 1;
-	reg [7:0] reset_counter = 0;
-	always @(posedge clock50) begin
-		if (global_reset) begin
-			reset2_clock50 <= 1;
-			reset_counter <= 0;
-		end else if (reset2_clock50) begin
-			if (reset_counter[7]) begin
-				reset2_clock50 <= 0;
-			end else begin
-				reset_counter <= reset_counter + 1'b1;
-			end
-		end
-	end
-	// ----------------------------------------------------------------------
+	wire reset2_clock50;
 	wire pll_locked;
+	reset #(.FREQUENCY(50000000)) reset2 (.upstream_clock(clock50), .upstream_reset(global_reset), .downstream_pll_locked(pll_locked), .downstream_reset(reset2_clock50));
+//	reg [22:0] reset2_counter = 0; // 50 ms lock time @ 50 MHz
+//	always @(posedge clock50, posedge global_reset, negedge pll_locked) begin
+//		if (global_reset) begin
+//			reset2_clock50 <= 1;
+//			reset2_counter <= 0;
+//		end else if (reset2_clock50) begin
+//			if (reset2_counter[22]) begin
+//				reset2_clock50 <= 0;
+//			end else begin
+//				reset2_counter <= reset2_counter + 1'b1;
+//			end
+//		end else if (~pll_locked) begin
+//			reset2_clock50 <= 1;
+//			reset2_counter <= 0;
+//		end
+//	end
+	// ----------------------------------------------------------------------
 	wire rawclock125;
 	wire clock125;
 	BUFG mrt (.I(rawclock125), .O(clock125));
@@ -91,31 +100,33 @@ module top (
 		simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm (.clockin(clock50), .reset(reset2_clock50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
 	end
 	// ----------------------------------------------------------------------
-	reg reset3_clock125 = 1;
-	always @(posedge clock125) begin
-		if (global_reset) begin
-			reset3_clock125 <= 1;
-		end else if (reset3_clock125) begin
-			if (pll_locked) begin
-				reset3_clock125 <= 0;
-			end
-		end
-	end
+	wire reset3_clock125;
+	wire pll_oserdes_locked;
+	reset #(.FREQUENCY(125000000)) reset3 (.upstream_clock(clock125), .upstream_reset(global_reset), .downstream_pll_locked(pll_oserdes_locked), .downstream_reset(reset3_clock125));
+//	always @(posedge clock125, posedge global_reset, negedge pll_oserdes_locked) begin
+//		if (global_reset) begin
+//			reset3_clock125 <= 1;
+//		end else if (reset3_clock125) begin
+//			if (pll_locked) begin
+//				reset3_clock125 <= 0;
+//			end
+//		end else if (~pll_oserdes_locked) begin
+//		end
+//	end
 	wire word_clock;
 	wire clock_spi;
 	assign clock_spi = word_clock;
-	wire [7:0] oserdes_word_out;
-	wire pll_oserdes_locked;
-	reg reset4_word_clock = 1;
-	always @(posedge word_clock) begin
-		if (global_reset) begin
-			reset4_word_clock <= 1;
-		end else if (reset4_word_clock) begin
-			if (pll_oserdes_locked) begin
-				reset4_word_clock <= 0;
-			end
-		end
-	end
+	wire reset4_word_clock;
+	reset #(.FREQUENCY(125000000)) reset4 (.upstream_clock(word_clock), .upstream_reset(global_reset), .downstream_pll_locked(pll_oserdes_locked), .downstream_reset(reset4_word_clock));
+//	always @(posedge word_clock, posedge global_reset, negedge pll_locked_alt, negedge pll_locked, negedge pll_oserdes_locked) begin
+//		if (global_reset || ~pll_locked_alt || ~pll_locked || ~pll_oserdes_locked) begin
+//			reset4_word_clock <= 1;
+//		end else if (reset4_word_clock) begin
+//			if (pll_oserdes_locked) begin
+//				reset4_word_clock <= 0;
+//			end
+//		end
+//	end
 	// ----------------------------------------------------------------------
 	reg sync_read_address = 0;
 	reg [15:0] read_address = 0;
@@ -163,6 +174,7 @@ module top (
 	SPI_slave_command8_address16_data32 spi_ce1 (.clock(clock_spi),
 		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(miso_ce1), .SSEL(rpi_spi_ce1),
 		.transaction_valid(transaction_valid_ce1), .command8(command8), .address16(address16), .data32(data32_3210), .data32_to_master(read_data32_3210));
+	wire [7:0] oserdes_word_out;
 `ifdef USE_BRAM_512
 	wire [8:0] address9 = address16[8:0];
 	wire [10:0] read_address11 = read_address[10:0];
@@ -255,6 +267,8 @@ module top (
 	end
 //	idelay nirvana (.clock(word_clock), .reset(reset4_word_clock), .inc_not_dec(inc_not_dec), .strobe(strobe), .bit_clock(bit_clock), .bit_in(), .bit_out(), .initiate_cal(1'b0), .busy());
 	// ----------------------------------------------------------------------
+	wire not_ready = global_reset || reset1_clock_alt || reset2_clock50 || reset3_clock125 || reset4_word_clock;
+	assign rpi_gpio5 = ~not_ready;
 	if (0) begin
 		wire [7:0] leds;
 		assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
@@ -267,7 +281,7 @@ module top (
 		assign led_3 = ~rpi_spi_ce0;
 		assign led_2 = ~rpi_spi_ce1;
 		assign led_1 = rpi_gpio13;
-		assign led_0 = rpi_gpio19;
+		assign led_0 = not_ready;
 	end
 endmodule
 
@@ -280,7 +294,7 @@ module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_t
 	input a_p, // rpi_spi_cs1
 	input c_n, // rpi_spi_cs0
 	input c_p, // rpi_spi_sclk
-	input d_n, // rpi_gpio5
+	output d_n, // rpi_gpio5
 	input d_p, // rpi_gpio6_gpclk2
 	input e_n, // rpi_gpio13
 	input e_p, // rpi_gpio19
