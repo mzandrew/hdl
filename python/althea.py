@@ -29,12 +29,23 @@ def reset(gpio=19):
 
 def test_some_gpios():
 	GPIO.setup(13, GPIO.OUT)
-	GPIO.setup(19, GPIO.OUT)
 	GPIO.output(13, GPIO.HIGH)
-	GPIO.output(19, GPIO.HIGH)
 	time.sleep(1.0)
 	GPIO.output(13, GPIO.LOW)
-	GPIO.output(19, GPIO.LOW)
+
+def gpio_state(gpio):
+	GPIO.setup(gpio, GPIO.IN)
+	time.sleep(0.05)
+	state = GPIO.input(gpio)
+	if state:
+		state = True
+	else:
+		state = False
+	return state
+
+def wait_for_ready():
+	while 0==gpio_state(5):
+		time.sleep(0.1)
 
 #import copy
 def unpack32(data):
