@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-05-23 by mza
+// last updated 2020-05-24 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
@@ -13,14 +13,9 @@
 `include "lib/reset.v"
 //`include "lib/synchronizer.v"
 
-//`define USE_SLOW_CLOCK
 //`define USE_INFERRED_RAM_16
 //`define USE_BRAM_512
 `define USE_BRAM_4K
-
-//`ifdef xilinx
-//`else
-//`endif
 
 module top (
 	input clock50_p, clock50_n,
@@ -32,9 +27,10 @@ module top (
 	output rpi_spi_miso,
 	input rpi_spi_ce0,
 	input rpi_spi_ce1,
-	output rpi_gpio5,
+	output rpi_gpio5, // ready
 	input rpi_gpio6_gpclk2,
-	input rpi_gpio13, rpi_gpio19,
+	input rpi_gpio13, // clock select
+	input rpi_gpio19, // reset
 	output led_0, led_1, led_2, led_3,
 	output led_4, led_5, led_6, led_7
 );
@@ -45,49 +41,18 @@ module top (
 	wire reset1_clock_alt;
 	wire pll_locked_alt;
 	reset #(.FREQUENCY(10000000)) reset1 (.upstream_clock(clock_alt), .upstream_reset(global_reset), .downstream_pll_locked(pll_locked_alt), .downstream_reset(reset1_clock_alt));
-//	always @(posedge clock_alt, posedge global_reset, negedge pll_locked_alt) begin
-//		if (global_reset) begin
-//			reset_counter_alt <= 0;
-//			reset1_clock_alt <= 1;
-//		end else if (reset1_clock_alt) begin
-//			if (reset_counter_alt[19]) begin
-//				reset1_clock_alt <= 0;
-//			end else begin
-//				reset_counter_alt <= reset_counter_alt + 1'b1;
-//			end
-//		end else if (~pll_locked_alt) begin
-//			reset_counter_alt <= 0;
-//			reset1_clock_alt <= 1;
-//		end
-//	end
 	wire clock50_raw;
 	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm (.clockin(clock_alt), .reset(reset1_clock_alt), .clockout(clock50_raw), .clockout180(), .locked(pll_locked_alt)); // 10->50
-	BUFG mybuf1 (.I(clock50_raw), .O(clock50));
-	IBUFGDS mybuf2 (.I(clock50_p), .IB(clock50_n), .O());
-//	end else begin
-//		pll_locked_alt <= 1;
-//		IBUFGDS mybuf3 (.I(clock50_p), .IB(clock50_n), .O(clock50));
-//	end
+	// ----------------------------------------------------------------------
+	wire clock50_0, clock50_1;
+	BUFG mybuf1 (.I(clock50_raw), .O(clock50_1));
+	IBUFGDS mybuf2 (.I(clock50_p), .IB(clock50_n), .O(clock50_0));
+	wire clock_select = rpi_gpio13;
+	BUFGMUX sam (.I0(clock50_0), .I1(clock50_1), .S(clock_select), .O(clock50));
 	// ----------------------------------------------------------------------
 	wire reset2_clock50;
 	wire pll_locked;
-	reset #(.FREQUENCY(50000000)) reset2 (.upstream_clock(clock50), .upstream_reset(global_reset), .downstream_pll_locked(pll_locked), .downstream_reset(reset2_clock50));
-//	reg [22:0] reset2_counter = 0; // 50 ms lock time @ 50 MHz
-//	always @(posedge clock50, posedge global_reset, negedge pll_locked) begin
-//		if (global_reset) begin
-//			reset2_clock50 <= 1;
-//			reset2_counter <= 0;
-//		end else if (reset2_clock50) begin
-//			if (reset2_counter[22]) begin
-//				reset2_clock50 <= 0;
-//			end else begin
-//				reset2_counter <= reset2_counter + 1'b1;
-//			end
-//		end else if (~pll_locked) begin
-//			reset2_clock50 <= 1;
-//			reset2_counter <= 0;
-//		end
-//	end
+	reset #(.FREQUENCY(50000000)) reset2 (.upstream_clock(clock50), .upstream_reset(reset1_clock_alt), .downstream_pll_locked(pll_locked), .downstream_reset(reset2_clock50));
 	// ----------------------------------------------------------------------
 	wire rawclock125;
 	wire clock125;
@@ -102,31 +67,12 @@ module top (
 	// ----------------------------------------------------------------------
 	wire reset3_clock125;
 	wire pll_oserdes_locked;
-	reset #(.FREQUENCY(125000000)) reset3 (.upstream_clock(clock125), .upstream_reset(global_reset), .downstream_pll_locked(pll_oserdes_locked), .downstream_reset(reset3_clock125));
-//	always @(posedge clock125, posedge global_reset, negedge pll_oserdes_locked) begin
-//		if (global_reset) begin
-//			reset3_clock125 <= 1;
-//		end else if (reset3_clock125) begin
-//			if (pll_locked) begin
-//				reset3_clock125 <= 0;
-//			end
-//		end else if (~pll_oserdes_locked) begin
-//		end
-//	end
+	reset #(.FREQUENCY(125000000)) reset3 (.upstream_clock(clock125), .upstream_reset(reset2_clock50), .downstream_pll_locked(pll_oserdes_locked), .downstream_reset(reset3_clock125));
 	wire word_clock;
 	wire clock_spi;
 	assign clock_spi = word_clock;
 	wire reset4_word_clock;
-	reset #(.FREQUENCY(125000000)) reset4 (.upstream_clock(word_clock), .upstream_reset(global_reset), .downstream_pll_locked(pll_oserdes_locked), .downstream_reset(reset4_word_clock));
-//	always @(posedge word_clock, posedge global_reset, negedge pll_locked_alt, negedge pll_locked, negedge pll_oserdes_locked) begin
-//		if (global_reset || ~pll_locked_alt || ~pll_locked || ~pll_oserdes_locked) begin
-//			reset4_word_clock <= 1;
-//		end else if (reset4_word_clock) begin
-//			if (pll_oserdes_locked) begin
-//				reset4_word_clock <= 0;
-//			end
-//		end
-//	end
+	reset #(.FREQUENCY(125000000)) reset4 (.upstream_clock(word_clock), .upstream_reset(reset3_clock125), .downstream_pll_locked(pll_oserdes_locked), .downstream_reset(reset4_word_clock));
 	// ----------------------------------------------------------------------
 	reg sync_read_address = 0;
 	reg [15:0] read_address = 0;
@@ -285,7 +231,8 @@ module top (
 	end
 endmodule
 
-module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_top (
+//module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_top (
+module althea (
 	input clock50_p, clock50_n,
 	output lemo, // oserdes/trig output
 	input b_n, // rpi_spi_mosi
