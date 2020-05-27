@@ -2,7 +2,7 @@
 
 # written 2020-05-11 by mza
 # based on mza-test041.spi-pollable-memory.althea.py
-# last updated 2020-05-23 by mza
+# last updated 2020-05-27 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -15,10 +15,9 @@ max_count = scaling*RF_buckets
 date_string = "2019-11-15.075530"
 size = RF_buckets/16
 
-althea.reset()
-althea.wait_for_ready()
-spi_ce0 = althea.spi(0, 16)
-spi_ce1 = althea.spi_sequencer(1, 4096)
+althea.select_clock_and_reset_althea(0)
+spi_ce0 = althea.spi(0, 16) # 16 (32bit) words to control sequencer
+spi_ce1 = althea.spi_sequencer(1, 4096) # 4096 (32bit) words of sequencer memory
 
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 11*RF_buckets, 12*RF_buckets ]) # show unused part of memory while we're writing into it
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 16 ]) # show entire memory while we're writing into it

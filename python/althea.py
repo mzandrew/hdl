@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-05-23 by mza
+# last updated 2020-05-27 by mza
 
 import time
 import time # time.sleep
@@ -10,6 +10,7 @@ import math
 import os # os.path.isfile
 import re # re.search
 import RPi.GPIO as GPIO
+import pigpio
 import spidev
 
 from generic import * # hex, eng
@@ -23,7 +24,7 @@ def pulse(gpio, duration):
 	time.sleep(duration)
 	GPIO.output(gpio, GPIO.LOW)
 
-def reset(gpio=19):
+def reset_pulse(gpio=19):
 	pulse(gpio, 0.1)
 	time.sleep(0.1)
 
@@ -46,6 +47,40 @@ def gpio_state(gpio):
 def wait_for_ready():
 	while 0==gpio_state(5):
 		time.sleep(0.1)
+
+def clock_select(which):
+	GPIO.setup(13, GPIO.OUT)
+	if which:
+		GPIO.output(13, GPIO.HIGH)
+	else:
+		GPIO.output(13, GPIO.LOW)
+
+def enable_clock(frequency_in_MHz):
+	#GPIO.setup(6, GPIO.ALT0)
+	gpio=6
+	pi = pigpio.pi()
+	frequency = frequency_in_MHz * 1.0e6
+	pi.hardware_clock(gpio, frequency)
+	pi.set_mode(gpio, pigpio.ALT0)
+	value = pi.get_mode(gpio)
+	print str(value)
+#	GPIO.setup(6, GPIO.OUT)
+#	GPIO.output(6, GPIO.LOW)
+
+def disable_clock():
+	gpio=6
+	GPIO.setup(gpio, GPIO.OUT)
+	GPIO.output(gpio, GPIO.LOW)
+
+def select_clock_and_reset_althea(choice=0):
+	if choice:
+		clock_select(1) # built-in osc (1) or output from rpi_gpio6_gpclk2 (0)
+		disable_clock() # rpi_gpio6_gpclk2 no longer set to gpclk mode
+	else:
+		clock_select(0) # built-in osc (1) or output from rpi_gpio6_gpclk2 (0)
+		enable_clock(10.0) # rpi_gpio6_gpclk2 = 10.0 MHz
+	reset_pulse()
+	wait_for_ready() # wait for oserdes pll to lock
 
 #import copy
 def unpack32(data):
