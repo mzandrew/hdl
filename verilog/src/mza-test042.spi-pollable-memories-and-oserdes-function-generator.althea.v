@@ -232,7 +232,7 @@ module top (
 endmodule
 
 //module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_top (
-module althea (
+module myalthea (
 	input clock50_p, clock50_n,
 	output lemo, // oserdes/trig output
 	input b_n, // rpi_spi_mosi
@@ -248,7 +248,7 @@ module althea (
 	output f_p, // oserdes/trig output other1
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
-	top mytop (
+	top althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n),
 		.lemo(lemo),
 		.other0(b_p),

@@ -63,3 +63,11 @@ net led_7 loc=p1  | iostandard=lvcmos25;
 
 net lemo loc=p93 | iostandard=lvcmos25 | drive = 24 | slew = fast;
 
+#net "althea/reset_1/asychronous_reset_source" TIG;
+#net "althea/reset_2/asychronous_reset_source" TIG;
+#net "althea/reset_3/asychronous_reset_source" TIG;
+#net "althea/reset_4/asychronous_reset_source" TIG;
+#net "althea/global_reset" TIG;
+#net "althea/clock_select" TIG;
+#net "althea/leds" TIG;
+

@@ -1,11 +1,13 @@
 // written 2020-05-23 by mza
-// last updated 2020-05-24 by mza
+// last updated 2020-05-27 by mza
 
 //	reset #(.FREQUENCY(10000000)) myr (.upstream_clock(), .upstream_reset(), .downstream_pll_locked(), .downstream_reset());
 module reset #(
 	parameter FREQUENCY = 10000000.0, // in Hertz
 	parameter PLL_LOCK_TIME = 0.05, // in seconds
-	parameter SIGNIFICANT_BIT_NUMBER_B = $clog2(FREQUENCY*PLL_LOCK_TIME) + 1,
+	parameter SYNCHRONOUS_ONLY = 1,
+	parameter SIGNIFICANT_BIT_NUMBER_B = $clog2(FREQUENCY*PLL_LOCK_TIME) + 1, // synthesis
+//	parameter SIGNIFICANT_BIT_NUMBER_B = 5, // simulation
 	parameter SIGNIFICANT_BIT_NUMBER_A = SIGNIFICANT_BIT_NUMBER_B/4
 ) (
 	input upstream_clock,
@@ -13,12 +15,15 @@ module reset #(
 	input downstream_pll_locked,
 	output downstream_reset
 );
-	//localparam SIGNIFICANT_BIT_NUMBER_A = 2; // simulation
-	//localparam SIGNIFICANT_BIT_NUMBER_B = 4; // simulation
 	reg [SIGNIFICANT_BIT_NUMBER_A:0] counterA = 0;
 	reg [SIGNIFICANT_BIT_NUMBER_B:0] counterB = 0;
 	reg internal_reset_state = 1;
-	wire asychronous_reset_source = upstream_reset || (counterA[SIGNIFICANT_BIT_NUMBER_A]&&counterB[SIGNIFICANT_BIT_NUMBER_B]&&(~downstream_pll_locked));
+	wire asychronous_reset_source;
+	if (SYNCHRONOUS_ONLY) begin
+		assign asychronous_reset_source = upstream_reset;
+	end else begin
+		assign asychronous_reset_source = upstream_reset || (counterB[SIGNIFICANT_BIT_NUMBER_B]&&(~downstream_pll_locked));
+	end
 	reg sychronous_reset_source = 1;
 	assign downstream_reset = asychronous_reset_source || sychronous_reset_source;
 	always @(posedge upstream_clock) begin
@@ -53,7 +58,7 @@ module reset_tb();
 	reg upstream_reset = 0;
 	reg downstream_pll_locked = 0;
 	wire downstream_reset;
-	reset #(.FREQUENCY(10000000)) myr (.upstream_clock(upstream_clock), .upstream_reset(upstream_reset), .downstream_pll_locked(downstream_pll_locked), .downstream_reset(downstream_reset));
+	reset #(.FREQUENCY(10000000), .SIGNIFICANT_BIT_NUMBER_B(5)) myr (.upstream_clock(upstream_clock), .upstream_reset(upstream_reset), .downstream_pll_locked(downstream_pll_locked), .downstream_reset(downstream_reset));
 	initial begin
 		// power-on reset
 		#200; downstream_pll_locked <= 1;
