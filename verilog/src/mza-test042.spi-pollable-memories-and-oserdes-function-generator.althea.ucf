@@ -20,6 +20,9 @@ timespec "ts_clock50_p" = period "tnm_clock50_p" 20.0 ns high 50%; # 50 MHz
 net "d_p" tnm_net = tnm_clock_alt;
 timespec "ts_clock_alt" = period "tnm_clock_alt" 100.0 ns high 50%; # 10 MHz from rpi_gpio6_gpclk2
 
+net "*/clock_ro" tnm_net = tnm_clock_ro;
+timespec "ts_clock_ro" = period "tnm_clock_ro" 100.0 ns high 50%; # 10 MHz from ring oscillator
+
 # first column, closest to FPGA on left side of board
 net a_n loc=p111 | iostandard=lvcmos25; # A- bank0 TR
 net a_p loc=p112 | iostandard=lvcmos25; # A+ bank0 TR

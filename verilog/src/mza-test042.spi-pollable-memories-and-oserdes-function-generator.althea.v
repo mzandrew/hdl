@@ -35,21 +35,39 @@ module top (
 	output led_4, led_5, led_6, led_7
 );
 	wire global_reset = rpi_gpio19;
-	wire clock50;
 	wire clock_alt;
-	IBUFG mybuf0 (.I(rpi_gpio6_gpclk2), .O(clock_alt));
+	IBUFG mybuf_alt (.I(rpi_gpio6_gpclk2), .O(clock_alt));
 	wire reset1_clock_alt;
 	wire pll_locked_alt;
 	reset #(.FREQUENCY(10000000)) reset1 (.upstream_clock(clock_alt), .upstream_reset(global_reset), .downstream_pll_locked(pll_locked_alt), .downstream_reset(reset1_clock_alt));
-	wire clock50_raw;
-	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm (.clockin(clock_alt), .reset(reset1_clock_alt), .clockout(clock50_raw), .clockout180(), .locked(pll_locked_alt)); // 10->50
 	// ----------------------------------------------------------------------
-	wire clock50_0, clock50_1;
-	BUFG mybuf1 (.I(clock50_raw), .O(clock50_1));
-	IBUFGDS mybuf2 (.I(clock50_p), .IB(clock50_n), .O(clock50_0));
+	wire clock_ro_raw, clock_ro_raw_a, clock_ro_raw_b, clock_ro, clock_ro_b, clock_ro_locked;
+	wire [31:0] ring_oscillator_select;
+	wire [31:0] ring_oscillator_enable;
+	ring_oscillator #(.number_of_stages(240)) ro (.enable(ring_oscillator_enable[0]), .select(ring_oscillator_select[7:0]), .clock_out(clock_ro_raw));
+//	BUFG mybuf_ro (.I(clock_ro_raw), .O(clock_ro_raw1));
+	simpledcm_CLKGEN #(.multiply(50), .divide(50), .period(100.0)) mydcm_ro (.clockin(clock_ro_raw), .reset(global_reset), .clockout(clock_ro_raw_a), .clockout180(clock_ro_raw_b), .locked(clock_ro_locked)); // 10->10
+	BUFG mybuf_roa (.I(clock_ro_raw_a), .O(clock_ro));
+	BUFG mybuf_rob (.I(clock_ro_raw_b), .O(clock_ro_b));
+	reg [31:0] counter_ro = 0;
+	always @(posedge clock_ro) begin
+		counter_ro <= counter_ro + 1'b1;
+	end
+//	assign lemo = clock_ro;
+	ODDR2 ro_out (.C0(clock_ro), .C1(clock_ro_b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(global_reset), .S(1'b0), .Q(lemo));
+	// ----------------------------------------------------------------------
+	wire clock50_0, clock50_1, clock50_2, clock50_12;
+	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50_0));
+	wire clock50_raw1, clock50_raw2;
+	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm (.clockin(clock_alt), .reset(reset1_clock_alt), .clockout(clock50_raw1), .clockout180(), .locked(pll_locked_alt)); // 10->50
+	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm_ro50 (.clockin(clock_ro), .reset(global_reset), .clockout(clock50_raw2), .clockout180(), .locked()); // 10->50
+	BUFG mybuf1 (.I(clock50_raw1), .O(clock50_1));
+	BUFG mybuf2 (.I(clock50_raw2), .O(clock50_2));
+	//BUFGMUX sam12 (.I0(clock50_1), .I1(clock50_2), .S(ring_oscillator_enable[0]), .O(clock50_12));
+	BUFGMUX sam12 (.I0(clock50_1), .I1(clock50_2), .S(1'b1), .O(clock50_12));
 	wire clock_select = rpi_gpio13;
-	BUFGMUX sam (.I0(clock50_0), .I1(clock50_1), .S(clock_select), .O(clock50));
-	// ----------------------------------------------------------------------
+	wire clock50;
+	BUFGMUX sam0s (.I0(clock50_0), .I1(clock50_12), .S(clock_select), .O(clock50));
 	wire reset2_clock50;
 	wire pll_locked;
 	reset #(.FREQUENCY(50000000)) reset2 (.upstream_clock(clock50), .upstream_reset(reset1_clock_alt), .downstream_pll_locked(pll_locked), .downstream_reset(reset2_clock50));
@@ -87,15 +105,6 @@ module top (
 	wire miso_ce1;
 	//assign rpi_spi_miso = rpi_spi_ce1 ? miso_ce0 : miso_ce1;
 	assign rpi_spi_miso = rpi_spi_ce0 ? miso_ce1 : miso_ce0;
-	// ----------------------------------------------------------------------
-	wire clock_ro;
-	wire [31:0] ring_oscillator_select;
-	wire [31:0] ring_oscillator_enable;
-	ring_oscillator #(.number_of_stages(240)) ro (.enable(ring_oscillator_enable[0]), .select(ring_oscillator_select[7:0]), .clock_out(clock_ro));
-	reg [31:0] counter_ro = 0;
-	always @(posedge clock_ro) begin
-		counter_ro <= counter_ro + 1'b1;
-	end
 	// ----------------------------------------------------------------------
 	wire [7:0] command8_ce0;
 	wire [15:0] address16_ce0;
@@ -188,7 +197,6 @@ module top (
 		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei2 (.clock_in(clock125), .reset(reset3_clock125), .word_clock_out(word_clock), .word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .D0_out(other0), .D1_out(other1_raw), .locked(pll_oserdes_locked), .bit_clock(bit_clock), .bit_strobe(bit_strobe));
 //		assign lemo = sync_out_stream[2];
 	end
-	assign lemo = clock_ro;
 	// ----------------------------------------------------------------------
 //	reg [31:0] idelay_counter = 0;
 //	reg inc_not_dec = 0;
