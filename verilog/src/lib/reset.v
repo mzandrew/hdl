@@ -18,14 +18,16 @@ module reset #(
 	reg [SIGNIFICANT_BIT_NUMBER_A:0] counterA = 0;
 	reg [SIGNIFICANT_BIT_NUMBER_B:0] counterB = 0;
 	reg internal_reset_state = 1;
-	wire asychronous_reset_source;
-	if (SYNCHRONOUS_ONLY) begin
-		assign asychronous_reset_source = upstream_reset;
-	end else begin
-		assign asychronous_reset_source = upstream_reset || (counterB[SIGNIFICANT_BIT_NUMBER_B]&&(~downstream_pll_locked));
-	end
 	reg sychronous_reset_source = 1;
-	assign downstream_reset = asychronous_reset_source || sychronous_reset_source;
+	if (SYNCHRONOUS_ONLY) begin
+		//assign asychronous_reset_source = upstream_reset;
+		//assign asychronous_reset_source = 0;
+		assign downstream_reset = sychronous_reset_source;
+	end else begin
+		wire asychronous_reset_source;
+		assign asychronous_reset_source = upstream_reset || (counterB[SIGNIFICANT_BIT_NUMBER_B]&&(~downstream_pll_locked));
+		assign downstream_reset = asychronous_reset_source || sychronous_reset_source;
+	end
 	always @(posedge upstream_clock) begin
 		if (upstream_reset) begin
 			counterA <= 0;
