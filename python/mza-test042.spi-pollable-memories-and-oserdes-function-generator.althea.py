@@ -19,6 +19,19 @@ althea.select_clock_and_reset_althea(0)
 spi_ce0 = althea.spi(0, 16) # 16 (32bit) words to control sequencer
 spi_ce1 = althea.spi_sequencer(1, 4096) # 4096 (32bit) words of sequencer memory
 
+#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 2, 0 ], 2) # test idelay inc/dec functionality
+
+while True:
+	for i in range(0, 256):
+		print str(i),
+		if 255==i:
+			print
+		spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, i ], 2) # stop ring_oscillator
+		spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 1, i ], 2) # test ring_oscillator functionality
+		time.sleep(0.25)
+
+#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 12 ], 2) # stop ring_oscillator
+
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 11*RF_buckets, 12*RF_buckets ]) # show unused part of memory while we're writing into it
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 16 ]) # show entire memory while we're writing into it
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 12.7*RF_buckets ]) # show entire memory while we're writing into it
@@ -50,6 +63,4 @@ def cycle(number_of_segments, segment_size):
 		time.sleep(0.1)
 
 #cycle(9, RF_buckets)
-
-#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 2, 0 ], 2) # test idelay inc/dec functionality
 

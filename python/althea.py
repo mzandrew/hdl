@@ -62,8 +62,8 @@ def enable_clock(frequency_in_MHz):
 	frequency = frequency_in_MHz * 1.0e6
 	pi.hardware_clock(gpio, frequency)
 	pi.set_mode(gpio, pigpio.ALT0)
-	value = pi.get_mode(gpio)
-	print str(value)
+	#value = pi.get_mode(gpio)
+	#print str(value)
 #	GPIO.setup(6, GPIO.OUT)
 #	GPIO.output(6, GPIO.LOW)
 
