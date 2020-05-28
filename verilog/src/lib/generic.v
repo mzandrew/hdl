@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
-// last updated 2020-04-04 by mza
+// last updated 2020-05-27 by mza
 
 module mux #(
 	parameter WIDTH = 1
@@ -118,5 +118,77 @@ module demux_1to8_tb;
 		.in(in), .sel(sel),
 		.out0(a), .out1(b), .out2(c), .out3(d),
 		.out4(e), .out5(f), .out6(g), .out7(h));
+endmodule
+
+module and_gate #(
+	parameter DELAY_RISE = 0.5,
+	parameter DELAY_FALL = 0.5,
+	parameter TESTBENCH = 0
+) (
+	input I0,
+	input I1,
+	output O
+);
+	wire O0;
+	if (TESTBENCH) begin
+		reg O0_prev = 0;
+		reg O1 = 0;
+		always begin
+			case ({ O0_prev, O0 })
+				2'b00:   begin #DELAY_RISE; O0_prev <= O0; end
+				2'b01:   begin #DELAY_RISE; O1 <= O0; O0_prev <= O0; end
+				2'b10:   begin #DELAY_FALL; O1 <= O0; O0_prev <= O0; end
+				default: begin #DELAY_RISE; O0_prev <= O0; end
+			endcase
+		end
+		assign O = O1;
+	end else begin
+		assign O = O0;
+	end
+	// from Xilinx HDL Libraries Guide, version 14.5 
+	LUT5 #(
+		//.INIT(32'h00000008) // Specify LUT Contents
+		.INIT(32'b00000000000000000000000000001000) // Specify LUT Contents
+	) LUT5_inst (
+		.O(O0), // LUT general output
+		.I0(I0), // LUT input
+		.I1(I1), // LUT input
+		.I2(1'b0), // LUT input
+		.I3(1'b0), // LUT input
+		.I4(1'b0)  // LUT input
+	);
+endmodule
+
+// idea from Ken Chapman's solution here: https://forums.xilinx.com/t5/Other-FPGA-Architecture/How-to-implement-a-ring-oscillator-with-routings-of-FPGA-Where/m-p/768895/highlight/true#M21839
+module ring_oscillator #(
+	parameter number_of_stages = 5,
+	parameter TESTBENCH = 0
+) (
+	input enable,
+	input [$clog2(number_of_stages)-1:0] select,
+	output clock_out
+);
+	wire [number_of_stages-1:0] stage;
+	genvar i;
+	for (i=0; i<number_of_stages-1; i=i+1) begin : foobar
+		and_gate #(.DELAY_RISE(0.5), .DELAY_FALL(0.5), .TESTBENCH(TESTBENCH)) andi (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
+	end
+	and_gate #(.DELAY_RISE(0.5), .DELAY_FALL(0.5), .TESTBENCH(TESTBENCH)) ando (.I0(~stage[select-1]), .I1(enable), .O(stage[0]));
+	assign clock_out = stage[0];
+endmodule
+
+module ring_oscillator_tb ();
+	wire clock;
+	reg enable = 0;
+	reg [7:0] select = 8'd255;
+	ring_oscillator #(.number_of_stages(256), .TESTBENCH(1)) ro (.enable(enable), .select(select), .clock_out(clock));
+	initial begin
+		#20;
+		enable <= 1;
+		#1000;
+		enable <= 0;
+		#20;
+		$finish;
+	end
 endmodule
 

@@ -82,7 +82,7 @@ module reset_tb();
 		#100; downstream_pll_locked <= 0;
 		#100;
 		#1000; // ------------------------------------------------------------
-		$stop;
+		$finish;
 	end
 	always begin
 		#10;
