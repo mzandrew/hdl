@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-05-24 by mza
+// last updated 2020-05-28 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
@@ -91,7 +91,7 @@ module top (
 	wire clock_ro;
 	wire [31:0] ring_oscillator_select;
 	wire [31:0] ring_oscillator_enable;
-	ring_oscillator #(.number_of_stages(256)) ro (.enable(ring_oscillator_enable[0]), .select(ring_oscillator_select[7:0]), .clock_out(clock_ro));
+	ring_oscillator #(.number_of_stages(240)) ro (.enable(ring_oscillator_enable[0]), .select(ring_oscillator_select[7:0]), .clock_out(clock_ro));
 	reg [31:0] counter_ro = 0;
 	always @(posedge clock_ro) begin
 		counter_ro <= counter_ro + 1'b1;
@@ -239,7 +239,7 @@ module top (
 		assign led_4 = reset4_word_clock;
 		assign led_3 = ~rpi_spi_ce0;
 		assign led_2 = ~rpi_spi_ce1;
-		assign led_1 = counter_ro[29];
+		assign led_1 = counter_ro[23];
 		assign led_0 = not_ready;
 	end
 endmodule

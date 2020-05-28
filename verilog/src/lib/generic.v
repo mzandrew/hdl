@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
-// last updated 2020-05-27 by mza
+// last updated 2020-05-28 by mza
 
 module mux #(
 	parameter WIDTH = 1
@@ -170,7 +170,7 @@ module ring_oscillator #(
 );
 	wire [number_of_stages-1:0] stage;
 	genvar i;
-	for (i=0; i<number_of_stages-1; i=i+1) begin : foobar
+	for (i=0; i<number_of_stages-1; i=i+1) begin : feedback_path
 		and_gate #(.DELAY_RISE(0.5), .DELAY_FALL(0.5), .TESTBENCH(TESTBENCH)) andi (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
 	end
 	and_gate #(.DELAY_RISE(0.5), .DELAY_FALL(0.5), .TESTBENCH(TESTBENCH)) ando (.I0(~stage[select-1]), .I1(enable), .O(stage[0]));

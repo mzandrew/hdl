@@ -1,7 +1,7 @@
 # written 2020-04-01 by mza
 # based off of mza-test036
 # for an althea revA attached to an adafruit 813 raspberry pi hat with wires for spi connected to a+/c-/c+/d-/d+
-# last updated 2020-05-23 by mza
+# last updated 2020-05-28 by mza
 
 # 50 MHz local oscillator:
 net clock50_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK50+
@@ -70,4 +70,7 @@ net lemo loc=p93 | iostandard=lvcmos25 | drive = 24 | slew = fast;
 #net "althea/global_reset" TIG;
 #net "althea/clock_select" TIG;
 #net "althea/leds" TIG;
+
+inst "*/ro/feedback_path[*].andi*" loc = slice_x23y*;
+inst "*/ro/ando*" loc = slice_x0y2;
 
