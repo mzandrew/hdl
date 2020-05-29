@@ -75,14 +75,14 @@ net lemo loc=p93 | iostandard=lvcmos25 | drive = 24 | slew = fast;
 #net "althea/leds" TIG;
 
 # stagger the coarse ones to the left/right extreme columns of the die (as far apart as we can get):
-inst "*/ro/coarse_bride*" loc = slice_x23y*;
-inst "*/ro/coarse_feedback_even[*].coarse*" loc = slice_x1y*;
-inst "*/ro/coarse_feedback_odd[*].coarse*" loc = slice_x23y*;
+inst "*/ro/coarse_bride*" loc = slice_x23y2:slice_x23y5;
+inst "*/ro/coarse_feedback_even[*].coarse*" loc = slice_x1y58:slice_x1y61;
+inst "*/ro/coarse_feedback_odd[*].coarse*" loc = slice_x23y2:slice_x23y5;
 
-# put the medium ones on rows 7 and 15 (sorta close together):
-inst "*/ro/mediumm_bride*" loc = slice_x*y15;
-inst "*/ro/medium_feedback_even[*].mediumm*" loc = slice_x*y7;
-inst "*/ro/medium_feedback_odd[*].mediumm*" loc = slice_x*y15;
+# put the medium ones on rows 6/7 and 14/15 (sorta close together):
+inst "*/ro/mediumm_bride*" loc = slice_x11y14:slice_x11y15;
+inst "*/ro/medium_feedback_even[*].mediumm*" loc = slice_x11y5:slice_x11y6;
+inst "*/ro/medium_feedback_odd[*].mediumm*" loc = slice_x11y14:slice_x11y15;
 
 # force all the fine ones into the same slice:
 inst "*/ro/fine_bride*" loc = slice_x11y50;
