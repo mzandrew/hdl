@@ -56,15 +56,18 @@ module top (
 //	assign lemo = clock_ro;
 	ODDR2 ro_out (.C0(clock_ro), .C1(clock_ro_b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(global_reset), .S(1'b0), .Q(lemo));
 	// ----------------------------------------------------------------------
-	wire clock50_0, clock50_1, clock50_2, clock50_12;
+	wire clock50_0, clock50_1, clock50_12;
+//	wire clock50_2, pll_locked_ro;
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50_0));
-	wire clock50_raw1, clock50_raw2;
-	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm (.clockin(clock_alt), .reset(reset1_clock_alt), .clockout(clock50_raw1), .clockout180(), .locked(pll_locked_alt)); // 10->50
-	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm_ro50 (.clockin(clock_ro), .reset(global_reset), .clockout(clock50_raw2), .clockout180(), .locked()); // 10->50
+	wire clock50_raw1;
+//	wire clock50_raw2;
+	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm_alt50 (.clockin(clock_alt), .reset(reset1_clock_alt), .clockout(clock50_raw1), .clockout180(), .locked(pll_locked_alt)); // 10->50
+//	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm_ro50 (.clockin(clock_ro), .reset(global_reset), .clockout(clock50_raw2), .clockout180(), .locked(pll_locked_ro)); // 10->50
 	BUFG mybuf1 (.I(clock50_raw1), .O(clock50_1));
-	BUFG mybuf2 (.I(clock50_raw2), .O(clock50_2));
+//	BUFG mybuf2 (.I(clock50_raw2), .O(clock50_2));
 	//BUFGMUX sam12 (.I0(clock50_1), .I1(clock50_2), .S(ring_oscillator_enable[0]), .O(clock50_12));
-	BUFGMUX sam12 (.I0(clock50_1), .I1(clock50_2), .S(1'b1), .O(clock50_12));
+//	BUFGMUX sam12 (.I0(clock50_1), .I1(clock50_2), .S(1'b1), .O(clock50_12));
+	assign clock50_12 = clock50_1;
 	wire clock_select = rpi_gpio13;
 	wire clock50;
 	BUFGMUX sam0s (.I0(clock50_0), .I1(clock50_12), .S(clock_select), .O(clock50));
@@ -80,7 +83,7 @@ module top (
 	end else if (0) begin
 		simpledcm_SP #(.multiply(10), .divide(4), .alt_clockout_divide(2), .period(20.0)) mydcm (.clockin(clock50), .reset(reset2_clock50), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 50->125
 	end else begin
-		simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm (.clockin(clock50), .reset(reset2_clock50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
+		simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm_125 (.clockin(clock50), .reset(reset2_clock50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
 	end
 	// ----------------------------------------------------------------------
 	wire reset3_clock125;
