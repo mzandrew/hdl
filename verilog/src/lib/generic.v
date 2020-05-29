@@ -188,17 +188,26 @@ module ring_oscillator #(
 	wire [number_of_bits_for_coarse_stages-1:0] select_coarse = select[number_of_bits-1:number_of_bits_for_medium_stages+number_of_bits_for_fine_stages];
 	wire [number_of_bits_for_medium_stages-1:0] select_medium = select[number_of_bits-number_of_bits_for_coarse_stages-1:number_of_bits_for_fine_stages];
 	wire [number_of_bits_for_fine_stages-1:0] select_fine = select[number_of_bits_for_fine_stages-1:0];
-	for (i=0; i<number_of_coarse_stages-1; i=i+1) begin : coarse_feedback_path
+	for (i=0; i<number_of_coarse_stages-1; i=i+2) begin : coarse_feedback_even
+		and_gate #(.DELAY_RISE(COARSE_DELAY), .DELAY_FALL(COARSE_DELAY), .TESTBENCH(TESTBENCH)) coarse (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
+	end
+	for (i=1; i<number_of_coarse_stages-1; i=i+2) begin : coarse_feedback_odd
 		and_gate #(.DELAY_RISE(COARSE_DELAY), .DELAY_FALL(COARSE_DELAY), .TESTBENCH(TESTBENCH)) coarse (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
 	end
 	and_gate #(.DELAY_RISE(COARSE_DELAY), .DELAY_FALL(COARSE_DELAY), .TESTBENCH(TESTBENCH)) coarse_bride (.I0(stage[select_coarse]), .I1(enable), .O(stage[number_of_coarse_stages]));
 	wire aftercoarse = stage[number_of_coarse_stages];
-	for (i=number_of_coarse_stages; i<number_of_coarse_stages+number_of_medium_stages-1; i=i+1) begin : medium_feedback_path
+	for (i=number_of_coarse_stages; i<number_of_coarse_stages+number_of_medium_stages-1; i=i+2) begin : medium_feedback_even
+		and_gate #(.DELAY_RISE(MEDIUM_DELAY), .DELAY_FALL(MEDIUM_DELAY), .TESTBENCH(TESTBENCH)) mediumm (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
+	end
+	for (i=number_of_coarse_stages+1; i<number_of_coarse_stages+number_of_medium_stages-1; i=i+2) begin : medium_feedback_odd
 		and_gate #(.DELAY_RISE(MEDIUM_DELAY), .DELAY_FALL(MEDIUM_DELAY), .TESTBENCH(TESTBENCH)) mediumm (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
 	end
 	and_gate #(.DELAY_RISE(MEDIUM_DELAY), .DELAY_FALL(MEDIUM_DELAY), .TESTBENCH(TESTBENCH)) mediumm_bride (.I0(stage[number_of_coarse_stages+select_medium]), .I1(enable), .O(stage[number_of_coarse_stages+number_of_medium_stages]));
 	wire aftermedium = stage[number_of_coarse_stages+number_of_medium_stages];
-	for (i=number_of_coarse_stages+number_of_medium_stages; i<number_of_stages-1; i=i+1) begin : fine_feedback_path
+	for (i=number_of_coarse_stages+number_of_medium_stages; i<number_of_stages-1; i=i+2) begin : fine_feedback_even
+		and_gate #(.DELAY_RISE(FINE_DELAY), .DELAY_FALL(FINE_DELAY), .TESTBENCH(TESTBENCH)) fine (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
+	end
+	for (i=number_of_coarse_stages+number_of_medium_stages+1; i<number_of_stages-1; i=i+2) begin : fine_feedback_odd
 		and_gate #(.DELAY_RISE(FINE_DELAY), .DELAY_FALL(FINE_DELAY), .TESTBENCH(TESTBENCH)) fine (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
 	end
 	and_gate #(.DELAY_RISE(FINE_DELAY), .DELAY_FALL(FINE_DELAY), .TESTBENCH(TESTBENCH)) fine_bride (.I0(~stage[number_of_coarse_stages+number_of_medium_stages+select_fine]), .I1(enable), .O(stage[0]));

@@ -74,24 +74,18 @@ net lemo loc=p93 | iostandard=lvcmos25 | drive = 24 | slew = fast;
 #net "althea/clock_select" TIG;
 #net "althea/leds" TIG;
 
-#inst "*/ro/feedback_path[*].andi*" loc = slice_x23y*;
-#inst "*/ro/ando*" loc = slice_x0y2;
-
-#althea/ro/coarse_feedback_path[14].coarse
-inst "*/ro/coarse_feedback_path[0].coarse*" loc = slice_x1y*;
-inst "*/ro/coarse_feedback_path[1].coarse*" loc = slice_x23y*;
-inst "*/ro/coarse_feedback_path[2].coarse*" loc = slice_x1y*;
-inst "*/ro/coarse_feedback_path[3].coarse*" loc = slice_x23y*;
-inst "*/ro/coarse_feedback_path[4].coarse*" loc = slice_x1y*;
-inst "*/ro/coarse_feedback_path[5].coarse*" loc = slice_x23y*;
-inst "*/ro/coarse_feedback_path[6].coarse*" loc = slice_x1y*;
-inst "*/ro/coarse_feedback_path[7].coarse*" loc = slice_x23y*;
-inst "*/ro/coarse_feedback_path[8].coarse*" loc = slice_x1y*;
-inst "*/ro/coarse_feedback_path[9].coarse*" loc = slice_x23y*;
-inst "*/ro/coarse_feedback_path[10].coarse*" loc = slice_x1y*;
-inst "*/ro/coarse_feedback_path[11].coarse*" loc = slice_x23y*;
-inst "*/ro/coarse_feedback_path[12].coarse*" loc = slice_x1y*;
-inst "*/ro/coarse_feedback_path[13].coarse*" loc = slice_x23y*;
-inst "*/ro/coarse_feedback_path[14].coarse*" loc = slice_x1y*;
+# stagger the coarse ones to the left/right extreme columns of the die (as far apart as we can get):
 inst "*/ro/coarse_bride*" loc = slice_x23y*;
+inst "*/ro/coarse_feedback_even[*].coarse*" loc = slice_x1y*;
+inst "*/ro/coarse_feedback_odd[*].coarse*" loc = slice_x23y*;
+
+# put the medium ones on rows 7 and 15 (sorta close together):
+inst "*/ro/mediumm_bride*" loc = slice_x*y15;
+inst "*/ro/medium_feedback_even[*].mediumm*" loc = slice_x*y7;
+inst "*/ro/medium_feedback_odd[*].mediumm*" loc = slice_x*y15;
+
+# force all the fine ones into the same slice:
+inst "*/ro/fine_bride*" loc = slice_x11y50;
+inst "*/ro/fine_feedback_even[*].fine*" loc = slice_x11y50;
+inst "*/ro/fine_feedback_odd[*].fine*" loc = slice_x11y50;
 
