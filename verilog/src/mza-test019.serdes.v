@@ -1,6 +1,8 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2018-09-19 by mza
+// last updated 2020-05-29 by mza
+
+`define SCROD_revA3
 
 module mza_test019_serdes (
 	input clock_p,
@@ -54,7 +56,7 @@ module mza_test019_serdes (
 	always @(posedge clock) begin
 		if (reset) begin
 			if (counter[10]) begin
-				reset = 0;
+				reset <= 0;
 			end
 		end
 		counter <= counter + 1;

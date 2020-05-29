@@ -1,6 +1,8 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2018-09-21 by mza
+// last updated 2020-05-29 by mza
+
+`define SCROD_revA3
 
 module mza_test020_serdes_pll (
 	input clock_p,
@@ -30,7 +32,7 @@ module mza_test020_serdes_pll (
 	reg reset2 = 1;
 	wire clock; // 125 MHz
 	reg [31:0] counter = 0;
-	reg sync;
+	reg sync = 0;
 //	assign led_8 = counter[27-$clog2(WIDTH)]; // ~ 1 Hz
 	assign led_8 = sync;
 	assign led_9 = reset1;
@@ -44,7 +46,7 @@ module mza_test020_serdes_pll (
 	wire cascade_to;
 	wire cascade_di;
 	wire cascade_ti;
-	reg [WIDTH-1:0] word;
+	reg [WIDTH-1:0] word = 0;
 	localparam pickoff = 24;
 	wire [7:0] led_byte;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = led_byte;
@@ -79,8 +81,8 @@ module mza_test020_serdes_pll (
 	end
 	wire trigger_input;
 	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
-	reg [1:0] token;
-	reg [2:0] trigger_stream;
+	reg [1:0] token = 0;
+	reg [2:0] trigger_stream = 0;
 	localparam first  = 8'b11110000;
 	localparam second = 8'b10000001;
 	localparam third  = 8'b10001000;
