@@ -1,7 +1,9 @@
 `timescale 1ns / 1ps
 // written 2019-08-26 by mza
 // this code runs on an althea revA connected to a JoeStrummer board
-// last updated 2020-05-19 by mza
+// last updated 2020-05-29 by mza
+
+`define althea_revA
 
 module mza_test031_clock509_and_revo_generator_althea #(
 	parameter PHASE = 45.0

@@ -1,6 +1,7 @@
 // written 2018-08-06 by mza
-// last updated 2018-08-16 by mza
+// last updated 2020-05-29 by mza
 
+`define icestick
 `include "lib/hex2bcd.v"
 `include "lib/uart.v"
 `include "lib/i2c.v"
@@ -18,7 +19,7 @@ output TX
 	wire [6:0] i2c_address = 7'h27; // honeywell HIH6121 i2c humidity sensor
 	wire ack;
 	wire error;
-	reg start_i2c_transfer;
+	reg start_i2c_transfer = 0;
 	wire busy;
 	assign J1 = 0;
 	assign J2[2] = scl;
@@ -35,18 +36,18 @@ output TX
 	assign J3[1] = sda_out;
 	wire scl;
 	assign J3[0] = scl;
-	reg [31:0] counter;
+	reg [31:0] counter = 0;
 	localparam length_of_line = 6+6+6+2;
-	reg [7:0] uart_character_counter;
-	reg uart_transfers_are_allowed;
+	reg [7:0] uart_character_counter = 0;
+	reg uart_transfers_are_allowed = 0;
 	localparam i2c_clock_pickoff = 5; // yields 187.5 kHz
 	localparam uart_character_pickoff = 11; // this is already close to the limit for 115200
 	localparam uart_line_pickoff = 22;
 	localparam slow_clock_pickoff = uart_line_pickoff;
-	reg [15:0] uart_line_counter;
+	reg [15:0] uart_line_counter = 0;
 	reg uart_resetb = 0;
-	reg [7:0] relative_humidity;
-	reg [7:0] temperature;
+	reg [7:0] relative_humidity = 0;
+	reg [7:0] temperature = 0;
 	always @(posedge clock) begin
 		counter++;
 		if (~uart_resetb) begin
@@ -151,17 +152,17 @@ output TX
 			byte_to_send <= 8'h20;
 		end
 	end
-	reg [13:0] immediate_humidity;
-	reg [13:0] immediate_temperature;
-	reg [23:0] bcd1;
-	reg [23:0] bcd2;
-	reg [11:0] bcd3;
-	reg [23:0] buffered_bcd1;
-	reg [23:0] buffered_bcd2;
-	reg [11:0] buffered_bcd3;
-	reg [15:0] value1;
-	reg [15:0] value2;
-	reg [7:0] value3;
+	reg [13:0] immediate_humidity = 0;
+	reg [13:0] immediate_temperature = 0;
+	wire [23:0] bcd1;
+	wire [23:0] bcd2;
+	wire [11:0] bcd3;
+	reg [23:0] buffered_bcd1 = 0;
+	reg [23:0] buffered_bcd2 = 0;
+	reg [11:0] buffered_bcd3 = 0;
+	reg [15:0] value1 = 0;
+	reg [15:0] value2 = 0;
+	reg [7:0] value3 = 0;
 	hex2bcd #(.input_size_in_nybbles(4)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1) );
 	hex2bcd #(.input_size_in_nybbles(4)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
 	hex2bcd #(.input_size_in_nybbles(2)) h2binst3 ( .clock(clock), .reset(~uart_resetb), .hex_in(value3), .bcd_out(bcd3) );
@@ -188,14 +189,14 @@ output TX
 //			accumulated_temperature = accumulated_temperature + previous_temperature;
 //		end
 //	end
-	reg [7:0] byte_a;
-	reg [7:0] byte_b;
-	reg [7:0] byte_c;
-	reg [7:0] byte_d;
+	wire [7:0] byte_a;
+	wire [7:0] byte_b;
+	wire [7:0] byte_c;
+	wire [7:0] byte_d;
 	wire i2c_clock;
 	assign i2c_clock = counter[i2c_clock_pickoff];
 	wire i2c_busy;
-	reg start_i2c_transfer;
+	reg start_i2c_transfer = 0;
 	i2c_send_one_byte_and_read_one_plus_four_bytes_back myinstance(
 		.clock(i2c_clock),
 		.address(i2c_address),
@@ -212,24 +213,24 @@ output TX
 		.byte_c(byte_c),
 		.byte_d(byte_d)
 	);
-	reg uart_busy;
-	reg start_uart_transfer;
-	reg [7:0] byte_to_send;
+	wire uart_busy;
+	reg start_uart_transfer = 0;
+	reg [7:0] byte_to_send = 0;
 	wire uart_character_clock;
 	assign uart_character_clock = counter[uart_character_pickoff];
 	uart my_uart_instance (.clk(clock), .resetq(uart_resetb), .uart_busy(uart_busy), .uart_tx(TX), .uart_wr_i(start_uart_transfer), .uart_dat_i(byte_to_send));
 endmodule // mytop
 
-module icestick (
-input CLK,
-output LED1, LED2, LED3, LED4, LED5,
-output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
-//inout J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
-inout J2_4,
-output J2_1, J2_2, J2_3, J2_7, J2_8, J2_9, J2_10,
-output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
-output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
-input DTRn, RTSn, RX, IR_RX
+module top (
+	input CLK,
+	output LED1, LED2, LED3, LED4, LED5,
+	output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
+	//inout J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
+	inout J2_4,
+	output J2_1, J2_2, J2_3, J2_7, J2_8, J2_9, J2_10,
+	output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
+	output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
+	input DTRn, RTSn, RX, IR_RX
 );
 	wire [7:0] J1 = { J1_10, J1_9, J1_8, J1_7, J1_6, J1_5, J1_4, J1_3 };
 	wire [7:0] J2 = { J2_10, J2_9, J2_8, J2_7, J2_4, J2_3, J2_2, J2_1 };

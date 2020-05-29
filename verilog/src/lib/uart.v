@@ -1,20 +1,21 @@
 // from https://github.com/jamesbowman/swapforth/blob/master/j1a/icestorm/uart.v
+// last updated 2020-05-29 by mza
 
 `default_nettype none
-
 `define CLKFREQ   12000000    // frequency of incoming signal 'clk'
 `define BAUD      115200
 
 // Simple baud generator for transmitter
 // ser_clk pulses at 115200 Hz
 
-module baudgen(
-  input wire clk,
-  output wire ser_clk);
+module baudgen (
+  input clk,
+  output ser_clk
+);
   localparam lim = (`CLKFREQ / `BAUD) - 1; 
   localparam w = $clog2(lim);
   wire [w-1:0] limit = lim;
-  reg [w-1:0] counter;
+  reg [w-1:0] counter = 0;
   assign ser_clk = (counter == limit);
   always @(posedge clk)
     counter <= ser_clk ? 0 : (counter + 1);
@@ -26,11 +27,12 @@ endmodule
 // Generate 2X the baud rate to allow sampling on bit boundary
 // So ser_clk pulses at 2*115200 Hz
 
-module baudgen2(
-  input wire clk,
-  input wire restart,
-  output wire ser_clk);
-  localparam lim = (`CLKFREQ / (2 * `BAUD)) - 1; 
+module baudgen2 (
+  input clk,
+  input restart,
+  output ser_clk
+);
+  localparam lim = (`CLKFREQ / (2 * `BAUD)) - 1;
   localparam w = $clog2(lim);
   wire [w-1:0] limit = lim;
   reg [w-1:0] counter;
@@ -50,16 +52,16 @@ endmodule
      +-----+-----+-----+-----+-----+-----+-----+-----+-----+           +
 */
 
-module uart(
-   input wire clk,
-   input wire resetq,
-   output wire uart_busy,       // High means UART is transmitting
-   output reg uart_tx,          // UART transmit wire
-   input wire uart_wr_i,        // Raise to transmit byte
-   input wire [7:0] uart_dat_i
+module uart (
+   input clk,
+   input resetq,
+   output uart_busy,       // High means UART is transmitting
+   output reg uart_tx = 0, // UART transmit wire
+   input uart_wr_i,        // Raise to transmit byte
+   input [7:0] uart_dat_i
 );
-  reg [3:0] bitcount;           // 0 means idle, so this is a 1-based counter
-  reg [8:0] shifter;
+  reg [3:0] bitcount = 0;           // 0 means idle, so this is a 1-based counter
+  reg [8:0] shifter = 0;
   assign uart_busy = |bitcount;
   wire sending = |bitcount;
   wire ser_clk;
@@ -84,15 +86,16 @@ module uart(
   end
 endmodule
 
-module rxuart(
-   input wire clk,
-   input wire resetq,
-   input wire uart_rx,      // UART recv wire
-   input wire rd,           // read strobe
-   output wire valid,       // has data 
-   output wire [7:0] data); // data
-  reg [4:0] bitcount;
-  reg [7:0] shifter;
+module rxuart (
+   input clk,
+   input resetq,
+   input uart_rx,      // UART recv wire
+   input rd,           // read strobe
+   output valid,       // has data 
+   output [7:0] data
+); // data
+  reg [4:0] bitcount = 0;
+  reg [7:0] shifter = 0;
   // bitcount == 11111: idle
   //             0-17:  sampling incoming bits
   //             18:    character received
@@ -109,8 +112,8 @@ module rxuart(
     .clk(clk),
     .restart(startbit),
     .ser_clk(ser_clk));
-  reg [4:0] bitcountN;
-  always @*
+  wire [4:0] bitcountN;
+  always begin
     if (startbit)
       bitcountN = 0;
     else if (!idle & !valid & ser_clk)
@@ -119,11 +122,11 @@ module rxuart(
       bitcountN = 5'b11111;
     else
       bitcountN = bitcount;
+  end
   // 3,5,7,9,11,13,15,17
   assign sample = (|bitcount[4:1]) & bitcount[0] & ser_clk;
   assign data = shifter;
-  always @(negedge resetq or posedge clk)
-  begin
+  always @(negedge resetq or posedge clk) begin
     if (!resetq) begin
       hh <= 3'b111;
       bitcount <= 5'b11111;
@@ -136,17 +139,17 @@ module rxuart(
   end
 endmodule
 
-module buart(
-   input wire clk,
-   input wire resetq,
-   input wire rx,           // recv wire
-   output wire tx,          // xmit wire
-   input wire rd,           // read strobe
-   input wire wr,           // write strobe
-   output wire valid,       // has recv data 
-   output wire busy,        // is transmitting
-   input wire [7:0] tx_data,
-   output wire [7:0] rx_data // data
+module buart (
+   input clk,
+   input resetq,
+   input rx,           // recv wire
+   output tx,          // xmit wire
+   input rd,           // read strobe
+   input wr,           // write strobe
+   output valid,       // has recv data 
+   output busy,        // is transmitting
+   input [7:0] tx_data,
+   output [7:0] rx_data // data
 );
   rxuart _rx (
      .clk(clk),

@@ -1,19 +1,29 @@
 // written 2018-06-29 by mza
 // originally from file mza-test003.double-dabble.v
-// last updated 2018-07-31 by mza
+// last updated 2020-05-29 by mza
 
 // implemented after watching computerphile video https://www.youtube.com/watch?v=eXIfZ1yKFlA
 // each nybble in can be at most 15, which spans about 1.5 bcd nybbles, so 8 bits ("ff") -> 12 bits ("255")
 
-module hex2bcd #(parameter input_size_in_nybbles = 2, input_size_in_bits = input_size_in_nybbles*4, output_size_in_bits = input_size_in_nybbles*6) (input clock, input reset, input [input_size_in_bits-1:0] hex_in, output reg [output_size_in_bits-1:0] bcd_out);
+module hex2bcd #(
+	parameter input_size_in_nybbles = 2,
+	parameter input_size_in_bits = input_size_in_nybbles*4,
+	parameter output_size_in_bits = input_size_in_nybbles*6
+) (
+	input clock,
+	input reset,
+	input [input_size_in_bits-1:0] hex_in,
+	output reg [output_size_in_bits-1:0] bcd_out = 0
+);
 	localparam total_size_in_bits = input_size_in_bits + output_size_in_bits;
-	reg [total_size_in_bits-1:0] shift_register; // size of input plus size of output
-	reg [input_size_in_bits-1:0] bit_counter;
+	reg [total_size_in_bits-1:0] shift_register = 0; // size of input plus size of output
+	reg [input_size_in_bits-1:0] bit_counter = 0;
 	integer offset = 0;
 	always @(posedge clock) begin
 		if (reset) begin
 			bcd_out <= 0;
 			bit_counter <= 0;
+			shift_register <= 0;
 		end else begin
 			if (bit_counter == 0) begin // bit_counter is 0
 				bit_counter <= (input_size_in_bits << 1); // should be 16

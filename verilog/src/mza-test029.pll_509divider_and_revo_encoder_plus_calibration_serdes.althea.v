@@ -1,8 +1,10 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2020-05-19 by mza
+// last updated 2020-05-29 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
+
+`define althea_revA
 
 module ssynchronizer_90_270 #(
 	parameter WIDTH=1

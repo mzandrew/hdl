@@ -1,17 +1,21 @@
 // written 2018-07-31 by mza
 // based on mza-test007.7-segment-driver.v and mza-test003.double-dabble.v
-// last updated 2018-10-05 by mza
+// last updated 2020-05-29 by mza
 
+`define icestick
 `include "lib/hex2bcd.v"
 `include "lib/segmented_display_driver.v"
 
-module top (
+module mytop (
 	input clock,
 	output [5:1] LED,
 	inout [7:0] J1,
 	inout [7:0] J2,
 	inout [7:0] J3
 );
+	wire reset = 0;
+	wire [35:0] bcd;
+	wire [23:0] data = 24'd00112233;
 	if (1) begin
 		// for an HDSP-B04E mounted pin7=pin14 justified on an icestick-test revA ZIF-socket board (IDL_18_027)
 		//wire [6:0] segment;
@@ -71,18 +75,14 @@ module top (
 		assign J1[0] = signal_output; // trigger_out on PCB
 	end
 	assign LED = 0;
-	wire [35:0] bcd;
-	wire [23:0] data;
-	wire reset;
-	assign reset = 0;
-	reg [40:0] raw_counter;
-	reg [40:0] alternate_counter;
+	reg [40:0] raw_counter = 0;
+	reg [40:0] alternate_counter = 0;
 	//wire clock_1Hz;
-	wire [15:0] counter_1000Hz;
-	wire [15:0] counter_100Hz;
-	wire [15:0] counter_10Hz;
-	wire [15:0] counter_1Hz;
-	reg [2:0] clock_token;
+	wire [15:0] counter_1000Hz = alternate_counter[26:12]; // really about 1.024 kHz
+	//wire [15:0] counter_100Hz;
+	wire [15:0] counter_10Hz = alternate_counter[34:19]; // really about 7.629 Hz
+	wire [15:0] counter_1Hz = alternate_counter[37:22]; // really about 1.048576 Hz
+	reg [2:0] clock_token = 0;
 	always @(posedge clock) begin
 		if (raw_counter[40:10]==0) begin
 			clock_token <= 3'b001;
@@ -94,25 +94,26 @@ module top (
 		end
 		raw_counter++;
 	end
-	always begin
+//	always @(posedge clock) begin
+	//always begin
 //		counter_1Hz <= raw_counter[39:24]; // really about 1.34 Hz
 //		counter_10Hz <= raw_counter[35:20]; // really about 11.444 Hz
 //		counter_1000Hz <= alternate_counter[26:12]; // really about 1.024 kHz
-		counter_10Hz <= alternate_counter[34:19]; // really about 7.629 Hz
+//	counter_10Hz = alternate_counter[34:19]; // really about 7.629 Hz
 //		counter_1Hz <= alternate_counter[37:22]; // really about 1.048576 Hz
 		//data <= counter_10Hz;
-		data <= 24'd00112233;
-	end
+//		data <= 24'd00112233;
+//	end
 endmodule // top
 
-module icestick (
-input CLK,
-output LED1, LED2, LED3, LED4, LED5,
-output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
-output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
-output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
-output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
-input DTRn, RTSn, RX, IR_RX
+module top (
+	input CLK,
+	output LED1, LED2, LED3, LED4, LED5,
+	output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
+	output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
+	output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
+	output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
+	input DTRn, RTSn, RX, IR_RX
 );
 	wire [7:0] J1 = { J1_10, J1_9, J1_8, J1_7, J1_6, J1_5, J1_4, J1_3 };
 	wire [7:0] J2 = { J2_10, J2_9, J2_8, J2_7, J2_4, J2_3, J2_2, J2_1 };
@@ -121,6 +122,6 @@ input DTRn, RTSn, RX, IR_RX
 	assign { DCDn, DSRn, CTSn } = 1;
 	assign { IR_TX, IR_SD } = 0;
 	assign TX = 0;
-	top mytop_instance (.clock(CLK), .LED(LED), .J1(J1), .J2(J2), .J3(J3));
+	mytop mytop_instance (.clock(CLK), .LED(LED), .J1(J1), .J2(J2), .J3(J3));
 endmodule // icestick
 

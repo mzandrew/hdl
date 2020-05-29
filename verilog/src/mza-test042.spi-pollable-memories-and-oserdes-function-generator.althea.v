@@ -6,6 +6,7 @@
 // based on mza-test041.spi-pollable-memory.althea.v
 // last updated 2020-05-29 by mza
 
+`define althea_revA
 `include "lib/spi.v"
 `include "lib/RAM8.v"
 `include "lib/serdes_pll.v"

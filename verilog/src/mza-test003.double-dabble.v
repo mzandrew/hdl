@@ -1,28 +1,29 @@
 // written 2018-06-29 by mza
-// last updated 2018-07-31 by mza
+// last updated 2020-05-29 by mza
 
+`define icestick
 `include "lib/hex2bcd.v"
 `include "lib/segmented_display_driver.v"
 
-module top(input CLK, 
-output LED1, LED2, LED3, LED4, LED5,
-J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
-J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
-J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
+module top (
+	input CLK,
+	output LED1, LED2, LED3, LED4, LED5,
+	output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
+	output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
+	output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 );
-	reg [39:0] counter;
-	wire reset;
+	reg [39:0] counter = 0;
+	reg reset = 1;
 	always @(posedge CLK) begin
-		if (counter[39:10]==0) begin
-			reset <= 1;
-		end else begin
-			reset <= 0;
+		if (reset) begin
+			if (counter[10]) begin
+				reset <= 0;
+			end
 		end
 		counter++;
 	end
-	reg [23:0] bcd;
-	reg [15:0] data;
-	assign data = counter[39:24];
+	wire [23:0] bcd;
+	wire [15:0] data = counter[39:24];
 	hex2bcd #(.input_size_in_nybbles(4)) h2binst ( .clock(CLK), .reset(reset), .hex_in(data), .bcd_out(bcd) );
 	if (1) begin
 		assign LED5 = bcd[4];

@@ -7,22 +7,22 @@
 module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 	input clock,
 	input [6:0] address,
-	output reg scl,
-	output reg sda_out,
-	output reg sda_dir,
+	output reg scl = 0,
+	output reg sda_out = 0,
+	output reg sda_dir = 0,
 	input sda_in,
 	input start_transfer,
-	output reg busy,
-	output reg ack,
-	output reg error,
-	output [7:0] byte_a,
-	output [7:0] byte_b,
-	output [7:0] byte_c,
-	output [7:0] byte_d
+	output reg busy = 0,
+	output reg ack = 0,
+	output reg error = 0,
+	output reg [7:0] byte_a = 0,
+	output reg [7:0] byte_b = 0,
+	output reg [7:0] byte_c = 0,
+	output reg [7:0] byte_d = 0
 );
-	reg [8:0] bit_counter;
+	reg [8:0] bit_counter = 0;
 	reg [7:0] byte [3:0];
-	reg [7:0] data;
+	reg [7:0] data = 0;
 	always @(posedge clock) begin
 		if (bit_counter>0) begin
 			case(bit_counter)

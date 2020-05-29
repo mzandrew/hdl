@@ -1,10 +1,12 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2020-05-21 by mza
+// last updated 2020-05-29 by mza
 // this code runs on an althea connected to a RAFFERTY board
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
+
+`define althea_revA
 
 module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea #(
 	parameter PLL_NOT_LOCKED_COUNTER_MAX = 16384, // simulation only needed ~30, but 512 isn't enough for reality, so picked this

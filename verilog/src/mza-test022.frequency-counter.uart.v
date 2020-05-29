@@ -1,8 +1,9 @@
 // written 2018-09-27 by mza
 // based on mza-test014.duration-timer.uart.v
 // updated for icestick-frequency-counter revB
-// last updated 2019-01-25 by mza
+// last updated 2020-05-29 by mza
 
+`define icestick
 `include "lib/hex2bcd.v"
 `include "lib/segmented_display_driver.v"
 //`include "lib/uart.v"
@@ -17,16 +18,22 @@ module mytop (
 	input RX,
 	output TX
 );
+//	reg [35:0] bcd1;
+	wire [35:0] bcd2;
+//	reg [35:0] buffered_bcd1;
+	reg [35:0] buffered_bcd2 = 0;
+//	reg [23:0] value1;
+	reg [23:0] value2 = 0;
 	wire external_reference_clock;
 	wire raw_external_clock_to_measure;
-	wire external_clock_to_measure;
+	reg external_clock_to_measure = 0;
 	wire reference_clock;
 	wire trigger_active;
 	wire signal_output;
 	localparam log2_of_divide_ratio = 24; // 27 is good
 	localparam msb_of_counters = log2_of_divide_ratio + 8; // 35
 	localparam N = 100; // N for N_Hz calculations
-	reg [msb_of_counters:0] reference_clock_counter;
+	reg [msb_of_counters:0] reference_clock_counter = 0;
 	reg [2:0] trigger_stream = 0;
 	localparam maximum_expected_frequency = 250000000;
 	localparam log2_of_maximum_expected_frequency = $clog2(maximum_expected_frequency); // ~28
@@ -44,9 +51,9 @@ module mytop (
 	localparam log2_of_frequency_of_reference_clock_in_N_Hz = $clog2(frequency_of_reference_clock_in_N_Hz); // ~27
 	localparam msb_of_accumulator = log2_of_maximum_expected_frequency + log2_of_frequency_of_reference_clock_in_N_Hz + 8; // ~63
 	localparam msb_of_result = msb_of_accumulator - log2_of_divide_ratio; // ~35
-	reg [msb_of_accumulator:0] accumulator;
-	reg [msb_of_accumulator:0] previous_accumulator;
-	reg [msb_of_result:0] result;
+	reg [msb_of_accumulator:0] accumulator = 0;
+	reg [msb_of_accumulator:0] previous_accumulator = 0;
+	reg [msb_of_result:0] result = 0;
 	assign trigger_active = reference_clock_counter[log2_of_divide_ratio];
 	assign signal_output = trigger_active;
 	assign J1[0] = signal_output; // trigger_out on PCB
@@ -87,7 +94,7 @@ module mytop (
 	assign LED[3] = trigger_stream[2];
 	assign LED[2] = trigger_stream[1];
 	assign LED[1] = trigger_stream[0];
-	reg [msb_of_counters:0] counter;
+	reg [msb_of_counters:0] counter = 0;
 //	localparam length_of_line = 6+6+2;
 //	reg [7:0] uart_character_counter;
 //	reg uart_transfers_are_allowed;
@@ -171,12 +178,6 @@ module mytop (
 //			byte_to_send <= 8'h20;
 //		end
 	end
-//	reg [35:0] bcd1;
-	reg [35:0] bcd2;
-//	reg [35:0] buffered_bcd1;
-	reg [35:0] buffered_bcd2;
-//	reg [23:0] value1;
-	reg [23:0] value2;
 //	hex2bcd #(.input_size_in_nybbles(6)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1) );
 	hex2bcd #(.input_size_in_nybbles(6)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
 //	assign bcd2 = { 0, value2 };
@@ -195,15 +196,15 @@ module mytop (
 	assign TX = 0;
 endmodule // mytop
 
-module icestick (
-input CLK,
-output LED1, LED2, LED3, LED4, LED5,
-output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8,
-output       J2_2, J2_3,       J2_7, J2_8, J2_9, J2_10,
-output       J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
-input J3_3, J2_4, J2_1, J1_9, J1_10,
-output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
-input DTRn, RTSn, RX, IR_RX
+module top (
+	input CLK,
+	output LED1, LED2, LED3, LED4, LED5,
+	output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8,
+	output       J2_2, J2_3,       J2_7, J2_8, J2_9, J2_10,
+	output       J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
+	input J3_3, J2_4, J2_1, J1_9, J1_10,
+	output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
+	input DTRn, RTSn, RX, IR_RX
 );
 	wire [7:0] J1 = { J1_10, J1_9, J1_8, J1_7, J1_6, J1_5, J1_4, J1_3 };
 	wire [7:0] J2 = { J2_10, J2_9, J2_8, J2_7, J2_4, J2_3, J2_2, J2_1 };

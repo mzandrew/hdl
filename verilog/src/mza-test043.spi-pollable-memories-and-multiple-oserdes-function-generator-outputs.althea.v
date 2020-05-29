@@ -4,8 +4,9 @@
 
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-05-20 by mza
+// last updated 2020-05-29 by mza
 
+`define althea_revB
 `include "lib/spi.v"
 `include "lib/RAM8.v"
 `include "lib/serdes_pll.v"

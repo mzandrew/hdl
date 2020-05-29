@@ -1,23 +1,27 @@
 // written 2018-09-06 by mza
 // to drive a SN65LV1023 serializer IC
 // based on mza-test014.duration-timer.uart.v
-// last updated 2018-09-07 by mza
+// last updated 2020-05-29 by mza
 
+`define icestick
 `include "lib/easypll.v"
 `include "lib/prbs.v"
 
-module mytop (input clock, output [5:1] LED, 
-output [7:0] J1,
-inout [7:0] J2,
-output [7:0] J3
+module mytop (
+	input clock,
+	output [5:1] LED,
+	output [7:0] J1,
+	inout [7:0] J2,
+	output [7:0] J3
 );
 	reg reset = 1;
 	wire fast_clock;
 	wire pll_is_locked;
 	easypll #(.DIVR(0), .DIVF(56), .DIVQ(4), .FILTER_RANGE(1)) my_42MHz_pll_instance (.clock_input(clock), .reset_active_low(~reset), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 42.750 MHz
-	reg [31:0] fast_clock_counter;
+	reg [31:0] fast_clock_counter = 0;
 	localparam pickoff = 4;
-	reg sync;
+	reg sync = 0;
+	reg [9:0] data_bus = 0;
 	always @(posedge fast_clock) begin
 		sync <= 0;
 		if (reset) begin
@@ -57,14 +61,14 @@ output [7:0] J3
 			end
 		end
 	end
-	reg [31:0] counter;
+	reg [31:0] counter = 0;
 	always @(posedge clock) begin
-		counter++;
 		if (reset) begin
-			if (counter[10]==1) begin
+			if (counter[10]) begin
 				reset <= 0;
 			end
 		end
+		counter++;
 	end
 	assign J1[7] = 1; // vcc
 	assign J1[3] = 1; // vcc
@@ -82,31 +86,30 @@ output [7:0] J3
 	assign J3[5] = fast_clock; // tclk
 	wire serial_stream_p;
 	wire serial_stream_n;
-	wire [9:0] data_bus;
-	assign data_bus = { J3[3], J3[2],
-	                    J3[1], J3[0], J2[0], J2[4],
-	                    J2[1], J2[5], J3[6], J3[7] };
+	assign { J3[3], J3[2],
+	         J3[1], J3[0], J2[0], J2[4],
+	         J2[1], J2[5], J3[6], J3[7] } = data_bus;
 	assign LED[5] = sync;
 	assign LED[4] = 0;
 	assign LED[3] = 0;
 	assign LED[2] = 0;
 	assign LED[1] = 0;
 	localparam PRBSWIDTH = 128;
-	reg [PRBSWIDTH-1:0] rand;
-	reg [PRBSWIDTH-1:0] buffered_rand;
+	wire [PRBSWIDTH-1:0] rand;
+	reg [PRBSWIDTH-1:0] buffered_rand = 0;
 	prbs #(.WIDTH(PRBSWIDTH)) myprbs (.clock(clock), .reset(reset), .word(rand));
 endmodule // mytop
 
-module icestick (
-input CLK,
-output LED1, LED2, LED3, LED4, LED5,
-output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
-//output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
-output J2_1, J2_2, J2_3, J2_7, J2_8, J2_9,
-input J2_4, J2_10,
-output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
-output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
-input DTRn, RTSn, RX, IR_RX
+module top (
+	input CLK,
+	output LED1, LED2, LED3, LED4, LED5,
+	output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
+	//output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
+	output J2_1, J2_2, J2_3, J2_7, J2_8, J2_9,
+	input J2_4, J2_10,
+	output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
+	output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
+	input DTRn, RTSn, RX, IR_RX
 );
 	wire [7:0] J1 = { J1_10, J1_9, J1_8, J1_7, J1_6, J1_5, J1_4, J1_3 };
 	wire [7:0] J2 = { J2_10, J2_9, J2_8, J2_7, J2_4, J2_3, J2_2, J2_1 };
