@@ -1,40 +1,46 @@
 // written 2018-07-27 by mza
 // based on mza-test004.16-segment-driver.v
-// last updated 2018-07-30 by mza
+// last updated 2020-05-29 by mza
 
+`define icestick
 `include "lib/debounce.v"
 `include "lib/edge_to_pulse.v"
 
-module top(input CLK, 
-input J3_10, 
-output LED1, LED2, LED3, LED4, LED5,
-output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
-output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
-output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9
+module top(
+	input CLK,
+	input J3_10,
+	output reg LED1 = 0,
+	output reg LED2 = 0,
+	output reg LED3 = 0,
+	output reg LED4 = 0,
+	output reg LED5 = 0,
+	output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
+	output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
+	output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9
 );
-	reg segment_a;
-	reg segment_b;
-	reg segment_c;
-	reg segment_d;
-	reg segment_e;
-	reg segment_f;
-	reg segment_g;
-	reg segment_h;
-	reg segment_k;
-	reg segment_m;
-	reg segment_n;
-	reg segment_u;
-	reg segment_p;
-	reg segment_t;
-	reg segment_s;
-	reg segment_r;
-	reg segment_dp;
+	reg segment_a = 0;
+	reg segment_b = 0;
+	reg segment_c = 0;
+	reg segment_d = 0;
+	reg segment_e = 0;
+	reg segment_f = 0;
+	reg segment_g = 0;
+	reg segment_h = 0;
+	reg segment_k = 0;
+	reg segment_m = 0;
+	reg segment_n = 0;
+	reg segment_u = 0;
+	reg segment_p = 0;
+	reg segment_t = 0;
+	reg segment_s = 0;
+	reg segment_r = 0;
+	reg segment_dp = 0;
+	wire button;
+	wire pulse;
 	assign J3_9 = button;
 	assign J1_10 = pulse;
-	reg button;
-	assign LED1 = button;
+	//assign LED1 = button;
 	debounce my_debounce_instance (.clock(CLK), .polarity(0), .raw_button_input(J3_10), .button_active(button));
-	wire pulse;
 	edge_to_pulse #(.polarity(1)) my_e2p_instance (.clock(CLK), .i(button), .o(pulse));
 	assign J2_7  = segment_a;
 	assign J2_2  = segment_b;
@@ -58,14 +64,14 @@ output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9
 	assign J2_3  = 1; // not connected
 	assign J2_8  = 1; // not connected
 //	assign J1_10 = 1; // not connected
-	reg [31:0] raw_counter;
-	reg dot_clock;
-	reg [3:0] dot_counter;
-	reg clock_1Hz;
-	reg clock_10Hz;
-	reg [3:0] counter_1Hz;
-	reg [15:0] sequence;
-	reg reset;
+	reg [31:0] raw_counter = 0;
+	reg dot_clock = 0;
+	reg [3:0] dot_counter = 0;
+	reg clock_1Hz = 0;
+	reg clock_10Hz = 0;
+	reg [3:0] counter_1Hz = 0;
+	reg [15:0] sequence = 0;
+	reg reset = 0;
 	wire [3:0] nybble;
 	reg [3:0] counter = 0;
 //	assign nybble = counter_1Hz[3:0];
@@ -79,12 +85,13 @@ output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9
 	always @(posedge CLK) begin
 		if (raw_counter[31:12]==0) begin // reset active for 4096 cycles
 			reset <= 1;
-//			LED1 <= 0;
+			LED1 <= 0;
 			LED2 <= 0;
 			LED3 <= 0;
 			LED4 <= 0;
 			LED5 <= 0;
 		end else begin
+			LED1 <= button;
 //			LED5 <= dot_clock;
 			reset <= 0;
 		end

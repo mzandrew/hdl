@@ -1,10 +1,17 @@
 // written 2018-07-27 by mza
 // originally from file mza-test008.16-segment-driver.button-debounce-duration-counter.v
-// last updated 2018-07-30 by mza
+// last updated 2020-05-29 by mza
 
-module debounce(input clock, input polarity, input raw_button_input, output button_active);
+// see module button_debounce in file synchronizer.v as well
+
+module debounce(
+	input clock,
+	input polarity,
+	input raw_button_input,
+	output reg button_active = 0
+);
 	localparam timeout = 120000; // 10ms
-	reg [$clog2(timeout)+1:0] counter;
+	reg [$clog2(timeout)+1:0] counter = 0;
 	reg old_status = 0;
 	reg new_status = 0;
 	always @(posedge clock) begin

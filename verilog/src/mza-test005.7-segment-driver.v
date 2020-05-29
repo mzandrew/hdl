@@ -1,20 +1,27 @@
 // written 2018-07-20 by mza
 // based on mza-test004.16-segment-driver.v
-// last updated 2018-07-20 by mza
+// last updated 2020-05-29 by mza
 
-module top(input CLK, 
-output LED1, LED2, LED3, LED4, LED5,
-J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
-J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
-J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
+`define icestick
+
+module top(
+	input CLK,
+	output reg LED1 = 0,
+	output reg LED2 = 0,
+	output reg LED3 = 0,
+	output reg LED4 = 0,
+	output reg LED5 = 0,
+	output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
+	output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
+	output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 );
-	reg segment_a;
-	reg segment_b;
-	reg segment_c;
-	reg segment_d;
-	reg segment_e;
-	reg segment_f;
-	reg segment_g;
+	reg segment_a = 0;
+	reg segment_b = 0;
+	reg segment_c = 0;
+	reg segment_d = 0;
+	reg segment_e = 0;
+	reg segment_f = 0;
+	reg segment_g = 0;
 	assign J1_4  = segment_a;
 	assign J3_8  = segment_b;
 	assign J3_5  = segment_c;
@@ -27,13 +34,13 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	assign J1_7 = 0; // connected via resistor to anode0010
 	assign J1_6 = 0; // connected via resistor to anode0100
 	assign J1_3 = 0; // connected via resistor to anode1000 for most significant digit
-	reg [31:0] raw_counter;
-	reg dot_clock;
-	reg [3:0] dot_counter;
-	reg clock_1Hz;
-	reg [3:0] counter_1Hz;
-	reg [6:0] sequence;
-	reg reset;
+	reg [31:0] raw_counter = 0;
+	reg dot_clock = 0;
+	reg [3:0] dot_counter = 0;
+	reg clock_1Hz = 0;
+	reg [3:0] counter_1Hz = 0;
+	reg [6:0] sequence = 0;
+	reg reset = 0;
 	always @(posedge CLK) begin
 		if (raw_counter[31:12]==0) begin // reset active for 4096 cycles
 			reset <= 1;

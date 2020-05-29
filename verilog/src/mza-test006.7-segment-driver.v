@@ -1,20 +1,27 @@
 // written 2018-07-20 by mza
 // based on mza-test005.7-segment-driver.v
-// last updated 2018-07-20 by mza
+// last updated 2020-05-29 by mza
 
-module top(input CLK, 
-output LED1, LED2, LED3, LED4, LED5,
-J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
-J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
-J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
+`define icestick
+
+module top (
+	input CLK,
+	output reg LED1 = 0,
+	output reg LED2 = 0,
+	output reg LED3 = 0,
+	output reg LED4 = 0,
+	output reg LED5 = 0,
+	output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
+	output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
+	output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 );
-	wire segment_a;
-	wire segment_b;
-	wire segment_c;
-	wire segment_d;
-	wire segment_e;
-	wire segment_f;
-	wire segment_g;
+	reg segment_a = 0;
+	reg segment_b = 0;
+	reg segment_c = 0;
+	reg segment_d = 0;
+	reg segment_e = 0;
+	reg segment_f = 0;
+	reg segment_g = 0;
 	assign J1_4  = segment_a;
 	assign J3_8  = segment_b;
 	assign J3_5  = segment_c;
@@ -23,27 +30,27 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	assign J1_5  = segment_f;
 	assign J3_6  = segment_g;
 	assign J3_4 = 1; // dp/colon
-	wire anode0001;
-	wire anode0010;
-	wire anode0100;
-	wire anode1000;
+	reg anode0001 = 0;
+	reg anode0010 = 0;
+	reg anode0100 = 0;
+	reg anode1000 = 0;
 	assign J3_7 = anode0001; // connected via resistor to anode0001 for least significant digit
 	assign J1_7 = anode0010; // connected via resistor to anode0010
 	assign J1_6 = anode0100; // connected via resistor to anode0100
 	assign J1_3 = anode1000; // connected via resistor to anode1000 for most significant digit
-	reg [31:0] raw_counter;
+	reg [31:0] raw_counter = 0;
 	wire digit_clock;
 	wire [1:0] digit_counter;
 	wire dot_clock;
-	reg [6:0] dot_token;
+	reg [6:0] dot_token = 0;
 	wire clock_1Hz;
 	wire [3:0] counter_1Hz;
-	wire [6:0] sequence;
-	reg [6:0] sequence0001;
-	reg [6:0] sequence0010;
-	reg [6:0] sequence0100;
-	reg [6:0] sequence1000;
-	wire reset;
+	reg [6:0] sequence = 0;
+	reg [6:0] sequence0001 = 0;
+	reg [6:0] sequence0010 = 0;
+	reg [6:0] sequence0100 = 0;
+	reg [6:0] sequence1000 = 0;
+	reg reset = 0;
 	always @(posedge CLK) begin
 		if (raw_counter[31:12]==0) begin // reset active for 4096 cycles
 			reset <= 1;
@@ -61,17 +68,11 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	end
 	localparam dot_clock_pickoff = 3;
 	localparam digit_clock_pickoff = dot_clock_pickoff + 4;
-	always begin
-		digit_clock <= raw_counter[digit_clock_pickoff];
-		digit_counter <= raw_counter[digit_clock_pickoff+2:digit_clock_pickoff+1];
-	end
-	always begin
-		dot_clock <= raw_counter[dot_clock_pickoff];
-	end
-	always begin
-		clock_1Hz <= raw_counter[23];
-		counter_1Hz <= raw_counter[27:24];
-	end
+	assign digit_clock = raw_counter[digit_clock_pickoff];
+	assign digit_counter = raw_counter[digit_clock_pickoff+2:digit_clock_pickoff+1];
+	assign dot_clock = raw_counter[dot_clock_pickoff];
+	assign clock_1Hz = raw_counter[23];
+	assign counter_1Hz = raw_counter[27:24];
 	always @(posedge clock_1Hz) begin
 		sequence1000 <= sequence0100;
 		sequence0100 <= sequence0010;

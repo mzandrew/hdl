@@ -1,14 +1,20 @@
 // written 2018-07-26 by mza
 // based on mza-test006.7-segment-driver.v
-// last updated 2018-07-31 by mza
+// last updated 2020-05-29 by mza
 
+`define icestick
 `include "lib/segmented_display_driver.v"
 
-module top(input CLK, 
-output LED1, LED2, LED3, LED4, LED5,
-J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
-J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
-J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
+module top(
+	input CLK,
+	output reg LED1 = 0,
+	output reg LED2 = 0,
+	output reg LED3 = 0,
+	output reg LED4 = 0,
+	output reg LED5 = 0,
+	output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8, J1_9, J1_10,
+	output J2_1, J2_2, J2_3, J2_4, J2_7, J2_8, J2_9, J2_10,
+	output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 );
 	wire [6:0] segment;
 	assign J1_4  = segment[0];
@@ -25,15 +31,15 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 	assign J1_6 = anode[2]; // connected via resistor to anode0100
 	assign J1_3 = anode[3]; // connected via resistor to anode1000 for most significant digit
 
-	reg [40:0] raw_counter;
-	reg [40:0] alternate_counter;
+	reg [40:0] raw_counter = 0;
+	reg [40:0] alternate_counter = 0;
 	//wire clock_1Hz;
-	wire [15:0] counter_1000Hz;
-	wire [15:0] counter_100Hz;
+//	wire [15:0] counter_1000Hz;
+//	wire [15:0] counter_100Hz;
 	wire [15:0] counter_10Hz;
-	wire [15:0] counter_1Hz;
+//	wire [15:0] counter_1Hz;
 	wire [15:0] data;
-	reg [2:0] clock_token;
+	reg [2:0] clock_token = 0;
 	always @(posedge CLK) begin
 		if (raw_counter[40:10]==0) begin
 			clock_token <= 3'b001;
@@ -45,15 +51,12 @@ J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10
 		end
 		raw_counter++;
 	end
-	always begin
 //		counter_1Hz <= raw_counter[39:24]; // really about 1.34 Hz
 //		counter_10Hz <= raw_counter[35:20]; // really about 11.444 Hz
 //		counter_1000Hz <= alternate_counter[26:12]; // really about 1.024 kHz
-		counter_10Hz <= alternate_counter[34:19]; // really about 7.629 Hz
+	assign counter_10Hz = alternate_counter[34:19]; // really about 7.629 Hz
 //		counter_1Hz <= alternate_counter[37:22]; // really about 1.048576 Hz
-		data <= counter_10Hz;
-	end
+	assign data = counter_10Hz;
 	segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(4)) my_instance_name (.clock(CLK), .data(data), .cathode(segment), .anode(anode));
-
 endmodule // top
 

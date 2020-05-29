@@ -1,5 +1,7 @@
 // borrowed/stolen from rot.v example project
 
+`define icestick
+
 module top(input CLK, output LED1, output LED2, output LED3, output LED4, output LED5);
    reg ready = 0;
    reg [23:0]     divider;
