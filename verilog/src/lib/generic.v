@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
-// last updated 2020-05-28 by mza
+// last updated 2020-05-29 by mza
 
 module mux #(
 	parameter WIDTH = 1
@@ -161,31 +161,89 @@ endmodule
 
 // idea from Ken Chapman's solution here: https://forums.xilinx.com/t5/Other-FPGA-Architecture/How-to-implement-a-ring-oscillator-with-routings-of-FPGA-Where/m-p/768895/highlight/true#M21839
 module ring_oscillator #(
-	parameter number_of_stages = 5,
+	parameter number_of_bits_for_coarse_stages = 3,
+	parameter number_of_bits_for_medium_stages = 3,
+	parameter number_of_bits_for_fine_stages = 3,
+	parameter number_of_bits = number_of_bits_for_coarse_stages + number_of_bits_for_medium_stages + number_of_bits_for_fine_stages,
+//	parameter number_of_coarse_stages = 8,
+//	parameter number_of_medium_stages = 8,
+//	parameter number_of_fine_stages = 8,
+//	parameter number_of_stages = number_of_coarse_stages + number_of_medium_stages + number_of_fine_stages,
 	parameter TESTBENCH = 0
 ) (
 	input enable,
-	input [$clog2(number_of_stages)-1:0] select,
+//	input [$clog2(number_of_stages)-1:0] select,
+	input [number_of_bits-1:0] select,
 	output clock_out
 );
+	localparam number_of_coarse_stages = 2**number_of_bits_for_coarse_stages;
+	localparam number_of_medium_stages = 2**number_of_bits_for_medium_stages;
+	localparam number_of_fine_stages = 2**number_of_bits_for_fine_stages;
+	localparam number_of_stages = number_of_coarse_stages + number_of_medium_stages + number_of_fine_stages;
 	wire [number_of_stages-1:0] stage;
 	genvar i;
-	for (i=0; i<number_of_stages-1; i=i+1) begin : feedback_path
-		and_gate #(.DELAY_RISE(0.5), .DELAY_FALL(0.5), .TESTBENCH(TESTBENCH)) andi (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
+	localparam COARSE_DELAY = 10.0;
+	localparam MEDIUM_DELAY = 2.0;
+	localparam FINE_DELAY = 0.5;
+	wire [number_of_bits_for_coarse_stages-1:0] select_coarse = select[number_of_bits-1:number_of_bits_for_medium_stages+number_of_bits_for_fine_stages];
+	wire [number_of_bits_for_medium_stages-1:0] select_medium = select[number_of_bits-number_of_bits_for_coarse_stages-1:number_of_bits_for_fine_stages];
+	wire [number_of_bits_for_fine_stages-1:0] select_fine = select[number_of_bits_for_fine_stages-1:0];
+	for (i=0; i<number_of_coarse_stages-1; i=i+1) begin : coarse_feedback_path
+		and_gate #(.DELAY_RISE(COARSE_DELAY), .DELAY_FALL(COARSE_DELAY), .TESTBENCH(TESTBENCH)) coarse (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
 	end
-	and_gate #(.DELAY_RISE(0.5), .DELAY_FALL(0.5), .TESTBENCH(TESTBENCH)) ando (.I0(~stage[select-1]), .I1(enable), .O(stage[0]));
+	and_gate #(.DELAY_RISE(COARSE_DELAY), .DELAY_FALL(COARSE_DELAY), .TESTBENCH(TESTBENCH)) coarse_bride (.I0(stage[select_coarse]), .I1(enable), .O(stage[number_of_coarse_stages]));
+	wire aftercoarse = stage[number_of_coarse_stages];
+	for (i=number_of_coarse_stages; i<number_of_coarse_stages+number_of_medium_stages-1; i=i+1) begin : medium_feedback_path
+		and_gate #(.DELAY_RISE(MEDIUM_DELAY), .DELAY_FALL(MEDIUM_DELAY), .TESTBENCH(TESTBENCH)) mediumm (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
+	end
+	and_gate #(.DELAY_RISE(MEDIUM_DELAY), .DELAY_FALL(MEDIUM_DELAY), .TESTBENCH(TESTBENCH)) mediumm_bride (.I0(stage[number_of_coarse_stages+select_medium]), .I1(enable), .O(stage[number_of_coarse_stages+number_of_medium_stages]));
+	wire aftermedium = stage[number_of_coarse_stages+number_of_medium_stages];
+	for (i=number_of_coarse_stages+number_of_medium_stages; i<number_of_stages-1; i=i+1) begin : fine_feedback_path
+		and_gate #(.DELAY_RISE(FINE_DELAY), .DELAY_FALL(FINE_DELAY), .TESTBENCH(TESTBENCH)) fine (.I0(stage[i]), .I1(enable), .O(stage[i+1]));
+	end
+	and_gate #(.DELAY_RISE(FINE_DELAY), .DELAY_FALL(FINE_DELAY), .TESTBENCH(TESTBENCH)) fine_bride (.I0(~stage[number_of_coarse_stages+number_of_medium_stages+select_fine]), .I1(enable), .O(stage[0]));
+	wire afterfine = stage[0];
 	assign clock_out = stage[0];
 endmodule
 
 module ring_oscillator_tb ();
 	wire clock;
 	reg enable = 0;
-	reg [7:0] select = 8'd255;
-	ring_oscillator #(.number_of_stages(256), .TESTBENCH(1)) ro (.enable(enable), .select(select), .clock_out(clock));
+	reg [3:0] select_coarse = 4'd0;
+	reg [1:0] select_medium = 2'd0;
+	reg [1:0] select_fine = 2'd0;
+	wire [7:0] select = { select_coarse, select_medium, select_fine };
+	ring_oscillator #(.number_of_bits_for_coarse_stages(4), .number_of_bits_for_medium_stages(2), .number_of_bits_for_fine_stages(2), .TESTBENCH(1)) ro (.enable(enable), .select(select), .clock_out(clock));
 	initial begin
 		#20;
 		enable <= 1;
-		#1000;
+		#2000; enable <= 0; select_coarse <= 4'd00; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd01; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd02; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd03; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd04; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd05; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd06; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd07; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd08; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd09; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd10; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd11; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd12; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd13; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd14; #100; enable <= 1;
+		#2000; enable <= 0; select_coarse <= 4'd15; #100; enable <= 1;
+		#4000;
+		#2000; enable <= 0; select_medium <= 2'd0; #100; enable <= 1;
+		#2000; enable <= 0; select_medium <= 2'd1; #100; enable <= 1;
+		#2000; enable <= 0; select_medium <= 2'd2; #100; enable <= 1;
+		#2000; enable <= 0; select_medium <= 2'd3; #100; enable <= 1;
+		#4000;
+		#2000; enable <= 0; select_fine <= 2'd0; #100; enable <= 1;
+		#2000; enable <= 0; select_fine <= 2'd1; #100; enable <= 1;
+		#2000; enable <= 0; select_fine <= 2'd2; #100; enable <= 1;
+		#2000; enable <= 0; select_fine <= 2'd3; #100; enable <= 1;
+		#4000;
 		enable <= 0;
 		#20;
 		$finish;

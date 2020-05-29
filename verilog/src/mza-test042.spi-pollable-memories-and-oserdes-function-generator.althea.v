@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-05-28 by mza
+// last updated 2020-05-29 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
@@ -44,7 +44,7 @@ module top (
 	wire clock_ro_raw, clock_ro_raw_a, clock_ro_raw_b, clock_ro, clock_ro_b, clock_ro_locked;
 	wire [31:0] ring_oscillator_select;
 	wire [31:0] ring_oscillator_enable;
-	ring_oscillator #(.number_of_stages(240)) ro (.enable(ring_oscillator_enable[0]), .select(ring_oscillator_select[7:0]), .clock_out(clock_ro_raw));
+	ring_oscillator #(.number_of_bits_for_coarse_stages(4), .number_of_bits_for_medium_stages(2), .number_of_bits_for_fine_stages(2)) ro (.enable(ring_oscillator_enable[0]), .select(ring_oscillator_select[7:0]), .clock_out(clock_ro_raw));
 //	BUFG mybuf_ro (.I(clock_ro_raw), .O(clock_ro_raw1));
 	simpledcm_CLKGEN #(.multiply(50), .divide(50), .period(100.0)) mydcm_ro (.clockin(clock_ro_raw), .reset(global_reset), .clockout(clock_ro_raw_a), .clockout180(clock_ro_raw_b), .locked(clock_ro_locked)); // 10->10
 	BUFG mybuf_roa (.I(clock_ro_raw_a), .O(clock_ro));
@@ -248,9 +248,9 @@ module top (
 		assign led_6 = reset2_clock50;
 		assign led_5 = reset3_clock125;
 		assign led_4 = reset4_word_clock;
-		assign led_3 = ~rpi_spi_ce0;
-		assign led_2 = ~rpi_spi_ce1;
-		assign led_1 = counter_ro[23];
+		assign led_3 = ~clock_ro_locked;
+		assign led_2 = counter_ro[23];
+		assign led_1 = ~rpi_spi_ce0 || ~rpi_spi_ce1;
 		assign led_0 = not_ready;
 	end
 endmodule
