@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-05-29 by mza
+// last updated 2020-05-30 by mza
 
 `define althea_revA
 `include "lib/spi.v"
@@ -261,8 +261,9 @@ module top (
 		assign led_1 = ~rpi_spi_ce0 || ~rpi_spi_ce1;
 		assign led_0 = not_ready;
 	end
-	localparam N = 100; // N for N_Hz calculations
-	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(50000000), .LOG2_OF_DIVIDE_RATIO(24), .N(N)) fc (.reference_clock(clock50), .unknown_clock(clock_ro), .frequency_of_unknown_clock(frequency_counter0));
+	localparam N = 10; // N for N_Hz calculations
+	wire fc_valid;
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(125000000), .LOG2_OF_DIVIDE_RATIO(24), .N(N)) fc (.reference_clock(word_clock), .unknown_clock(clock_ro), .frequency_of_unknown_clock(frequency_counter0), .valid(fc_valid));
 endmodule
 
 //module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_top (

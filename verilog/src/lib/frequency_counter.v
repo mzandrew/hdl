@@ -1,7 +1,7 @@
 // written 2020-05-29 by mza
 // based on mza-test014.duration-timer.uart.v
 // and mza-test022.frequency-counter.uart.v
-// last updated 2020-05-29 by mza
+// last updated 2020-05-30 by mza
 
 module frequency_counter #(
 	parameter FREQUENCY_OF_REFERENCE_CLOCK = 10000000,
@@ -14,7 +14,8 @@ module frequency_counter #(
 ) (
 	input reference_clock,
 	input unknown_clock,
-	output [31:0] frequency_of_unknown_clock
+	output [31:0] frequency_of_unknown_clock,
+	output reg valid
 );
 //	wire ;
 	localparam MSB_OF_COUNTERS = LOG2_OF_DIVIDE_RATIO + 8; // 35
@@ -24,8 +25,15 @@ module frequency_counter #(
 	reg [MSB_OF_ACCUMULATOR:0] previous_accumulator = 0;
 	reg [MSB_OF_COUNTERS:0] reference_clock_counter = 0;
 	wire trigger_active = reference_clock_counter[LOG2_OF_DIVIDE_RATIO];
+	reg valid_unknown = 0;
+	reg [2:0] valid_pipeline = 0;
 	always @(posedge reference_clock) begin
 		reference_clock_counter <= reference_clock_counter + 1'b1;
+		valid <= 0;
+		if (valid_pipeline==3'b011) begin
+			valid <= 1;
+		end
+		valid_pipeline <= { valid_pipeline[1:0], valid_unknown };
 	end
 //	always @(posedge unknown_clock) begin
 //		external_clock_to_measure <= ~external_clock_to_measure; // divide by two
@@ -36,12 +44,14 @@ module frequency_counter #(
 	end
 	always @(posedge unknown_clock) begin
 		if (trigger_active==1) begin
+			valid_unknown <= 0;
 //			accumulator <= accumulator + {FREQUENCY_OF_REFERENCE_CLOCK_IN_N_HZ,1'b0}; // multiply by two
 			accumulator <= accumulator + FREQUENCY_OF_REFERENCE_CLOCK_IN_N_HZ;
 		end else begin
 			if (trigger_stream==3'b110) begin
 				previous_accumulator <= accumulator;
 			end else if (trigger_stream==3'b100) begin
+				valid_unknown <= 1;
 				accumulator <= 0;
 			end
 		end
