@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-05-27 by mza
+# last updated 2020-05-29 by mza
 
 import time
 import time # time.sleep
@@ -102,7 +102,7 @@ def pack32(datum):
 #	string = "pack32(" + hex(datum[0], 2) + "," + hex(datum[1], 2) + "," + hex(datum[2], 2) + "," + hex(datum[3], 2) + ")="
 #	print string
 	if 4!=len(datum):
-		print "error"
+		print "error: len()!=4"
 		sys.exit(1)
 #	for i in range(len(datum)):
 #		datum[i] &= 0xff
@@ -210,6 +210,9 @@ class spi(spidev.SpiDev):
 		self.max_speed_hz = int(MAX_SPEED_HZ)
 		self.mode = 0b00
 		self.memsize = spi_memory_size
+		self.total_transfers = 0
+		self.total_errors = 0
+		self.responses = [ list() for a in range(self.memsize) ]
 
 	def spi_send_command8_address16_data32(self, command, address, data):
 		command &= 0xff
@@ -281,36 +284,23 @@ class spi(spidev.SpiDev):
 					print "function returned " + str(len(response)) + " words instead of 7"
 
 	def write_list_to_spi_pollable_memory_in_pseudorandom_order_and_record_responses_for_each_one(self, length, command_list, address_list, data_list):
-		global responses
-		try:
-			responses[i]
-		except:
-			responses = [ list() for s in range(self.memsize) ]
-		global total_transfers
-		try:
-			total_transfers
-		except:
-			total_transfers = 0
-		global total_errors
-		try:
-			total_errors
-		except:
-			total_errors = 0
 		for i in random.sample(range(length), length):
 			if 0<=address_list[i] and address_list[i]<self.memsize:
 				response = self.spi_send_command8_address16_data32(command_list[i], address_list[i], data_list[i])
 				if 7!=len(response):
-					total_errors += 1
+					self.total_errors += 1
 					print "function returned " + str(len(response)) + " words instead of 7"
-				total_transfers += 1
-				responses[i].append(response[3:7])
+				else:
+					#print "i=" + str(i)
+					#print "len=" + str(len(response))
+					self.responses[i].append(response[3:7])
+				self.total_transfers += 1
 			else:
 				#total_errors += 1
-				#responses[i].append([0,0,0,0])
-				responses[i].append(unpack32(data_list[i])) # fake the response for addresses above self.memsize-1
+				#self.responses[i].append([0,0,0,0])
+				self.responses[i].append(unpack32(data_list[i])) # fake the response for addresses above self.memsize-1
 
 	def verify_responses_match_input_data(self, length, data_list, address_list):
-		global responses
 		for i in range(length):
 			#print str(responses[i])
 			string = "[" + hex(address_list[i], 4) + "]"
@@ -322,7 +312,7 @@ class spi(spidev.SpiDev):
 			j = 0
 			errors = 0
 			values = {}
-			for response in responses[i]:
+			for response in self.responses[i]:
 	#			print response
 				value_read = pack32(response)
 				try:
@@ -338,23 +328,38 @@ class spi(spidev.SpiDev):
 				string += " [" + str(values[key]) + "]:" + hex(key, 8)
 			if errors:
 				try:
-					total_errors += errors
+					self.total_errors += errors
 				except:
-					total_errors = errors
+					self.total_errors = errors
 				print string
+
+	def read_values_from_spi_pollable_memory(self, length, offset):
+		command_list = [ c for c in range(length) ]
+		address_list = [ offset+a for a in range(length) ]
+		data_list = [ 0 for d in range(length) ]
+		values = [ 0 for v in range(length) ]
+		for i in random.sample(range(length), length):
+			if 0<=address_list[i] and address_list[i]<self.memsize:
+				response = self.spi_send_command8_address16_data32(command_list[i], address_list[i], data_list[i])
+				if 7!=len(response):
+					self.total_errors += 1
+					print "function returned " + str(len(response)) + " words instead of 7"
+				else:
+					value_read = pack32(response[3:7])
+					#print str(value_read)
+					values[i] = value_read
+				self.total_transfers += 1
+		return values
 
 	def test_command8_address16_data32(self, number_of_passes):
 		# 30k transfers per second on a rpi2 @ 10e6 Hz
 		print "testing spi_command8_address16_data32 peripheral..."
 		size = number_of_passes * self.memsize
-		global total_transfers
-		total_transfers = 0
-		global total_errors
-		total_errors = 0
+		self.total_transfers = 0
+		self.total_errors = 0
 		command_list = [ c for c in range(self.memsize) ]
 		address_list = [ a for a in range(self.memsize) ]
-		global responses
-		responses = [ list() for s in range(self.memsize) ]
+		self.responses = [ list() for s in range(self.memsize) ]
 	#	for i in range(self.memsize):
 	#		command_list[i] &= 0xff
 	#		address_list[i] &= 0xffff
@@ -368,10 +373,10 @@ class spi(spidev.SpiDev):
 		per = diff / self.memsize
 		transfers_per_sec = size / diff
 		self.verify_responses_match_input_data(self.memsize, data_list, address_list)
-	#	print "total_errors=" + str(total_errors)
-	#	print "total_transfers=" + str(total_transfers)
-		if (total_errors):
-			BER = float(total_errors+1)/total_transfers
+	#	print "total_errors=" + str(self.total_errors)
+	#	print "total_transfers=" + str(self.total_transfers)
+		if (self.total_errors):
+			BER = float(self.total_errors+1)/self.total_transfers
 			print "BER<=" + eng(BER, "%.1f")
 		else:
 			print str(size) + " transfers completed successfully"
@@ -400,6 +405,7 @@ class spi(spidev.SpiDev):
 		command_list = [ c for c in range(length) ]
 		address_list = [ offset+a for a in range(length) ]
 		#data_list = [ 0 for d in range(length) ]
+		self.responses = [ list() for a in range(self.memsize) ]
 		if len(data_list)<length:
 			for i in range(len(data_list), length):
 				data_list.append(0)

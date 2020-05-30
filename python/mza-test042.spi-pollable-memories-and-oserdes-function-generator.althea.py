@@ -2,7 +2,7 @@
 
 # written 2020-05-11 by mza
 # based on mza-test041.spi-pollable-memory.althea.py
-# last updated 2020-05-28 by mza
+# last updated 2020-05-29 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -15,29 +15,41 @@ max_count = scaling*RF_buckets
 date_string = "2019-11-15.075530"
 size = RF_buckets/16
 
-althea.select_clock_and_reset_althea(1)
+althea.select_clock_and_reset_althea(0)
 spi_ce0 = althea.spi(0, 16) # 16 (32bit) words to control sequencer
 spi_ce1 = althea.spi_sequencer(1, 4096) # 4096 (32bit) words of sequencer memory
 
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 2, 0 ], 2) # test idelay inc/dec functionality
 
-while False:
-	min=0
-	max=255
-	min=108
-	max=115
-	for i in range(min, max+1):
-		print str(i)
-		#if max==i:
-		#	print
+def scan_ring_oscillator(min, max, s=1):
+	for i in range(min, max+1, s):
+		print str(i),
 		#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, i ], 2) # stop ring_oscillator
 		spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 1, i ], 2) # test ring_oscillator functionality
-		time.sleep(1.0)
+		time.sleep(0.5)
+		value, = spi_ce0.read_values_from_spi_pollable_memory(1, 0xf)
+		value = value / 10000.0
+		print str(value)
+		time.sleep(0.5)
+		if max==i:
+			print
 
+def continuously_scan_ring_oscillator(min, max, s=1):
+	while True:
+		scan_ring_oscillator(min, max, s)
+
+#continuously_scan_ring_oscillator(0, 255)
+scan_ring_oscillator(0, 255)
+#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 8 ], 2) # stop ring_oscillator
+#scan_ring_oscillator(0, 3, 1) # scan 2 least significant bits (fine) 49-59 MHz
+#scan_ring_oscillator(0, 15, 4) # scan 2 next highest bits (medium) 47-60 MHz
+#scan_ring_oscillator(0, 255, 16) # scan 4 most significant bits (coarse) 7-60 MHz
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 1, 123 ], 2) # ring_oscillator (123 is the feedback value for 10 MHz when loc unconstrained)
-spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 1, 114 ], 2) # ring_oscillator (114 is the feedback value for 10 MHz when loc constrained)
+#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 1, 114 ], 2) # ring_oscillator (114 is the feedback value for 10 MHz when loc constrained)
 
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 12 ], 2) # stop ring_oscillator
+
+sys.exit(0)
 
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 11*RF_buckets, 12*RF_buckets ]) # show unused part of memory while we're writing into it
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 16 ]) # show entire memory while we're writing into it
