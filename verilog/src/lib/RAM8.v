@@ -30,6 +30,44 @@ module RAM_inferred #(
 	end
 endmodule
 
+module RAM_inferred_with_register_outputs_and_inputs #(
+	parameter addr_width = 9,
+	parameter data_width = 8
+) (
+	input reset,
+	input [addr_width-1:0] waddr, raddr,
+	input [data_width-1:0] din,
+	input write_en, wclk, rclk,
+	output reg [data_width-1:0] dout = 0,
+	output [31:0] register0, register1, register2, register3,
+	input [31:0] registerC, registerD, registerE, registerF
+);
+	reg [data_width-1:0] mem [(1<<addr_width)-1:0];
+	always @(posedge wclk) begin
+		if (reset) begin
+//			for (i=0; i<waddr
+		end else begin
+			if (write_en) begin
+				mem[waddr] <= din;
+			end else begin
+				mem[4'hc] <= registerC;
+				mem[4'hd] <= registerD;
+				mem[4'he] <= registerE;
+				mem[4'hf] <= registerF;
+			end
+		end
+	end
+	always @(posedge rclk) begin
+		if (~reset) begin
+			dout <= mem[raddr];
+		end
+	end
+	assign register0 = mem[0];
+	assign register1 = mem[1];
+	assign register2 = mem[2];
+	assign register3 = mem[3];
+endmodule
+
 module RAM_inferred_with_register_outputs #(
 	parameter addr_width = 9,
 	parameter data_width = 8

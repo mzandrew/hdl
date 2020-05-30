@@ -12,6 +12,7 @@
 `include "lib/serdes_pll.v"
 `include "lib/dcm.v"
 `include "lib/reset.v"
+`include "lib/frequency_counter.v"
 //`include "lib/synchronizer.v"
 
 //`define USE_INFERRED_RAM_16
@@ -35,6 +36,8 @@ module top (
 	output led_0, led_1, led_2, led_3,
 	output led_4, led_5, led_6, led_7
 );
+	wire [31:0] frequency_counter0;
+	reg [31:0] frequency_counter1;
 	wire global_reset = rpi_gpio19;
 	wire clock_alt;
 	IBUFG mybuf_alt (.I(rpi_gpio6_gpclk2), .O(clock_alt));
@@ -119,10 +122,14 @@ module top (
 		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(miso_ce0), .SSEL(rpi_spi_ce0),
 		.transaction_valid(transaction_valid_ce0), .command8(command8_ce0), .address16(address16_ce0), .data32(data32_ce0), .data32_to_master(read_data32_ce0));
 	wire [3:0] address4_ce0 = address16_ce0[3:0];
-	RAM_inferred_with_register_outputs #(.addr_width(4), .data_width(32)) myram (.reset(reset4_word_clock),
+	RAM_inferred_with_register_outputs_and_inputs #(.addr_width(4), .data_width(32)) myram (.reset(reset4_word_clock),
 		.wclk(clock_spi), .waddr(address4_ce0), .din(data32_ce0), .write_en(transaction_valid_ce0),
 		.rclk(word_clock), .raddr(address4_ce0), .dout(read_data32_ce0),
-		.register0(start_read_address), .register1(end_read_address), .register2(ring_oscillator_enable), .register3(ring_oscillator_select));
+		.register0(start_read_address), .register1(end_read_address), .register2(ring_oscillator_enable), .register3(ring_oscillator_select),
+		.registerC(32'd0), .registerD(32'd0), .registerE(32'd0), .registerF(frequency_counter1));
+	always @(posedge word_clock) begin
+		frequency_counter1 <= frequency_counter0;
+	end
 	// ----------------------------------------------------------------------
 	wire [7:0] command8;
 	wire [15:0] address16;
@@ -254,6 +261,8 @@ module top (
 		assign led_1 = ~rpi_spi_ce0 || ~rpi_spi_ce1;
 		assign led_0 = not_ready;
 	end
+	localparam N = 100; // N for N_Hz calculations
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(50000000), .LOG2_OF_DIVIDE_RATIO(24), .N(N)) fc (.reference_clock(clock50), .unknown_clock(clock_ro), .frequency_of_unknown_clock(frequency_counter0));
 endmodule
 
 //module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_top (
