@@ -1,5 +1,7 @@
 // written 2018-08-03 by mza
-// last updated 2020-05-29 by mza
+// last updated 2020-06-01 by mza
+
+`define icestick
 
 module mytop (
 	input clock,

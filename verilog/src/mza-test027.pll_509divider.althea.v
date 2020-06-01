@@ -1,6 +1,8 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2019-08-14 by mza
+// last updated 2020-06-01 by mza
+
+`define althea_revA
 
 module mza_test027_pll_509divider_althea (
 	output clock_p,
