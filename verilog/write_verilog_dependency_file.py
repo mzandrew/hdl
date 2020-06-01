@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # written 2018-07-31 by mza
 # writes out a .d (dependency) file that can be included in makefiles
-# last updated 2020-05-03 by mza
+# last updated 2020-06-01 by mza
 
 import os # os.path.isfile(), os.stat(), os.utime()
 import sys # sys.argv
@@ -30,16 +30,27 @@ def run_file(filename):
 		return # not a .v file
 	depfilename = "work/" + basename + ".d"
 	#print depfilename
-	bliffilename = "work/" + basename + ".blif"
+	board = ""
 	for line in open(filename):
-		#line = line.rstrip("\n\r")
+		line = line.rstrip("\n\r")
 		#match = re.search("[^/]*`include \"(.*)\"", line)
 		match = re.search("^`include \"(.*)\"", line)
 		if match:
 			#print match.group(1)
 			includes.append(input_dirname + "/" + match.group(1))
+		match = re.search("^`define (icestick|icezero|althea_revA|althea_revB|scrod_revA3).*$", line)
+		#match = re.search("define", line)
+		if match:
+			board = match.group(1)
+			#print filename + ":" + board
+	if board=="":
+		print "WARNING:  file " + filename + " has an unknown board type (icestick, icezero, althea_revA, scrod_revA3, etc)"
+		pass
+	else:
+		board = "." + board
 	#includes.append(depfilename)
 	depfile = open(depfilename, 'w')
+	bliffilename = "work/" + basename + board + ".blif"
 	string = bliffilename + " " + depfilename + " : " + filename
 	for include in includes:
 		string += " " + include
@@ -62,5 +73,6 @@ if __name__ == "__main__":
 		for basename in os.listdir(input_dirname):
 			filename = os.path.join(input_dirname, basename)
 			if os.path.isfile(filename):
+				#if filename[0]!='.':
 				run_file(filename)
 
