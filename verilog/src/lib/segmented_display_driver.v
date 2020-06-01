@@ -1,6 +1,6 @@
 // written 2018-07-26 by mza
 // taken from mza-test007.7-segment-driver.v
-// last updated 2020-05-29 by mza
+// last updated 2020-05-31 by mza
 
 module segmented_display_driver #(
 	parameter number_of_segments = 7,
@@ -28,7 +28,7 @@ module segmented_display_driver #(
 				reset <= 0;
 			end
 		end
-		raw_counter++;
+		raw_counter <= raw_counter + 1'b1;
 	end
 	wire dot_clock = raw_counter[dot_clock_pickoff];
 	wire nybble_clock = raw_counter[nybble_clock_pickoff];
@@ -122,7 +122,7 @@ module segmented_display_driver #(
 //		end else begin
 //			cathode   <= 7'b1111111;
 //		end
-		if (reset==1) begin
+		if (reset) begin
 			if (number_of_segments==16) begin
 				dot_token <= 16'b0000000000000001;
 			end else if (number_of_segments==8) begin

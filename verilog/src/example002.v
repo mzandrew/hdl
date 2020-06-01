@@ -5,6 +5,9 @@
 // vvp example002.out
 // gtkwave # (open new tab with waveform example002.vcd)
 
+// last updated 2020-06-01 by mza
+`define icestick
+
 `ifndef SYNTHESIS
 module testbench;
 	reg [31:0] counter = 0;

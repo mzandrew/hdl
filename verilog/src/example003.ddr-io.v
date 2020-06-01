@@ -4,6 +4,9 @@
 // ddr_io.v
 // Read DDR Input to a register and write to DDR output
 
+// last updated 2020-06-01 by mza
+`define icestick
+
 module mytop (
 	input clock,
 	input ddr_in,
@@ -22,7 +25,7 @@ module mytop (
         .PACKAGE_PIN(ddr_in),
         .LATCH_INPUT_VALUE ( ),
         .CLOCK_ENABLE (1'b1),
-        .INPUT_CLK (clk),
+        .INPUT_CLK (clock),
         .OUTPUT_CLK ( ),
         .OUTPUT_ENABLE ( ),
         .D_OUT_0 ( ),
@@ -37,7 +40,7 @@ module mytop (
         .PACKAGE_PIN(ddr_out),
         .LATCH_INPUT_VALUE ( ),
         .CLOCK_ENABLE (1'b1),
-        .INPUT_CLK (clk),
+        .INPUT_CLK (clock),
         .OUTPUT_CLK ( ),
         .OUTPUT_ENABLE ( ),
         .D_OUT_0 (out_buffer[0]),
@@ -45,7 +48,7 @@ module mytop (
         .D_IN_0 ( ),
         .D_IN_1 ( )
     );
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         out_buffer <= in_buffer;
     end
 endmodule

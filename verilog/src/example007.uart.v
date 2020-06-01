@@ -1,8 +1,9 @@
 // written 2018-08-03 by mza
 // sudo stty -F /dev/ttyUSB1 115200
 // minicom --device=/dev/ttyUSB2 -baudrate 115200
-// last updated 2020-05-29 by mza
+// last updated 2020-06-01 by mza
 
+`define icestick
 `include "lib/uart.v"
 
 module mytop (

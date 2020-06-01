@@ -1,5 +1,8 @@
 // from SBTICETechnologyLibrary201504.pdf with some tweaks
 
+// last updated 2020-06-01 by mza
+`define icestick
+
 module top(input CLK, output J1_3);
 	reg [15:0] read_data;
 	reg [10:0] read_address = 8'h45;

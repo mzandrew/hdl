@@ -1,8 +1,9 @@
 // to run on an icezero
 
 // written 2020-05-05 by mza
-// last updated 2020-05-07 by mza
+// last updated 2020-06-01 by mza
 
+`define icezero
 //`include "lib/synchronizer.v"
 //`include "lib/easypll.v"
 `include "lib/spi.v"

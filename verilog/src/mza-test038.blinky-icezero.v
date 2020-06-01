@@ -1,6 +1,7 @@
 // originally lifted from https://github.com/thekroko/icezero-blinky.git
-// last updated 2020-05-05 by mza
+// last updated 2020-06-01 by mza
 
+`define icezero
 `include "lib/synchronizer.v"
 `include "lib/easypll.v"
 

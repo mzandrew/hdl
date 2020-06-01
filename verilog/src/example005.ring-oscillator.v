@@ -1,6 +1,9 @@
 `timescale 1ns / 1ps
 // from http://svn.clifford.at/handicraft/2015/ringosc/ringosc.v
 
+// last updated 2020-06-01 by mza
+`define icestick
+
 module top(input CLK, output J1_10, LED5, LED1, LED2, LED3, LED4);
 	wire chain_in, chain_out, resetn;
 	assign J1_10 = chain_out;

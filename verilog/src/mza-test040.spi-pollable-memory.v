@@ -1,12 +1,12 @@
 // to run on an icezero
 //`define TESTBENCH;
-//`define icezero;
+`define icezero;
 //`define ice40;
 //`define xilinx
 
 // written 2020-05-07 by mza
 // based on mza-test039.spi.v and mza-test036.function-generator.althea.v and mza-test017.serializer-ram.v
-// last updated 2020-05-09 by mza
+// last updated 2020-06-01 by mza
 
 `include "lib/spi.v"
 
