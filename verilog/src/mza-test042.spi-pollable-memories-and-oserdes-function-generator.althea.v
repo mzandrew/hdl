@@ -48,7 +48,7 @@ module top (
 	wire clock_ro_raw, clock_ro_raw_a, clock_ro_raw_b, clock_ro, clock_ro_b, clock_ro_locked;
 	wire [31:0] ring_oscillator_select;
 	wire [31:0] ring_oscillator_enable;
-	ring_oscillator #(.number_of_bits_for_coarse_stages(4), .number_of_bits_for_medium_stages(2), .number_of_bits_for_fine_stages(2)) ro (.enable(ring_oscillator_enable[0]), .select(ring_oscillator_select[7:0]), .clock_out(clock_ro_raw));
+	ring_oscillator #(.number_of_bits_for_coarse_stages(4), .number_of_bits_for_medium_stages(4), .number_of_bits_for_fine_stages(4)) ro (.enable(ring_oscillator_enable[0]), .select(ring_oscillator_select[11:0]), .clock_out(clock_ro_raw));
 //	BUFG mybuf_ro (.I(clock_ro_raw), .O(clock_ro_raw1));
 	simpledcm_CLKGEN #(.multiply(50), .divide(50), .period(100.0)) mydcm_ro (.clockin(clock_ro_raw), .reset(global_reset || (~ring_oscillator_enable[0])), .clockout(clock_ro_raw_a), .clockout180(clock_ro_raw_b), .locked(clock_ro_locked)); // 10->10
 	BUFG mybuf_roa (.I(clock_ro_raw_a), .O(clock_ro));

@@ -85,7 +85,7 @@ inst "*/ro/medium_feedback_even[*].mediumm*" loc = slice_x11y5:slice_x11y6;
 inst "*/ro/medium_feedback_odd[*].mediumm*" loc = slice_x11y14:slice_x11y15;
 
 # force all the fine ones into the same slice:
-inst "*/ro/fine_bride*" loc = slice_x11y50;
-inst "*/ro/fine_feedback_even[*].fine*" loc = slice_x11y50;
-inst "*/ro/fine_feedback_odd[*].fine*" loc = slice_x11y50;
+inst "*/ro/fine_bride*" loc = slice_x11y50:slice_x11y53;
+inst "*/ro/fine_feedback_even[*].fine*" loc = slice_x11y50:slice_x11y53;
+inst "*/ro/fine_feedback_odd[*].fine*" loc = slice_x11y50:slice_x11y53;
 
