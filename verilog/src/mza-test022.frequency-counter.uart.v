@@ -1,7 +1,7 @@
 // written 2018-09-27 by mza
 // based on mza-test014.duration-timer.uart.v
 // updated for icestick-frequency-counter revB
-// last updated 2020-05-29 by mza
+// last updated 2020-05-31 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -36,7 +36,8 @@ module mytop (
 	assign J2[2] = signal_output; // 5,4 pair (RSV)
 	//assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
 	assign external_reference_clock = J1[6]; // clipped sine wave oscillator
-	assign raw_external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
+	assign raw_external_clock_to_measure = J1[7]; // trigger_in LEMO
+//	assign raw_external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
 //	assign reference_clock = external_clock_to_measure; // 127216025 / N (or an unknown frequency)
 	assign reference_clock = external_reference_clock; // 100000280 / N
 	assign J1[0] = signal_output; // trigger_out on PCB
@@ -120,12 +121,12 @@ module mytop (
 //	reg [msb_of_counters:0] number_of_pulses = 0;
 	reg [31:0] result2 = 0;
 	always @(posedge clock) begin
-		counter++;
+		counter <= counter + 1'b1;;
 		if (reset) begin
 //			uart_line_counter <= 0;
 //			uart_character_counter <= length_of_line - 1;
 //			uart_transfers_are_allowed <= 0;
-			if (counter[10]==1) begin
+			if (counter[10]) begin
 				reset <= 0;
 			end
 			result2 <= 0;
