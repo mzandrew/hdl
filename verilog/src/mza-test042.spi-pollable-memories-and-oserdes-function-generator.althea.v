@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-05-30 by mza
+// last updated 2020-06-01 by mza
 
 `define althea_revA
 `include "lib/spi.v"
@@ -13,6 +13,7 @@
 `include "lib/dcm.v"
 `include "lib/reset.v"
 `include "lib/frequency_counter.v"
+//`include "lib/segmented_display_driver.v"
 //`include "lib/synchronizer.v"
 
 //`define USE_INFERRED_RAM_16

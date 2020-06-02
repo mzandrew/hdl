@@ -1,6 +1,8 @@
 // written 2018-07-27 by mza
 // based on mza-test004.16-segment-driver.v
-// last updated 2020-05-29 by mza
+// last updated 2020-06-01 by mza
+
+// functionality swept into src/lib/segmented_display_driver.v so should update this to use that
 
 `define icestick
 `include "lib/debounce.v"

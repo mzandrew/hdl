@@ -1,6 +1,6 @@
 // written 2018-07-31 by mza
 // based on mza-test007.7-segment-driver.v and mza-test003.double-dabble.v
-// last updated 2020-05-29 by mza
+// last updated 2020-06-01 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -28,8 +28,8 @@ module mytop (
 		assign J1[4] = anode[1]; // connected via resistor to anode0010
 		assign J1[3] = anode[2]; // connected via resistor to anode0100
 		assign J1[0] = anode[3]; // connected via resistor to anode1000 for most significant digit
-		//segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(4)) my_instance_name (.clock(clock), .data(bcd[15:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), dp(0));
-		segmented_display_driver #(.number_of_segments(8), .number_of_nybbles(4)) my_instance_name (.clock(clock), .data(bcd[15:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), .dp(0));
+		//segmented_display_driver #(.NUMBER_OF_SEGMENTS(7), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(clock), .data(bcd[15:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), dp(0));
+		segmented_display_driver #(.NUMBER_OF_SEGMENTS(8), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(clock), .data(bcd[15:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), .dp(0));
 		hex2bcd #(.input_size_in_nybbles(4)) h2binst ( .clock(clock), .reset(reset), .hex_in(data[15:0]), .bcd_out(bcd[23:0]) );
 		assign J3[7] = 0;
 		assign J3[6] = 0;

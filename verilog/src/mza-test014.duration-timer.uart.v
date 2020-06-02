@@ -1,6 +1,6 @@
 // written 2018-08-16 by mza
 // based on mza-test013.i2c.v and mza-test003.double-dabble.v
-// last updated 2020-05-29 by mza
+// last updated 2020-06-01 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -58,7 +58,7 @@ module mytop (
 	assign J3[1] = 1; // dp/colon
 	wire [3:0] anode;
 	assign { J1[0], J1[3], J1[4], J3[4] } = anode;
-	segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(4)) my_instance_name (.clock(clock), .data(buffered_bcd2[15:0]), .cathode(segment), .anode(anode));
+	segmented_display_driver #(.NUMBER_OF_SEGMENTS(7), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(clock), .data(buffered_bcd2[15:0]), .cathode(segment), .anode(anode));
 //	reg trigger_active = 0;
 	wire trigger_active;
 	reg [2:0] trigger_stream = 0;
