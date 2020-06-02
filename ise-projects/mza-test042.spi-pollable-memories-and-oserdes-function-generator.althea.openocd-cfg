@@ -1,0 +1,38 @@
+# written 2020-06-02 by mza
+# based on mza-test023.serdes-pll.althea.openocd-cfg
+# and sysfsgpio-raspberrypi.cfg
+# last updated 2020-06-02 by mza
+
+#source [find interface/ftdi/digilent-hs1.cfg]
+#source [find interface/ftdi/digilent-hs2.cfg]
+#source [find interface/ftdi/digilent_jtag_hs3.cfg]
+
+# this driver never toggled any pin ever:
+##source [find interface/raspberrypi2-native.cfg]
+#adapter driver bcm2835gpio
+##bcm2835gpio_peripheral_base 0x3E000000
+##bcm2835gpio_speed_coeffs 146203 36
+#adapter speed 100
+## tck tms tdi tdo
+#bcm2835gpio_jtag_nums 18 25 17 27
+##bcm2835gpio_swd_nums 
+##bcm2835gpio_trst_num 
+##reset_config trst_only
+#reset_config none
+
+adapter driver sysfsgpio
+#adapter speed 1000
+sysfsgpio_jtag_nums 18 25 17 27
+#sysfsgpio_swd_nums 11 25
+
+transport select jtag
+
+source [find cpld/xilinx-xc6s.cfg]
+#source [find cpld/jtagspi.cfg]
+
+init
+xc6s_program xc6s.tap
+pld load 0 ./mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea/myalthea.bit
+
+exit
+
