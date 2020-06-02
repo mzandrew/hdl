@@ -25,33 +25,63 @@ spi_ce1 = althea.spi_sequencer(1, 4096) # 4096 (32bit) words of sequencer memory
 def read_frequency_counter_value(spi):
 	value, = spi.read_values_from_spi_pollable_memory(1, 0xf)
 	value = N * value / 1.0e6
+	return value
+
+def show_frequency_counter_value(spi):
+	value = read_frequency_counter_value(spi)
 	print str(value)
 
-def scan_ring_oscillator(min, max, s=1):
-	for i in range(min, max+1, s):
-		print str(i),
-		#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, i ], 2) # stop ring_oscillator
-		spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 1, i ], 2) # test ring_oscillator functionality
-		time.sleep(3.0)
-		read_frequency_counter_value(spi_ce0)
-		time.sleep(0.1)
-		if max==i:
-			print
+def stop_ring_oscillator(spi):
+	spi.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 0 ], 2)
 
-def continuously_scan_ring_oscillator(min, max, s=1):
+N_bits_coarse = 4
+N_bits_medium = 4
+N_bits_fine = 4
+max_coarse = 2**N_bits_coarse
+max_medium = 2**N_bits_medium
+max_fine = 2**N_bits_fine
+
+def set_ring_oscillator_values(spi, coarse, medium, fine):
+	value = 0
+	value |= coarse <<(N_bits_medium+N_bits_fine)
+	value |= medium <<(N_bits_fine)
+	value |= fine
+	print "[" + str(coarse) + "," + str(medium) + "," + str(fine) + "] " + str(value) + " =",
+	spi.write_values_to_spi_pollable_memory_and_verify(2, [ 1, value ], 2) # test ring_oscillator functionality
+
+def scan_ring_oscillator(spi, coarse=max_coarse, medium=max_medium, fine=max_fine):
+	if coarse==max_coarse:
+		coarses = [ c for c in range(max_coarse) ]
+	else:
+		coarses = [ coarse ]
+	if medium==max_medium:
+		mediums = [ m for m in range(max_medium) ]
+	else:
+		mediums = [ medium ]
+	if fine==max_fine:
+		fines = [ f for f in range(max_fine) ]
+	else:
+		fines = [ fine ]
+	#print str(coarses) + " " + str(mediums) + " " + str(fines)
+	for coarse in coarses:
+		for medium in mediums:
+			for fine in fines:
+				set_ring_oscillator_values(spi, coarse, medium, fine)
+				time.sleep(1.0)
+				show_frequency_counter_value(spi)
+
+def old_continuously_scan_ring_oscillator(spi, min, max, s=1):
 	while True:
 		scan_ring_oscillator(min, max, s)
 
-#continuously_scan_ring_oscillator(0, 255)
-#scan_ring_oscillator(0, 255)
-#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 8 ], 2) # stop ring_oscillator
-#scan_ring_oscillator(0, 3, 1) # scan 2 least significant bits (fine) 48-56 MHz
-#scan_ring_oscillator(0, 15, 4) # scan 2 next highest bits (medium) 48-56 MHz
-#scan_ring_oscillator(0, 255, 16) # scan 4 most significant bits (coarse) 7-60 MHz
-#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 1, 123 ], 2) # ring_oscillator (123 is the feedback value for 10 MHz when loc unconstrained)
-spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 1, 180 ], 2) # ring_oscillator (180 is the feedback value for 10 MHz when f,m,c paths loc/area constrained)
+#scan_ring_oscillator(spi_ce0, 10)
+#scan_ring_oscillator(spi_ce0)
+#stop_ring_oscillator(spi_ce0)
+#set_ring_oscillator_to(spi_ce0, 10.0)
 
-#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 12 ], 2) # stop ring_oscillator
+set_ring_oscillator_values(spi_ce0, 10, 5, 12)
+time.sleep(1.0)
+show_frequency_counter_value(spi_ce0)
 
 sys.exit(0)
 

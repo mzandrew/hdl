@@ -58,6 +58,7 @@ def clock_select(which):
 def enable_clock(frequency_in_MHz):
 	#GPIO.setup(6, GPIO.ALT0)
 	gpio=6
+	#os.system("sudo pigpiod")
 	pi = pigpio.pi()
 	frequency = frequency_in_MHz * 1.0e6
 	pi.hardware_clock(gpio, frequency)
