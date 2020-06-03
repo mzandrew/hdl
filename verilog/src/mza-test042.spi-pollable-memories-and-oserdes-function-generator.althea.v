@@ -13,6 +13,7 @@
 `include "lib/dcm.v"
 `include "lib/reset.v"
 `include "lib/frequency_counter.v"
+`include "lib/axi4lite.v"
 //`include "lib/segmented_display_driver.v"
 //`include "lib/synchronizer.v"
 
