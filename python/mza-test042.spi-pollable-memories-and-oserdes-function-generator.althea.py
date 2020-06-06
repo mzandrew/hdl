@@ -88,7 +88,8 @@ def cycle(number_of_segments, segment_size):
 		i += 1
 		time.sleep(0.1)
 
-althea.set_all_gpio_as_inputs()
+if 0:
+	althea.set_all_gpio_as_inputs()
 
 if 1:
 	althea.select_clock_and_reset_althea(0)

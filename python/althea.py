@@ -10,7 +10,7 @@ import math
 import os # os.path.isfile
 import re # re.search
 import RPi.GPIO as GPIO
-import pigpio
+#import pigpio # the daemon causes conflicts the way we were using it
 import spidev
 
 from generic import * # hex, eng
@@ -62,13 +62,14 @@ def clock_select(which):
 
 # this requires pigpiod be run beforehand
 def enable_clock(frequency_in_MHz):
+	print("ERROR: pigpio no longer used; you must use the config/setup_clock.sh script instead")
 	#GPIO.setup(6, GPIO.ALT0)
 	gpio=6
 	#os.system("sudo pigpiod")
-	pi = pigpio.pi()
-	frequency = int(frequency_in_MHz * 1.0e6)
-	pi.hardware_clock(gpio, frequency)
-	pi.set_mode(gpio, pigpio.ALT0)
+#	pi = pigpio.pi()
+#	frequency = int(frequency_in_MHz * 1.0e6)
+#	pi.hardware_clock(gpio, frequency)
+#	pi.set_mode(gpio, pigpio.ALT0)
 	#value = pi.get_mode(gpio)
 	#print(str(value))
 #	GPIO.setup(6, GPIO.OUT)
@@ -403,12 +404,13 @@ class spi(spidev.SpiDev):
 		self.total_transfers = 0
 		self.total_errors = 0
 		self.responses = [ list() for a in range(self.memsize) ]
-		gpios = [ 7, 8, 9, 10, 11 ]
-		pi = pigpio.pi()
-		for gpio in gpios:
-			# https://elinux.org/RPi_BCM2835_GPIOs
-			pi.set_mode(gpio, pigpio.ALT0)
-			#GPIO.setup(gpio, GPIO.SPI)
+		if 0:
+			gpios = [ 7, 8, 9, 10, 11 ]
+			pi = pigpio.pi()
+			for gpio in gpios:
+				# https://elinux.org/RPi_BCM2835_GPIOs
+				pi.set_mode(gpio, pigpio.ALT0)
+				#GPIO.setup(gpio, GPIO.SPI)
 
 	def spi_send_command8_address16_data32(self, command, address, data):
 		command &= 0xff
