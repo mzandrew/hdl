@@ -86,6 +86,7 @@ def select_clock_and_reset_althea(choice=0):
 
 epsilon = 1.0e-6
 def test_speed_of_setting_gpios_individually():
+	print("setting up for individual gpio mode...")
 	#gpio = [ 2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 10, 9, 25, 11, 8, 7, 5, 6, 12, 13, 19, 16, 26, 20, 21 ] # althea revB
 	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
 	#print(sorted(gpio))
@@ -93,7 +94,7 @@ def test_speed_of_setting_gpios_individually():
 	for g in gpio:
 		GPIO.setup(g, GPIO.OUT)
 	number_of_transfers = 0
-	NUM = 10000
+	NUM = 7729
 	#start = time.time()
 	bits = len(gpio)
 	data = [ random.randint(0,2**bits-1) for d in range(NUM) ]
@@ -104,6 +105,7 @@ def test_speed_of_setting_gpios_individually():
 	#	per_sec = NUM / diff
 	#	#print(str(per_sec))
 	#	print(eng(per_sec) + " randint() per second" # "60.1e3 randint() per second" on a rpi2)
+	print("running...")
 	start = time.time()
 	for i in range(NUM):
 		for j in range(bits):
@@ -116,6 +118,7 @@ def test_speed_of_setting_gpios_individually():
 		number_of_transfers += 1
 	end = time.time()
 	diff = end - start
+	#print("%.3f"%diff + " seconds")
 	per_sec = number_of_transfers / diff
 	#print(eng(per_sec) + " transfers per second") # "9.9e3 transfers per second" on a rpi2
 	per_sec *= bits
@@ -127,19 +130,21 @@ def test_speed_of_setting_gpios_individually():
 
 import fastgpio
 def test_speed_of_setting_gpios_with_fastgpio():
+	print("setting up for fastgpio mode...")
 	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
 	bits = len(gpio)
-	NUM = 20000
+	NUM = 100000
 	data = [ random.randint(0,2**32-1) for d in range(NUM) ]
 	#NUM = len(data)
 	mask = buildmask(gpio)
 	fastgpio.setup_bus_as_outputs(mask)
+	print("running...")
 	start = time.time()
 	fastgpio.write(data, mask)
 	end = time.time()
 	diff = end - start
 	per_sec = NUM / diff
-	#print(str(diff))
+	#print("%.3f"%diff + " seconds")
 	per_sec *= bits
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
