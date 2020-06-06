@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-06-01 by mza
+// last updated 2020-06-06 by mza
 
 `define althea_revA
 `include "lib/spi.v"
@@ -13,8 +13,8 @@
 `include "lib/dcm.v"
 `include "lib/reset.v"
 `include "lib/frequency_counter.v"
-`include "lib/axi4lite.v"
-`include "lib/generic.v"
+//`include "lib/axi4lite.v"
+//`include "lib/generic.v"
 //`include "lib/segmented_display_driver.v"
 //`include "lib/synchronizer.v"
 
@@ -80,7 +80,7 @@ module top (
 	BUFGMUX sam0s (.I0(clock50_0), .I1(clock50_12), .S(clock_select), .O(clock50));
 	wire reset2_clock50;
 	wire pll_locked;
-	reset #(.FREQUENCY(50000000)) reset2 (.upstream_clock(clock50), .upstream_reset(reset1_clock_alt), .downstream_pll_locked(pll_locked), .downstream_reset(reset2_clock50));
+	reset #(.FREQUENCY(50000000)) reset2 (.upstream_clock(clock50), .upstream_reset(global_reset||reset1_clock_alt), .downstream_pll_locked(pll_locked), .downstream_reset(reset2_clock50));
 	// ----------------------------------------------------------------------
 	wire rawclock125;
 	wire clock125;
@@ -95,12 +95,12 @@ module top (
 	// ----------------------------------------------------------------------
 	wire reset3_clock125;
 	wire pll_oserdes_locked;
-	reset #(.FREQUENCY(125000000)) reset3 (.upstream_clock(clock125), .upstream_reset(reset2_clock50), .downstream_pll_locked(pll_oserdes_locked), .downstream_reset(reset3_clock125));
+	reset #(.FREQUENCY(125000000)) reset3 (.upstream_clock(clock125), .upstream_reset(global_reset||reset2_clock50), .downstream_pll_locked(pll_oserdes_locked), .downstream_reset(reset3_clock125));
 	wire word_clock;
 	wire clock_spi;
 	assign clock_spi = word_clock;
 	wire reset4_word_clock;
-	reset #(.FREQUENCY(125000000)) reset4 (.upstream_clock(word_clock), .upstream_reset(reset3_clock125), .downstream_pll_locked(pll_oserdes_locked), .downstream_reset(reset4_word_clock));
+	reset #(.FREQUENCY(125000000)) reset4 (.upstream_clock(word_clock), .upstream_reset(global_reset||reset3_clock125), .downstream_pll_locked(pll_oserdes_locked), .downstream_reset(reset4_word_clock));
 	// ----------------------------------------------------------------------
 	reg sync_read_address = 0;
 	reg [15:0] read_address = 0;
