@@ -2,7 +2,7 @@
 
 # written 2020-05-11 by mza
 # based on mza-test041.spi-pollable-memory.althea.py
-# last updated 2020-06-05 by mza
+# last updated 2020-06-06 by mza
 
 import time # time.sleep
 import sys # sys.exit

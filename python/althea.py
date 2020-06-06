@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-05 by mza
+# last updated 2020-06-06 by mza
 
 import time
 import time # time.sleep
@@ -137,10 +137,10 @@ def test_speed_of_setting_gpios_with_fastgpio():
 	data = [ random.randint(0,2**32-1) for d in range(NUM) ]
 	#NUM = len(data)
 	mask = buildmask(gpio)
-	fastgpio.setup_bus_as_outputs(mask)
+	output_bus = fastgpio.bus(mask, 1, 0)
 	print("running...")
 	start = time.time()
-	fastgpio.write(data, mask)
+	output_bus.write(data)
 	end = time.time()
 	diff = end - start
 	per_sec = NUM / diff
