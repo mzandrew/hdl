@@ -65,7 +65,7 @@ def enable_clock(frequency_in_MHz):
 	pi.hardware_clock(gpio, frequency)
 	pi.set_mode(gpio, pigpio.ALT0)
 	#value = pi.get_mode(gpio)
-	#print str(value)
+	#print(str(value))
 #	GPIO.setup(6, GPIO.OUT)
 #	GPIO.output(6, GPIO.LOW)
 
@@ -84,15 +84,12 @@ def select_clock_and_reset_althea(choice=0):
 	reset_pulse()
 	wait_for_ready() # wait for oserdes pll to lock
 
-def bit(word, bitnumber):
-	return (word >> bitnumber) & 1
-
 epsilon = 1.0e-6
-def test_speed_of_setting_gpios():
+def test_speed_of_setting_gpios_individually():
 	#gpio = [ 2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 10, 9, 25, 11, 8, 7, 5, 6, 12, 13, 19, 16, 26, 20, 21 ] # althea revB
 	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
-	#print sorted(gpio)
-	#print len(gpio)
+	#print(sorted(gpio))
+	#print(len(gpio))
 	for g in gpio:
 		GPIO.setup(g, GPIO.OUT)
 	number_of_transfers = 0
@@ -102,11 +99,11 @@ def test_speed_of_setting_gpios():
 	data = [ random.randint(0,2**bits-1) for d in range(NUM) ]
 	#end = time.time()
 	#diff = end - start
-	#print str(diff)
+	#print(str(diff))
 	#if diff>epsilon:
 	#	per_sec = NUM / diff
-	#	#print str(per_sec)
-	#	print eng(per_sec) + " randint() per second" # "60.1e3 randint() per second" on a rpi2
+	#	#print(str(per_sec))
+	#	print(eng(per_sec) + " randint() per second" # "60.1e3 randint() per second" on a rpi2)
 	start = time.time()
 	for i in range(NUM):
 		for j in range(bits):
@@ -120,17 +117,38 @@ def test_speed_of_setting_gpios():
 	end = time.time()
 	diff = end - start
 	per_sec = number_of_transfers / diff
-	print eng(per_sec) + " transfers per second" # "9.9e3 transfers per second" on a rpi2
+	#print(eng(per_sec) + " transfers per second") # "9.9e3 transfers per second" on a rpi2
 	per_sec *= bits
-	print eng(per_sec) + " bits per second" # "246.2e3 transfers per second" on a rpi2
+	#print(eng(per_sec) + " bits per second") # "246.2e3 transfers per second" on a rpi2
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 0.024 MB per second
 	#GPIO.cleanup()
 	#GPIO.setwarnings(False)
 	#GPIO.setmode(GPIO.BCM)
 
+import fastgpio
+def test_speed_of_setting_gpios_with_fastgpio():
+	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
+	bits = len(gpio)
+	NUM = 20000
+	data = [ random.randint(0,2**32-1) for d in range(NUM) ]
+	#NUM = len(data)
+	mask = buildmask(gpio)
+	fastgpio.setup_bus_as_outputs(mask)
+	start = time.time()
+	fastgpio.write(data, mask)
+	end = time.time()
+	diff = end - start
+	per_sec = NUM / diff
+	#print(str(diff))
+	per_sec *= bits
+	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
+	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 31.462 MB per second
+
 #import copy
 def unpack32(data):
 #	string = "unpack32(" + hex(data, 8) + ")="
-#	print string
+#	print(string)
 	datum = [ 0 for d in range(4) ]
 	datum[0] = int((data>>24) & 0xff) # the weird bug was here
 	datum[1] = int((data>>16) & 0xff) # the weird bug was here
@@ -145,9 +163,9 @@ def unpack32(data):
 def pack32(datum):
 #	show_d8_4(datum, " pack32")
 #	string = "pack32(" + hex(datum[0], 2) + "," + hex(datum[1], 2) + "," + hex(datum[2], 2) + "," + hex(datum[3], 2) + ")="
-#	print string
+#	print(string)
 	if 4!=len(datum):
-		print "error: len()!=4"
+		print("error: len()!=4")
 		sys.exit(1)
 #	for i in range(len(datum)):
 #		datum[i] &= 0xff
@@ -181,7 +199,7 @@ def prepare_list_with_pseudorandom_values(memsize):
 		#data_list[i] = 0xff00ff00
 		#data_list[i] = 0x00ff00ff
 		#data_list[i] = 0x800f00f0
-		#print hex(data_list[i], 8)
+		#print(hex(data_list[i], 8))
 #		datum = unpack32(data_list[i])
 #		show_d8_4(datum, " test_command8_address16_data32")
 #		data_list[i] = 0
@@ -203,21 +221,21 @@ def prepare_list_with_pseudorandom_values(memsize):
 
 def show_c8_a16_d32(c8_a16_d32, suffix_string=""):
 	if 7!=len(c8_a16_d32):
-		print "blah"
+		print("blah")
 	else:
-		#print hex(c8_a16_d32[0],2)
-		#print hex(c8_a16_d32[1],2) + " " + hex(c8_a16_d32[2],2)
-		print hex(c8_a16_d32[3],2) + " " + hex(c8_a16_d32[4],2) + " " + hex(c8_a16_d32[5],2) + " " + hex(c8_a16_d32[6],2) + suffix_string
+		#print(hex(c8_a16_d32[0],2))
+		#print(hex(c8_a16_d32[1],2) + " " + hex(c8_a16_d32[2],2))
+		print(hex(c8_a16_d32[3],2) + " " + hex(c8_a16_d32[4],2) + " " + hex(c8_a16_d32[5],2) + " " + hex(c8_a16_d32[6],2) + suffix_string)
 
 def show_d8_4(datum, suffix_string=""):
 	if 4!=len(datum):
-		print "blah_datum"
+		print("blah_datum")
 		sys.exit(1)
 	else:
-		print hex(datum[0],2) + " " + hex(datum[1],2) + " " + hex(datum[2],2) + " " + hex(datum[3],2) + suffix_string
+		print(hex(datum[0],2) + " " + hex(datum[1],2) + " " + hex(datum[2],2) + " " + hex(datum[3],2) + suffix_string)
 
 def show_d32(d32, suffix_string=""):
-	print hex((d32>>24)&0xff,2) + " " + hex((d32>>16)&0xff,2) + " " + hex((d32>>8)&0xff,2) + " " + hex((d32>>0)&0xff,2) + suffix_string
+	print(hex((d32>>24)&0xff,2) + " " + hex((d32>>16)&0xff,2) + " " + hex((d32>>8)&0xff,2) + " " + hex((d32>>0)&0xff,2) + suffix_string)
 
 def regularize_lists(length, command_list, address_list, data_list):
 	for i in range(length):
@@ -287,7 +305,7 @@ class spi(spidev.SpiDev):
 	#	to_send[5] = datum[2]
 	#	to_send[6] = datum[3]
 	#	if 0x80!=datum[0]:
-		#print hex(datum[0], 2)
+		#print(hex(datum[0], 2))
 	#	to_send_b.append(0x80)
 		#to_send_b.append(int(datum[0]))
 		#to_send_b.append(copy.copy(datum[0]))
@@ -309,7 +327,7 @@ class spi(spidev.SpiDev):
 		#to_send = to_send_b
 	#	to_send = copy.deepcopy(to_send_b)
 		if 7!=len(to_send):
-			print "message to send is not length 7"
+			print("message to send is not length 7")
 			sys.exit(2)
 		values = self.xfer2(to_send)
 	#	self.xfer3(to_send)
@@ -326,7 +344,7 @@ class spi(spidev.SpiDev):
 				response = self.spi_send_command8_address16_data32(command_list[i], address_list[i], data_list[i])
 				if 7!=len(response):
 					total_errors += 1
-					print "function returned " + str(len(response)) + " words instead of 7"
+					print("function returned " + str(len(response)) + " words instead of 7")
 
 	def write_list_to_spi_pollable_memory_in_pseudorandom_order_and_record_responses_for_each_one(self, length, command_list, address_list, data_list):
 		for i in random.sample(range(length), length):
@@ -334,10 +352,10 @@ class spi(spidev.SpiDev):
 				response = self.spi_send_command8_address16_data32(command_list[i], address_list[i], data_list[i])
 				if 7!=len(response):
 					self.total_errors += 1
-					print "function returned " + str(len(response)) + " words instead of 7"
+					print("function returned " + str(len(response)) + " words instead of 7")
 				else:
-					#print "i=" + str(i)
-					#print "len=" + str(len(response))
+					#print("i=" + str(i))
+					#print("len=" + str(len(response)))
 					self.responses[i].append(response[3:7])
 				self.total_transfers += 1
 			else:
@@ -347,18 +365,18 @@ class spi(spidev.SpiDev):
 
 	def verify_responses_match_input_data(self, length, data_list, address_list):
 		for i in range(length):
-			#print str(responses[i])
+			#print(str(responses[i]))
 			string = "[" + hex(address_list[i], 4) + "]"
 			#temp = pack32(unpack32(data_list[i]))
 			#if temp!=data_list[i]:
-			#	print "whoa!"
+			#	print("whoa!")
 			#string += " value_written=" + hex(temp, 8)
 			string += " value_written=" + hex(data_list[i], 8) + " read:"
 			j = 0
 			errors = 0
 			values = {}
 			for response in self.responses[i]:
-	#			print response
+	#			print(response)
 				value_read = pack32(response)
 				try:
 					values[value_read] += 1
@@ -376,7 +394,7 @@ class spi(spidev.SpiDev):
 					self.total_errors += errors
 				except:
 					self.total_errors = errors
-				print string
+				print(string)
 
 	def read_values_from_spi_pollable_memory(self, length, offset):
 		command_list = [ c for c in range(length) ]
@@ -388,17 +406,17 @@ class spi(spidev.SpiDev):
 				response = self.spi_send_command8_address16_data32(command_list[i], address_list[i], data_list[i])
 				if 7!=len(response):
 					self.total_errors += 1
-					print "function returned " + str(len(response)) + " words instead of 7"
+					print("function returned " + str(len(response)) + " words instead of 7")
 				else:
 					value_read = pack32(response[3:7])
-					#print str(value_read)
+					#print(str(value_read))
 					values[i] = value_read
 				self.total_transfers += 1
 		return values
 
 	def test_command8_address16_data32(self, number_of_passes):
 		# 30k transfers per second on a rpi2 @ 10e6 Hz
-		print "testing spi_command8_address16_data32 peripheral..."
+		print("testing spi_command8_address16_data32 peripheral...")
 		size = number_of_passes * self.memsize
 		self.total_transfers = 0
 		self.total_errors = 0
@@ -418,18 +436,18 @@ class spi(spidev.SpiDev):
 		per = diff / self.memsize
 		transfers_per_sec = size / diff
 		self.verify_responses_match_input_data(self.memsize, data_list, address_list)
-	#	print "total_errors=" + str(self.total_errors)
-	#	print "total_transfers=" + str(self.total_transfers)
+	#	print("total_errors=" + str(self.total_errors))
+	#	print("total_transfers=" + str(self.total_transfers))
 		if (self.total_errors):
 			BER = float(self.total_errors+1)/self.total_transfers
-			print "BER<=" + eng(BER, "%.1f")
+			print("BER<=" + eng(BER, "%.1f"))
 		else:
-			print str(size) + " transfers completed successfully"
-		print eng(transfers_per_sec) + " transfers per second"
+			print(str(size) + " transfers completed successfully")
+		print(eng(transfers_per_sec) + " transfers per second")
 
 	def write_list_to_pollable_memory_and_then_verify(self, length, command_list, address_list, data_list):
 		command_list, address_list, data_list = regularize_lists(length, command_list, address_list, data_list)
-		#print hex(address_list[0], 4) + ", " + hex(address_list[length-1], 4)
+		#print(hex(address_list[0], 4) + ", " + hex(address_list[length-1], 4))
 		self.write_list_to_spi_pollable_memory_in_pseudorandom_order(length, command_list, address_list, data_list)
 		self.write_list_to_spi_pollable_memory_in_pseudorandom_order_and_record_responses_for_each_one(length, command_list, address_list, data_list)
 		self.verify_responses_match_input_data(length, data_list, address_list)
@@ -466,7 +484,7 @@ class spi(spidev.SpiDev):
 
 # borrowed from xrm.py in uh-svn-repo; reads from csv files generated by xrm.py
 def read_csv(input_filename, date_string, max_count):
-	print "loading csv timeseries from file..."
+	print("loading csv timeseries from file...")
 	values = []
 	if os.path.isfile(input_filename):
 		input_file = open(input_filename)
@@ -481,7 +499,7 @@ def read_csv(input_filename, date_string, max_count):
 					#warning("read in " + str(count) + " datapoints")
 					pass
 	else:
-		print "can't open file \"" + input_filename + "\""
+		print("can't open file \"" + input_filename + "\"")
 		sys.exit(1)
 	return values
 
@@ -538,21 +556,21 @@ class spi_sequencer(spi):
 					pulse_width = csv_list[i+j]
 					index = 31-j-pulse_width+32 # fill the high part of a 64-bit word
 					value |= (2**pulse_width-1)<<index
-			#print hex(value, 8)
+			#print(hex(value, 8))
 			value_low = value & 0xffffffff # save what spilled over into the low 32 bits for next time
 			value_high = value - value_low
 			data_list[k] = value_high>>32
 			k += 1
-		#print k
-		#print len(data_list)
+		#print(k)
+		#print(len(data_list))
 		if len(data_list)<length:
 			for i in range(len(data_list), length):
 				data_list.append(0)
 	#	for i in range(length):
 	#		if i<64:
 	#			data_list[i] = 0
-	#	print len(data_list)
-		print "uploading csv timeseries to device..."
+	#	print(len(data_list))
+		print("uploading csv timeseries to device...")
 		self.write_list_to_pollable_memory_and_then_verify(length, command_list, address_list, data_list)
 
 # 10240 samples per revolution
@@ -569,7 +587,7 @@ class spi_sequencer(spi):
 #		for i in range(0, 640, 16):
 #			j = i + 640
 #			#for j in range(640, 1280, 16):
-#			#	print str(i) + "," + str(j)
+#			#	print(str(i) + "," + str(j))
 #			spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ i, j ])
 #			time.sleep(0.01)
 

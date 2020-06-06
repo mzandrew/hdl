@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # written 2020-05-11 by mza
 # based on mza-test041.spi-pollable-memory.althea.py
@@ -9,7 +9,8 @@ import sys # sys.exit
 from generic import * # hex, eng
 import althea
 
-althea.test_speed_of_setting_gpios()
+althea.test_speed_of_setting_gpios_individually()
+althea.test_speed_of_setting_gpios_with_fastgpio()
 sys.exit(0)
 
 RF_buckets = 5120
@@ -32,7 +33,7 @@ def read_frequency_counter_value(spi):
 
 def show_frequency_counter_value(spi):
 	value = read_frequency_counter_value(spi)
-	print str(value)
+	print(str(value))
 
 def stop_ring_oscillator(spi):
 	spi.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 0 ], 2)
@@ -49,7 +50,7 @@ def set_ring_oscillator_values(spi, coarse, medium, fine):
 	value |= coarse <<(N_bits_medium+N_bits_fine)
 	value |= medium <<(N_bits_fine)
 	value |= fine
-	print "[" + str(coarse) + "," + str(medium) + "," + str(fine) + "] " + str(value) + " =",
+	print("[" + str(coarse) + "," + str(medium) + "," + str(fine) + "] " + str(value) + " =",)
 	spi.write_values_to_spi_pollable_memory_and_verify(2, [ 1, value ], 2) # test ring_oscillator functionality
 
 def scan_ring_oscillator(spi, coarse=max_coarse, medium=max_medium, fine=max_fine):
@@ -65,7 +66,7 @@ def scan_ring_oscillator(spi, coarse=max_coarse, medium=max_medium, fine=max_fin
 		fines = [ f for f in range(max_fine) ]
 	else:
 		fines = [ fine ]
-	#print str(coarses) + " " + str(mediums) + " " + str(fines)
+	#print(str(coarses) + " " + str(mediums) + " " + str(fines))
 	for coarse in coarses:
 		for medium in mediums:
 			for fine in fines:
@@ -106,14 +107,14 @@ for i in range(9):
 spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 9.0*RF_buckets ]) # show 9 revolutions worth of the sequencer memory
 
 def cycle(number_of_segments, segment_size):
-	print "cycling..."
+	print("cycling...")
 	i = 0
 	while True:
 		j = i % number_of_segments
 		k = (i + 1) % number_of_segments
 		if 0==k:
 			k = number_of_segments
-		#print str(j) + " " + str(k)
+		#print(str(j) + " " + str(k))
 		spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ j*segment_size,k*segment_size])
 		i += 1
 		time.sleep(0.1)

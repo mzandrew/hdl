@@ -40,3 +40,14 @@ def eng(x, format='%.1f', si=False):
 		exp3_text = 'e%s' % exp3
 	return ( '%s'+format+'%s') % ( sign, x3, exp3_text)
 
+def bit(word, bitnumber):
+	return (word >> bitnumber) & 1
+
+def buildmask(gpios):
+	mask = 0
+	for i in gpios:
+		if i:
+			mask |= 1<<i
+	#print(hex(mask))
+	return mask
+
