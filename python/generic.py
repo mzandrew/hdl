@@ -4,6 +4,8 @@
 
 import math # floor, ceil, log10
 
+epsilon = 1.0e-6
+
 def hex(number, width=1):
 	return "%0*x" % (width, number)
 

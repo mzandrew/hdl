@@ -18,6 +18,11 @@ from generic import * # hex, eng
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
+def set_all_gpio_as_inputs():
+	gpios = [ g for g in range(2, 26+1) ]
+	for gpio in gpios:
+		GPIO.setup(gpio, GPIO.IN)
+
 def pulse(gpio, duration):
 	GPIO.setup(gpio, GPIO.OUT)
 	GPIO.output(gpio, GPIO.HIGH)
@@ -61,7 +66,7 @@ def enable_clock(frequency_in_MHz):
 	gpio=6
 	#os.system("sudo pigpiod")
 	pi = pigpio.pi()
-	frequency = frequency_in_MHz * 1.0e6
+	frequency = int(frequency_in_MHz * 1.0e6)
 	pi.hardware_clock(gpio, frequency)
 	pi.set_mode(gpio, pigpio.ALT0)
 	#value = pi.get_mode(gpio)
@@ -73,22 +78,24 @@ def disable_clock():
 	gpio=6
 	GPIO.setup(gpio, GPIO.OUT)
 	GPIO.output(gpio, GPIO.LOW)
+	#GPIO.setup(gpio, GPIO.IN)
 
 def select_clock_and_reset_althea(choice=0):
 	if choice:
-		clock_select(1) # built-in osc (1) or output from rpi_gpio6_gpclk2 (0)
-		disable_clock() # rpi_gpio6_gpclk2 no longer set to gpclk mode
-	else:
-		clock_select(0) # built-in osc (1) or output from rpi_gpio6_gpclk2 (0)
 		enable_clock(10.0) # rpi_gpio6_gpclk2 = 10.0 MHz
+		clock_select(1) # built-in osc (0) or output from rpi_gpio6_gpclk2 (1)
+	else:
+		clock_select(0) # built-in osc (0) or output from rpi_gpio6_gpclk2 (1)
+		disable_clock() # rpi_gpio6_gpclk2 no longer set to gpclk mode
 	reset_pulse()
 	wait_for_ready() # wait for oserdes pll to lock
 
-epsilon = 1.0e-6
+# https://sourceforge.net/p/raspberry-gpio-python/wiki/BasicUsage/
 def test_speed_of_setting_gpios_individually():
 	print("setting up for individual gpio mode...")
 	#gpio = [ 2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 10, 9, 25, 11, 8, 7, 5, 6, 12, 13, 19, 16, 26, 20, 21 ] # althea revB
 	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
+	bits = len(gpio)
 	#print(sorted(gpio))
 	#print(len(gpio))
 	for g in gpio:
@@ -96,7 +103,6 @@ def test_speed_of_setting_gpios_individually():
 	number_of_transfers = 0
 	NUM = 7729
 	#start = time.time()
-	bits = len(gpio)
 	data = [ random.randint(0,2**bits-1) for d in range(NUM) ]
 	#end = time.time()
 	#diff = end - start
@@ -115,6 +121,52 @@ def test_speed_of_setting_gpios_individually():
 			else:
 				bitstate = GPIO.LOW
 			GPIO.output(gpio[j], bitstate)
+		number_of_transfers += 1
+	end = time.time()
+	diff = end - start
+	#print("%.3f"%diff + " seconds")
+	per_sec = number_of_transfers / diff
+	#print(eng(per_sec) + " transfers per second") # "9.9e3 transfers per second" on a rpi2
+	per_sec *= bits
+	#print(eng(per_sec) + " bits per second") # "246.2e3 transfers per second" on a rpi2
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 0.024 MB per second
+	#GPIO.cleanup()
+	#GPIO.setwarnings(False)
+	#GPIO.setmode(GPIO.BCM)
+
+# https://sourceforge.net/p/raspberry-gpio-python/wiki/BasicUsage/
+def test_speed_of_setting_gpios_grouped():
+	print("setting up for grouped gpio mode...")
+	#gpio = [ 2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 10, 9, 25, 11, 8, 7, 5, 6, 12, 13, 19, 16, 26, 20, 21 ] # althea revB
+	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
+	bits = len(gpio)
+	#print(sorted(gpio))
+	#print(len(gpio))
+	for g in gpio:
+		GPIO.setup(g, GPIO.OUT)
+	number_of_transfers = 0
+	NUM = 7729
+	#start = time.time()
+	data = [ random.randint(0,2**bits-1) for d in range(NUM) ]
+	#end = time.time()
+	#diff = end - start
+	#print(str(diff))
+	#if diff>epsilon:
+	#	per_sec = NUM / diff
+	#	#print(str(per_sec))
+	#	print(eng(per_sec) + " randint() per second" # "60.1e3 randint() per second" on a rpi2)
+	print("running...")
+	start = time.time()
+	for i in range(NUM):
+		mylist = []
+		for j in range(bits):
+			#GPIO.output(gpio[j], data[i][j] ? GPIO.HIGH : GPIO.LOW)
+			if bit(data[i], j):
+				bitstate = GPIO.HIGH
+			else:
+				bitstate = GPIO.LOW
+			mylist.append(bitstate)
+		GPIO.output(gpio, mylist)
 		number_of_transfers += 1
 	end = time.time()
 	diff = end - start
@@ -351,6 +403,12 @@ class spi(spidev.SpiDev):
 		self.total_transfers = 0
 		self.total_errors = 0
 		self.responses = [ list() for a in range(self.memsize) ]
+		gpios = [ 7, 8, 9, 10, 11 ]
+		pi = pigpio.pi()
+		for gpio in gpios:
+			# https://elinux.org/RPi_BCM2835_GPIOs
+			pi.set_mode(gpio, pigpio.ALT0)
+			#GPIO.setup(gpio, GPIO.SPI)
 
 	def spi_send_command8_address16_data32(self, command, address, data):
 		command &= 0xff
@@ -604,6 +662,7 @@ class spi_sequencer(spi):
 	def write_csv_values_to_spi_pollable_memory_and_verify(self, length, offset, max_count, input_filename, date_string, max_for_normalization=6.0):
 		offset = int(offset/16.0)
 		max_for_normalization = float(max_for_normalization)
+		length = int(length)
 		command_list = [ c for c in range(length) ]
 		address_list = [ offset+a for a in range(length) ]
 		data_list = [ 0 for d in range(length) ]
