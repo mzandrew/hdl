@@ -155,6 +155,9 @@ static int init_anubis(bus_object *self, PyObject *args, PyObject *kwds) {
 	//printf("%08lx\n", mask);
 	//printf("direction: %ld\n", direction);
 	//printf("offset: %ld\n", offset);
+//	if (offset) {
+//		mask <<= offset;
+//	}
 	if (direction) {
 		setup_bus_as_outputs(mask);
 	} else {
@@ -214,8 +217,9 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 	volatile uint32_t *set_reg = gpio_port + (GPIO_SET_OFFSET / sizeof(uint32_t));
 	volatile uint32_t *clr_reg = gpio_port + (GPIO_CLR_OFFSET / sizeof(uint32_t));
 	u32 count = 0;
-	u32 value;
+	u32 value = 0;
 	u32 mask = self->mask;
+	u8 offset = self->offset;
 	while (1) {
 		PyObject *next = PyIter_Next(iter);
 		if (!next) {
@@ -223,6 +227,7 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 		}
 		value = PyLong_AsUnsignedLong(next);
 		//printf("%08lx %08lx\n", value, mask);
+		value <<= offset;
 		value &= mask;
 		*clr_reg = value;
 		*set_reg = value;
