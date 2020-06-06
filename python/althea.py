@@ -1,10 +1,10 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-05-29 by mza
+# last updated 2020-06-05 by mza
 
 import time
 import time # time.sleep
-import random #
+import random # randint
 import sys # sys.exit
 import math
 import os # os.path.isfile
@@ -55,6 +55,7 @@ def clock_select(which):
 	else:
 		GPIO.output(13, GPIO.LOW)
 
+# this requires pigpiod be run beforehand
 def enable_clock(frequency_in_MHz):
 	#GPIO.setup(6, GPIO.ALT0)
 	gpio=6
@@ -82,6 +83,49 @@ def select_clock_and_reset_althea(choice=0):
 		enable_clock(10.0) # rpi_gpio6_gpclk2 = 10.0 MHz
 	reset_pulse()
 	wait_for_ready() # wait for oserdes pll to lock
+
+def bit(word, bitnumber):
+	return (word >> bitnumber) & 1
+
+epsilon = 1.0e-6
+def test_speed_of_setting_gpios():
+	#gpio = [ 2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 10, 9, 25, 11, 8, 7, 5, 6, 12, 13, 19, 16, 26, 20, 21 ] # althea revB
+	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
+	#print sorted(gpio)
+	#print len(gpio)
+	for g in gpio:
+		GPIO.setup(g, GPIO.OUT)
+	number_of_transfers = 0
+	NUM = 10000
+	#start = time.time()
+	bits = len(gpio)
+	data = [ random.randint(0,2**bits-1) for d in range(NUM) ]
+	#end = time.time()
+	#diff = end - start
+	#print str(diff)
+	#if diff>epsilon:
+	#	per_sec = NUM / diff
+	#	#print str(per_sec)
+	#	print eng(per_sec) + " randint() per second" # "60.1e3 randint() per second" on a rpi2
+	start = time.time()
+	for i in range(NUM):
+		for j in range(bits):
+			#GPIO.output(gpio[j], data[i][j] ? GPIO.HIGH : GPIO.LOW)
+			if bit(data[i], j):
+				bitstate = GPIO.HIGH
+			else:
+				bitstate = GPIO.LOW
+			GPIO.output(gpio[j], bitstate)
+		number_of_transfers += 1
+	end = time.time()
+	diff = end - start
+	per_sec = number_of_transfers / diff
+	print eng(per_sec) + " transfers per second" # "9.9e3 transfers per second" on a rpi2
+	per_sec *= bits
+	print eng(per_sec) + " bits per second" # "246.2e3 transfers per second" on a rpi2
+	#GPIO.cleanup()
+	#GPIO.setwarnings(False)
+	#GPIO.setmode(GPIO.BCM)
 
 #import copy
 def unpack32(data):

@@ -2,12 +2,15 @@
 
 # written 2020-05-11 by mza
 # based on mza-test041.spi-pollable-memory.althea.py
-# last updated 2020-05-30 by mza
+# last updated 2020-06-05 by mza
 
 import time # time.sleep
 import sys # sys.exit
 from generic import * # hex, eng
 import althea
+
+althea.test_speed_of_setting_gpios()
+sys.exit(0)
 
 RF_buckets = 5120
 scaling = 2

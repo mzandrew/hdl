@@ -1,6 +1,8 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-05-23 by mza
+# last updated 2020-06-05 by mza
+
+import math # floor, ceil, log10
 
 def hex(number, width=1):
 	return "%0*x" % (width, number)
