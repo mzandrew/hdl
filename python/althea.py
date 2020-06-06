@@ -129,7 +129,7 @@ def test_speed_of_setting_gpios_individually():
 	#GPIO.setmode(GPIO.BCM)
 
 import fastgpio
-def test_speed_of_setting_gpios_with_fastgpio_half_duplex():
+def test_speed_of_setting_gpios_with_fastgpio_full_bus_width():
 	print("setting up for fastgpio mode...")
 	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
 	bits = len(gpio)
@@ -150,7 +150,7 @@ def test_speed_of_setting_gpios_with_fastgpio_half_duplex():
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 31.462 MB per second
 
-def test_speed_of_setting_gpios_with_fastgpio_full_duplex():
+def test_speed_of_setting_gpios_with_fastgpio_half_bus_width():
 	print("setting up for fastgpio mode...")
 	gpio_in = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 ] # althea revB
 	gpio_out = [ 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 ] # althea revB
@@ -159,11 +159,20 @@ def test_speed_of_setting_gpios_with_fastgpio_full_duplex():
 	bits_out = len(gpio_out)
 	NUM = 10000
 	#data = [ random.randint(0,2**32-1) for d in range(NUM) ]
-	data = [ random.randint(0,2**bits_out-1) for d in range(NUM) ]
+	if 1:
+		data = [ random.randint(0,2**bits_out-1) for d in range(NUM) ]
+	else:
+		data = [ d for d in range(NUM) ]
+		for i in range(NUM):
+			value = i%2
+			for j in range(bits_out-1):
+				value |= value<<1
+			data[i] = value
+			#print(hex(value, 8))
 	#NUM = len(data)
-	mask_in = buildmask(gpio_in)
+	#mask_in = buildmask(gpio_in)
+	#input_bus = fastgpio.bus(mask_in, 0, 2)
 	mask_out = buildmask(gpio_out)
-	#input_bus = fastgpio.bus(mask_in, 0, 0)
 	#output_bus = fastgpio.bus(mask_out, 1, 0)
 	output_bus = fastgpio.bus(mask_out, 1, 14)
 	print("running...")
@@ -174,6 +183,39 @@ def test_speed_of_setting_gpios_with_fastgpio_full_duplex():
 	per_sec = NUM / diff
 	#print("%.3f"%diff + " seconds")
 	per_sec *= bits_out
+	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
+	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 31.462 MB per second
+
+def test_speed_of_setting_gpios_with_fastgpio_half_duplex():
+	print("setting up for fastgpio mode...")
+	gpio_bus = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 ] # althea revB
+	gpio_extra = [ 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
+	bits_bus = len(gpio_bus)
+	#print(str(bits_bus))
+	NUM = 10000
+	#data = [ random.randint(0,2**32-1) for d in range(NUM) ]
+	if 1:
+		data = [ random.randint(0,2**bits_bus-1) for d in range(NUM) ]
+	else:
+		data = [ d for d in range(NUM) ]
+		for i in range(NUM):
+			value = i%2
+			for j in range(bits_bus-1):
+				value |= value<<1
+			data[i] = value
+			#print(hex(value, 8))
+	#NUM = len(data)
+	mask_bus = buildmask(gpio_bus)
+	output_bus = fastgpio.bus(mask_bus, 1, 2)
+	print("running...")
+	start = time.time()
+	output_bus.write(data)
+	end = time.time()
+	diff = end - start
+	per_sec = NUM / diff
+	#print("%.3f"%diff + " seconds")
+	per_sec *= bits_bus
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 31.462 MB per second

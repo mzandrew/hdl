@@ -10,8 +10,9 @@ from generic import * # hex, eng
 import althea
 
 #althea.test_speed_of_setting_gpios_individually()
-#althea.test_speed_of_setting_gpios_with_fastgpio_half_duplex()
-althea.test_speed_of_setting_gpios_with_fastgpio_full_duplex()
+#althea.test_speed_of_setting_gpios_with_fastgpio_full_bus_width()
+#althea.test_speed_of_setting_gpios_with_fastgpio_half_bus_width()
+althea.test_speed_of_setting_gpios_with_fastgpio_half_duplex()
 sys.exit(0)
 
 RF_buckets = 5120
