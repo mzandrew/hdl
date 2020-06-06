@@ -39,6 +39,7 @@ module top (
 	output led_0, led_1, led_2, led_3,
 	output led_4, led_5, led_6, led_7
 );
+	localparam COUNTER_RO_PICKOFF = 23;
 	wire [31:0] frequency_counter0;
 	reg [31:0] frequency_counter1;
 	wire global_reset = rpi_gpio19;
@@ -56,7 +57,7 @@ module top (
 	simpledcm_CLKGEN #(.multiply(50), .divide(50), .period(100.0)) mydcm_ro (.clockin(clock_ro_raw), .reset(global_reset || (~ring_oscillator_enable[0])), .clockout(clock_ro_raw_a), .clockout180(clock_ro_raw_b), .locked(clock_ro_locked)); // 10->10
 	BUFG mybuf_roa (.I(clock_ro_raw_a), .O(clock_ro));
 	BUFG mybuf_rob (.I(clock_ro_raw_b), .O(clock_ro_b));
-	reg [31:0] counter_ro = 0;
+	reg [COUNTER_RO_PICKOFF:0] counter_ro = 0;
 	always @(posedge clock_ro) begin
 		counter_ro <= counter_ro + 1'b1;
 	end
@@ -260,7 +261,7 @@ module top (
 		assign led_5 = reset3_clock125;
 		assign led_4 = reset4_word_clock;
 		assign led_3 = ~clock_ro_locked;
-		assign led_2 = counter_ro[23];
+		assign led_2 = counter_ro[COUNTER_RO_PICKOFF];
 		assign led_1 = ~rpi_spi_ce0 || ~rpi_spi_ce1;
 		assign led_0 = not_ready;
 	end

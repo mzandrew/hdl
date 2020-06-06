@@ -19,11 +19,11 @@ module frequency_counter #(
 );
 //	wire ;
 	localparam MSB_OF_COUNTERS = LOG2_OF_DIVIDE_RATIO + 8; // 35
-	localparam MSB_OF_ACCUMULATOR = LOG2_OF_MAXIMUM_EXPECTED_FREQUENCY + LOG2_OF_FREQUENCY_OF_REFERENCE_CLOCK_IN_N_HZ + 8; // ~63
+	localparam MSB_OF_ACCUMULATOR = LOG2_OF_MAXIMUM_EXPECTED_FREQUENCY + LOG2_OF_FREQUENCY_OF_REFERENCE_CLOCK_IN_N_HZ + 3; // ~63
 	localparam MSB_OF_RESULT = MSB_OF_ACCUMULATOR - LOG2_OF_DIVIDE_RATIO; // ~35
 	reg [MSB_OF_ACCUMULATOR:0] accumulator = 0;
 	reg [MSB_OF_ACCUMULATOR:0] previous_accumulator = 0;
-	reg [MSB_OF_COUNTERS:0] reference_clock_counter = 0;
+	reg [LOG2_OF_DIVIDE_RATIO:0] reference_clock_counter = 0;
 	wire trigger_active = reference_clock_counter[LOG2_OF_DIVIDE_RATIO];
 	reg valid_unknown = 0;
 	reg [2:0] valid_pipeline = 0;
