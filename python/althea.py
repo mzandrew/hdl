@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-06 by mza
+# last updated 2020-06-09 by mza
 
 import time
 import time # time.sleep
@@ -12,11 +12,13 @@ import re # re.search
 import RPi.GPIO as GPIO
 #import pigpio # the daemon causes conflicts the way we were using it
 import spidev
-
 from generic import * # hex, eng
+import fastgpio # fastgpio.bus
 
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
+
+# ---------------------------------------------------------------------------
 
 def set_all_gpio_as_inputs():
 	gpios = [ g for g in range(2, 26+1) ]
@@ -48,6 +50,11 @@ def gpio_state(gpio):
 	else:
 		state = False
 	return state
+
+#def setup_gpios():
+#	fastgpio.setup_gpios()
+
+# ---------------------------------------------------------------------------
 
 def wait_for_ready():
 	while 0==gpio_state(5):
@@ -91,12 +98,36 @@ def select_clock_and_reset_althea(choice=0):
 	reset_pulse()
 	wait_for_ready() # wait for oserdes pll to lock
 
+# ---------------------------------------------------------------------------
+
+gpio_all = [ i for i in range(27+1) ] # all possible gpios on a raspberry pi 40 pin header
+gpio_used_for_spi = [ 7, 8, 9, 10, 11 ] # CE1, CE0, MISO, MOSI, SCLK
+#gpio_used_for_jtag = [ 12, 16, 17, 18, 22, 27 ] # DONE, TRST, TDI, TCK, TMS, TDO
+gpio_used_for_jtag = [ 16, 17, 18, 19, 22, 27 ] # TRST, TDI, DONE, TCK, TMS, TDO (swap 12 and 19)
+gpio_used_for_i2c_eeprom = [ 0, 1 ] # SDA, SCL
+def althea_revB_gpios():
+	gpio = [ gpio_all[i] for i in range(len(gpio_all)) ]
+	if 1:
+		for g in gpio_used_for_jtag:
+			gpio.remove(g)
+	if 0:
+		for g in gpio_used_for_spi:
+			gpio.remove(g)
+	if 0:
+		for g in gpio_used_for_i2c_eeprom:
+			gpio.remove(g)
+	return gpio
+gpio = althea_revB_gpios()
+rle_gpio = run_lenth_encode_monotonicity(gpio)
+#print(str(rle_gpio))
+show_longest_run(rle_gpio)
+
 # https://sourceforge.net/p/raspberry-gpio-python/wiki/BasicUsage/
 def test_speed_of_setting_gpios_individually():
+	time.sleep(0.1)
 	print("setting up for individual gpio mode...")
-	#gpio = [ 2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 10, 9, 25, 11, 8, 7, 5, 6, 12, 13, 19, 16, 26, 20, 21 ] # althea revB
-	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
 	bits = len(gpio)
+	print(str(gpio))
 	#print(sorted(gpio))
 	#print(len(gpio))
 	for g in gpio:
@@ -130,18 +161,18 @@ def test_speed_of_setting_gpios_individually():
 	#print(eng(per_sec) + " transfers per second") # "9.9e3 transfers per second" on a rpi2
 	per_sec *= bits
 	#print(eng(per_sec) + " bits per second") # "246.2e3 transfers per second" on a rpi2
-	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 0.024 MB per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 0.024 MB per second on an rpi2
 	#GPIO.cleanup()
 	#GPIO.setwarnings(False)
 	#GPIO.setmode(GPIO.BCM)
+	time.sleep(0.1)
 
 # https://sourceforge.net/p/raspberry-gpio-python/wiki/BasicUsage/
 def test_speed_of_setting_gpios_grouped():
 	print("setting up for grouped gpio mode...")
-	#gpio = [ 2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 10, 9, 25, 11, 8, 7, 5, 6, 12, 13, 19, 16, 26, 20, 21 ] # althea revB
-	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
+	time.sleep(0.1)
 	bits = len(gpio)
-	#print(sorted(gpio))
+	print(str(gpio))
 	#print(len(gpio))
 	for g in gpio:
 		GPIO.setup(g, GPIO.OUT)
@@ -176,16 +207,18 @@ def test_speed_of_setting_gpios_grouped():
 	#print(eng(per_sec) + " transfers per second") # "9.9e3 transfers per second" on a rpi2
 	per_sec *= bits
 	#print(eng(per_sec) + " bits per second") # "246.2e3 transfers per second" on a rpi2
-	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 0.024 MB per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 0.032 MB per second on an rpi2
 	#GPIO.cleanup()
 	#GPIO.setwarnings(False)
 	#GPIO.setmode(GPIO.BCM)
+	time.sleep(0.1)
 
-import fastgpio
 def test_speed_of_setting_gpios_with_fastgpio_full_bus_width():
 	print("setting up for fastgpio mode...")
-	gpio = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
+	time.sleep(0.1)
 	bits = len(gpio)
+	print("this bus is " + str(bits) + " bits wide") # this bus is 20 bits wide
+	print(str(gpio))
 	NUM = 100000
 	data = [ random.randint(0,2**32-1) for d in range(NUM) ]
 	#NUM = len(data)
@@ -201,13 +234,18 @@ def test_speed_of_setting_gpios_with_fastgpio_full_bus_width():
 	per_sec *= bits
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
-	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 31.462 MB per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 26.878 MB per second on an rpi2
+	time.sleep(0.1)
 
 def test_speed_of_setting_gpios_with_fastgpio_half_bus_width():
 	print("setting up for fastgpio mode...")
-	gpio_in = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 ] # althea revB
-	gpio_out = [ 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 ] # althea revB
-	gpio_extra = [ 26 ] # althea revB
+	time.sleep(0.1)
+	half = len(gpio)//2
+	print(str(half))
+	gpio_in = [ gpio[i] for i in range(0, half) ] # althea revB
+	gpio_out = [ gpio[i] for i in range(half, len(gpio)) ] # althea revB
+	print(str(gpio_in))
+	print(str(gpio_out))
 	bits_in = len(gpio_in)
 	bits_out = len(gpio_out)
 	NUM = 10000
@@ -238,14 +276,16 @@ def test_speed_of_setting_gpios_with_fastgpio_half_bus_width():
 	per_sec *= bits_out
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
-	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 31.462 MB per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.976 MB per second on an rpi2
+	time.sleep(0.1)
 
-def test_speed_of_setting_gpios_with_fastgpio_half_duplex():
+def test_speed_of_setting_gpios_with_fastgpio_half_duplex(bus_width=16):
 	print("setting up for fastgpio mode...")
-	gpio_bus = [ 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 ] # althea revB
-	gpio_extra = [ 18, 19, 20, 21, 22, 23, 24, 25, 26 ] # althea revB
+	time.sleep(0.1)
+	gpio_bus = [ gpio[i] for i in range(bus_width) ]
+	print(str(gpio_bus))
 	bits_bus = len(gpio_bus)
-	#print(str(bits_bus))
+	print("this bus is " + str(bits_bus) + " bits wide")
 	NUM = 10000
 	#data = [ random.randint(0,2**32-1) for d in range(NUM) ]
 	if 1:
@@ -271,7 +311,10 @@ def test_speed_of_setting_gpios_with_fastgpio_half_duplex():
 	per_sec *= bits_bus
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
-	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 31.462 MB per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
+	time.sleep(0.1)
+
+# ---------------------------------------------------------------------------
 
 #import copy
 def unpack32(data):
@@ -392,6 +435,8 @@ def regularize_lists(length, command_list, address_list, data_list):
 ##include pytest # sudo apt install python-pytest
 
 MAX_SPEED_HZ = 4e6 # 4e6 works without errors
+
+# ---------------------------------------------------------------------------
 
 class spi(spidev.SpiDev):
 	def __init__(self, ce, spi_memory_size):
@@ -729,4 +774,6 @@ class spi_sequencer(spi):
 
 #test_command8_address16_data32(spi_ce0, 2**4, 40)
 #test_command8_address16_data32(spi_ce1, 2**12, 10)
+
+# ---------------------------------------------------------------------------
 

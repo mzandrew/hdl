@@ -2,7 +2,14 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-06-06 by mza
+// last updated 2020-06-09 by mza
+
+// how to use this module:
+//	import fastgpio
+//	mask = 0xfff
+//	output_bus = fastgpio.bus(mask, 1, 0)
+//	data = [0xaaa, 0x555, 0xfff, 0x000]
+//	output_bus.write(data)
 
 typedef unsigned char u8;
 typedef unsigned long u32;
@@ -104,44 +111,12 @@ void setup_bus_as_outputs(u32 mask) {
 	initialize_gpios_for_output(gpio_port, mask);
 }
 
-//void run_cpu_direct(u32 mask) {
-//	// Prepare GPIO
-//	volatile uint32_t *gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
-//	initialize_gpios_for_output(gpio_port, mask);
-//	volatile uint32_t *set_reg = gpio_port + (GPIO_SET_OFFSET / sizeof(uint32_t));
-//	volatile uint32_t *clr_reg = gpio_port + (GPIO_CLR_OFFSET / sizeof(uint32_t));
-//	// Do it. Endless loop, directly setting.
-//	printf("1) CPU: Writing to GPIO directly in tight loop\n"
-//	       "== Press Ctrl-C to exit.\n");
-//	for (;;) {
-//		*clr_reg = mask;
-//		*set_reg = mask;
-//	}
-//}
-
-//	import fastgpio
-//	mask = 0xfff
-//	output_bus = fastgpio.bus(mask, 1, 0)
-//	data = [0xaaa, 0x555, 0xfff, 0x000]
-//	output_bus.write(data)
-
 typedef struct {
 	PyObject_HEAD
 	u32 mask;
 	u8 direction;
 	u8 offset;
 } bus_object;
-
-//static PyObject *new_anubis(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-//	bus_object *self;
-//	self = (bus_object *) type->tp_alloc(type, 0);
-//	if (self != NULL) {
-//		self->mask = 0;
-//		self->offset = 0;
-//		self->direction = 0;
-//	}
-//	return (PyObject *) self;
-//}
 
 static int init_anubis(bus_object *self, PyObject *args, PyObject *kwds) {
 	//self->mask;
@@ -169,38 +144,6 @@ static int init_anubis(bus_object *self, PyObject *args, PyObject *kwds) {
 	return 0;
 }
 
-//static PyObject* method_setup_bus_as_outputs(PyObject *self, PyObject *args) {
-//	u32 mask;
-//	if (!PyArg_ParseTuple(args, "k", &mask)) {
-//		return PyErr_Format(PyExc_ValueError, "usage:  setup_bus_as_outputs(mask)");
-//	}
-//	setup_bus_as_outputs(mask);
-//	//volatile uint32_t *gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
-//	//printf("%08lx\n", mask);
-//	//initialize_gpios_for_output(gpio_port, mask);
-//	return PyLong_FromLong(0);
-//}
-
-//static PyObject* method_write_word(PyObject *self, PyObject *args) {
-//	u32 value;
-//	u32 mask;
-//	if (!PyArg_ParseTuple(args, "kk", &value, &mask)) {
-//		return PyErr_Format(PyExc_ValueError, "usage:  write_word(value, mask)");
-//	}
-//	volatile uint32_t *gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
-//	volatile uint32_t *set_reg = gpio_port + (GPIO_SET_OFFSET / sizeof(uint32_t));
-//	volatile uint32_t *clr_reg = gpio_port + (GPIO_CLR_OFFSET / sizeof(uint32_t));
-//	//printf("%08lx %08lx\n", value, mask);
-//	*clr_reg = mask;
-//	*set_reg = mask;
-//	return PyLong_FromLong(0);
-//}
-
-//#define N (10000)
-//static PyObject* method_write_block_of_pseudorandom_data(PyObject *self, PyObject *args) {
-// srandom();
-// random();
-//	u32 *data = (u32*) malloc(N*sizeof(*u32));
 static PyObject* method_write(bus_object *self, PyObject *args) {
 	// borrowed from https://stackoverflow.com/a/22487015/5728815
 	PyObject *obj;
@@ -239,11 +182,7 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 
 //static PyMethodDef fastgpio_methods[] = {
 static PyMethodDef bus_methods[] = {
-//	{ "anubis", pyinit_anubis, METH_VARARGS, "sets up a new bus with mask and direction (defaults to 1=output)" },
-//	{ "setup_bus_as_outputs", method_setup_bus_as_outputs, METH_VARARGS, "sets up the gpios in the mask as outputs" },
-//	{ "write_word", method_write_word, METH_VARARGS, "writes a single word to the interface" },
 	{ "write", (PyCFunction) method_write, METH_VARARGS, "writes iteratable_object to the interface" },
-	//{ NULL, NULL, 0, NULL }
 	{ NULL }
 };
 
@@ -254,10 +193,6 @@ static struct PyModuleDef fastgpio_module = {
 	.m_size = -1,
 //	.m_methods = fastgpio_methods,
 };
-
-//PyMODINIT_FUNC PyInit_fastgpio(void) {
-//	return PyModule_Create(&fastgpio_module);
-//};
 
 static PyTypeObject bus_type = {
 	PyObject_HEAD_INIT(NULL)

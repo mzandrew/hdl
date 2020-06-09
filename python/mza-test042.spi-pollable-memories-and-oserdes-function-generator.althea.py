@@ -2,7 +2,7 @@
 
 # written 2020-05-11 by mza
 # based on mza-test041.spi-pollable-memory.althea.py
-# last updated 2020-06-06 by mza
+# last updated 2020-06-09 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -94,20 +94,24 @@ if 0:
 if 1:
 	althea.select_clock_and_reset_althea(0)
 
-if 0:
+if 1:
 	althea.test_speed_of_setting_gpios_individually()
 	althea.test_speed_of_setting_gpios_grouped()
-	#althea.test_speed_of_setting_gpios_with_fastgpio_full_bus_width()
-	#althea.test_speed_of_setting_gpios_with_fastgpio_half_bus_width()
-	#althea.test_speed_of_setting_gpios_with_fastgpio_half_duplex()
+	althea.test_speed_of_setting_gpios_with_fastgpio_full_bus_width()
+	althea.test_speed_of_setting_gpios_with_fastgpio_half_bus_width()
+	#althea.test_speed_of_setting_gpios_with_fastgpio_half_duplex(4)  #  6.844 MB per second
+	althea.test_speed_of_setting_gpios_with_fastgpio_half_duplex(8)   # 14.374 MB per second
+	#althea.test_speed_of_setting_gpios_with_fastgpio_half_duplex(12) # 16.161 MB per second
+	althea.test_speed_of_setting_gpios_with_fastgpio_half_duplex(16)  # 17.120 MB per second
+	#althea.test_speed_of_setting_gpios_with_fastgpio_half_duplex(20) # 21.321 MB per second
 	althea.set_all_gpio_as_inputs()
 	#sys.exit(0)
 
-if 1:
+if 0:
 	spi_ce0 = althea.spi(0, 16) # 16 (32bit) words to control sequencer
 	spi_ce1 = althea.spi_sequencer(1, 4096) # 4096 (32bit) words of sequencer memory
 
-if 1:
+if 0:
 	set_ring_oscillator_values(spi_ce0, 10, 5, 12)
 	time.sleep(1.0)
 	show_frequency_counter_value(spi_ce0)

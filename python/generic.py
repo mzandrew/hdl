@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-05 by mza
+# last updated 2020-06-09 by mza
 
 import math # floor, ceil, log10
 
@@ -8,6 +8,9 @@ epsilon = 1.0e-6
 
 def hex(number, width=1):
 	return "%0*x" % (width, number)
+
+def dec(number, width=1):
+	return "%0*d" % (width, number)
 
 # from https://stackoverflow.com/a/19270863/5728815
 #def eng(x, format='%s', si=False):
@@ -52,4 +55,51 @@ def buildmask(gpios):
 			mask |= 1<<i
 	#print(hex(mask))
 	return mask
+
+# modified from run_length_encode_gap() in suh svn repo / xrm.py
+def run_lenth_encode_monotonicity(numbers):
+	rle = []
+	current_value = -1
+	old_value = -1
+	old_value_index = -1
+	current_count = 0
+	if len(numbers):
+		for i in range(len(numbers)):
+			current_value = numbers[i]
+			if 0==i:
+				old_value = current_value
+				old_value_index = i
+			if current_value==old_value+(i-old_value_index):
+				current_count += 1
+			else:
+				rle.append([old_value, current_count])
+				old_value = current_value
+				old_value_index = i
+				current_count = 1
+		rle.append([old_value, current_count])
+	string = dec(0, 5) + ": "
+	count = 0
+	i = 0
+	for kv in rle:
+		k, v = kv
+#		count += v
+#		i += v
+		string += "[" + str(k) + "," + str(v) + "],"
+#		if 11<v:
+#			lcm_result = int(lcm([count, 8], 0)/8)
+#			string += " (" + str(count) + "," + str(lcm_result) + ")\n" + dec(i+1, 5) + ":"
+#			count = 0
+	string = string[:-1]
+	#print(string)
+	return rle
+
+def get_longest_run(rle_numbers):
+	max_run_length = 0
+	for kv in rle_numbers:
+		max_run_length = max(max_run_length, kv[1])
+	return max_run_length
+
+def show_longest_run(rle_numbers):
+	max_run_length = get_longest_run(rle_numbers)
+	print("the longest run is " + str(max_run_length))
 
