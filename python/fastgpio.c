@@ -16,6 +16,7 @@ typedef unsigned long u32;
 
 #include <stdio.h> // printf
 #include <stdlib.h> // srandom, random
+#include <time.h> // nanosleep
 #include <fcntl.h> // open
 #include <sys/mman.h> // mmap
 #include <Python.h>
@@ -159,10 +160,16 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 	volatile uint32_t *gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
 	volatile uint32_t *set_reg = gpio_port + (GPIO_SET_OFFSET / sizeof(uint32_t));
 	volatile uint32_t *clr_reg = gpio_port + (GPIO_CLR_OFFSET / sizeof(uint32_t));
-	u32 count = 0;
-	u32 value = 0;
 	u32 mask = self->mask;
 	u8 offset = self->offset;
+	u32 value = 0;
+//	u32 old_value = 0;
+//	*clr_reg = (~old_value) & mask;
+	*clr_reg = mask;
+	u32 count = 0;
+	struct timespec short_delay = { 0, 1 }; // seconds, nanoseconds
+	struct timespec long_delay = { 0, 1000 }; // seconds, nanoseconds
+	*clr_reg = 1<<22; // fake address/data latch signal
 	while (1) {
 		PyObject *next = PyIter_Next(iter);
 		if (!next) {
@@ -170,11 +177,24 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 		}
 		value = PyLong_AsUnsignedLong(next);
 		//printf("%08lx %08lx\n", value, mask);
-		value <<= offset;
-		value &= mask;
-		*clr_reg = value;
+//		value <<= offset;
+//		value &= mask;
+		value = (value<<offset) & mask;
+//		if (0) {
+//			*clr_reg = (~old_value) & mask;
+//		} else {
+		*clr_reg = mask | (1<<22); // fake address/data latch signal
+//		}
+//		*clr_reg = 1<<22; // fake address/data latch signal
 		*set_reg = value;
+//		nanosleep(&short_delay, NULL);
+		*set_reg = 1<<22; // fake address/data latch signal
 		count++;
+//		*clr_reg = value;
+//		old_value = value;
+		if (0==count%1024) {
+			nanosleep(&long_delay, NULL);
+		}
 	}
 	//printf("%ld\n", count);
 	return PyLong_FromLong(count);

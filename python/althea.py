@@ -286,10 +286,19 @@ def test_speed_of_setting_gpios_with_fastgpio_half_duplex(bus_width=16):
 	print(str(gpio_bus))
 	bits_bus = len(gpio_bus)
 	print("this bus is " + str(bits_bus) + " bits wide")
-	NUM = 10000
+	NUM = 5000000
 	#data = [ random.randint(0,2**32-1) for d in range(NUM) ]
 	if 1:
-		data = [ random.randint(0,2**bits_bus-1) for d in range(NUM) ]
+		if 0:
+			data = [ d for d in range(NUM) ]
+		elif 1:
+			segments = 100
+			segment = [ random.randint(0,2**bits_bus-1) for d in range(NUM//segments) ]
+			data = []
+			for i in range(segments):
+				data.extend(segment)
+		else:
+			data = [ random.randint(0,2**bits_bus-1) for d in range(NUM) ]
 	else:
 		data = [ d for d in range(NUM) ]
 		for i in range(NUM):
@@ -307,7 +316,7 @@ def test_speed_of_setting_gpios_with_fastgpio_half_duplex(bus_width=16):
 	end = time.time()
 	diff = end - start
 	per_sec = NUM / diff
-	#print("%.3f"%diff + " seconds")
+	print("%.3f"%diff + " seconds")
 	per_sec *= bits_bus
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
