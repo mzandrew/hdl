@@ -20,25 +20,26 @@ typedef unsigned long u32;
 #include <fcntl.h> // open
 #include <sys/mman.h> // mmap
 #include <Python.h>
+#include <bcm_host.h> // bcm_host_get_peripheral_address -I/opt/vc/include -L/opt/vc/lib -lbcm_host
 
 // Raspberry Pi 2 or 1 ? Since this is a simple example, we don't
 // bother auto-detecting but have it a compile-time option.
-#ifndef PI_VERSION
-#  define PI_VERSION 2
-#endif
+//#ifndef PI_VERSION
+//#  define PI_VERSION 2
+//#endif
 
-#define BCM2708_PI1_PERI_BASE  0x20000000
-#define BCM2709_PI2_PERI_BASE  0x3F000000
-#define BCM2711_PI4_PERI_BASE  0xFE000000
+//#define BCM2708_PI1_PERI_BASE  0x20000000
+//#define BCM2709_PI2_PERI_BASE  0x3F000000
+//#define BCM2711_PI4_PERI_BASE  0xFE000000
 
-// --- General, Pi-specific setup.
-#if PI_VERSION == 1
-#  define PERI_BASE BCM2708_PI1_PERI_BASE
-#elif PI_VERSION == 2 || PI_VERSION == 3
-#  define PERI_BASE BCM2709_PI2_PERI_BASE
-#else
-#  define PERI_BASE BCM2711_PI4_PERI_BASE
-#endif
+//// --- General, Pi-specific setup.
+//#if PI_VERSION == 1
+//#  define PERI_BASE BCM2708_PI1_PERI_BASE
+//#elif PI_VERSION == 2 || PI_VERSION == 3
+//#  define PERI_BASE BCM2709_PI2_PERI_BASE
+//#else
+//#  define PERI_BASE BCM2711_PI4_PERI_BASE
+//#endif
 
 #define PAGE_SIZE 4096
 
@@ -46,11 +47,13 @@ typedef unsigned long u32;
 #define GPIO_REGISTER_BASE 0x200000
 #define GPIO_SET_OFFSET 0x1C
 #define GPIO_CLR_OFFSET 0x28
-#define PHYSICAL_GPIO_BUS (0x7E000000 + GPIO_REGISTER_BASE)
+//#define PHYSICAL_GPIO_BUS (0x7E000000 + GPIO_REGISTER_BASE)
+#define GPIO_DRIVE_STRENGTH_AND_SLEW_RATE_CONTROL 0x10002c
 
 // Return a pointer to a periphery subsystem register.
 static void *mmap_bcm_register(off_t register_offset) {
-	const off_t base = PERI_BASE;
+	//const off_t base = PERI_BASE;
+	const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
 	int mem_fd;
 	if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
 		perror("can't open /dev/mem: ");
@@ -139,6 +142,8 @@ static int init_anubis(bus_object *self, PyObject *args, PyObject *kwds) {
 	} else {
 		setup_bus_as_inputs(mask);
 	}
+//	volatile uint32_t *gpio_dsasrc = mmap_bcm_register(GPIO_DRIVE_STRENGTH_AND_SLEW_RATE_CONTROL);
+//	*gpio_dsasrc = 0x5a000000; // slew rate limited, input hysteresis off, 2mA // https://www.raspberrypi.org/documentation/hardware/raspberrypi/gpio/gpio_pads_control.md
 	self->mask = mask;
 	self->direction = direction;
 	self->offset = offset;
@@ -167,7 +172,7 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 //	*clr_reg = (~old_value) & mask;
 	*clr_reg = mask;
 	u32 count = 0;
-	struct timespec short_delay = { 0, 1 }; // seconds, nanoseconds
+//	struct timespec short_delay = { 0, 1 }; // seconds, nanoseconds
 	struct timespec long_delay = { 0, 1000 }; // seconds, nanoseconds
 	*clr_reg = 1<<22; // fake address/data latch signal
 	while (1) {
