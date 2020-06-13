@@ -2,4 +2,5 @@
 *.txt
 *.csv
 build
+__pycache__
 
