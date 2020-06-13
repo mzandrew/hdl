@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-12 by mza
+# last updated 2020-06-13 by mza
 
 import time
 import time # time.sleep
@@ -27,7 +27,7 @@ gpio_used_for_jtag = [ 18, 19, 20, 21, 22, 27 ] # DONE, TCK, TMS, TRST, TDI, TDO
 gpio_used_for_i2c_eeprom = [ 0, 1 ] # SDA, SCL
 def althea_revB_gpios():
 	gpio = [ gpio_all[i] for i in range(len(gpio_all)) ]
-	if 1:
+	if 0:
 		for g in gpio_used_for_jtag:
 			gpio.remove(g)
 	if 0:
@@ -224,7 +224,7 @@ def test_speed_of_setting_gpios_with_fastgpio_full_bus_width():
 	data = [ random.randint(0,2**32-1) for d in range(NUM) ]
 	#NUM = len(data)
 	mask = buildmask(gpio)
-	output_bus = fastgpio.bus(mask, 1, 0)
+	output_bus = fastgpio.bus(mask, 1, gpio[0])
 	print("running...")
 	start = time.time()
 	output_bus.write(data)
@@ -265,8 +265,7 @@ def test_speed_of_setting_gpios_with_fastgpio_half_bus_width():
 	#mask_in = buildmask(gpio_in)
 	#input_bus = fastgpio.bus(mask_in, 0, 2)
 	mask_out = buildmask(gpio_out)
-	#output_bus = fastgpio.bus(mask_out, 1, 0)
-	output_bus = fastgpio.bus(mask_out, 1, 14)
+	output_bus = fastgpio.bus(mask_bus, 1, gpio[half])
 	print("running...")
 	start = time.time()
 	output_bus.write(data)
@@ -310,7 +309,7 @@ def test_speed_of_setting_gpios_with_fastgpio_half_duplex(bus_width=16):
 			#print(hex(value, 8))
 	#NUM = len(data)
 	mask_bus = buildmask(gpio_bus)
-	output_bus = fastgpio.bus(mask_bus, 1, 2)
+	output_bus = fastgpio.bus(mask_bus, 1, gpio[0])
 	print("running...")
 	start = time.time()
 	output_bus.write(data)
@@ -323,6 +322,24 @@ def test_speed_of_setting_gpios_with_fastgpio_half_duplex(bus_width=16):
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
 	time.sleep(0.1)
+
+def test_different_drive_strengths():
+	bus_width = 20
+	gpio_bus = [ gpio[i] for i in range(bus_width) ]
+	print(str(gpio_bus))
+	bits_bus = len(gpio_bus)
+	print("this bus is " + str(bits_bus) + " bits wide")
+	mask_bus = buildmask(gpio_bus)
+	output_bus = fastgpio.bus(mask_bus, 1, gpio[0])
+	NUM = 2
+	#data = [ d for d in range(NUM) ]
+	#data = [ 0, 1<<3, 1<<22, (1<<3)|(1<<22) ]
+	data = [ 0, 1<<3, 0, 1<<3, 0, 1<<3, 0, 1<<3, 0 ]
+	print(str(data))
+	for i in range(2, 16+1, 2):
+		time.sleep(0.1)
+		output_bus.set_drive_strength(i)
+		output_bus.write(data)
 
 # ---------------------------------------------------------------------------
 

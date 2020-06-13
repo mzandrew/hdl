@@ -2,7 +2,7 @@
 
 # written 2020-05-11 by mza
 # based on mza-test041.spi-pollable-memory.althea.py
-# last updated 2020-06-09 by mza
+# last updated 2020-06-13 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -91,7 +91,7 @@ def cycle(number_of_segments, segment_size):
 if 0:
 	althea.set_all_gpio_as_inputs()
 
-if 1:
+if 0:
 	althea.select_clock_and_reset_althea(0)
 
 if 1:
@@ -106,6 +106,10 @@ if 1:
 	#althea.test_speed_of_setting_gpios_with_fastgpio_half_duplex(20) # 21.321 MB per second
 	althea.set_all_gpio_as_inputs()
 	#sys.exit(0)
+
+if 0:
+	althea.test_different_drive_strengths()
+	althea.set_all_gpio_as_inputs()
 
 if 0:
 	spi_ce0 = althea.spi(0, 16) # 16 (32bit) words to control sequencer

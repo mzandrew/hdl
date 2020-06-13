@@ -20,10 +20,10 @@ def main():
 		description="python interface for fast gpio interface",
 		author="mza",
 		author_email="mza@scammerz.gmail.com",
-		ext_modules=[Extension("fastgpio", ["fastgpio.c"]#,
-#			include_dirs=['/opt/vc/include'],
-#			library_dirs=['/opt/vc/lib'],
-#			libraries=['bcm_host']
+		ext_modules=[Extension("fastgpio", ["fastgpio.c"],
+			include_dirs=['/opt/vc/include'],
+			library_dirs=['/opt/vc/lib'],
+			libraries=['bcm_host']
 		)])
 
 if __name__ == "__main__":
