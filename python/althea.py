@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-09 by mza
+# last updated 2020-06-12 by mza
 
 import time
 import time # time.sleep
@@ -20,9 +20,32 @@ GPIO.setmode(GPIO.BCM)
 
 # ---------------------------------------------------------------------------
 
+gpio_all = [ i for i in range(27+1) ] # all possible gpios on a raspberry pi 40 pin header
+gpio_used_for_spi = [ 7, 8, 9, 10, 11 ] # CE1, CE0, MISO, MOSI, SCLK
+#gpio_used_for_jtag = [ 12, 16, 17, 18, 22, 27 ] # DONE, TRST, TDI, TCK, TMS, TDO
+gpio_used_for_jtag = [ 18, 19, 20, 21, 22, 27 ] # DONE, TCK, TMS, TRST, TDI, TDO (swap 12 and 19; swap 16 and 20; swap 17 and 21)
+gpio_used_for_i2c_eeprom = [ 0, 1 ] # SDA, SCL
+def althea_revB_gpios():
+	gpio = [ gpio_all[i] for i in range(len(gpio_all)) ]
+	if 1:
+		for g in gpio_used_for_jtag:
+			gpio.remove(g)
+	if 0:
+		for g in gpio_used_for_spi:
+			gpio.remove(g)
+	if 1:
+		for g in gpio_used_for_i2c_eeprom:
+			gpio.remove(g)
+	return gpio
+gpio = althea_revB_gpios()
+rle_gpio = run_lenth_encode_monotonicity(gpio)
+#print(str(rle_gpio))
+show_longest_run(rle_gpio)
+
+# ---------------------------------------------------------------------------
+
 def set_all_gpio_as_inputs():
-	gpios = [ g for g in range(2, 26+1) ]
-	for gpio in gpios:
+	for gpio in gpio_all:
 		GPIO.setup(gpio, GPIO.IN)
 
 def pulse(gpio, duration):
@@ -99,28 +122,6 @@ def select_clock_and_reset_althea(choice=0):
 	wait_for_ready() # wait for oserdes pll to lock
 
 # ---------------------------------------------------------------------------
-
-gpio_all = [ i for i in range(27+1) ] # all possible gpios on a raspberry pi 40 pin header
-gpio_used_for_spi = [ 7, 8, 9, 10, 11 ] # CE1, CE0, MISO, MOSI, SCLK
-#gpio_used_for_jtag = [ 12, 16, 17, 18, 22, 27 ] # DONE, TRST, TDI, TCK, TMS, TDO
-gpio_used_for_jtag = [ 16, 17, 18, 19, 22, 27 ] # TRST, TDI, DONE, TCK, TMS, TDO (swap 12 and 19)
-gpio_used_for_i2c_eeprom = [ 0, 1 ] # SDA, SCL
-def althea_revB_gpios():
-	gpio = [ gpio_all[i] for i in range(len(gpio_all)) ]
-	if 1:
-		for g in gpio_used_for_jtag:
-			gpio.remove(g)
-	if 0:
-		for g in gpio_used_for_spi:
-			gpio.remove(g)
-	if 0:
-		for g in gpio_used_for_i2c_eeprom:
-			gpio.remove(g)
-	return gpio
-gpio = althea_revB_gpios()
-rle_gpio = run_lenth_encode_monotonicity(gpio)
-#print(str(rle_gpio))
-show_longest_run(rle_gpio)
 
 # https://sourceforge.net/p/raspberry-gpio-python/wiki/BasicUsage/
 def test_speed_of_setting_gpios_individually():

@@ -2,7 +2,7 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-06-09 by mza
+// last updated 2020-06-12 by mza
 
 // how to use this module:
 //	import fastgpio
@@ -20,55 +20,40 @@ typedef unsigned long u32;
 #include <fcntl.h> // open
 #include <sys/mman.h> // mmap
 #include <Python.h>
-#include <bcm_host.h> // bcm_host_get_peripheral_address -I/opt/vc/include -L/opt/vc/lib -lbcm_host
-
-// Raspberry Pi 2 or 1 ? Since this is a simple example, we don't
-// bother auto-detecting but have it a compile-time option.
-//#ifndef PI_VERSION
-//#  define PI_VERSION 2
-//#endif
-
-//#define BCM2708_PI1_PERI_BASE  0x20000000
-//#define BCM2709_PI2_PERI_BASE  0x3F000000
-//#define BCM2711_PI4_PERI_BASE  0xFE000000
-
-//// --- General, Pi-specific setup.
-//#if PI_VERSION == 1
-//#  define PERI_BASE BCM2708_PI1_PERI_BASE
-//#elif PI_VERSION == 2 || PI_VERSION == 3
-//#  define PERI_BASE BCM2709_PI2_PERI_BASE
-//#else
-//#  define PERI_BASE BCM2711_PI4_PERI_BASE
-//#endif
-
-#define PAGE_SIZE 4096
+//#include <bcm_host.h> // bcm_host_get_peripheral_address -I/opt/vc/include -L/opt/vc/lib -lbcm_host
 
 // ---- GPIO specific defines
-#define GPIO_REGISTER_BASE 0x200000
-#define GPIO_SET_OFFSET 0x1C
-#define GPIO_CLR_OFFSET 0x28
-//#define PHYSICAL_GPIO_BUS (0x7E000000 + GPIO_REGISTER_BASE)
-#define GPIO_DRIVE_STRENGTH_AND_SLEW_RATE_CONTROL 0x10002c
+#define PERI_BASE (0x20000000)
+#define GPIO_REGISTER_BASE (0x200000)
+#define GPIO_SET_OFFSET (0x1C/sizeof(u32))
+#define GPIO_CLR_OFFSET (0x28/sizeof(u32))
+#define BCM2835_PADS_GPIO_0_27        (0x100000)
+#define BCM2835_PADS_GPIO_0_27_OFFSET (0x2c/sizeof(u32))
 
 // Return a pointer to a periphery subsystem register.
 static void *mmap_bcm_register(off_t register_offset) {
-	//const off_t base = PERI_BASE;
-	const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
-	int mem_fd;
-	if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
-		perror("can't open /dev/mem: ");
-		fprintf(stderr, "You need to run this as root!\n");
-		return NULL;
+	// from openocd's src/jtag/drivers/bcm2835gpio.c
+	int dev_mem_fd = open("/dev/gpiomem", O_RDWR | O_SYNC);
+	if (dev_mem_fd < 0) {
+		printf("Cannot open /dev/gpiomem, fallback to /dev/mem\n");
+		dev_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
+		if (dev_mem_fd < 0) {
+			perror("can't open /dev/mem: ");
+			fprintf(stderr, "You need to run this as root!\n");
+			return NULL;
+		}
 	}
-	uint32_t *result =
-		(uint32_t*) mmap(NULL,                  // Any adddress in our space will do
-		                 PAGE_SIZE,
+	const off_t base = PERI_BASE;
+	//const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
+	u32 *result =
+		(u32*) mmap(NULL,                  // Any adddress in our space will do
+		                 sysconf(_SC_PAGE_SIZE),
 		                 PROT_READ|PROT_WRITE,  // Enable r/w on GPIO registers.
 		                 MAP_SHARED,
-		                 mem_fd,                // File to map
+		                 dev_mem_fd,                // File to map
 		                 base + register_offset // Offset to bcm register
 		                 );
-	close(mem_fd);
+	close(dev_mem_fd);
 	if (result == MAP_FAILED) {
 		fprintf(stderr, "mmap error %p\n", result);
 		return NULL;
@@ -76,41 +61,71 @@ static void *mmap_bcm_register(off_t register_offset) {
 	return result;
 }
 
-void initialize_gpio_for_input(volatile uint32_t *gpio_registerset, int bit) {
-	*(gpio_registerset+(bit/10)) &= ~(7<<((bit%10)*3));  // prepare: set as input
+// https://www.raspberrypi.org/documentation/hardware/raspberrypi/gpio/gpio_pads_control.md
+void set_drive_strength_and_slew_rate(volatile u32 *gpio_pads, u8 milliamps) {
+//	volatile u32 *pads_base = mmap_bcm_register(BCM2835_PADS_GPIO_0_27);
+//	if (pads_base == NULL) {
+//		perror("mmap");
+//		return;
+//	}
+//	u8 drive_strength[] = { 2, 4, 6, 8, 10, 12, 14, 16 };
+//	u8 index = 0;
+//	for (int i=0; i<8; i++) {
+//		index = i;
+//	}
+	if (milliamps>16) {
+		milliamps = 16;
+	}
+	/* set drive strength, slew rate limited, hysteresis on */
+	u32 value = 0x5a000000; // password and slew rate limited mode
+	value |= 1<<4; // slew rate NOT limited
+	value |= 1<<3; // input hysteresis enabled
+	value |= (milliamps>>1)-1; // set drive strength
+	printf("%08lx\n", value);
+	//gpio_pads[BCM2835_PADS_GPIO_0_27_OFFSET] = value;
+	for (int i=0; i<16; i++) {
+		value = gpio_pads[i];
+		printf("%08lx:%08lx\n", (u32) &gpio_pads[i], value);
+	}
+	value = gpio_pads[BCM2835_PADS_GPIO_0_27_OFFSET];
+	printf("%08lx\n", value);
 }
 
-void initialize_gpio_for_output(volatile uint32_t *gpio_registerset, int bit) {
-	*(gpio_registerset+(bit/10)) &= ~(7<<((bit%10)*3));  // prepare: set as input
-	*(gpio_registerset+(bit/10)) |=  (1<<((bit%10)*3));  // set as output.
+void initialize_gpio_for_input(volatile u32 *gpio_port, int bit) {
+	*(gpio_port+(bit/10)) &= ~(7<<((bit%10)*3));  // prepare: set as input
 }
 
-void initialize_gpios_for_input(volatile uint32_t *gpio_registerset, u32 mask) {
+void initialize_gpio_for_output(volatile u32 *gpio_port, int bit) {
+	*(gpio_port+(bit/10)) &= ~(7<<((bit%10)*3));  // prepare: set as input
+	*(gpio_port+(bit/10)) |=  (1<<((bit%10)*3));  // set as output.
+}
+
+void initialize_gpios_for_input(volatile u32 *gpio_port, u32 mask) {
 	for (int i=0; i<32; i++) {
 		u32 bit = 1<<i;
 		if (bit&&mask) {
-			initialize_gpio_for_input(gpio_registerset, i);
+			initialize_gpio_for_input(gpio_port, i);
 		}
 	}
 }
 
-void initialize_gpios_for_output(volatile uint32_t *gpio_registerset, u32 mask) {
+void initialize_gpios_for_output(volatile u32 *gpio_port, u32 mask) {
 	for (int i=0; i<32; i++) {
 		u32 bit = 1<<i;
 		if (bit&&mask) {
-			initialize_gpio_for_output(gpio_registerset, i);
+			initialize_gpio_for_output(gpio_port, i);
 		}
 	}
 }
 
-void setup_bus_as_inputs(u32 mask) {
-	volatile uint32_t *gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
+void setup_bus_as_inputs(volatile u32 *gpio_port, u32 mask) {
+//	volatile u32 *gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
 	//printf("%08lx\n", mask);
 	initialize_gpios_for_input(gpio_port, mask);
 }
 
-void setup_bus_as_outputs(u32 mask) {
-	volatile uint32_t *gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
+void setup_bus_as_outputs(volatile u32 *gpio_port, u32 mask) {
+//	volatile u32 *gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
 	//printf("%08lx\n", mask);
 	initialize_gpios_for_output(gpio_port, mask);
 }
@@ -120,6 +135,8 @@ typedef struct {
 	u32 mask;
 	u8 direction;
 	u8 offset;
+	volatile u32 *gpio_port;
+	volatile u32 *gpio_pads;
 } bus_object;
 
 static int init_anubis(bus_object *self, PyObject *args, PyObject *kwds) {
@@ -137,16 +154,18 @@ static int init_anubis(bus_object *self, PyObject *args, PyObject *kwds) {
 //	if (offset) {
 //		mask <<= offset;
 //	}
-	if (direction) {
-		setup_bus_as_outputs(mask);
-	} else {
-		setup_bus_as_inputs(mask);
-	}
-//	volatile uint32_t *gpio_dsasrc = mmap_bcm_register(GPIO_DRIVE_STRENGTH_AND_SLEW_RATE_CONTROL);
-//	*gpio_dsasrc = 0x5a000000; // slew rate limited, input hysteresis off, 2mA // https://www.raspberrypi.org/documentation/hardware/raspberrypi/gpio/gpio_pads_control.md
 	self->mask = mask;
 	self->direction = direction;
 	self->offset = offset;
+	self->gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
+	self->gpio_pads = mmap_bcm_register(BCM2835_PADS_GPIO_0_27);
+	if (direction) {
+		setup_bus_as_outputs(self->gpio_port, mask);
+	} else {
+		setup_bus_as_inputs(self->gpio_port, mask);
+	}
+	//set_drive_strength_and_slew_rate(self->gpio_pads, 2);
+	//set_drive_strength_and_slew_rate(self->gpio_pads, 16);
 	return 0;
 }
 
@@ -162,9 +181,9 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 	if (!iter) {
 		return PyErr_Format(PyExc_ValueError, "usage:  write(iteratable_object)");
 	}
-	volatile uint32_t *gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
-	volatile uint32_t *set_reg = gpio_port + (GPIO_SET_OFFSET / sizeof(uint32_t));
-	volatile uint32_t *clr_reg = gpio_port + (GPIO_CLR_OFFSET / sizeof(uint32_t));
+//	volatile u32 *gpio_port = mmap_bcm_register(GPIO_REGISTER_BASE);
+	volatile u32 *set_reg = self->gpio_port + GPIO_SET_OFFSET;
+	volatile u32 *clr_reg = self->gpio_port + GPIO_CLR_OFFSET;
 	u32 mask = self->mask;
 	u8 offset = self->offset;
 	u32 value = 0;
@@ -185,6 +204,7 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 //		value <<= offset;
 //		value &= mask;
 		value = (value<<offset) & mask;
+		//value = value & mask;
 //		if (0) {
 //			*clr_reg = (~old_value) & mask;
 //		} else {
@@ -202,6 +222,12 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 		}
 	}
 	//printf("%ld\n", count);
+//	value = *set_reg;
+//	printf("%08lx:%08lx\n", (u32) set_reg, value);
+//	*set_reg = 0xffffffff && mask;
+//	printf("%08lx:%08lx\n", (u32) set_reg, *set_reg);
+//	*clr_reg = 0;
+//	printf("%08lx:%08lx\n", (u32) clr_reg, *clr_reg);
 	return PyLong_FromLong(count);
 }
 
