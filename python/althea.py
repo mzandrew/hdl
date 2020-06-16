@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-13 by mza
+# last updated 2020-06-16 by mza
 
 import time
 import time # time.sleep
@@ -24,6 +24,7 @@ gpio_all = [ i for i in range(27+1) ] # all possible gpios on a raspberry pi 40 
 gpio_used_for_spi = [ 7, 8, 9, 10, 11 ] # CE1, CE0, MISO, MOSI, SCLK
 #gpio_used_for_jtag = [ 12, 16, 17, 18, 22, 27 ] # DONE, TRST, TDI, TCK, TMS, TDO
 gpio_used_for_jtag = [ 18, 19, 20, 21, 22, 27 ] # DONE, TCK, TMS, TRST, TDI, TDO (swap 12 and 19; swap 16 and 20; swap 17 and 21)
+# if I'm gonna use gpclk0/gpio4 for a clock, then I should shift everything past gpio20 so I get (5..20)
 gpio_used_for_i2c_eeprom = [ 0, 1 ] # SDA, SCL
 def althea_revB_gpios():
 	gpio = [ gpio_all[i] for i in range(len(gpio_all)) ]
@@ -76,6 +77,12 @@ def gpio_state(gpio):
 
 #def setup_gpios():
 #	fastgpio.setup_gpios()
+
+# ---------------------------------------------------------------------------
+
+def test():
+	thing = fastgpio.bus(0, 1, 0)
+	thing.test()
 
 # ---------------------------------------------------------------------------
 

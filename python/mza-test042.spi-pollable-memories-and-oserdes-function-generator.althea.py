@@ -94,7 +94,7 @@ if 0:
 if 0:
 	althea.select_clock_and_reset_althea(0)
 
-if 1:
+if 0:
 	#althea.test_speed_of_setting_gpios_individually()
 	#althea.test_speed_of_setting_gpios_grouped()
 	#althea.test_speed_of_setting_gpios_with_fastgpio_full_bus_width()
@@ -106,6 +106,9 @@ if 1:
 	#althea.test_speed_of_setting_gpios_with_fastgpio_half_duplex(20) # 21.321 MB per second
 	althea.set_all_gpio_as_inputs()
 	#sys.exit(0)
+
+if 1:
+	althea.test()
 
 if 0:
 	althea.test_different_drive_strengths()

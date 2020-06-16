@@ -12,6 +12,6 @@ if [ ! -e minimal_clk ]; then
 	gcc minimal_clk.c -o minimal_clk
 fi
 
-#sudo ./minimal_clk -c1 10.0M -q # gp_clk0
-sudo ./minimal_clk -c2 10.0M -q # gp_clk2
+sudo ./minimal_clk -c1 10.0M -q # gp_clk0
+#sudo ./minimal_clk -c2 10.0M -q # gp_clk2
 

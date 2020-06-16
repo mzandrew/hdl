@@ -2,7 +2,7 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-06-13 by mza
+// last updated 2020-06-16 by mza
 
 // how to use this module:
 //	import fastgpio
@@ -163,6 +163,84 @@ void setup_bus_as_outputs(volatile u32 *gpio_port, u32 mask) {
 	initialize_gpios_for_output(gpio_port, mask);
 }
 
+void myusleep(u32 microseconds) {
+	u32 seconds = 0;
+	if (1000000<=microseconds) {
+		seconds = microseconds / 1000000;
+		microseconds -= seconds * 1000000;
+	}
+	u32 nanoseconds = 1000 * microseconds;
+	printf("seconds=%ld, nanoseconds=%ld\n", seconds, nanoseconds);
+	struct timespec delay = { seconds, nanoseconds };
+	struct timespec remaining_delay = { 0, 0 }; // seconds, nanoseconds
+	nanosleep(&delay, &remaining_delay);
+}
+
+typedef struct {
+	PyObject_HEAD
+	volatile u32 *gpio_port;
+	volatile u32 *gpio_pads;
+	volatile u32 *gpio_clock;
+} clock_object;
+
+// distilled from https://raw.githubusercontent.com/mgrau/ad9959/master/minimal_clk.c
+#define PI_INPUT  0
+#define PI_OUTPUT 1
+#define PI_ALT0   4
+void gpioSetMode(u32 gpio, u32 mode) {
+	u32 reg, shift;
+	reg   =  gpio/10;
+	shift = (gpio%10) * 3;
+	volatile u32 *gpioReg = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
+	gpioReg[reg] = (gpioReg[reg] & ~(7<<shift)) | (mode<<shift);
+}
+
+// distilled from https://raw.githubusercontent.com/mgrau/ad9959/master/minimal_clk.c
+// this should do the same as initClock(1, 1, 50, 0, 0); // clock1=gpclk0, prefer PLLD, divI=50, divF=0, mash=0
+#define CLK_PASSWD  (0x5A<<24)
+//#define CLK_CTL_SRC_OSC  1  /* 19.2 MHz */
+//#define CLK_CTL_SRC_PLLC 5  /* 1000 MHz */
+#define CLK_CTL_SRC_PLLD (6)  /*  500 MHz */
+//#define CLK_CTL_SRC_HDMI 7  /*  216 MHz */
+#define CLK_CTL_BUSY     (1 << 7)
+#define CLK_CTL_KILL     (1 << 5)
+#define CLK_CTL_ENAB     (1 << 4)
+#define CLK_CTL_MASH(x) ((x)<< 9)
+#define CLK_CTL_SRC(x)  ((x)<< 0)
+#define CLK_DIV_DIVI(x) ((x)<<12)
+#define CLK_DIV_DIVF(x) ((x)<< 0)
+#define CLK_GP0_CTL (28)
+#define CLK_GP0_DIV (29)
+#define CLK_BASE (0x101000)
+void setup_clock10_on_gpclk0_gpio4(void) {
+	gpioSetMode(4, PI_OUTPUT);
+	volatile u32 *clkReg = mmap_bcm_register(CLK_BASE);
+	if (0==clkReg) { return; }
+	clkReg[CLK_GP0_CTL] = CLK_PASSWD | CLK_CTL_KILL;
+	while (clkReg[CLK_GP0_CTL] & CLK_CTL_BUSY) { myusleep(10); }
+	clkReg[CLK_GP0_DIV] = CLK_PASSWD | CLK_DIV_DIVI(50) | CLK_DIV_DIVF(0);
+	myusleep(10);
+	clkReg[CLK_GP0_CTL] = CLK_PASSWD | CLK_CTL_MASH(0) | CLK_CTL_SRC(CLK_CTL_SRC_PLLD);
+	myusleep(10);
+	clkReg[CLK_GP0_CTL] |= CLK_PASSWD | CLK_CTL_ENAB;
+	gpioSetMode(4, PI_ALT0);
+}
+
+static PyObject* method_test(PyObject *self, PyObject *args) {
+	if (0) {
+		myusleep(1);
+		myusleep(1000);
+		myusleep(999999);
+		myusleep(1000000);
+		myusleep(9999999);
+		myusleep(10000000);
+	}
+	if (1) {
+		setup_clock10_on_gpclk0_gpio4();
+	}
+	return PyLong_FromLong(0);
+}
+
 typedef struct {
 	PyObject_HEAD
 	u32 mask;
@@ -279,6 +357,7 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 static PyMethodDef bus_methods[] = {
 	{ "write", (PyCFunction) method_write, METH_VARARGS, "writes iteratable_object to the interface" },
 	{ "set_drive_strength", (PyCFunction) method_set_drive_strength, METH_VARARGS, "sets the drive strength of gpios 0-27" },
+	{ "test", (PyCFunction) method_test, METH_VARARGS, "whatever code I'm testing at the moment" },
 //	{ "", (PyCFunction) method_, METH_VARARGS, "" },
 	{ NULL }
 };
