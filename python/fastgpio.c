@@ -6,10 +6,15 @@
 
 // how to use this module:
 //	import fastgpio
+//	# fastgpio.bus:
 //	mask = 0xfff
 //	output_bus = fastgpio.bus(mask, 1, 0)
 //	data = [0xaaa, 0x555, 0xfff, 0x000]
 //	output_bus.write(data)
+//	# fastgpio.clock:
+//	clock = fastgpio.clock()
+//	...
+//	clock.terminate()
 
 typedef unsigned char u8;
 typedef unsigned long u32;
@@ -22,6 +27,8 @@ typedef unsigned long u32;
 #include <Python.h>
 #include <bcm_host.h> // bcm_host_get_peripheral_address -I/opt/vc/include -L/opt/vc/lib -lbcm_host
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 // ---- GPIO specific defines
 //#define PERI_BASE (0x20000000)
 #define GPIO_REGISTER_BASE (0x200000)
@@ -29,9 +36,33 @@ typedef unsigned long u32;
 #define GPIO_CLR_OFFSET (0x28/sizeof(u32))
 #define GPIO_PIN_LEVEL  (0x34/sizeof(u32))
 #define GPIO_REGISTER_MAX (0xb0/sizeof(u32))
+#define PI_INPUT  0
+#define PI_OUTPUT 1
+#define PI_ALT0   4
+
 #define BCM2835_PADS_GPIO_0_27 (0x100000)
 #define BCM2835_PADS_GPIO_0_27_OFFSET (0x2c/sizeof(u32))
 #define BCM2835_PADS_GPIO_MAX         (0x40/sizeof(u32))
+
+#define CLK_BASE (0x101000)
+#define CLK_PASSWD  (0x5A<<24)
+//#define CLK_CTL_SRC_OSC  1  /* 19.2 MHz */
+//#define CLK_CTL_SRC_PLLC 5  /* 1000 MHz */
+#define CLK_CTL_SRC_PLLD (6)  /*  500 MHz */
+//#define CLK_CTL_SRC_HDMI 7  /*  216 MHz */
+#define CLK_CTL_BUSY     (1 << 7)
+#define CLK_CTL_KILL     (1 << 5)
+#define CLK_CTL_ENAB     (1 << 4)
+#define CLK_CTL_MASH(x) ((x)<< 9)
+#define CLK_CTL_SRC(x)  ((x)<< 0)
+#define CLK_DIV_DIVI(x) ((x)<<12)
+#define CLK_DIV_DIVF(x) ((x)<< 0)
+#define CLK_GP0_CTL (28)
+#define CLK_GP0_DIV (29)
+
+static PyObject* method_test(PyObject *self, PyObject *args);
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void show_a_block_of_registers(volatile u32 *start, u32 count) {
 	if (0==start) { return; }
@@ -58,7 +89,7 @@ static void *mmap_bcm_gpio_register(off_t register_offset) {
 	}
 	//const off_t base = PERI_BASE;
 	const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
-	printf("base+register_offset: %08lx\n", base + register_offset);
+	//printf("base+register_offset: %08lx\n", base + register_offset);
 	u32 *result =
 		(u32*) mmap(NULL,                  // Any adddress in our space will do
 		                 sysconf(_SC_PAGE_SIZE),
@@ -87,7 +118,7 @@ static void *mmap_bcm_register(off_t register_offset) {
 	}
 	//const off_t base = PERI_BASE;
 	const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
-	printf("base+register_offset: %08lx\n", base + register_offset);
+	//printf("base+register_offset: %08lx\n", base + register_offset);
 	u32 *result =
 		(u32*) mmap(NULL,                  // Any adddress in our space will do
 		                 sysconf(_SC_PAGE_SIZE),
@@ -126,13 +157,15 @@ void set_drive_strength_and_slew_rate(volatile u32 *gpio_pads, u8 milliamps) {
 	printf("pads register reads: %08lx\n", value);
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 void initialize_gpio_for_input(volatile u32 *gpio_port, int bit) {
-	*(gpio_port+(bit/10)) &= ~(7<<((bit%10)*3));  // prepare: set as input
+	*(gpio_port+(bit/10)) &= ~(7<<((bit%10)*3));  // set as input
 }
 
 void initialize_gpio_for_output(volatile u32 *gpio_port, int bit) {
 	*(gpio_port+(bit/10)) &= ~(7<<((bit%10)*3));  // prepare: set as input
-	*(gpio_port+(bit/10)) |=  (1<<((bit%10)*3));  // set as output.
+	*(gpio_port+(bit/10)) |=  (1<<((bit%10)*3));  // set as output
 }
 
 void initialize_gpios_for_input(volatile u32 *gpio_port, u32 mask) {
@@ -163,6 +196,8 @@ void setup_bus_as_outputs(volatile u32 *gpio_port, u32 mask) {
 	initialize_gpios_for_output(gpio_port, mask);
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 void myusleep(u32 microseconds) {
 	u32 seconds = 0;
 	if (1000000<=microseconds) {
@@ -170,11 +205,13 @@ void myusleep(u32 microseconds) {
 		microseconds -= seconds * 1000000;
 	}
 	u32 nanoseconds = 1000 * microseconds;
-	printf("seconds=%ld, nanoseconds=%ld\n", seconds, nanoseconds);
+	//printf("seconds=%ld, nanoseconds=%ld\n", seconds, nanoseconds);
 	struct timespec delay = { seconds, nanoseconds };
 	struct timespec remaining_delay = { 0, 0 }; // seconds, nanoseconds
 	nanosleep(&delay, &remaining_delay);
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 typedef struct {
 	PyObject_HEAD
@@ -184,62 +221,73 @@ typedef struct {
 } clock_object;
 
 // distilled from https://raw.githubusercontent.com/mgrau/ad9959/master/minimal_clk.c
-#define PI_INPUT  0
-#define PI_OUTPUT 1
-#define PI_ALT0   4
-void gpioSetMode(u32 gpio, u32 mode) {
+void gpioSetMode(volatile u32 *gpio_port, u32 gpio, u32 mode) {
+	if (0==gpio_port) { return; }
 	u32 reg, shift;
 	reg   =  gpio/10;
 	shift = (gpio%10) * 3;
-	volatile u32 *gpioReg = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
-	gpioReg[reg] = (gpioReg[reg] & ~(7<<shift)) | (mode<<shift);
+	gpio_port[reg] = (gpio_port[reg] & ~(7<<shift)) | (mode<<shift);
 }
 
 // distilled from https://raw.githubusercontent.com/mgrau/ad9959/master/minimal_clk.c
 // this should do the same as initClock(1, 1, 50, 0, 0); // clock1=gpclk0, prefer PLLD, divI=50, divF=0, mash=0
-#define CLK_PASSWD  (0x5A<<24)
-//#define CLK_CTL_SRC_OSC  1  /* 19.2 MHz */
-//#define CLK_CTL_SRC_PLLC 5  /* 1000 MHz */
-#define CLK_CTL_SRC_PLLD (6)  /*  500 MHz */
-//#define CLK_CTL_SRC_HDMI 7  /*  216 MHz */
-#define CLK_CTL_BUSY     (1 << 7)
-#define CLK_CTL_KILL     (1 << 5)
-#define CLK_CTL_ENAB     (1 << 4)
-#define CLK_CTL_MASH(x) ((x)<< 9)
-#define CLK_CTL_SRC(x)  ((x)<< 0)
-#define CLK_DIV_DIVI(x) ((x)<<12)
-#define CLK_DIV_DIVF(x) ((x)<< 0)
-#define CLK_GP0_CTL (28)
-#define CLK_GP0_DIV (29)
-#define CLK_BASE (0x101000)
-void setup_clock10_on_gpclk0_gpio4(void) {
-	gpioSetMode(4, PI_OUTPUT);
-	volatile u32 *clkReg = mmap_bcm_register(CLK_BASE);
-	if (0==clkReg) { return; }
-	clkReg[CLK_GP0_CTL] = CLK_PASSWD | CLK_CTL_KILL;
-	while (clkReg[CLK_GP0_CTL] & CLK_CTL_BUSY) { myusleep(10); }
-	clkReg[CLK_GP0_DIV] = CLK_PASSWD | CLK_DIV_DIVI(50) | CLK_DIV_DIVF(0);
+void setup_clock10_on_gpclk0_gpio4(volatile u32 *gpio_port, volatile u32 *gpio_clock) {
+	if (0==gpio_port) { return; }
+	if (0==gpio_clock) { return; }
+	gpioSetMode(gpio_port, 4, PI_OUTPUT);
+	gpio_clock[CLK_GP0_CTL] = CLK_PASSWD | CLK_CTL_KILL;
+	while (gpio_clock[CLK_GP0_CTL] & CLK_CTL_BUSY) { myusleep(10); }
+	gpio_clock[CLK_GP0_DIV] = CLK_PASSWD | CLK_DIV_DIVI(50) | CLK_DIV_DIVF(0);
 	myusleep(10);
-	clkReg[CLK_GP0_CTL] = CLK_PASSWD | CLK_CTL_MASH(0) | CLK_CTL_SRC(CLK_CTL_SRC_PLLD);
+	gpio_clock[CLK_GP0_CTL] = CLK_PASSWD | CLK_CTL_MASH(0) | CLK_CTL_SRC(CLK_CTL_SRC_PLLD);
 	myusleep(10);
-	clkReg[CLK_GP0_CTL] |= CLK_PASSWD | CLK_CTL_ENAB;
-	gpioSetMode(4, PI_ALT0);
+	gpio_clock[CLK_GP0_CTL] |= CLK_PASSWD | CLK_CTL_ENAB;
+	gpioSetMode(gpio_port, 4, PI_ALT0);
 }
 
-static PyObject* method_test(PyObject *self, PyObject *args) {
-	if (0) {
-		myusleep(1);
-		myusleep(1000);
-		myusleep(999999);
-		myusleep(1000000);
-		myusleep(9999999);
-		myusleep(10000000);
-	}
-	if (1) {
-		setup_clock10_on_gpclk0_gpio4();
-	}
+void terminate_clock10_on_gpclk0_gpio4(volatile u32 *gpio_port, volatile u32 *gpio_clock) {
+	if (0==gpio_port) { return; }
+	if (0==gpio_clock) { return; }
+	gpioSetMode(gpio_port, 4, PI_OUTPUT);
+	gpio_clock[CLK_GP0_CTL] = CLK_PASSWD | CLK_CTL_KILL;
+	while (gpio_clock[CLK_GP0_CTL] & CLK_CTL_BUSY) { myusleep(10); }
+}
+
+static int init_clock(clock_object *self) {
+	self->gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
+	self->gpio_clock = mmap_bcm_register(CLK_BASE);
+	setup_clock10_on_gpclk0_gpio4(self->gpio_port, self->gpio_clock);
+	printf("clock initialized\n");
+	return 0;
+}
+
+static PyObject *method_terminate(clock_object *self) {
+	terminate_clock10_on_gpclk0_gpio4(self->gpio_port, self->gpio_clock);
+	printf("clock terminated\n");
 	return PyLong_FromLong(0);
 }
+
+//static PyMethodDef fastgpio_methods[] = {
+static PyMethodDef clock_methods[] = {
+	{ "terminate", (PyCFunction) method_terminate, METH_NOARGS, "terminate clock output" },
+	{ "test", (PyCFunction) method_test, METH_NOARGS, "whatever code I'm testing at the moment" },
+//	{ "", (PyCFunction) method_, METH_VARARGS, "" },
+	{ NULL }
+};
+
+static PyTypeObject clock_type = {
+	PyObject_HEAD_INIT(NULL)
+	.tp_name = "fastgpio.clock",
+	.tp_doc = "a clock object",
+	.tp_basicsize = sizeof(clock_object),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+	.tp_new = PyType_GenericNew,
+	.tp_init = (initproc) init_clock,
+	.tp_methods = clock_methods,
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 typedef struct {
 	PyObject_HEAD
@@ -362,14 +410,6 @@ static PyMethodDef bus_methods[] = {
 	{ NULL }
 };
 
-static struct PyModuleDef fastgpio_module = {
-	PyModuleDef_HEAD_INIT,
-	.m_name = "fastgpio",
-	.m_doc = "hopefully a faster type of gpio than the standard lot",
-	.m_size = -1,
-//	.m_methods = fastgpio_methods,
-};
-
 static PyTypeObject bus_type = {
 	PyObject_HEAD_INIT(NULL)
 	.tp_name = "fastgpio.bus",
@@ -383,21 +423,53 @@ static PyTypeObject bus_type = {
 	.tp_methods = bus_methods,
 };
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static PyObject* method_test(PyObject *self, PyObject *args) {
+	if (0) {
+		myusleep(1);
+		myusleep(1000);
+		myusleep(999999);
+		myusleep(1000000);
+		myusleep(9999999);
+		myusleep(10000000);
+	}
+	if (1) {
+		volatile u32 *gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
+		volatile u32 *gpio_clock = mmap_bcm_register(CLK_BASE);
+		setup_clock10_on_gpclk0_gpio4(gpio_port, gpio_clock);
+	}
+	return PyLong_FromLong(0);
+}
+
+static struct PyModuleDef fastgpio_module = {
+	PyModuleDef_HEAD_INIT,
+	.m_name = "fastgpio",
+	.m_doc = "hopefully a faster type of gpio than the standard lot",
+	.m_size = -1,
+//	.m_methods = fastgpio_methods,
+};
+
 PyMODINIT_FUNC PyInit_fastgpio(void) {
 	PyObject *m;
-	if (PyType_Ready(&bus_type) < 0) {
-		return NULL;
-	}
+	if (PyType_Ready(&bus_type) < 0) { return NULL; }
+	if (PyType_Ready(&clock_type) < 0) { return NULL; }
 	m = PyModule_Create(&fastgpio_module);
-	if (m == NULL) {
-		return NULL;
-	}
+	if (m == NULL) { return NULL; }
 	Py_INCREF(&bus_type);
 	if (PyModule_AddObject(m, "bus", (PyObject *) &bus_type) < 0) {
 		Py_DECREF(&bus_type);
 		Py_DECREF(m);
 		return NULL;
 	}
+	Py_INCREF(&clock_type);
+	if (PyModule_AddObject(m, "clock", (PyObject *) &clock_type) < 0) {
+		Py_DECREF(&clock_type);
+		Py_DECREF(m);
+		return NULL;
+	}
 	return m;
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

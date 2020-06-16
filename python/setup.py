@@ -21,6 +21,7 @@ def main():
 		author="mza",
 		author_email="mza@scammerz.gmail.com",
 		ext_modules=[Extension("fastgpio", ["fastgpio.c"],
+			extra_compile_args=['-Wno-missing-braces'],
 			include_dirs=['/opt/vc/include'],
 			library_dirs=['/opt/vc/lib'],
 			libraries=['bcm_host']

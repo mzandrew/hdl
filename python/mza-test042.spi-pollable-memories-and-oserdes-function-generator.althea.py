@@ -93,6 +93,8 @@ if 0:
 
 if 0:
 	althea.select_clock_and_reset_althea(0)
+else:
+	althea.select_clock_and_reset_althea(1)
 
 if 0:
 	#althea.test_speed_of_setting_gpios_individually()
@@ -107,7 +109,7 @@ if 0:
 	althea.set_all_gpio_as_inputs()
 	#sys.exit(0)
 
-if 1:
+if 0:
 	althea.test()
 
 if 0:

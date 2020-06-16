@@ -75,14 +75,16 @@ def gpio_state(gpio):
 		state = False
 	return state
 
-#def setup_gpios():
-#	fastgpio.setup_gpios()
-
 # ---------------------------------------------------------------------------
 
 def test():
-	thing = fastgpio.bus(0, 1, 0)
-	thing.test()
+	if 0:
+		thing = fastgpio.bus(0, 1, 0)
+		thing.test()
+	if 1:
+		clock = fastgpio.clock()
+		time.sleep(1)
+		clock.terminate()
 
 # ---------------------------------------------------------------------------
 
@@ -97,34 +99,24 @@ def clock_select(which):
 	else:
 		GPIO.output(13, GPIO.LOW)
 
-# this requires pigpiod be run beforehand
-def enable_clock(frequency_in_MHz):
-	print("ERROR: pigpio no longer used; you must use the config/setup_clock.sh script instead")
-	#GPIO.setup(6, GPIO.ALT0)
-	gpio=6
-	#os.system("sudo pigpiod")
-#	pi = pigpio.pi()
-#	frequency = int(frequency_in_MHz * 1.0e6)
-#	pi.hardware_clock(gpio, frequency)
-#	pi.set_mode(gpio, pigpio.ALT0)
-	#value = pi.get_mode(gpio)
-	#print(str(value))
-#	GPIO.setup(6, GPIO.OUT)
-#	GPIO.output(6, GPIO.LOW)
+def enable_clock():
+	global clock
+	clock = fastgpio.clock()
 
 def disable_clock():
-	gpio=6
-	GPIO.setup(gpio, GPIO.OUT)
-	GPIO.output(gpio, GPIO.LOW)
-	#GPIO.setup(gpio, GPIO.IN)
+	try:
+		clock.terminate()
+	except:
+		fastgpio.bus(4, 1, 0)
+		print("clock terminated")
 
 def select_clock_and_reset_althea(choice=0):
 	if choice:
-		enable_clock(10.0) # rpi_gpio6_gpclk2 = 10.0 MHz
-		clock_select(1) # built-in osc (0) or output from rpi_gpio6_gpclk2 (1)
+		enable_clock() # rpi_gpio4_gpclk0 = 10.0 MHz
+		clock_select(1) # built-in osc (0) or output from rpi_gpio4_gpclk0 (1)
 	else:
-		clock_select(0) # built-in osc (0) or output from rpi_gpio6_gpclk2 (1)
-		disable_clock() # rpi_gpio6_gpclk2 no longer set to gpclk mode
+		clock_select(0) # built-in osc (0) or output from rpi_gpio4_gpclk0 (1)
+		disable_clock() # rpi_gpio4_gpclk0 no longer set to gpclk mode
 	reset_pulse()
 	wait_for_ready() # wait for oserdes pll to lock
 
