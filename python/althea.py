@@ -23,12 +23,17 @@ GPIO.setmode(GPIO.BCM)
 gpio_all = [ i for i in range(27+1) ] # all possible gpios on a raspberry pi 40 pin header
 gpio_used_for_spi = [ 7, 8, 9, 10, 11 ] # CE1, CE0, MISO, MOSI, SCLK
 #gpio_used_for_jtag = [ 12, 16, 17, 18, 22, 27 ] # DONE, TRST, TDI, TCK, TMS, TDO
-gpio_used_for_jtag = [ 18, 19, 20, 21, 22, 27 ] # DONE, TCK, TMS, TRST, TDI, TDO (swap 12 and 19; swap 16 and 20; swap 17 and 21)
+#gpio_used_for_jtag = [ 18, 19, 20, 21, 22, 27 ] # DONE, TCK, TMS, TRST, TDI, TDO (swap 12 and 19; swap 16 and 20; swap 17 and 21)
+gpio_used_for_jtag = [ 22, 23, 24, 25, 26, 27 ] # 
+gpio_used_for_clocks = [ 4 ] # gpclk0 = gpio4
 # if I'm gonna use gpclk0/gpio4 for a clock, then I should shift everything past gpio20 so I get (5..20)
 gpio_used_for_i2c_eeprom = [ 0, 1 ] # SDA, SCL
 def althea_revB_gpios():
 	gpio = [ gpio_all[i] for i in range(len(gpio_all)) ]
-	if 0:
+	if 1:
+		for g in gpio_used_for_clocks:
+			gpio.remove(g)
+	if 1:
 		for g in gpio_used_for_jtag:
 			gpio.remove(g)
 	if 0:
