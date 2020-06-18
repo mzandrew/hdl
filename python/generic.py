@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-09 by mza
+# last updated 2020-06-18 by mza
 
 import math # floor, ceil, log10
 
@@ -93,13 +93,31 @@ def run_lenth_encode_monotonicity(numbers):
 	#print(string)
 	return rle
 
-def get_longest_run(rle_numbers):
+def get_start_of_longest_run(rle_numbers):
+	max_run_length = 0
+	i = 0
+	index = 0
+	for kv in rle_numbers:
+		length = kv[1]
+		if max_run_length<length:
+			max_run_length = length
+			index = i
+		i += length
+	return index
+
+def show_start_of_longest_run(rle_numbers):
+	index = get_start_of_longest_run(rle_numbers)
+	print("the longest run starts at " + str(index))
+	return index
+
+def get_length_of_longest_run(rle_numbers):
 	max_run_length = 0
 	for kv in rle_numbers:
 		max_run_length = max(max_run_length, kv[1])
 	return max_run_length
 
 def show_longest_run(rle_numbers):
-	max_run_length = get_longest_run(rle_numbers)
+	max_run_length = get_length_of_longest_run(rle_numbers)
 	print("the longest run is " + str(max_run_length))
+	return max_run_length
 

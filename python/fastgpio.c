@@ -2,7 +2,7 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-06-16 by mza
+// last updated 2020-06-18 by mza
 
 // how to use this module:
 //	import fastgpio
@@ -88,7 +88,8 @@ static void *mmap_bcm_gpio_register(off_t register_offset) {
 		}
 	}
 	//const off_t base = PERI_BASE;
-	const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
+	//const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
+	const off_t base = 0;
 	//printf("base+register_offset: %08lx\n", base + register_offset);
 	u32 *result =
 		(u32*) mmap(NULL,                  // Any adddress in our space will do

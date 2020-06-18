@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-16 by mza
+# last updated 2020-06-18 by mza
 
 import time
 import time # time.sleep
@@ -43,7 +43,8 @@ def althea_revB_gpios():
 gpio = althea_revB_gpios()
 rle_gpio = run_lenth_encode_monotonicity(gpio)
 #print(str(rle_gpio))
-show_longest_run(rle_gpio)
+bus_width = show_longest_run(rle_gpio)
+bus_start = show_start_of_longest_run(rle_gpio)
 
 # ---------------------------------------------------------------------------
 
@@ -242,10 +243,11 @@ def test_speed_of_setting_gpios_with_fastgpio_full_bus_width():
 def test_speed_of_setting_gpios_with_fastgpio_half_bus_width():
 	print("setting up for fastgpio mode...")
 	time.sleep(0.1)
-	half = len(gpio)//2
+	mid = bus_start + bus_width//2
+	half = mid - bus_start
 	print(str(half))
-	gpio_in = [ gpio[i] for i in range(0, half) ] # althea revB
-	gpio_out = [ gpio[i] for i in range(half, len(gpio)) ] # althea revB
+	gpio_in  = [ gpio[i] for i in range(bus_start, mid) ]
+	gpio_out = [ gpio[i] for i in range(mid, bus_start+bus_width) ]
 	print(str(gpio_in))
 	print(str(gpio_out))
 	bits_in = len(gpio_in)
@@ -266,7 +268,7 @@ def test_speed_of_setting_gpios_with_fastgpio_half_bus_width():
 	#mask_in = buildmask(gpio_in)
 	#input_bus = fastgpio.bus(mask_in, 0, 2)
 	mask_out = buildmask(gpio_out)
-	output_bus = fastgpio.bus(mask_bus, 1, gpio[half])
+	output_bus = fastgpio.bus(mask_out, 1, gpio[mid])
 	print("running...")
 	start = time.time()
 	output_bus.write(data)
@@ -283,7 +285,7 @@ def test_speed_of_setting_gpios_with_fastgpio_half_bus_width():
 def test_speed_of_setting_gpios_with_fastgpio_half_duplex(bus_width=16):
 	print("setting up for fastgpio mode...")
 	time.sleep(0.1)
-	gpio_bus = [ gpio[i] for i in range(bus_width) ]
+	gpio_bus = [ gpio[i] for i in range(bus_start, bus_start+bus_width) ]
 	print(str(gpio_bus))
 	bits_bus = len(gpio_bus)
 	print("this bus is " + str(bits_bus) + " bits wide")
@@ -325,8 +327,7 @@ def test_speed_of_setting_gpios_with_fastgpio_half_duplex(bus_width=16):
 	time.sleep(0.1)
 
 def test_different_drive_strengths():
-	bus_width = 20
-	gpio_bus = [ gpio[i] for i in range(bus_width) ]
+	gpio_bus = [ gpio[i] for i in range(bus_start, bus_start+bus_width) ]
 	print(str(gpio_bus))
 	bits_bus = len(gpio_bus)
 	print("this bus is " + str(bits_bus) + " bits wide")
