@@ -1,7 +1,8 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
-// last updated 2020-05-29 by mza
+// last updated 2020-06-19 by mza
 
+//	mux #(.WIDTH(8)) mymux (.I0(), .I1(), .S(), .O());
 module mux #(
 	parameter WIDTH = 1
 ) (
@@ -12,6 +13,7 @@ module mux #(
 	assign O = S ? I1 : I0;
 endmodule
 
+//	mux_2to1 #(.WIDTH(8)) mymux (.in0(), .in1(), .sel(), .out());
 module mux_2to1 #(
 	parameter WIDTH = 1
 ) (
@@ -30,7 +32,7 @@ module mux_8to1 #(
 	output [WIDTH-1:0] out
 );
 	assign out =
-		(sel==3'd0) ? in0 : 
+		(sel==3'd0) ? in0 :
 		(sel==3'd1) ? in1 :
 		(sel==3'd2) ? in2 :
 		(sel==3'd3) ? in3 :
@@ -258,4 +260,55 @@ module ring_oscillator_tb ();
 		$finish;
 	end
 endmodule
+
+//	bus_entry_3state #(.WIDTH(7)) my3sbe (.I(pre_bus), .O(bus), .T(write));
+module bus_entry_3state #(
+	parameter WIDTH = 8
+) (
+	input [WIDTH-1:0] I,
+	output [WIDTH-1:0] O,
+	input T
+);
+	assign O = T ? I : WIDTH*{1'bz};
+endmodule
+
+//module bidirectional_bus #(
+//	parameter WIDTH = 8
+//) (
+//	inout [WIDTH-1:0] A,
+//	inout [WIDTH-1:0] B,
+//	input direction
+//);
+//	assign A =  direction ? B : WIDTH*{1'bz};
+//	assign B = ~direction ? A : WIDTH*{1'bz};
+////	always @(direction) begin
+////	if (direction) begin
+////		assign A = B;
+////	end else begin
+////		assign B = A;
+////	end
+//endmodule
+
+//module bidirectional_bus_tb;
+//	localparam WIDTH = 8;
+//	reg [WIDTH-1:0] pre_A = 0;
+//	reg [WIDTH-1:0] pre_B = 0;
+//	wire [WIDTH-1:0] A;
+//	wire [WIDTH-1:0] B;
+//	reg direction = 0;
+//	bidirectional_bus #(.WIDTH(8)) bdb (.A(A), .B(B), .direction(direction));
+//	initial begin
+//		#100;
+//		pre_A <= 8'h45;
+//		#100;
+//		pre_B <= 8'h78;
+//		#100;
+//		direction <= 1;
+//		assign B = pre_B;
+//		#100;
+//		direction <= 0;
+//		assign A = pre_A;
+//		assign B = WIDTH*{1'bz};
+//	end
+//endmodule
 
