@@ -19,13 +19,14 @@
 typedef unsigned char u8;
 typedef unsigned long u32;
 
-#include <stdio.h> // printf
+#include <stdio.h> // printf, fprintf
 #include <stdlib.h> // srandom, random
 #include <time.h> // nanosleep
 #include <fcntl.h> // open
 #include <sys/mman.h> // mmap
 #include <Python.h>
 #include <bcm_host.h> // bcm_host_get_peripheral_address -I/opt/vc/include -L/opt/vc/lib -lbcm_host
+#include "DebugInfoWarningError.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -65,7 +66,7 @@ static PyObject* method_test(PyObject *self, PyObject *args);
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void show_a_block_of_registers(volatile u32 *start, u32 count) {
-	if (0==start) { return; }
+	if (0==start) { fprintf(warning, "cowardly refusing to show target of NULL pointer (run with sudo?)...\n"); return; }
 	u32 value;
 	for (u32 i=0; i<count+1; i++) {
 		value = start[i];
@@ -74,9 +75,12 @@ void show_a_block_of_registers(volatile u32 *start, u32 count) {
 }
 
 // Return a pointer to a periphery subsystem register.
-static void *mmap_bcm_gpio_register(off_t register_offset) {
+static void *mmap_bcm_gpio_register(off_t page_offset) {
+	//const off_t base = PERI_BASE;
+	//const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
 	// from openocd's src/jtag/drivers/bcm2835gpio.c
 	// and from https://elinux.org/Rpi_Datasheet_751_GPIO_Registers
+	// see also https://github.com/raspberrypi/linux/pull/1112
 	int dev_mem_fd = open("/dev/gpiomem", O_RDWR | O_SYNC);
 	if (dev_mem_fd < 0) {
 		printf("Cannot open /dev/gpiomem, fallback to /dev/mem\n");
@@ -86,18 +90,17 @@ static void *mmap_bcm_gpio_register(off_t register_offset) {
 			fprintf(stderr, "You need to run this as root!\n");
 			return NULL;
 		}
+	} else {
+		page_offset = 0; // just to prove the offset is meaningless for the gpiomem device
 	}
-	//const off_t base = PERI_BASE;
-	//const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
-	const off_t base = 0;
-	//printf("base+register_offset: %08lx\n", base + register_offset);
+	//printf("page_offset: %08lx\n", page_offset);
 	u32 *result =
 		(u32*) mmap(NULL,                  // Any adddress in our space will do
 		                 sysconf(_SC_PAGE_SIZE),
 		                 PROT_READ|PROT_WRITE,  // Enable r/w on GPIO registers.
 		                 MAP_SHARED,
 		                 dev_mem_fd,                // File to map
-		                 base + register_offset // Offset to bcm register
+		                 page_offset // Offset to bcm register
 		                 );
 	close(dev_mem_fd);
 	if (result == MAP_FAILED) {
@@ -108,7 +111,7 @@ static void *mmap_bcm_gpio_register(off_t register_offset) {
 }
 
 // Return a pointer to a periphery subsystem register.
-static void *mmap_bcm_register(off_t register_offset) {
+static void *mmap_bcm_register(off_t page_offset) {
 	// from openocd's src/jtag/drivers/bcm2835gpio.c
 	// and from https://elinux.org/Rpi_Datasheet_751_GPIO_Registers
 	int dev_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
@@ -119,14 +122,14 @@ static void *mmap_bcm_register(off_t register_offset) {
 	}
 	//const off_t base = PERI_BASE;
 	const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
-	//printf("base+register_offset: %08lx\n", base + register_offset);
+	//printf("base+page_offset: %08lx\n", base + page_offset);
 	u32 *result =
 		(u32*) mmap(NULL,                  // Any adddress in our space will do
 		                 sysconf(_SC_PAGE_SIZE),
 		                 PROT_READ|PROT_WRITE,  // Enable r/w on GPIO registers.
 		                 MAP_SHARED,
 		                 dev_mem_fd,                // File to map
-		                 base + register_offset // Offset to bcm register
+		                 base + page_offset // Offset to bcm register
 		                 );
 	close(dev_mem_fd);
 	if (result == MAP_FAILED) {
@@ -138,7 +141,7 @@ static void *mmap_bcm_register(off_t register_offset) {
 
 // https://www.raspberrypi.org/documentation/hardware/raspberrypi/gpio/gpio_pads_control.md
 void set_drive_strength_and_slew_rate(volatile u32 *gpio_pads, u8 milliamps) {
-	if (0==gpio_pads) { return; }
+	if (0==gpio_pads) { fprintf(warning, "cowardly refusing to change drive strength using a NULL pointer (run with sudo?)...\n"); return; }
 //	u8 drive_strength[] = { 2, 4, 6, 8, 10, 12, 14, 16 };
 //	u8 index = 0;
 //	for (int i=0; i<8; i++) {
@@ -223,7 +226,7 @@ typedef struct {
 
 // distilled from https://raw.githubusercontent.com/mgrau/ad9959/master/minimal_clk.c
 void gpioSetMode(volatile u32 *gpio_port, u32 gpio, u32 mode) {
-	if (0==gpio_port) { return; }
+	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
 	u32 reg, shift;
 	reg   =  gpio/10;
 	shift = (gpio%10) * 3;
@@ -233,8 +236,8 @@ void gpioSetMode(volatile u32 *gpio_port, u32 gpio, u32 mode) {
 // distilled from https://raw.githubusercontent.com/mgrau/ad9959/master/minimal_clk.c
 // this should do the same as initClock(1, 1, 50, 0, 0); // clock1=gpclk0, prefer PLLD, divI=50, divF=0, mash=0
 void setup_clock10_on_gpclk0_gpio4(volatile u32 *gpio_port, volatile u32 *gpio_clock) {
-	if (0==gpio_port) { return; }
-	if (0==gpio_clock) { return; }
+	if (0==gpio_port) { fprintf(warning, "cowardly refusing to setup clock output using a NULL pointer (run with sudo?)...\n"); return; }
+	if (0==gpio_clock) { fprintf(warning, "cowardly refusing to setup clock output using a NULL pointer (run with sudo?)...\n"); return; }
 	gpioSetMode(gpio_port, 4, PI_OUTPUT);
 	gpio_clock[CLK_GP0_CTL] = CLK_PASSWD | CLK_CTL_KILL;
 	while (gpio_clock[CLK_GP0_CTL] & CLK_CTL_BUSY) { myusleep(10); }
@@ -247,14 +250,16 @@ void setup_clock10_on_gpclk0_gpio4(volatile u32 *gpio_port, volatile u32 *gpio_c
 }
 
 void terminate_clock10_on_gpclk0_gpio4(volatile u32 *gpio_port, volatile u32 *gpio_clock) {
-	if (0==gpio_port) { return; }
-	if (0==gpio_clock) { return; }
+	setup_DebugInfoWarningError_if_needed();
+	if (0==gpio_port) { fprintf(warning, "cowardly refusing to terminate clock output using a NULL pointer (run with sudo?)...\n"); return; }
+	if (0==gpio_clock) { fprintf(warning, "cowardly refusing to terminate clock output using a NULL pointer (run with sudo?)...\n"); return; }
 	gpioSetMode(gpio_port, 4, PI_OUTPUT);
 	gpio_clock[CLK_GP0_CTL] = CLK_PASSWD | CLK_CTL_KILL;
 	while (gpio_clock[CLK_GP0_CTL] & CLK_CTL_BUSY) { myusleep(10); }
 }
 
 static int init_clock(clock_object *self) {
+	setup_DebugInfoWarningError_if_needed();
 	self->gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
 	self->gpio_clock = mmap_bcm_register(CLK_BASE);
 	setup_clock10_on_gpclk0_gpio4(self->gpio_port, self->gpio_clock);
@@ -300,6 +305,7 @@ typedef struct {
 } bus_object;
 
 static int init_anubis(bus_object *self, PyObject *args, PyObject *kwds) {
+	setup_DebugInfoWarningError_if_needed();
 	//self->mask;
 	u32 mask = 0;
 	u32 direction = 1;
@@ -427,6 +433,11 @@ static PyTypeObject bus_type = {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 static PyObject* method_test(PyObject *self, PyObject *args) {
+	printf("starting test...\n");
+	if (1) {
+		FILE *devnull_FILE = fopen("/dev/null",   "w");
+		fprintf(devnull_FILE, "blah");
+	}
 	if (0) {
 		myusleep(1);
 		myusleep(1000);
@@ -435,11 +446,12 @@ static PyObject* method_test(PyObject *self, PyObject *args) {
 		myusleep(9999999);
 		myusleep(10000000);
 	}
-	if (1) {
+	if (0) {
 		volatile u32 *gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
 		volatile u32 *gpio_clock = mmap_bcm_register(CLK_BASE);
 		setup_clock10_on_gpclk0_gpio4(gpio_port, gpio_clock);
 	}
+	printf("test completedn");
 	return PyLong_FromLong(0);
 }
 

@@ -20,10 +20,10 @@ def main():
 		description="python interface for fast gpio interface",
 		author="mza",
 		author_email="mza@scammerz.gmail.com",
-		ext_modules=[Extension("fastgpio", ["fastgpio.c"],
-			extra_compile_args=['-Wno-missing-braces'],
-			include_dirs=['/opt/vc/include'],
-			library_dirs=['/opt/vc/lib'],
+		ext_modules=[Extension("fastgpio", ["fastgpio.c", "../contrib/DebugInfoWarningError.c"],
+			extra_compile_args=['-Wno-missing-braces', '-std=gnu99'],
+			include_dirs=['/opt/vc/include', '../contrib'],
+			library_dirs=['/opt/vc/lib', '../contrib'],
 			libraries=['bcm_host']
 		)])
 

@@ -81,10 +81,10 @@ def gpio_state(gpio):
 # ---------------------------------------------------------------------------
 
 def test():
-	if 0:
+	if 1:
 		thing = fastgpio.bus(0, 1, 0)
 		thing.test()
-	if 1:
+	if 0:
 		clock = fastgpio.clock()
 		time.sleep(1)
 		clock.terminate()

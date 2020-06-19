@@ -107,7 +107,7 @@ def get_start_of_longest_run(rle_numbers):
 
 def show_start_of_longest_run(rle_numbers):
 	index = get_start_of_longest_run(rle_numbers)
-	print("the longest run starts at " + str(index))
+	print("the longest run starts at index " + str(index))
 	return index
 
 def get_length_of_longest_run(rle_numbers):
