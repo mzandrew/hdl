@@ -266,10 +266,10 @@ module bus_entry_3state #(
 	parameter WIDTH = 8
 ) (
 	input [WIDTH-1:0] I,
-	output [WIDTH-1:0] O,
-	input T
+	input T,
+	inout [WIDTH-1:0] O
 );
-	assign O = T ? I : WIDTH*{1'bz};
+	assign O = T ? I : {WIDTH{1'bz}};
 endmodule
 
 //module bidirectional_bus #(
@@ -279,8 +279,8 @@ endmodule
 //	inout [WIDTH-1:0] B,
 //	input direction
 //);
-//	assign A =  direction ? B : WIDTH*{1'bz};
-//	assign B = ~direction ? A : WIDTH*{1'bz};
+//	assign A =  direction ? B : {WIDTH{1'bz}};
+//	assign B = ~direction ? A : {WIDTH{1'bz}};
 ////	always @(direction) begin
 ////	if (direction) begin
 ////		assign A = B;
@@ -308,7 +308,7 @@ endmodule
 //		#100;
 //		direction <= 0;
 //		assign A = pre_A;
-//		assign B = WIDTH*{1'bz};
+//		assign B = {WIDTH{1'bz}};
 //	end
 //endmodule
 
