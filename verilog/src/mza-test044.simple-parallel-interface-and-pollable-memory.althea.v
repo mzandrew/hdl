@@ -138,6 +138,9 @@ module top #(
 endmodule
 
 module top_tb;
+	task automatic delay;
+		#60;
+	endtask
 	localparam WIDTH = 7;
 	reg clock50_p = 0;
 	reg clock50_n = 1;
@@ -162,55 +165,55 @@ module top_tb;
 		input [15:0] address16;
 		input [31:0] data32;
 		begin
-			#40;
+			delay();
 			// write the address
 			pre_register_select <= 0;
 			pre_read <= 0;
 			pre_bus <= address16[WIDTH-1:0];
 			pre_enable <= 1;
-			#40;
+			delay();
 			pre_enable <= 0;
-			#40;
+			delay();
 			// write the first part of data
-			pre_register_select <= 1;
-			pre_read <= 0;
-			pre_bus <= data32[WIDTH-1:0];
-			pre_enable <= 1;
-			#40;
-			pre_enable <= 0;
-			#40;
-			// write the second part of data
 			pre_register_select <= 1;
 			pre_read <= 0;
 			pre_bus <= data32[2*WIDTH-1:WIDTH];
 			pre_enable <= 1;
-			#40;
+			delay();
 			pre_enable <= 0;
-			#40;
+			delay();
+			// write the second part of data
+			pre_register_select <= 1;
+			pre_read <= 0;
+			pre_bus <= data32[WIDTH-1:0];
+			pre_enable <= 1;
+			delay();
+			pre_enable <= 0;
+			delay();
 		end
 	endtask
 	task automatic a16_master_read_transaction;
 		input [15:0] address16;
 		begin
-			#40;
+			delay();
 			// write the address
 			pre_register_select <= 0;
 			pre_read <= 0;
 			pre_bus <= address16[WIDTH-1:0];
 			pre_enable <= 1;
-			#40;
+			delay();
 			pre_enable <= 0;
-			#40;
+			delay();
 			// read data
 			pre_read <= 1;
 			pre_enable <= 1;
-			#40;
+			delay();
 			pre_enable <= 0;
-			#40;
+			delay();
 			pre_enable <= 1;
-			#40;
+			delay();
 			pre_enable <= 0;
-			#40;
+			delay();
 		end
 	endtask
 	initial begin
