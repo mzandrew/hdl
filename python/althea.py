@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-18 by mza
+# last updated 2020-06-20 by mza
 
 import time
 import time # time.sleep
@@ -9,14 +9,14 @@ import sys # sys.exit
 import math
 import os # os.path.isfile
 import re # re.search
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 #import pigpio # the daemon causes conflicts the way we were using it
 import spidev
 from generic import * # hex, eng
-import fastgpio # fastgpio.bus
+import fastgpio # fastgpio.bus fastgpio.clock
 
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BCM)
+#GPIO.setwarnings(False)
+#GPIO.setmode(GPIO.BCM)
 
 # ---------------------------------------------------------------------------
 
@@ -27,7 +27,7 @@ gpio_used_for_spi        = [ 7, 8, 9, 10, 11 ] # CE1, CE0, MISO, MOSI, SCLK
 gpio_used_for_jtag       = [ 22, 23, 24, 25, 26, 27 ] # TMS, TCK, TDO, DONE, TRST, TDI
 def althea_revB_gpios():
 	gpio = [ gpio_all[i] for i in range(len(gpio_all)) ]
-	if 1:
+	if 0:
 		for g in gpio_used_for_clocks:
 			gpio.remove(g)
 	if 1:
@@ -40,38 +40,61 @@ def althea_revB_gpios():
 		for g in gpio_used_for_i2c_eeprom:
 			gpio.remove(g)
 	return gpio
-gpio = althea_revB_gpios()
-rle_gpio = run_lenth_encode_monotonicity(gpio)
+althea_gpio = althea_revB_gpios()
+#rle_gpio = run_lenth_encode_monotonicity(althea_gpio)
 #print(str(rle_gpio))
-bus_width = show_longest_run(rle_gpio)
-bus_start = show_start_of_longest_run(rle_gpio)
+#bus_width = show_longest_run(rle_gpio)
+#bus_start = show_start_of_longest_run(rle_gpio)
+bus_start = 2 # *index* 2, *not* gpio2
+bus_width = 8
 
 # ---------------------------------------------------------------------------
 
+def get_function_of_these_gpios(gpios):
+	for gpio in gpios:
+#		value = GPIO.gpio_function(gpio)
+#		if value==GPIO.IN:
+#			string = "GPIO.IN"
+#		elif value==GPIO.OUT:
+#			string = "GPIO.OUT"
+#		elif value==GPIO.SPI:
+#			string = "GPIO.SPI"
+#		elif value==GPIO.UNKNOWN:
+#			string = "GPIO.UNKNOWN"
+#		else:
+		string = "?"
+		print(str(gpio) + " " + string)
+
+def set_this_gpio_as_an_input(gpio):
+	mask = 1<<gpio
+	fastgpio.bus(mask, 0, gpio)
+
+def set_this_gpio_as_an_output(gpio):
+	mask = 1<<gpio
+	fastgpio.bus(mask, 1, gpio)
+
 def set_all_gpio_as_inputs():
-	for gpio in gpio_all:
-		GPIO.setup(gpio, GPIO.IN)
+	gpio_all_mask = buildmask(gpio_all)
+	all = fastgpio.bus(gpio_all_mask, 0, gpio_all[0])
+	get_function_of_these_gpios(gpio_all)
 
 def pulse(gpio, duration):
-	GPIO.setup(gpio, GPIO.OUT)
-	GPIO.output(gpio, GPIO.HIGH)
+	bus = fastgpio.bus(buildmask([gpio]), 1, gpio)
+	bus.write([1])
 	time.sleep(duration)
-	GPIO.output(gpio, GPIO.LOW)
+	bus.write([0])
+	return bus
 
 def reset_pulse(gpio=19):
-	pulse(gpio, 0.1)
+	bus = pulse(gpio, 0.1)
 	time.sleep(0.1)
-
-def test_some_gpios():
-	GPIO.setup(13, GPIO.OUT)
-	GPIO.output(13, GPIO.HIGH)
-	time.sleep(1.0)
-	GPIO.output(13, GPIO.LOW)
+	return bus
 
 def gpio_state(gpio):
-	GPIO.setup(gpio, GPIO.IN)
+	bus = fastgpio.bus(buildmask([gpio]), 0, gpio)
 	time.sleep(0.05)
-	state = GPIO.input(gpio)
+	#state = GPIO.input(gpio)
+	state = bus.read()
 	if state:
 		state = True
 	else:
@@ -96,6 +119,8 @@ def wait_for_ready():
 		time.sleep(0.1)
 
 def clock_select(which):
+	print("WARNING: gpio13 is no longer the clock select pin")
+	return
 	GPIO.setup(13, GPIO.OUT)
 	if which:
 		GPIO.output(13, GPIO.HIGH)
@@ -129,11 +154,11 @@ def select_clock_and_reset_althea(choice=0):
 def test_speed_of_setting_gpios_individually():
 	time.sleep(0.1)
 	print("setting up for individual gpio mode...")
-	bits = len(gpio)
-	print(str(gpio))
-	#print(sorted(gpio))
-	#print(len(gpio))
-	for g in gpio:
+	bits = len(althea_gpio)
+	print(str(althea_gpio))
+	#print(sorted(althea_gpio))
+	#print(len(althea_gpio))
+	for g in althea_gpio:
 		GPIO.setup(g, GPIO.OUT)
 	number_of_transfers = 0
 	NUM = 7729
@@ -155,7 +180,7 @@ def test_speed_of_setting_gpios_individually():
 				bitstate = GPIO.HIGH
 			else:
 				bitstate = GPIO.LOW
-			GPIO.output(gpio[j], bitstate)
+			GPIO.output(althea_gpio[j], bitstate)
 		number_of_transfers += 1
 	end = time.time()
 	diff = end - start
@@ -174,10 +199,10 @@ def test_speed_of_setting_gpios_individually():
 def test_speed_of_setting_gpios_grouped():
 	print("setting up for grouped gpio mode...")
 	time.sleep(0.1)
-	bits = len(gpio)
-	print(str(gpio))
-	#print(len(gpio))
-	for g in gpio:
+	bits = len(althea_gpio)
+	print(str(althea_gpio))
+	#print(len(althea_gpio))
+	for g in althea_gpio:
 		GPIO.setup(g, GPIO.OUT)
 	number_of_transfers = 0
 	NUM = 7729
@@ -201,7 +226,7 @@ def test_speed_of_setting_gpios_grouped():
 			else:
 				bitstate = GPIO.LOW
 			mylist.append(bitstate)
-		GPIO.output(gpio, mylist)
+		GPIO.output(althea_gpio, mylist)
 		number_of_transfers += 1
 	end = time.time()
 	diff = end - start
@@ -219,14 +244,14 @@ def test_speed_of_setting_gpios_grouped():
 def test_speed_of_setting_gpios_with_fastgpio_full_bus_width():
 	print("setting up for fastgpio mode...")
 	time.sleep(0.1)
-	bits = len(gpio)
+	bits = len(althea_gpio)
 	print("this bus is " + str(bits) + " bits wide") # this bus is 20 bits wide
-	print(str(gpio))
+	print(str(althea_gpio))
 	NUM = 100000
 	data = [ random.randint(0,2**32-1) for d in range(NUM) ]
 	#NUM = len(data)
-	mask = buildmask(gpio)
-	output_bus = fastgpio.bus(mask, 1, gpio[0])
+	mask = buildmask(althea_gpio)
+	output_bus = fastgpio.bus(mask, 1, althea_gpio[0])
 	print("running...")
 	start = time.time()
 	output_bus.write(data)
@@ -246,8 +271,8 @@ def test_speed_of_setting_gpios_with_fastgpio_half_bus_width():
 	mid = bus_start + bus_width//2
 	half = mid - bus_start
 	print(str(half))
-	gpio_in  = [ gpio[i] for i in range(bus_start, mid) ]
-	gpio_out = [ gpio[i] for i in range(mid, bus_start+bus_width) ]
+	gpio_in  = [ althea_gpio[i] for i in range(bus_start, mid) ]
+	gpio_out = [ althea_gpio[i] for i in range(mid, bus_start+bus_width) ]
 	print(str(gpio_in))
 	print(str(gpio_out))
 	bits_in = len(gpio_in)
@@ -268,7 +293,7 @@ def test_speed_of_setting_gpios_with_fastgpio_half_bus_width():
 	#mask_in = buildmask(gpio_in)
 	#input_bus = fastgpio.bus(mask_in, 0, 2)
 	mask_out = buildmask(gpio_out)
-	output_bus = fastgpio.bus(mask_out, 1, gpio[mid])
+	output_bus = fastgpio.bus(mask_out, 1, gpio_out[0])
 	print("running...")
 	start = time.time()
 	output_bus.write(data)
@@ -285,7 +310,7 @@ def test_speed_of_setting_gpios_with_fastgpio_half_bus_width():
 def test_speed_of_setting_gpios_with_fastgpio_half_duplex(bus_width=16):
 	print("setting up for fastgpio mode...")
 	time.sleep(0.1)
-	gpio_bus = [ gpio[i] for i in range(bus_start, bus_start+bus_width) ]
+	gpio_bus = [ althea_gpio[i] for i in range(bus_start, bus_start+bus_width) ]
 	print(str(gpio_bus))
 	bits_bus = len(gpio_bus)
 	print("this bus is " + str(bits_bus) + " bits wide")
@@ -312,7 +337,7 @@ def test_speed_of_setting_gpios_with_fastgpio_half_duplex(bus_width=16):
 			#print(hex(value, 8))
 	#NUM = len(data)
 	mask_bus = buildmask(gpio_bus)
-	output_bus = fastgpio.bus(mask_bus, 1, gpio[0])
+	output_bus = fastgpio.bus(mask_bus, 1, gpio_bus[0])
 	print("running...")
 	start = time.time()
 	output_bus.write(data)
@@ -327,12 +352,12 @@ def test_speed_of_setting_gpios_with_fastgpio_half_duplex(bus_width=16):
 	time.sleep(0.1)
 
 def test_different_drive_strengths():
-	gpio_bus = [ gpio[i] for i in range(bus_start, bus_start+bus_width) ]
+	gpio_bus = [ althea_gpio[i] for i in range(bus_start, bus_start+bus_width) ]
 	print(str(gpio_bus))
 	bits_bus = len(gpio_bus)
 	print("this bus is " + str(bits_bus) + " bits wide")
 	mask_bus = buildmask(gpio_bus)
-	output_bus = fastgpio.bus(mask_bus, 1, gpio[0])
+	output_bus = fastgpio.bus(mask_bus, 1, gpio_bus[0])
 	NUM = 2
 	#data = [ d for d in range(NUM) ]
 	#data = [ 0, 1<<3, 1<<22, (1<<3)|(1<<22) ]
@@ -342,6 +367,77 @@ def test_different_drive_strengths():
 		time.sleep(0.1)
 		output_bus.set_drive_strength(i)
 		output_bus.write(data)
+
+# ---------------------------------------------------------------------------
+
+def setup_for_simple_parallel_bus():
+	print("setting up for simple 8 bit parallel bus mode...")
+	gpio_bus = [ althea_gpio[i] for i in range(bus_start, bus_start+bus_width) ]
+	print(str(gpio_bus))
+	global bits_bus
+	bits_bus = len(gpio_bus)
+	print("this bus is " + str(bits_bus) + " bits wide")
+	global bits_word
+	bits_word = 2*bits_bus
+	mask_bus = buildmask(gpio_bus)
+	#print(hex(mask_bus, 8))
+	global output_bus
+	output_bus = fastgpio.bus(mask_bus, 1, gpio_bus[0])
+	output_bus.write([0])
+	control_bus_list = [ 13, 14, 15 ] # register_select, read, enable
+	control_bus_mask = buildmask(control_bus_list)
+	global control_bus
+	control_bus = fastgpio.bus(control_bus_mask, 1, control_bus_list[0])
+	control_bus.write([0])
+	global ack_bus
+	ack_bus_list = [ 2 ]
+	ack_bus_mask = buildmask(ack_bus_list)
+	ack_bus = fastgpio.bus(ack_bus_mask, 0, ack_bus_list[0])
+
+CONTROL_BUS_DATA = 0b001
+CONTROL_BUS_READ = 0b010
+CONTROL_BUS_ENABLE = 0b100
+CONTROL_BUS_WRITE_ADDRESS = 0
+CONTROL_BUS_WRITE_DATA = CONTROL_BUS_DATA
+CONTROL_BUS_READ_DATA = CONTROL_BUS_READ | CONTROL_BUS_DATA
+CONTROL_BUS_WRITE_ADDRESS_ENABLE = CONTROL_BUS_ENABLE
+CONTROL_BUS_WRITE_DATA_ENABLE = CONTROL_BUS_DATA | CONTROL_BUS_ENABLE
+CONTROL_BUS_READ_DATA_ENABLE = CONTROL_BUS_READ | CONTROL_BUS_DATA | CONTROL_BUS_ENABLE
+CONTROL_BUS_IDLE = CONTROL_BUS_WRITE_ADDRESS
+
+def test_writing_data_to_simple_parallel_bus():
+	print("writing data in simple parallel bus mode...")
+	time.sleep(0.1)
+	reset_pulse()
+	time.sleep(0.1)
+	data = []
+	NUM = 200000
+	if NUM>10000:
+		segments = int(NUM/10000)
+		length_of_each_segment = math.ceil(NUM/segments)
+		print(str(length_of_each_segment))
+		segment = [ random.randint(0,2**bits_word-1) for d in range(length_of_each_segment) ]
+		for i in range(segments):
+			data.extend(segment)
+	else:
+		data = [ random.randint(0,2**bits_word-1) for d in range(NUM) ]
+	#print(str(data))
+	print("running...")
+	start = time.time()
+	for word in data:
+		output_bus.write([word])
+		control_bus.write([CONTROL_BUS_WRITE_DATA, CONTROL_BUS_WRITE_DATA_ENABLE, CONTROL_BUS_IDLE])
+#		value = ack_bus.read()
+#		print(str(value))
+	end = time.time()
+	diff = end - start
+	per_sec = NUM / diff
+	print("%.3f"%diff + " seconds")
+	per_sec *= bits_bus
+	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
+	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
+	time.sleep(0.1)
 
 # ---------------------------------------------------------------------------
 
