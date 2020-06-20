@@ -137,11 +137,11 @@ module top #(
 		.rclk(clock50), .raddr(address), .dout(read_data));
 	assign leds[7] = ack;
 	assign leds[6] = write_strobe;
-	assign leds[5] = enable;
-	assign leds[4] = register_select;
-	assign leds[3] = read;
-	assign leds[2] = 0;
-	assign leds[1] = 0;
+	assign leds[5] = 0;
+	assign leds[4] = reset;
+	assign leds[3] = register_select;
+	assign leds[2] = read;
+	assign leds[1] = enable;
 	assign leds[0] = reset50;
 endmodule
 
@@ -252,7 +252,6 @@ module top_tb;
 	end
 endmodule
 
-//module mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea_top (
 module myalthea (
 	input clock50_p, clock50_n,
 	output lemo, // oserdes/trig output
@@ -279,8 +278,8 @@ module myalthea (
 );
 	localparam WIDTH = 8;
 	wire register_select = e_n;
-	wire enable = l_p;
-	wire read = l_n;
+	wire read = l_p;
+	wire enable = l_n;
 	wire ack;
 	assign m_p = ack;
 	wire [7:0] leds;
