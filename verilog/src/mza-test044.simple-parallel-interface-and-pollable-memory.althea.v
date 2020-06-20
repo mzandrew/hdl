@@ -27,6 +27,7 @@ module top #(
 ) (
 	input clock50_p, clock50_n,
 	input clock10,
+	input reset,
 	output lemo,
 	output other0,
 	output other1,
@@ -60,7 +61,10 @@ module top #(
 	always @(posedge clock50) begin
 		ack <= 0;
 		write_strobe <= 0;
-		if (reset50) begin
+		if (reset) begin
+			counter50 <= 0;
+			reset50 <= 1;
+		end else if (reset50) begin
 			if (counter50[COUNTER50_BIT_PICKOFF]) begin
 				reset50 <= 0;
 			end
@@ -149,6 +153,7 @@ module top_tb;
 	reg clock50_p = 0;
 	reg clock50_n = 1;
 	reg clock10 = 0;
+	reg reset = 0;
 	wire lemo, other0, other1;
 	wire [7:0] leds;
 	reg pre_register_select = 0;
@@ -161,7 +166,7 @@ module top_tb;
 	reg enable = 0;
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are master
 	top #(.WIDTH(WIDTH)) mytop (
-		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10),
+		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(reset),
 		.lemo(lemo), .other0(other0), .other1(other1),
 		.bus(bus), .register_select(register_select), .read(read), .enable(enable), .ack(ack),
 		.leds(leds)
@@ -255,9 +260,9 @@ module myalthea (
 	output f_p, // oserdes/trig output other1
 	// other IOs:
 	output m_p, // rpi_gpio2 sda
-	output m_n, // rpi_gpio3 scl
-	input j_p, // rpi_gpio4 gpclk0
+	input m_n, // rpi_gpio3 scl
 	// 8 bit bus:
+	inout j_p, // rpi_gpio4 gpclk0
 	inout d_n, // rpi_gpio5
 	inout d_p, // rpi_gpio6 gpclk2
 	inout a_p, // rpi_gpio7 spi
@@ -265,28 +270,27 @@ module myalthea (
 	inout a_n, // rpi_gpio9 spi
 	inout b_n, // rpi_gpio10 spi
 	inout c_p, // rpi_gpio11 spi
-	inout l_p, // rpi_gpio14 tx
 	// other IOs:
-	input l_n, // rpi_gpio15 rd
 	input e_n, // rpi_gpio13
+	input l_p, // rpi_gpio14 tx
+	input l_n, // rpi_gpio15 rd
 	input e_p, // rpi_gpio19
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	localparam WIDTH = 8;
-	//wire [WIDTH-1:0] bus = { d_n, d_p, a_p, c_n, a_n, b_n, c_p, l_p };
-	wire register_select = l_n;
-	wire enable = e_n;
-	wire read = e_p;
+	wire register_select = e_n;
+	wire enable = l_p;
+	wire read = l_n;
 	wire ack;
 	assign m_p = ack;
 	wire [7:0] leds;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
-	assign m_n = 0;
-	wire clock10 = j_p;
+	//wire clock10 = j_p;
+	wire clock10 = 0;
 	top #(.WIDTH(WIDTH)) althea (
-		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10),
+		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(e_p),
 		.lemo(lemo), .other0(b_p), .other1(f_p),
-		.bus({ d_n, d_p, a_p, c_n, a_n, b_n, c_p, l_p }), .register_select(register_select), .read(read), .enable(enable), .ack(ack),
+		.bus({ j_p, d_n, d_p, a_p, c_n, a_n, b_n, c_p }), .register_select(register_select), .read(read), .enable(enable), .ack(ack),
 		.leds(leds)
 	);
 endmodule
