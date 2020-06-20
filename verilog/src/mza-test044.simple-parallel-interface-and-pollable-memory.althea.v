@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-06-19 by mza
+// last updated 2020-06-20 by mza
 
 `define althea_revA
 //`include "lib/generic.v"
@@ -45,7 +45,10 @@ module top #(
 	wire [2*WIDTH-1:0] write_data;
 	assign write_data = { write_data1, write_data0 };
 	reg [2:0] wstate = 0;
-	wire [WIDTH-1:0] read_data;
+	wire [2*WIDTH-1:0] read_data;
+	wire [WIDTH-1:0] read_data1 = read_data[2*WIDTH-1:WIDTH];
+	wire [WIDTH-1:0] read_data0 = read_data[WIDTH-1:0];
+	reg [1:0] rstate = 0;
 	reg [WIDTH-1:0] pre_bus = 0;
 	localparam COUNTER50_BIT_PICKOFF = 3;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
@@ -62,39 +65,66 @@ module top #(
 			write_data0 <= 0;
 			write_data1 <= 0;
 			wstate <= 0;
+			rstate <= 0;
 			pre_bus <= 0;
 		end else begin
 			if (enable) begin
 				ack <= 1;
 				if (read) begin // read mode
-					pre_bus <= read_data;
-				end else begin // write mode
-					if (register_select) begin
-						if (wstate[2:1]==0) begin
-							if (wstate[0]==0) begin
-								wstate[0] <= 1;
-								write_data1 <= bus; // most significant halfword first
-							end else begin
-								wstate[1] <= 1;
-								write_data0 <= bus;
-							end
-						end else begin
-							if (wstate[1]) begin
-								write_strobe <= 1;
-								wstate <= 0;
-							end
+					if (rstate[1]==0) begin
+						if (rstate[0]==0) begin
+							rstate[0] <= 1;
+							pre_bus <= read_data1;
 						end
 					end else begin
+						if (rstate[0]==0) begin
+							rstate[0] <= 1;
+							pre_bus <= read_data0;
+						end
+					end
+				end else begin // write mode
+					if (register_select) begin
+						if (wstate[2]==0) begin
+							if (wstate[1]==0) begin
+								if (wstate[0]==0) begin
+									wstate[0] <= 1;
+									write_data1 <= bus; // most significant halfword first
+								end
+							end else begin
+								if (wstate[0]==0) begin
+									wstate <= 3'b101;
+									write_data0 <= bus;
+								end
+							end
+						end else begin
+							if (wstate[1:0]==2'b01) begin
+								wstate[1] <= 1;
+								write_strobe <= 1;
+							end
+						end
+					end else begin // register_select=0
 						address <= bus;
+						rstate <= 0;
 						wstate <= 0;
 					end
+				end
+			end else begin // enable=0
+				if (wstate[1:0]==2'b01) begin
+					wstate[1:0] <= 2'b10;
+				end else if (wstate==3'b111) begin
+					wstate <= 0;
+				end
+				if (rstate[1:0]==2'b01) begin
+					rstate[1:0] <= 2'b10;
+				end else if (rstate==2'b11) begin
+					rstate <= 0;
 				end
 			end
 		end
 	end
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
 	assign bus = 'bz;
-	RAM_inferred #(.addr_width(WIDTH), .data_width(WIDTH)) myram (.reset(reset50),
+	RAM_inferred #(.addr_width(WIDTH), .data_width(2*WIDTH)) myram (.reset(reset50),
 		.wclk(clock50), .waddr(address), .din(write_data), .write_en(write_strobe),
 		.rclk(clock50), .raddr(address), .dout(read_data));
 	assign leds[7] = ack;
@@ -177,6 +207,10 @@ module top_tb;
 			#40;
 			pre_enable <= 0;
 			#40;
+			pre_enable <= 1;
+			#40;
+			pre_enable <= 0;
+			#40;
 		end
 	endtask
 	initial begin
@@ -190,6 +224,8 @@ module top_tb;
 		a16_master_read_transaction(.address16(16'hab4d));
 		a16_master_read_transaction(.address16(16'hab4e));
 		a16_master_read_transaction(.address16(16'hab4f));
+		#100;
+		pre_read <= 0;
 	end
 	always @(posedge clock50_p) begin
 		register_select <= pre_register_select;
