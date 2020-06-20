@@ -1,4 +1,6 @@
-// last updated 2020-05-29 by mza
+// last updated 2020-06-20 by mza
+`ifndef RAM8_LIB
+`define RAM8_LIB
 
 `include "generic.v"
 
@@ -595,4 +597,6 @@ module RAM_s6_512_32bit_8bit #(
 		.DIPB(4'h0) // 4-bit input: B port parity input
 	);
 endmodule
+
+`endif
 

@@ -1,6 +1,7 @@
-`timescale 1ns / 1ps
 // written 2019-09-22 by mza
-// last updated 2020-06-19 by mza
+// last updated 2020-06-20 by mza
+`ifndef GENERIC_LIB
+`define GENERIC_LIB
 
 //	mux #(.WIDTH(8)) mymux (.I0(), .I1(), .S(), .O());
 module mux #(
@@ -311,4 +312,6 @@ endmodule
 //		assign B = {WIDTH{1'bz}};
 //	end
 //endmodule
+
+`endif
 

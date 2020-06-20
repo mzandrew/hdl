@@ -7,7 +7,7 @@
 // last updated 2020-06-20 by mza
 
 `define althea_revA
-//`include "lib/generic.v"
+`include "lib/generic.v"
 `include "lib/RAM8.v"
 //`include "lib/spi.v"
 //`include "lib/serdes_pll.v"
@@ -26,6 +26,7 @@ module top #(
 	parameter WIDTH = 7
 ) (
 	input clock50_p, clock50_n,
+	input clock10,
 	output lemo,
 	output other0,
 	output other1,
@@ -36,6 +37,9 @@ module top #(
 	output reg ack = 0,
 	output [7:0] leds
 );
+	assign lemo = 0;
+	assign other0 = 0;
+	assign other1 = 0;
 	wire clock50;
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
 	reg write_strobe = 0;
@@ -141,9 +145,10 @@ module top_tb;
 	task automatic delay;
 		#60;
 	endtask
-	localparam WIDTH = 7;
+	localparam WIDTH = 8;
 	reg clock50_p = 0;
 	reg clock50_n = 1;
+	reg clock10 = 0;
 	wire lemo, other0, other1;
 	wire [7:0] leds;
 	reg pre_register_select = 0;
@@ -155,10 +160,10 @@ module top_tb;
 	reg pre_enable = 0;
 	reg enable = 0;
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are master
-	top mytop (
-		.clock50_p(clock50_p), .clock50_n(clock50_n),
+	top #(.WIDTH(WIDTH)) mytop (
+		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10),
 		.lemo(lemo), .other0(other0), .other1(other1),
-		.bus(bus), .read(read), .register_select(register_select), .enable(enable), .ack(ack),
+		.bus(bus), .register_select(register_select), .read(read), .enable(enable), .ack(ack),
 		.leds(leds)
 	);
 	task automatic a16_d32_master_write_transaction;
@@ -248,34 +253,40 @@ module myalthea (
 	output lemo, // oserdes/trig output
 	output b_p, // oserdes/trig output other0
 	output f_p, // oserdes/trig output other1
-//	output _, // rpi_gpio2
-//	output _, // rpi_gpio3
-//	input _, // rpi_gpio4
-	input d_n, // rpi_gpio5
-	input d_p, // rpi_gpio6_gpclk2
-	input a_p, // rpi_gpio7
-	input c_n, // rpi_gpio8
-	input a_n, // rpi_gpio9
-	input b_n, // rpi_gpio10
-	input c_p, // rpi_gpio11
-// rpi_gpio12
+	// other IOs:
+	output m_p, // rpi_gpio2 sda
+	output m_n, // rpi_gpio3 scl
+	input j_p, // rpi_gpio4 gpclk0
+	// 8 bit bus:
+	inout d_n, // rpi_gpio5
+	inout d_p, // rpi_gpio6 gpclk2
+	inout a_p, // rpi_gpio7 spi
+	inout c_n, // rpi_gpio8 spi
+	inout a_n, // rpi_gpio9 spi
+	inout b_n, // rpi_gpio10 spi
+	inout c_p, // rpi_gpio11 spi
+	inout l_p, // rpi_gpio14 tx
+	// other IOs:
+	input l_n, // rpi_gpio15 rd
 	input e_n, // rpi_gpio13
 	input e_p, // rpi_gpio19
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
-	localparam WIDTH = 7;
-	wire [WIDTH-1:0] bus = { d_n, d_p, a_p, c_n, a_n, b_n, c_p };
-	wire [7:0] leds;
-	wire ale = e_n;
-	wire write = e_p;
-	wire read = 0;
+	localparam WIDTH = 8;
+	//wire [WIDTH-1:0] bus = { d_n, d_p, a_p, c_n, a_n, b_n, c_p, l_p };
+	wire register_select = l_n;
+	wire enable = e_n;
+	wire read = e_p;
 	wire ack;
-//	assign _ = ack;
+	assign m_p = ack;
+	wire [7:0] leds;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
+	assign m_n = 0;
+	wire clock10 = j_p;
 	top #(.WIDTH(WIDTH)) althea (
-		.clock50_p(clock50_p), .clock50_n(clock50_n),
+		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10),
 		.lemo(lemo), .other0(b_p), .other1(f_p),
-		.bus(bus), .ale(ale), .read(read), .ack(ack),
+		.bus({ d_n, d_p, a_p, c_n, a_n, b_n, c_p, l_p }), .register_select(register_select), .read(read), .enable(enable), .ack(ack),
 		.leds(leds)
 	);
 endmodule
