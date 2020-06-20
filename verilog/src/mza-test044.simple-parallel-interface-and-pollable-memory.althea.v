@@ -34,12 +34,11 @@ module top #(
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
 	output reg ack = 0,
-	output reg valid = 0,
 	output [7:0] leds
 );
 	wire clock50;
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
-	reg write_mode = 0;
+	reg write_strobe = 0;
 	reg [WIDTH-1:0] address = 0;
 	reg [WIDTH-1:0] write_data = 0;
 	wire [WIDTH-1:0] read_data;
@@ -48,9 +47,8 @@ module top #(
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
 	reg reset50 = 1;
 	always @(posedge clock50) begin
-		valid <= 0;
 		ack <= 0;
-		write_mode <= 0;
+		write_strobe <= 0;
 		if (reset50) begin
 			if (counter50[COUNTER50_BIT_PICKOFF]) begin
 				reset50 <= 0;
@@ -61,17 +59,16 @@ module top #(
 			pre_bus <= 0;
 		end else begin
 			if (enable) begin
+				ack <= 1;
 				if (read) begin // read mode
 					pre_bus <= read_data;
-					valid <= 1;
 				end else begin // write mode
 					if (register_select) begin
-						write_mode <= 1;
+						write_strobe <= 1;
 						write_data <= bus;
 					end else begin
 						address <= bus;
 					end
-					ack <= 1;
 				end
 			end
 		end
@@ -79,13 +76,13 @@ module top #(
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
 	assign bus = 'bz;
 	RAM_inferred #(.addr_width(WIDTH), .data_width(WIDTH)) myram (.reset(reset50),
-		.wclk(clock50), .waddr(address), .din(write_data), .write_en(write_mode),
+		.wclk(clock50), .waddr(address), .din(write_data), .write_en(write_strobe),
 		.rclk(clock50), .raddr(address), .dout(read_data));
 	assign leds[7] = ack;
-	assign leds[6] = valid;
-	assign leds[5] = 0;
-	assign leds[4] = write_mode;
-	assign leds[3] = 0;
+	assign leds[6] = write_strobe;
+	assign leds[5] = enable;
+	assign leds[4] = register_select;
+	assign leds[3] = read;
 	assign leds[2] = 0;
 	assign leds[1] = 0;
 	assign leds[0] = reset50;
@@ -96,43 +93,89 @@ module top_tb;
 	reg clock50_p = 0;
 	reg clock50_n = 1;
 	wire lemo, other0, other1;
+	wire [7:0] leds;
+	reg pre_register_select = 0;
+	reg register_select = 0;
+	reg pre_read = 0;
+	reg read = 0;
 	reg [WIDTH-1:0] pre_bus = 0;
 	wire [WIDTH-1:0] bus;
-	wire [7:0] leds;
-	reg register_select = 0;
+	reg pre_enable = 0;
 	reg enable = 0;
-	reg read = 0;
-	wire valid;
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are master
 	top mytop (
 		.clock50_p(clock50_p), .clock50_n(clock50_n),
 		.lemo(lemo), .other0(other0), .other1(other1),
-		.bus(bus), .read(read), .register_select(register_select), .enable(enable), .valid(valid), .ack(ack),
+		.bus(bus), .read(read), .register_select(register_select), .enable(enable), .ack(ack),
 		.leds(leds)
 	);
+	task automatic a16_d32_master_write_transaction;
+		input [15:0] address16;
+		input [31:0] data32;
+		begin
+			#40;
+			// write the address
+			pre_register_select <= 0;
+			pre_read <= 0;
+			pre_bus <= address16[WIDTH-1:0];
+			pre_enable <= 1;
+			#40;
+			pre_enable <= 0;
+			#40;
+			// write the first part of data
+			pre_register_select <= 1;
+			pre_read <= 0;
+			pre_bus <= data32[WIDTH-1:0];
+			pre_enable <= 1;
+			#40;
+			pre_enable <= 0;
+			#40;
+			// write the second part of data
+			pre_register_select <= 1;
+			pre_read <= 0;
+			pre_bus <= data32[2*WIDTH-1:WIDTH];
+			pre_enable <= 1;
+			#40;
+			pre_enable <= 0;
+			#40;
+		end
+	endtask
+	task automatic a16_master_read_transaction;
+		input [15:0] address16;
+		begin
+			#40;
+			// write the address
+			pre_register_select <= 0;
+			pre_read <= 0;
+			pre_bus <= address16[WIDTH-1:0];
+			pre_enable <= 1;
+			#40;
+			pre_enable <= 0;
+			#40;
+			// read data
+			pre_read <= 1;
+			pre_enable <= 1;
+			#40;
+			pre_enable <= 0;
+			#40;
+		end
+	endtask
 	initial begin
 		#300;
-		// write address
-		register_select <= 0;
-		read <= 0;
-		pre_bus <= 'h11;
-		enable <= 1;
-		#40;
-		enable <= 0;
+		a16_d32_master_write_transaction(.address16(16'hab4c), .data32(32'h01232a12));
+		a16_d32_master_write_transaction(.address16(16'hab4d), .data32(32'h01232b34));
+		a16_d32_master_write_transaction(.address16(16'hab4e), .data32(32'h01232c56));
+		a16_d32_master_write_transaction(.address16(16'hab4f), .data32(32'h01232d78));
 		#100;
-		// write data
-		register_select <= 1;
-		read <= 0;
-		pre_bus <= 'h22;
-		enable <= 1;
-		#40;
-		enable <= 0;
-		#100;
-		// try reading
-		read <= 1;
-		enable <= 1;
-		#40;
-		enable <= 0;
+		a16_master_read_transaction(.address16(16'hab4c));
+		a16_master_read_transaction(.address16(16'hab4d));
+		a16_master_read_transaction(.address16(16'hab4e));
+		a16_master_read_transaction(.address16(16'hab4f));
+	end
+	always @(posedge clock50_p) begin
+		register_select <= pre_register_select;
+		read <= pre_read;
+		enable <= pre_enable;
 	end
 	always begin
 		#10;
@@ -168,15 +211,13 @@ module myalthea (
 	wire ale = e_n;
 	wire write = e_p;
 	wire read = 0;
-	wire valid;
 	wire ack;
 //	assign _ = ack;
-//	assign _ = valid;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
 	top #(.WIDTH(WIDTH)) althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n),
 		.lemo(lemo), .other0(b_p), .other1(f_p),
-		.bus(bus), .ale(ale), .read(read), .valid(valid), .ack(ack),
+		.bus(bus), .ale(ale), .read(read), .ack(ack),
 		.leds(leds)
 	);
 endmodule
