@@ -40,7 +40,11 @@ module top #(
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
 	reg write_strobe = 0;
 	reg [WIDTH-1:0] address = 0;
-	reg [WIDTH-1:0] write_data = 0;
+	reg [WIDTH-1:0] write_data0 = 0;
+	reg [WIDTH-1:0] write_data1 = 0;
+	wire [2*WIDTH-1:0] write_data;
+	assign write_data = { write_data1, write_data0 };
+	reg [2:0] wstate = 0;
 	wire [WIDTH-1:0] read_data;
 	reg [WIDTH-1:0] pre_bus = 0;
 	localparam COUNTER50_BIT_PICKOFF = 3;
@@ -55,7 +59,9 @@ module top #(
 			end
 			counter50 <= counter50 + 1'b1;
 			address <= 0;
-			write_data <= 0;
+			write_data0 <= 0;
+			write_data1 <= 0;
+			wstate <= 0;
 			pre_bus <= 0;
 		end else begin
 			if (enable) begin
@@ -64,10 +70,23 @@ module top #(
 					pre_bus <= read_data;
 				end else begin // write mode
 					if (register_select) begin
-						write_strobe <= 1;
-						write_data <= bus;
+						if (wstate[2:1]==0) begin
+							if (wstate[0]==0) begin
+								wstate[0] <= 1;
+								write_data1 <= bus; // most significant halfword first
+							end else begin
+								wstate[1] <= 1;
+								write_data0 <= bus;
+							end
+						end else begin
+							if (wstate[1]) begin
+								write_strobe <= 1;
+								wstate <= 0;
+							end
+						end
 					end else begin
 						address <= bus;
+						wstate <= 0;
 					end
 				end
 			end
