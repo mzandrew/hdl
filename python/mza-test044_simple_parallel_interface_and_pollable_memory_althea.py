@@ -95,9 +95,13 @@ if 0:
 if 0:
 	althea.set_all_gpio_as_inputs()
 
-if 1:
+if 0:
 	althea.setup_for_simple_parallel_bus()
 	althea.test_writing_data_to_simple_parallel_bus()
+
+if 1:
+	althea.setup_half_duplex_bus()
+	althea.test_writing_data_to_half_duplex_bus()
 
 if 0:
 	#print("asdf")

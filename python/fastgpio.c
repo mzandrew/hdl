@@ -2,7 +2,7 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-06-18 by mza
+// last updated 2020-06-20 by mza
 
 // how to use this module:
 //	import fastgpio
@@ -305,6 +305,138 @@ static PyTypeObject clock_type = {
 
 typedef struct {
 	PyObject_HEAD
+	u32 bus_mask;
+	u32 bus_width;
+	u32 bus_offset;
+	u32 transfers_per_word;
+	u32 register_select;
+	u32 read;
+	u32 enable;
+	u32 ack;
+	volatile u32 *gpio_port;
+	volatile u32 *gpio_pads;
+} half_duplex_bus_object;
+
+static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, PyObject *kwds) {
+	setup_DebugInfoWarningError_if_needed();
+	u32 bus_offset = 0;
+	u32 bus_width = 0;
+	u32 transfers_per_word = 0;
+	u32 register_select = 0;
+	u32 read = 0;
+	u32 enable = 0;
+	u32 ack = 0;
+	// with help from https://gist.github.com/vuonghv/44dc334f3e116e32cc58d7a18b921fc3
+	const char *format = "kkkkkkk";
+	static char *kwlist[] = { "bus_width", "bus_offset", "transfers_per_word", "register_select", "read", "enable", "ack", NULL };
+	int success = PyArg_ParseTupleAndKeywords(args, kwds, format, kwlist, &bus_width, &bus_offset, &transfers_per_word, &register_select, &read, &enable, &ack);
+	if (!success) { return -1; }
+	if (bus_width<1 || 31<bus_width) { return -1; }
+	self->bus_width = bus_width;
+	if (31<bus_offset) { return -1; }
+	self->bus_offset = bus_offset;
+	if (0==transfers_per_word || 31<transfers_per_word) { return -1; }
+	self->transfers_per_word = transfers_per_word;
+	if (31<register_select) { return -1; }
+	self->register_select = 1<<register_select;
+	if (31<read) { return -1; }
+	self->read = 1<<read;
+	if (31<enable) { return -1; }
+	self->enable = 1<<enable;
+	if (31<ack) { return -1; }
+	self->ack = 1<<ack;
+	u32 bus_mask = 0;
+	for (int i=0; i<bus_width; i++) {
+		bus_mask |= 1<<(i+bus_offset);
+	}
+	self->bus_mask = bus_mask;
+	//printf("bus_mask: %08lx\n", self->bus_mask);
+	self->gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
+	self->gpio_pads = mmap_bcm_register(BCM2835_PADS_GPIO_0_27);
+	set_drive_strength_and_slew_rate(self->gpio_pads, 2); // 2 mA seems best
+	return 0;
+}
+
+static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyObject *args) {
+	// borrowed from https://stackoverflow.com/a/22487015/5728815
+	u32 start_address = 0;
+	u32 length = 0;
+	PyObject *obj;
+	if (!PyArg_ParseTuple(args, "kkO", &start_address, &length, &obj)) {
+		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, length, iteratable_object)");
+	}
+	PyObject *iter = PyObject_GetIter(obj);
+	if (!iter) {
+		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, length, iteratable_object)");
+	}
+	u32 bus_mask = self->bus_mask;
+	u32 bus_offset = self->bus_offset;
+	u32 register_select = self->register_select;
+	u32 read = self->read;
+	u32 enable = self->enable;
+	u32 address = start_address;
+	u32 data;
+	u32 adjusted_address;
+	u32 adjusted_data;
+	volatile u32 *set_reg = self->gpio_port + GPIO_SET_OFFSET;
+	volatile u32 *clr_reg = self->gpio_port + GPIO_CLR_OFFSET;
+	u32 everything = bus_mask | register_select | read | enable;
+	*clr_reg = everything;
+	u32 count = 0;
+	while (1) {
+		PyObject *next = PyIter_Next(iter);
+		if (!next) { break; }
+		if (length<count) { break; }
+		data = PyLong_AsUnsignedLong(next);
+		//printf("%08lx %08lx\n", data, mask);
+		// write address
+		adjusted_address = (address<<bus_offset) & bus_mask;
+		*clr_reg = everything;
+		*set_reg = adjusted_address;
+		*set_reg = enable;
+		// wait for ack
+		*clr_reg = enable;
+		// write data
+		adjusted_data = (data<<bus_offset) & bus_mask;
+		*clr_reg = everything;
+		*set_reg = adjusted_data | register_select;
+		*set_reg = enable;
+		// wait for ack
+		*clr_reg = enable;
+		count++;
+		//address += len(u32);
+		address++;
+//		if (0==count%1024) {
+//			nanosleep(&long_delay, NULL);
+//		}
+	}
+	*clr_reg = everything;
+	return PyLong_FromLong(count);
+}
+
+//static PyMethodDef fastgpio_methods[] = {
+static PyMethodDef half_duplex_bus_methods[] = {
+	{ "write", (PyCFunction) method_half_duplex_bus_write, METH_VARARGS, "writes iteratable_object to the interface" },
+//	{ "", (PyCFunction) method_, METH_VARARGS, "" },
+	{ NULL }
+};
+
+static PyTypeObject half_duplex_bus_type = {
+	PyObject_HEAD_INIT(NULL)
+	.tp_name = "fastgpio.half_duplex_bus",
+	.tp_doc = "a half_duplex_bus object",
+	.tp_basicsize = sizeof(half_duplex_bus_object),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+	.tp_new = PyType_GenericNew,
+	.tp_init = (initproc) init_half_duplex_bus,
+	.tp_methods = half_duplex_bus_methods,
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+typedef struct {
+	PyObject_HEAD
 	u32 mask;
 	u8 direction;
 	u8 offset;
@@ -459,7 +591,7 @@ static PyObject* method_test(PyObject *self, PyObject *args) {
 		volatile u32 *gpio_clock = mmap_bcm_register(CLK_BASE);
 		setup_clock10_on_gpclk0_gpio4(gpio_port, gpio_clock);
 	}
-	printf("test completedn");
+	printf("test completed\n");
 	return PyLong_FromLong(0);
 }
 
@@ -473,19 +605,26 @@ static struct PyModuleDef fastgpio_module = {
 
 PyMODINIT_FUNC PyInit_fastgpio(void) {
 	PyObject *m;
-	if (PyType_Ready(&bus_type) < 0) { return NULL; }
 	if (PyType_Ready(&clock_type) < 0) { return NULL; }
+	if (PyType_Ready(&bus_type) < 0) { return NULL; }
+	if (PyType_Ready(&half_duplex_bus_type) < 0) { return NULL; }
 	m = PyModule_Create(&fastgpio_module);
 	if (m == NULL) { return NULL; }
+	Py_INCREF(&clock_type);
+	if (PyModule_AddObject(m, "clock", (PyObject *) &clock_type) < 0) {
+		Py_DECREF(&clock_type);
+		Py_DECREF(m);
+		return NULL;
+	}
 	Py_INCREF(&bus_type);
 	if (PyModule_AddObject(m, "bus", (PyObject *) &bus_type) < 0) {
 		Py_DECREF(&bus_type);
 		Py_DECREF(m);
 		return NULL;
 	}
-	Py_INCREF(&clock_type);
-	if (PyModule_AddObject(m, "clock", (PyObject *) &clock_type) < 0) {
-		Py_DECREF(&clock_type);
+	Py_INCREF(&half_duplex_bus_type);
+	if (PyModule_AddObject(m, "half_duplex_bus", (PyObject *) &half_duplex_bus_type) < 0) {
+		Py_DECREF(&half_duplex_bus_type);
 		Py_DECREF(m);
 		return NULL;
 	}

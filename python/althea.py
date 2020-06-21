@@ -87,7 +87,7 @@ def pulse(gpio, duration):
 
 def reset_pulse(gpio=19):
 	bus = pulse(gpio, 0.1)
-	time.sleep(0.1)
+	time.sleep(0.05)
 	return bus
 
 def gpio_state(gpio):
@@ -438,6 +438,73 @@ def test_writing_data_to_simple_parallel_bus():
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
 	time.sleep(0.1)
+
+# ---------------------------------------------------------------------------
+
+def setup_half_duplex_bus():
+	print("setting up for half-duplex bus mode...")
+	gpio_bus = [ althea_gpio[i] for i in range(bus_start, bus_start+bus_width) ]
+	print(str(gpio_bus))
+	global bits_bus
+	bits_bus = len(gpio_bus)
+	print("this bus is " + str(bits_bus) + " bits wide")
+	transfers_per_word = 2
+	global bits_word
+	bits_word = transfers_per_word*bits_bus
+	#mask_bus = buildmask(gpio_bus)
+	#print(hex(mask_bus, 8))
+	global half_duplex_bus
+	#static char *kwlist[] = { "bus_width", "bus_offset", "transfers_per_word", "register_select", "read", "enable", "ack", NULL };
+	half_duplex_bus = fastgpio.half_duplex_bus(
+		bus_width=bus_width,
+		bus_offset=gpio_bus[0],
+		transfers_per_word=2,
+		register_select=13,
+		read=14,
+		enable=15,
+		ack=2
+	)
+	#half_duplex_bus.write([0])
+	control_bus_list = [ 13, 14, 15 ] # register_select, read, enable
+	#control_bus_mask = buildmask(control_bus_list)
+	#global control_bus
+	#control_bus = fastgpio.bus(control_bus_mask, 1, control_bus_list[0])
+	#control_bus.write([0])
+	#global ack_bus
+	#ack_bus_list = [ 2 ]
+	#ack_bus_mask = buildmask(ack_bus_list)
+	#ack_bus = fastgpio.bus(ack_bus_mask, 0, ack_bus_list[0])
+
+def test_writing_data_to_half_duplex_bus():
+	print("writing data in half-duplex bus mode...")
+	time.sleep(0.1)
+	reset_pulse()
+	time.sleep(0.1)
+	data = []
+	NUM = 8000000
+	if NUM>10000:
+		segments = int(NUM/10000)
+		length_of_each_segment = math.ceil(NUM/segments)
+		print(str(length_of_each_segment))
+		segment = [ random.randint(0,2**bits_word-1) for d in range(length_of_each_segment) ]
+		for i in range(segments):
+			data.extend(segment)
+	else:
+		data = [ random.randint(0,2**bits_word-1) for d in range(NUM) ]
+	#print(str(data))
+	print("running...")
+	start = time.time()
+	half_duplex_bus.write(0, NUM, data)
+	end = time.time()
+	diff = end - start
+	per_sec = NUM / diff
+	print("%.3f"%diff + " seconds")
+	per_sec *= bits_bus
+	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
+	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
+	time.sleep(0.1)
+
 
 # ---------------------------------------------------------------------------
 
