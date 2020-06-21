@@ -306,6 +306,7 @@ static PyTypeObject clock_type = {
 typedef struct {
 	PyObject_HEAD
 	u32 bus_mask;
+	u32 partial_mask;
 	u32 bus_width;
 	u32 bus_offset;
 	u32 transfers_per_word;
@@ -333,24 +334,37 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	if (!success) { return -1; }
 	if (bus_width<1 || 31<bus_width) { return -1; }
 	self->bus_width = bus_width;
+	//printf("bus_width: %08lx\n", self->bus_width);
 	if (31<bus_offset) { return -1; }
 	self->bus_offset = bus_offset;
+	//printf("bus_offset: %08lx\n", self->bus_offset);
 	if (0==transfers_per_word || 31<transfers_per_word) { return -1; }
 	self->transfers_per_word = transfers_per_word;
+	//printf("transfers_per_word: %08lx\n", self->transfers_per_word);
 	if (31<register_select) { return -1; }
 	self->register_select = 1<<register_select;
+	//printf("register_select: %08lx\n", self->register_select);
 	if (31<read) { return -1; }
 	self->read = 1<<read;
+	//printf("read: %08lx\n", self->read);
 	if (31<enable) { return -1; }
 	self->enable = 1<<enable;
+	//printf("enable: %08lx\n", self->enable);
 	if (31<ack) { return -1; }
 	self->ack = 1<<ack;
+	//printf("ack: %08lx\n", self->ack);
 	u32 bus_mask = 0;
 	for (int i=0; i<bus_width; i++) {
 		bus_mask |= 1<<(i+bus_offset);
 	}
 	self->bus_mask = bus_mask;
 	//printf("bus_mask: %08lx\n", self->bus_mask);
+	u32 partial_mask = 0;
+	for (int i=0; i<bus_width; i++) {
+		partial_mask |= 1<<i;
+	}
+	self->partial_mask = partial_mask;
+	//printf("partial_mask: %08lx\n", self->partial_mask);
 	self->gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
 	self->gpio_pads = mmap_bcm_register(BCM2835_PADS_GPIO_0_27);
 	set_drive_strength_and_slew_rate(self->gpio_pads, 2); // 2 mA seems best
@@ -370,12 +384,17 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, length, iteratable_object)");
 	}
 	u32 bus_mask = self->bus_mask;
+	u32 bus_width = self->bus_width;
+	u32 partial_mask = self->partial_mask;
 	u32 bus_offset = self->bus_offset;
+	u32 transfers_per_word = self->transfers_per_word;
 	u32 register_select = self->register_select;
 	u32 read = self->read;
 	u32 enable = self->enable;
 	u32 address = start_address;
 	u32 data;
+	u32 partial_address;
+	u32 partial_data;
 	u32 adjusted_address;
 	u32 adjusted_data;
 	volatile u32 *set_reg = self->gpio_port + GPIO_SET_OFFSET;
@@ -383,6 +402,8 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	u32 everything = bus_mask | register_select | read | enable;
 	*clr_reg = everything;
 	u32 count = 0;
+	int t;
+	struct timespec long_delay = { 0, 1000 }; // seconds, nanoseconds
 	while (1) {
 		PyObject *next = PyIter_Next(iter);
 		if (!next) { break; }
@@ -390,26 +411,40 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		data = PyLong_AsUnsignedLong(next);
 		//printf("%08lx %08lx\n", data, mask);
 		// write address
-		adjusted_address = (address<<bus_offset) & bus_mask;
-		*clr_reg = everything;
-		*set_reg = adjusted_address;
-		*set_reg = enable;
-		// wait for ack
-		*clr_reg = enable;
+		//printf("address: %0*lx\n", (int) (transfers_per_word*bus_width/4), address);
+		for (t=0; t<transfers_per_word; t++) {
+			partial_address = (address>>((transfers_per_word-t-1)*bus_width)) & partial_mask;
+			//printf("partial_address: %0*lx\n", (int) bus_width/4, partial_address);
+			adjusted_address = (partial_address<<bus_offset) & bus_mask;
+			*clr_reg = everything;
+			*set_reg = adjusted_address;
+			//printf("adjusted_address: %0*lx\n", bus_width/4, adjusted_address);
+			*set_reg = enable;
+			// wait for ack
+			*clr_reg = enable;
+		}
 		// write data
-		adjusted_data = (data<<bus_offset) & bus_mask;
-		*clr_reg = everything;
-		*set_reg = adjusted_data | register_select;
-		*set_reg = enable;
-		// wait for ack
-		*clr_reg = enable;
-		count++;
+		//printf("data: %0*lx\n", (int) (transfers_per_word*bus_width/4), data);
+		for (t=0; t<transfers_per_word; t++) {
+			partial_data = (data>>((transfers_per_word-t-1)*bus_width)) & partial_mask;
+			//printf("partial_data: %0*lx\n", (int) bus_width/4, partial_data);
+			adjusted_data = (partial_data<<bus_offset) & bus_mask;
+			*clr_reg = everything;
+			*set_reg = adjusted_data | register_select;
+			*set_reg = enable;
+			// wait for ack
+			*clr_reg = enable;
+		}
 		//address += len(u32);
+		count++;
 		address++;
-//		if (0==count%1024) {
-//			nanosleep(&long_delay, NULL);
-//		}
+		if (0) {
+			if (0==count%10240) {
+				nanosleep(&long_delay, NULL);
+			}
+		}
 	}
+	printf("completed %ld transactions\n", count);
 	*clr_reg = everything;
 	return PyLong_FromLong(count);
 }
@@ -533,8 +568,10 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 		count++;
 //		*clr_reg = value;
 //		old_value = value;
-		if (0==count%1024) {
-			nanosleep(&long_delay, NULL);
+		if (0) {
+			if (0==count%10240) {
+				nanosleep(&long_delay, NULL);
+			}
 		}
 	}
 	//printf("%ld\n", count);

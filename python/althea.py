@@ -481,7 +481,7 @@ def test_writing_data_to_half_duplex_bus():
 	reset_pulse()
 	time.sleep(0.1)
 	data = []
-	NUM = 8000000
+	NUM = 4500000
 	if NUM>10000:
 		segments = int(NUM/10000)
 		length_of_each_segment = math.ceil(NUM/segments)
@@ -491,6 +491,7 @@ def test_writing_data_to_half_duplex_bus():
 			data.extend(segment)
 	else:
 		data = [ random.randint(0,2**bits_word-1) for d in range(NUM) ]
+	#print(str(len(data)))
 	#print(str(data))
 	print("running...")
 	start = time.time()
@@ -499,7 +500,7 @@ def test_writing_data_to_half_duplex_bus():
 	diff = end - start
 	per_sec = NUM / diff
 	print("%.3f"%diff + " seconds")
-	per_sec *= bits_bus
+	per_sec *= bits_word
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
