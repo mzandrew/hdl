@@ -371,6 +371,12 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	return 0;
 }
 
+// waiting for ACK is the difference between 2 MB/sec and 9 MB/sec
+#define WAIT_FOR_ACK_STYLE_FOR
+//#define WAIT_FOR_ACK_STYLE_WHILE
+#define MAX_ACK_CYCLES_WARNING (3)
+#define MAX_ACK_CYCLES_ERROR (4)
+
 static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyObject *args) {
 	// borrowed from https://stackoverflow.com/a/22487015/5728815
 	u32 start_address = 0;
@@ -391,6 +397,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	u32 register_select = self->register_select;
 	u32 read = self->read;
 	u32 enable = self->enable;
+	u32 ack = self->ack;
 	u32 address = start_address;
 	u32 data;
 	u32 partial_address;
@@ -399,11 +406,17 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	u32 adjusted_data;
 	volatile u32 *set_reg = self->gpio_port + GPIO_SET_OFFSET;
 	volatile u32 *clr_reg = self->gpio_port + GPIO_CLR_OFFSET;
+	volatile u32 *read_port = self->gpio_port + GPIO_PIN_LEVEL;
 	u32 everything = bus_mask | register_select | read | enable;
+	u32 everything_address = bus_mask | read | enable;
+	u32 everything_data = everything;
 	*clr_reg = everything;
 	u32 count = 0;
 	int t;
 	struct timespec long_delay = { 0, 1000 }; // seconds, nanoseconds
+	u32 value;
+	int i;
+	u32 errors = 0;
 	while (1) {
 		PyObject *next = PyIter_Next(iter);
 		if (!next) { break; }
@@ -416,11 +429,29 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 			partial_address = (address>>((transfers_per_word-t-1)*bus_width)) & partial_mask;
 			//printf("partial_address: %0*lx\n", (int) bus_width/4, partial_address);
 			adjusted_address = (partial_address<<bus_offset) & bus_mask;
-			*clr_reg = everything;
+			*clr_reg = everything_address;
 			*set_reg = adjusted_address;
 			//printf("adjusted_address: %0*lx\n", bus_width/4, adjusted_address);
+			//value = *read_port & ack;
+			//printf("value: %08lx\n", value);
 			*set_reg = enable;
 			// wait for ack
+			#ifdef WAIT_FOR_ACK_STYLE_FOR
+			for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
+				value = *read_port & ack;
+				//printf("value: %08lx\n", value);
+				if (value) {
+//					if (MAX_ACK_CYCLES_WARNING<i) {
+//						printf("%d ", i);
+//					}
+					break;
+				}
+				//nanosleep(&long_delay, NULL);
+			}
+			if (MAX_ACK_CYCLES_ERROR==i) { errors++; }
+			#else
+			do { } while (!(*read_port & ack));
+			#endif
 			*clr_reg = enable;
 		}
 		// write data
@@ -429,10 +460,26 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 			partial_data = (data>>((transfers_per_word-t-1)*bus_width)) & partial_mask;
 			//printf("partial_data: %0*lx\n", (int) bus_width/4, partial_data);
 			adjusted_data = (partial_data<<bus_offset) & bus_mask;
-			*clr_reg = everything;
-			*set_reg = adjusted_data | register_select;
+			*clr_reg = everything_data;
+			*set_reg = adjusted_data;
 			*set_reg = enable;
 			// wait for ack
+			#ifdef WAIT_FOR_ACK_STYLE_FOR
+			for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
+				value = *read_port & ack;
+				//printf("value: %08lx\n", value);
+				if (value) {
+//					if (MAX_ACK_CYCLES_WARNING<i) {
+//						printf("%d ", i);
+//					}
+					break;
+				}
+				//nanosleep(&long_delay, NULL);
+			}
+			if (MAX_ACK_CYCLES_ERROR==i) { errors++; }
+			#else
+			do { } while (!(*read_port & ack));
+			#endif
 			*clr_reg = enable;
 		}
 		//address += len(u32);
@@ -444,8 +491,11 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 			}
 		}
 	}
-	printf("completed %ld transactions\n", count);
 	*clr_reg = everything;
+	printf("completed %ld transactions\n", count);
+	if (errors) {
+		printf("there were %ld errors\n", errors);
+	}
 	return PyLong_FromLong(count);
 }
 

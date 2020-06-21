@@ -482,6 +482,7 @@ def test_writing_data_to_half_duplex_bus():
 	time.sleep(0.1)
 	data = []
 	NUM = 4500000
+	#NUM = 1000
 	if NUM>10000:
 		segments = int(NUM/10000)
 		length_of_each_segment = math.ceil(NUM/segments)
