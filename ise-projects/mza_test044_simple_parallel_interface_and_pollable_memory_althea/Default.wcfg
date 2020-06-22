@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="24" />
+   <WVObjectSize size="20" />
    <wvobject fp_name="/top_tb/lemo" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">lemo</obj_property>
       <obj_property name="ObjectShortName">lemo</obj_property>
@@ -48,8 +48,8 @@
       <obj_property name="ObjectShortName">register_select</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/bus" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">bus[6:0]</obj_property>
-      <obj_property name="ObjectShortName">bus[6:0]</obj_property>
+      <obj_property name="ElementShortName">bus[7:0]</obj_property>
+      <obj_property name="ObjectShortName">bus[7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="divider44" type="divider">
@@ -59,8 +59,8 @@
       <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/mytop/address" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">address[6:0]</obj_property>
-      <obj_property name="ObjectShortName">address[6:0]</obj_property>
+      <obj_property name="ElementShortName">address[7:0]</obj_property>
+      <obj_property name="ObjectShortName">address[7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="divider45" type="divider">
@@ -73,20 +73,20 @@
       <obj_property name="ElementShortName">wstate[2:0]</obj_property>
       <obj_property name="ObjectShortName">wstate[2:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/top_tb/mytop/write_data1" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">write_data1[6:0]</obj_property>
-      <obj_property name="ObjectShortName">write_data1[6:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/top_tb/mytop/write_data0" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">write_data0[6:0]</obj_property>
-      <obj_property name="ObjectShortName">write_data0[6:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
    <wvobject fp_name="/top_tb/mytop/write_data" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">write_data[13:0]</obj_property>
-      <obj_property name="ObjectShortName">write_data[13:0]</obj_property>
+      <obj_property name="ElementShortName">write_data[1:0,7:0]</obj_property>
+      <obj_property name="ObjectShortName">write_data[1:0,7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/top_tb/mytop/write_data[1]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[1,7:0]</obj_property>
+         <obj_property name="ObjectShortName">write_data[1,7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/top_tb/mytop/write_data[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0,7:0]</obj_property>
+         <obj_property name="ObjectShortName">write_data[0,7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
    </wvobject>
    <wvobject fp_name="/top_tb/mytop/write_strobe" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">write_strobe</obj_property>
@@ -98,24 +98,24 @@
       <obj_property name="BkColor">128 128 255</obj_property>
       <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
-   <wvobject fp_name="/top_tb/mytop/read_data1" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">read_data1[6:0]</obj_property>
-      <obj_property name="ObjectShortName">read_data1[6:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/top_tb/mytop/read_data0" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">read_data0[6:0]</obj_property>
-      <obj_property name="ObjectShortName">read_data0[6:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
    <wvobject fp_name="/top_tb/mytop/read_data" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">read_data[13:0]</obj_property>
-      <obj_property name="ObjectShortName">read_data[13:0]</obj_property>
+      <obj_property name="ElementShortName">read_data[1:0,7:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data[1:0,7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/top_tb/mytop/read_data[1]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[1,7:0]</obj_property>
+         <obj_property name="ObjectShortName">read_data[1,7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/top_tb/mytop/read_data[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0,7:0]</obj_property>
+         <obj_property name="ObjectShortName">read_data[0,7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
    </wvobject>
    <wvobject fp_name="/top_tb/mytop/rstate" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">rstate[0:0]</obj_property>
-      <obj_property name="ObjectShortName">rstate[0:0]</obj_property>
+      <obj_property name="ElementShortName">rstate[1:0]</obj_property>
+      <obj_property name="ObjectShortName">rstate[1:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/ack" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">ack</obj_property>

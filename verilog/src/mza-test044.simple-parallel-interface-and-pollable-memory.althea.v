@@ -24,7 +24,8 @@
 
 module top #(
 	parameter WIDTH = 7,
-	parameter TRANSACTIONS_PER_WORD = 2
+	parameter TRANSACTIONS_PER_WORD = 2,
+	parameter LOG2_OF_TRANSACTIONS_PER_WORD = $clog2(TRANSACTIONS_PER_WORD)
 ) (
 	input clock50_p, clock50_n,
 	input clock10,
@@ -53,6 +54,7 @@ module top #(
 		assign write_data_word[(i+1)*WIDTH-1:i*WIDTH] = write_data[i];
 	end
 	reg [2:0] wstate = 0;
+	reg [LOG2_OF_TRANSACTIONS_PER_WORD-1:0] wword = TRANSACTIONS_PER_WORD-1; // most significant halfword first
 	wire [TRANSACTIONS_PER_WORD*WIDTH-1:0] read_data_word;
 	wire [WIDTH-1:0] read_data [TRANSACTIONS_PER_WORD-1:0];
 	for (i=0; i<TRANSACTIONS_PER_WORD; i=i+1) begin : read_data_array
@@ -80,6 +82,7 @@ module top #(
 				write_data[j] <= 0;
 			end
 			wstate <= 0;
+			wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 			rstate <= 0;
 			pre_bus <= 0;
 		end else begin
@@ -103,12 +106,12 @@ module top #(
 							if (wstate[1]==0) begin
 								if (wstate[0]==0) begin
 									wstate[0] <= 1;
-									write_data[1] <= bus; // most significant halfword first
+									write_data[wword] <= bus;
 								end
 							end else begin
 								if (wstate[0]==0) begin
 									wstate <= 3'b101;
-									write_data[0] <= bus;
+									write_data[wword] <= bus;
 								end
 							end
 						end else begin
@@ -126,8 +129,10 @@ module top #(
 			end else begin // enable=0
 				if (wstate[1:0]==2'b01) begin
 					wstate[1:0] <= 2'b10;
+					wword <= wword - 1'b1;
 				end else if (wstate==3'b111) begin
 					wstate <= 0;
+					wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 				end
 				if (rstate[1:0]==2'b01) begin
 					rstate[1:0] <= 2'b10;
