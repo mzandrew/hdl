@@ -23,7 +23,7 @@
 //`define USE_BRAM_4K
 
 module top #(
-	parameter WIDTH = 7,
+	parameter WIDTH = 8,
 	parameter TRANSACTIONS_PER_WORD = 2,
 	parameter LOG2_OF_TRANSACTIONS_PER_WORD = $clog2(TRANSACTIONS_PER_WORD)
 ) (
@@ -40,6 +40,7 @@ module top #(
 	output reg ack_valid = 0,
 	output [7:0] leds
 );
+	reg checksum = 0;
 	assign lemo = 0;
 	assign other0 = 0;
 	assign other1 = 0;
@@ -89,6 +90,7 @@ module top #(
 			rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 			pre_bus <= 0;
 			errors <= 0;
+			checksum <= 0;
 		end else begin
 			if (enable) begin
 				ack_valid <= 1;
@@ -116,6 +118,12 @@ module top #(
 							if (wstate[0]) begin
 								wstate[0] <= 1;
 								write_strobe <= 1;
+								//if (write_data_word==32'h31231507) begin
+								if (write_data_word==16'h1507) begin
+									checksum <= 1;
+								end else begin
+									checksum <= 0;
+								end
 							end
 						end
 					end else begin // register_select=0
@@ -158,7 +166,7 @@ module top #(
 		.rclk(clock50), .raddr(address), .dout(read_data_word));
 	assign leds[7] = ack_valid;
 	assign leds[6] = write_strobe;
-	assign leds[5] = 0;
+	assign leds[5] = checksum;
 	assign leds[4] = reset;
 	assign leds[3] = register_select;
 	assign leds[2] = read;
@@ -195,10 +203,10 @@ module top_tb;
 	);
 	task automatic pulse_enable;
 		begin
+			delay();
 			pre_enable <= 1;
 			delay();
 			pre_enable <= 0;
-			delay();
 		end
 	endtask
 	task automatic a16_d32_master_write_transaction;
@@ -248,24 +256,41 @@ module top_tb;
 			delay();
 			// read data
 			pre_read <= 1;
-			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple
+			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple_1
 				pulse_enable;
 			end
+		end
+	endtask
+	task automatic master_readback_transaction;
+		integer j;
+		begin
+			pre_read <= 1;
+			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple_2
+				pulse_enable;
+			end
+			delay();
+			pre_read <= 0;
 		end
 	endtask
 	initial begin
 		#300;
 		a16_d32_master_write_transaction(.address16(16'hab4c), .data32(32'h3123_2a12));
+		master_readback_transaction();
 		a16_d32_master_write_transaction(.address16(16'hab4d), .data32(32'h3123_2b34));
+		master_readback_transaction();
 		a16_d32_master_write_transaction(.address16(16'hab4e), .data32(32'h3123_2c56));
+		master_readback_transaction();
 		a16_d32_master_write_transaction(.address16(16'hab4f), .data32(32'h3123_2d78));
-		#100;
+		master_readback_transaction();
+		#300;
 		a16_master_read_transaction(.address16(16'hab4c));
 		a16_master_read_transaction(.address16(16'hab4d));
 		a16_master_read_transaction(.address16(16'hab4e));
 		a16_master_read_transaction(.address16(16'hab4f));
-		#100;
 		pre_read <= 0;
+		#300;
+		a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h3123_1507));
+		a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h0000_1507));
 	end
 	always @(posedge clock50_p) begin
 		register_select <= pre_register_select;

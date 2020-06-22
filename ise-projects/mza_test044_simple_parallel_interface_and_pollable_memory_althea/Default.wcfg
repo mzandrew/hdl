@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="24" />
+   <WVObjectSize size="25" />
    <wvobject fp_name="/top_tb/lemo" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">lemo</obj_property>
       <obj_property name="ObjectShortName">lemo</obj_property>
@@ -59,29 +59,14 @@
       <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/write_data_word" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">write_data_word[23:0]</obj_property>
-      <obj_property name="ObjectShortName">write_data_word[23:0]</obj_property>
+      <obj_property name="ElementShortName">write_data_word[31:0]</obj_property>
+      <obj_property name="ObjectShortName">write_data_word[31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/write_data" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">write_data[2:0,7:0]</obj_property>
-      <obj_property name="ObjectShortName">write_data[2:0,7:0]</obj_property>
+      <obj_property name="ElementShortName">write_data[3:0,7:0]</obj_property>
+      <obj_property name="ObjectShortName">write_data[3:0,7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
-      <wvobject fp_name="/top_tb/althea/write_data[2]" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">[2,7:0]</obj_property>
-         <obj_property name="ObjectShortName">write_data[2,7:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/top_tb/althea/write_data[1]" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">[1,7:0]</obj_property>
-         <obj_property name="ObjectShortName">write_data[1,7:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/top_tb/althea/write_data[0]" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">[0,7:0]</obj_property>
-         <obj_property name="ObjectShortName">write_data[0,7:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/wstate" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">wstate[1:0]</obj_property>
@@ -103,13 +88,13 @@
       <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/read_data_word" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">read_data_word[23:0]</obj_property>
-      <obj_property name="ObjectShortName">read_data_word[23:0]</obj_property>
+      <obj_property name="ElementShortName">read_data_word[31:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data_word[31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/read_data" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">read_data[2:0,7:0]</obj_property>
-      <obj_property name="ObjectShortName">read_data[2:0,7:0]</obj_property>
+      <obj_property name="ElementShortName">read_data[3:0,7:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data[3:0,7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/rstate" type="array" db_ref_id="1">
@@ -136,5 +121,9 @@
       <obj_property name="ElementShortName">errors[31:0]</obj_property>
       <obj_property name="ObjectShortName">errors[31:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/checksum" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">checksum</obj_property>
+      <obj_property name="ObjectShortName">checksum</obj_property>
    </wvobject>
 </wave_config>
