@@ -53,7 +53,7 @@ module top #(
 	for (i=0; i<TRANSACTIONS_PER_WORD; i=i+1) begin : write_data_array
 		assign write_data_word[(i+1)*WIDTH-1:i*WIDTH] = write_data[i];
 	end
-	reg [2:0] wstate = 0;
+	reg [1:0] wstate = 0;
 	reg [LOG2_OF_TRANSACTIONS_PER_WORD-1:0] wword = TRANSACTIONS_PER_WORD-1; // most significant halfword first
 	wire [TRANSACTIONS_PER_WORD*WIDTH-1:0] read_data_word;
 	wire [WIDTH-1:0] read_data [TRANSACTIONS_PER_WORD-1:0];
@@ -102,37 +102,34 @@ module top #(
 					end
 				end else begin // write mode
 					if (register_select) begin
-						if (wstate[2]==0) begin
-							if (wstate[1]==0) begin
-								if (wstate[0]==0) begin
-									wstate[0] <= 1;
-									write_data[wword] <= bus;
-								end
-							end else begin
-								if (wstate[0]==0) begin
-									wstate <= 3'b101;
-									write_data[wword] <= bus;
-								end
+						if (wstate[1]==0) begin
+							if (wstate[0]==0) begin
+								wstate[0] <= 1;
+								write_data[wword] <= bus;
+							end
+							if (wword==0) begin
+								wstate[1] <= 1;
 							end
 						end else begin
-							if (wstate[1:0]==2'b01) begin
-								wstate[1] <= 1;
+							if (wstate[0]) begin
+								wstate[0] <= 1;
 								write_strobe <= 1;
 							end
 						end
 					end else begin // register_select=0
 						address <= bus;
-						rstate <= 0;
 						wstate <= 0;
+						wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+						rstate <= 0;
 					end
 				end
 			end else begin // enable=0
-				if (wstate[1:0]==2'b01) begin
-					wstate[1:0] <= 2'b10;
-					wword <= wword - 1'b1;
-				end else if (wstate==3'b111) begin
+				if (wstate[1]) begin
 					wstate <= 0;
 					wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+				end else if (wstate[0]) begin
+					wstate[0] <= 0;
+					wword <= wword - 1'b1;
 				end
 				if (rstate[1:0]==2'b01) begin
 					rstate[1:0] <= 2'b10;
