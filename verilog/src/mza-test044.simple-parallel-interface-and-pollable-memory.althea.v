@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-06-20 by mza
+// last updated 2020-06-22 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -23,7 +23,8 @@
 //`define USE_BRAM_4K
 
 module top #(
-	parameter WIDTH = 7
+	parameter WIDTH = 7,
+	parameter TRANSACTIONS_PER_WORD = 2
 ) (
 	input clock50_p, clock50_n,
 	input clock10,
@@ -45,19 +46,24 @@ module top #(
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
 	reg write_strobe = 0;
 	reg [WIDTH-1:0] address = 0;
-	reg [WIDTH-1:0] write_data0 = 0;
-	reg [WIDTH-1:0] write_data1 = 0;
-	wire [2*WIDTH-1:0] write_data;
-	assign write_data = { write_data1, write_data0 };
+	wire [TRANSACTIONS_PER_WORD*WIDTH-1:0] write_data_word;
+	reg [WIDTH-1:0] write_data [TRANSACTIONS_PER_WORD-1:0];
+	genvar i;
+	for (i=0; i<TRANSACTIONS_PER_WORD; i=i+1) begin : write_data_array
+		assign write_data_word[(i+1)*WIDTH-1:i*WIDTH] = write_data[i];
+	end
 	reg [2:0] wstate = 0;
-	wire [2*WIDTH-1:0] read_data;
-	wire [WIDTH-1:0] read_data1 = read_data[2*WIDTH-1:WIDTH];
-	wire [WIDTH-1:0] read_data0 = read_data[WIDTH-1:0];
+	wire [TRANSACTIONS_PER_WORD*WIDTH-1:0] read_data_word;
+	wire [WIDTH-1:0] read_data [TRANSACTIONS_PER_WORD-1:0];
+	for (i=0; i<TRANSACTIONS_PER_WORD; i=i+1) begin : read_data_array
+		assign read_data[i] = read_data_word[(i+1)*WIDTH-1:i*WIDTH];
+	end
 	reg [1:0] rstate = 0;
 	reg [WIDTH-1:0] pre_bus = 0;
 	localparam COUNTER50_BIT_PICKOFF = 3;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
 	reg reset50 = 1;
+	integer j;
 	always @(posedge clock50) begin
 		ack <= 0;
 		write_strobe <= 0;
@@ -70,8 +76,9 @@ module top #(
 			end
 			counter50 <= counter50 + 1'b1;
 			address <= 0;
-			write_data0 <= 0;
-			write_data1 <= 0;
+			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : write_data_clear
+				write_data[j] <= 0;
+			end
 			wstate <= 0;
 			rstate <= 0;
 			pre_bus <= 0;
@@ -82,12 +89,12 @@ module top #(
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
-							pre_bus <= read_data1;
+							pre_bus <= read_data[1];
 						end
 					end else begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
-							pre_bus <= read_data0;
+							pre_bus <= read_data[0];
 						end
 					end
 				end else begin // write mode
@@ -96,12 +103,12 @@ module top #(
 							if (wstate[1]==0) begin
 								if (wstate[0]==0) begin
 									wstate[0] <= 1;
-									write_data1 <= bus; // most significant halfword first
+									write_data[1] <= bus; // most significant halfword first
 								end
 							end else begin
 								if (wstate[0]==0) begin
 									wstate <= 3'b101;
-									write_data0 <= bus;
+									write_data[0] <= bus;
 								end
 							end
 						end else begin
@@ -133,8 +140,8 @@ module top #(
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
 	assign bus = 'bz;
 	RAM_inferred #(.addr_width(WIDTH), .data_width(2*WIDTH)) myram (.reset(reset50),
-		.wclk(clock50), .waddr(address), .din(write_data), .write_en(write_strobe),
-		.rclk(clock50), .raddr(address), .dout(read_data));
+		.wclk(clock50), .waddr(address), .din(write_data_word), .write_en(write_strobe),
+		.rclk(clock50), .raddr(address), .dout(read_data_word));
 	assign leds[7] = ack;
 	assign leds[6] = write_strobe;
 	assign leds[5] = 0;
