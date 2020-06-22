@@ -62,6 +62,7 @@ module top #(
 	end
 	reg [1:0] rstate = 0;
 	reg [LOG2_OF_TRANSACTIONS_PER_WORD-1:0] rword = TRANSACTIONS_PER_WORD-1; // most significant halfword first
+	reg [31:0] errors = 0;
 	reg [WIDTH-1:0] pre_bus = 0;
 	localparam COUNTER50_BIT_PICKOFF = 3;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
@@ -87,6 +88,7 @@ module top #(
 			rstate <= 0;
 			rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 			pre_bus <= 0;
+			errors <= 0;
 		end else begin
 			if (enable) begin
 				ack_valid <= 1;
@@ -118,6 +120,13 @@ module top #(
 						end
 					end else begin // register_select=0
 						address <= bus;
+						//errors <= errors + rstate[1] + wstate[1];
+						if (wword!=TRANSACTIONS_PER_WORD-1) begin
+							errors <= errors + 1'b1;
+						end
+						if (rword!=TRANSACTIONS_PER_WORD-1) begin
+							errors <= errors + 1'b1;
+						end
 						wstate <= 0;
 						wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 						rstate <= 0;
@@ -144,7 +153,7 @@ module top #(
 	end
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
 	assign bus = 'bz;
-	RAM_inferred #(.addr_width(WIDTH), .data_width(2*WIDTH)) myram (.reset(reset50),
+	RAM_inferred #(.addr_width(WIDTH), .data_width(TRANSACTIONS_PER_WORD*WIDTH)) myram (.reset(reset50),
 		.wclk(clock50), .waddr(address), .din(write_data_word), .write_en(write_strobe),
 		.rclk(clock50), .raddr(address), .dout(read_data_word));
 	assign leds[7] = ack_valid;
@@ -162,7 +171,7 @@ module top_tb;
 		#60;
 	endtask
 	localparam WIDTH = 8;
-	localparam TRANSACTIONS_PER_WORD = 2;
+	localparam TRANSACTIONS_PER_WORD = 4;
 	reg clock50_p = 0;
 	reg clock50_n = 1;
 	reg clock10 = 0;
@@ -178,12 +187,20 @@ module top_tb;
 	reg pre_enable = 0;
 	reg enable = 0;
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are master
-	top #(.WIDTH(WIDTH), .TRANSACTIONS_PER_WORD(TRANSACTIONS_PER_WORD)) mytop (
+	top #(.WIDTH(WIDTH), .TRANSACTIONS_PER_WORD(TRANSACTIONS_PER_WORD)) althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(reset),
 		.lemo(lemo), .other0(other0), .other1(other1),
 		.bus(bus), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
 		.leds(leds)
 	);
+	task automatic pulse_enable;
+		begin
+			pre_enable <= 1;
+			delay();
+			pre_enable <= 0;
+			delay();
+		end
+	endtask
 	task automatic a16_d32_master_write_transaction;
 		input [15:0] address16;
 		input [31:0] data32;
@@ -197,26 +214,28 @@ module top_tb;
 			delay();
 			pre_enable <= 0;
 			delay();
-			// write the first part of data
+			// write each part of data
 			pre_register_select <= 1;
 			pre_read <= 0;
-			pre_bus <= data32[2*WIDTH-1:WIDTH];
-			pre_enable <= 1;
-			delay();
-			pre_enable <= 0;
-			delay();
-			// write the second part of data
-			pre_register_select <= 1;
-			pre_read <= 0;
+			if (3<TRANSACTIONS_PER_WORD) begin
+				pre_bus <= data32[4*WIDTH-1:3*WIDTH];
+				pulse_enable;
+			end
+			if (2<TRANSACTIONS_PER_WORD) begin
+				pre_bus <= data32[3*WIDTH-1:2*WIDTH];
+				pulse_enable;
+			end
+			if (1<TRANSACTIONS_PER_WORD) begin
+				pre_bus <= data32[2*WIDTH-1:WIDTH];
+				pulse_enable;
+			end
 			pre_bus <= data32[WIDTH-1:0];
-			pre_enable <= 1;
-			delay();
-			pre_enable <= 0;
-			delay();
+			pulse_enable;
 		end
 	endtask
 	task automatic a16_master_read_transaction;
 		input [15:0] address16;
+		integer j;
 		begin
 			delay();
 			// write the address
@@ -229,22 +248,17 @@ module top_tb;
 			delay();
 			// read data
 			pre_read <= 1;
-			pre_enable <= 1;
-			delay();
-			pre_enable <= 0;
-			delay();
-			pre_enable <= 1;
-			delay();
-			pre_enable <= 0;
-			delay();
+			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple
+				pulse_enable;
+			end
 		end
 	endtask
 	initial begin
 		#300;
-		a16_d32_master_write_transaction(.address16(16'hab4c), .data32(32'h01232a12));
-		a16_d32_master_write_transaction(.address16(16'hab4d), .data32(32'h01232b34));
-		a16_d32_master_write_transaction(.address16(16'hab4e), .data32(32'h01232c56));
-		a16_d32_master_write_transaction(.address16(16'hab4f), .data32(32'h01232d78));
+		a16_d32_master_write_transaction(.address16(16'hab4c), .data32(32'h3123_2a12));
+		a16_d32_master_write_transaction(.address16(16'hab4d), .data32(32'h3123_2b34));
+		a16_d32_master_write_transaction(.address16(16'hab4e), .data32(32'h3123_2c56));
+		a16_d32_master_write_transaction(.address16(16'hab4f), .data32(32'h3123_2d78));
 		#100;
 		a16_master_read_transaction(.address16(16'hab4c));
 		a16_master_read_transaction(.address16(16'hab4d));
@@ -290,6 +304,7 @@ module myalthea (
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	localparam WIDTH = 8;
+	localparam TRANSACTIONS_PER_WORD = 2;
 	wire register_select = e_n;
 	wire read = l_p;
 	wire enable = l_n;
@@ -299,7 +314,7 @@ module myalthea (
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
 	//wire clock10 = j_p;
 	wire clock10 = 0;
-	top #(.WIDTH(WIDTH)) althea (
+	top #(.WIDTH(WIDTH), .TRANSACTIONS_PER_WORD(TRANSACTIONS_PER_WORD)) althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(e_p),
 		.lemo(lemo), .other0(b_p), .other1(f_p),
 		.bus({ j_p, d_n, d_p, a_p, c_n, a_n, b_n, c_p }), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),

@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="20" />
+   <WVObjectSize size="24" />
    <wvobject fp_name="/top_tb/lemo" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">lemo</obj_property>
       <obj_property name="ObjectShortName">lemo</obj_property>
@@ -58,10 +58,43 @@
       <obj_property name="BkColor">128 128 255</obj_property>
       <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
-   <wvobject fp_name="/top_tb/mytop/address" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">address[7:0]</obj_property>
-      <obj_property name="ObjectShortName">address[7:0]</obj_property>
+   <wvobject fp_name="/top_tb/althea/write_data_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">write_data_word[23:0]</obj_property>
+      <obj_property name="ObjectShortName">write_data_word[23:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/write_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">write_data[2:0,7:0]</obj_property>
+      <obj_property name="ObjectShortName">write_data[2:0,7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/top_tb/althea/write_data[2]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[2,7:0]</obj_property>
+         <obj_property name="ObjectShortName">write_data[2,7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/top_tb/althea/write_data[1]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[1,7:0]</obj_property>
+         <obj_property name="ObjectShortName">write_data[1,7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/top_tb/althea/write_data[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0,7:0]</obj_property>
+         <obj_property name="ObjectShortName">write_data[0,7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/wstate" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">wstate[1:0]</obj_property>
+      <obj_property name="ObjectShortName">wstate[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/wword" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">wword[1:0]</obj_property>
+      <obj_property name="ObjectShortName">wword[1:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/write_strobe" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">write_strobe</obj_property>
+      <obj_property name="ObjectShortName">write_strobe</obj_property>
    </wvobject>
    <wvobject fp_name="divider45" type="divider">
       <obj_property name="label">New Divider</obj_property>
@@ -69,56 +102,39 @@
       <obj_property name="BkColor">128 128 255</obj_property>
       <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
-   <wvobject fp_name="/top_tb/mytop/wstate" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">wstate[1:0]</obj_property>
-      <obj_property name="ObjectShortName">wstate[1:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/top_tb/mytop/write_data" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">write_data[1:0,7:0]</obj_property>
-      <obj_property name="ObjectShortName">write_data[1:0,7:0]</obj_property>
+   <wvobject fp_name="/top_tb/althea/read_data_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">read_data_word[23:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data_word[23:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
-      <wvobject fp_name="/top_tb/mytop/write_data[1]" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">[1,7:0]</obj_property>
-         <obj_property name="ObjectShortName">write_data[1,7:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/top_tb/mytop/write_data[0]" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">[0,7:0]</obj_property>
-         <obj_property name="ObjectShortName">write_data[0,7:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
    </wvobject>
-   <wvobject fp_name="/top_tb/mytop/write_strobe" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">write_strobe</obj_property>
-      <obj_property name="ObjectShortName">write_strobe</obj_property>
+   <wvobject fp_name="/top_tb/althea/read_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">read_data[2:0,7:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data[2:0,7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/rstate" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rstate[1:0]</obj_property>
+      <obj_property name="ObjectShortName">rstate[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/rword" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rword[1:0]</obj_property>
+      <obj_property name="ObjectShortName">rword[1:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="divider46" type="divider">
       <obj_property name="label">New Divider</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">128 128 255</obj_property>
       <obj_property name="TextColor">230 230 230</obj_property>
-   </wvobject>
-   <wvobject fp_name="/top_tb/mytop/read_data" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">read_data[1:0,7:0]</obj_property>
-      <obj_property name="ObjectShortName">read_data[1:0,7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
-      <wvobject fp_name="/top_tb/mytop/read_data[1]" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">[1,7:0]</obj_property>
-         <obj_property name="ObjectShortName">read_data[1,7:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/top_tb/mytop/read_data[0]" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">[0,7:0]</obj_property>
-         <obj_property name="ObjectShortName">read_data[0,7:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-   </wvobject>
-   <wvobject fp_name="/top_tb/mytop/rstate" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">rstate[1:0]</obj_property>
-      <obj_property name="ObjectShortName">rstate[1:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/ack_valid" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">ack_valid</obj_property>
       <obj_property name="ObjectShortName">ack_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/errors" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">errors[31:0]</obj_property>
+      <obj_property name="ObjectShortName">errors[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 </wave_config>
