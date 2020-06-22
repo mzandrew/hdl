@@ -61,6 +61,7 @@ module top #(
 		assign read_data[i] = read_data_word[(i+1)*WIDTH-1:i*WIDTH];
 	end
 	reg [1:0] rstate = 0;
+	reg [LOG2_OF_TRANSACTIONS_PER_WORD-1:0] rword = TRANSACTIONS_PER_WORD-1; // most significant halfword first
 	reg [WIDTH-1:0] pre_bus = 0;
 	localparam COUNTER50_BIT_PICKOFF = 3;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
@@ -84,6 +85,7 @@ module top #(
 			wstate <= 0;
 			wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 			rstate <= 0;
+			rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 			pre_bus <= 0;
 		end else begin
 			if (enable) begin
@@ -92,12 +94,10 @@ module top #(
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
-							pre_bus <= read_data[1];
+							pre_bus <= read_data[rword];
 						end
-					end else begin
-						if (rstate[0]==0) begin
-							rstate[0] <= 1;
-							pre_bus <= read_data[0];
+						if (rword==0) begin
+							rstate[1] <= 1;
 						end
 					end
 				end else begin // write mode
@@ -121,6 +121,7 @@ module top #(
 						wstate <= 0;
 						wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 						rstate <= 0;
+						rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 					end
 				end
 			end else begin // enable=0
@@ -131,10 +132,12 @@ module top #(
 					wstate[0] <= 0;
 					wword <= wword - 1'b1;
 				end
-				if (rstate[1:0]==2'b01) begin
-					rstate[1:0] <= 2'b10;
-				end else if (rstate==2'b11) begin
+				if (rstate[1]) begin
 					rstate <= 0;
+					rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+				end else if (rstate[0]) begin
+					rstate[0] <= 0;
+					rword <= rword - 1'b1;
 				end
 			end
 		end
