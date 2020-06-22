@@ -70,8 +70,8 @@
       <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/mytop/wstate" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">wstate[2:0]</obj_property>
-      <obj_property name="ObjectShortName">wstate[2:0]</obj_property>
+      <obj_property name="ElementShortName">wstate[1:0]</obj_property>
+      <obj_property name="ObjectShortName">wstate[1:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/mytop/write_data" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">write_data[1:0,7:0]</obj_property>
@@ -117,8 +117,8 @@
       <obj_property name="ElementShortName">rstate[1:0]</obj_property>
       <obj_property name="ObjectShortName">rstate[1:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/top_tb/ack" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">ack</obj_property>
-      <obj_property name="ObjectShortName">ack</obj_property>
+   <wvobject fp_name="/top_tb/ack_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ack_valid</obj_property>
+      <obj_property name="ObjectShortName">ack_valid</obj_property>
    </wvobject>
 </wave_config>

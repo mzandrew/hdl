@@ -37,7 +37,7 @@ module top #(
 	input read, // 0=write; 1=read
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
-	output reg ack = 0,
+	output reg ack_valid = 0,
 	output [7:0] leds
 );
 	assign lemo = 0;
@@ -68,7 +68,7 @@ module top #(
 	reg reset50 = 1;
 	integer j;
 	always @(posedge clock50) begin
-		ack <= 0;
+		ack_valid <= 0;
 		write_strobe <= 0;
 		if (reset) begin
 			counter50 <= 0;
@@ -89,7 +89,7 @@ module top #(
 			pre_bus <= 0;
 		end else begin
 			if (enable) begin
-				ack <= 1;
+				ack_valid <= 1;
 				if (read) begin // read mode
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
@@ -147,7 +147,7 @@ module top #(
 	RAM_inferred #(.addr_width(WIDTH), .data_width(2*WIDTH)) myram (.reset(reset50),
 		.wclk(clock50), .waddr(address), .din(write_data_word), .write_en(write_strobe),
 		.rclk(clock50), .raddr(address), .dout(read_data_word));
-	assign leds[7] = ack;
+	assign leds[7] = ack_valid;
 	assign leds[6] = write_strobe;
 	assign leds[5] = 0;
 	assign leds[4] = reset;
@@ -162,6 +162,7 @@ module top_tb;
 		#60;
 	endtask
 	localparam WIDTH = 8;
+	localparam TRANSACTIONS_PER_WORD = 2;
 	reg clock50_p = 0;
 	reg clock50_n = 1;
 	reg clock10 = 0;
@@ -177,10 +178,10 @@ module top_tb;
 	reg pre_enable = 0;
 	reg enable = 0;
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are master
-	top #(.WIDTH(WIDTH)) mytop (
+	top #(.WIDTH(WIDTH), .TRANSACTIONS_PER_WORD(TRANSACTIONS_PER_WORD)) mytop (
 		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(reset),
 		.lemo(lemo), .other0(other0), .other1(other1),
-		.bus(bus), .register_select(register_select), .read(read), .enable(enable), .ack(ack),
+		.bus(bus), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
 		.leds(leds)
 	);
 	task automatic a16_d32_master_write_transaction;
@@ -292,8 +293,8 @@ module myalthea (
 	wire register_select = e_n;
 	wire read = l_p;
 	wire enable = l_n;
-	wire ack;
-	assign m_p = ack;
+	wire ack_valid;
+	assign m_p = ack_valid;
 	wire [7:0] leds;
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
 	//wire clock10 = j_p;
@@ -301,7 +302,7 @@ module myalthea (
 	top #(.WIDTH(WIDTH)) althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(e_p),
 		.lemo(lemo), .other0(b_p), .other1(f_p),
-		.bus({ j_p, d_n, d_p, a_p, c_n, a_n, b_n, c_p }), .register_select(register_select), .read(read), .enable(enable), .ack(ack),
+		.bus({ j_p, d_n, d_p, a_p, c_n, a_n, b_n, c_p }), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
 		.leds(leds)
 	);
 endmodule
