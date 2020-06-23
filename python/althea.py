@@ -498,13 +498,13 @@ def test_writing_data_to_half_duplex_bus():
 	if 0:
 		data = [ d for d in range(NUM) ]
 		#data = [ NUM-d-1 for d in range(NUM) ]
-		count += half_duplex_bus.write(0, NUM, data)
+		count += half_duplex_bus.write(0, data)
 		#data = [ d<<4 for d in range(NUM) ]
-		#count += half_duplex_bus.write(0, NUM, data)
+		#count += half_duplex_bus.write(0, data)
 		#data = [ d<<8 for d in range(NUM) ]
-		#count += half_duplex_bus.write(0, NUM, data)
+		#count += half_duplex_bus.write(0, data)
 		#data = [ d<<12 for d in range(NUM) ]
-		#count += half_duplex_bus.write(0, NUM, data)
+		#count += half_duplex_bus.write(0, data)
 		values = half_duplex_bus.read(0, len(data))
 		#print(len(values))
 		#print(len(data))
@@ -522,7 +522,7 @@ def test_writing_data_to_half_duplex_bus():
 		#data = [ 0x000a, 0x00a0, 0x0500, 0x5000 ]
 		data = [ 0x050a, 0x50a0, 0x050a, 0x50a0, 0 ]
 		data[len(data)-1] = 0xf0f0
-		count += half_duplex_bus.write(0, NUM, data)
+		count += half_duplex_bus.write(0, data)
 		values = half_duplex_bus.read(0, NUM)
 		#values = data
 		for i in range(len(values)):
@@ -535,7 +535,8 @@ def test_writing_data_to_half_duplex_bus():
 		#data = [ 0x8421, 0xffff, 0x1248, 0xa5a5 ]
 		data = [ 0x1248 ]
 		for start_address in range(256):
-			count += half_duplex_bus.write(start_address, len(data), data)
+			count += half_duplex_bus.write(start_address, data, False)
+			count += half_duplex_bus.write(start_address, data)
 			time.sleep(0.015)
 	if 0:
 		bunch = [ 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 ]
@@ -543,12 +544,12 @@ def test_writing_data_to_half_duplex_bus():
 		start_address = 0
 		for data in bunch:
 			data |= 0xa500
-			count += half_duplex_bus.write(start_address, 1, [data])
+			count += half_duplex_bus.write(start_address, [data])
 			time.sleep(0.1)
 	#data[len(data)-1] = 0x31231507
 	#print(str(len(data)))
 	#print(str(data))
-#	count += half_duplex_bus.write(0, NUM, data)
+#	count += half_duplex_bus.write(0, data)
 	end = time.time()
 	diff = end - start
 	per_sec = NUM / diff
