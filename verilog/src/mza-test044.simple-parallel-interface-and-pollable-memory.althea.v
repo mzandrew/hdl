@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-06-22 by mza
+// last updated 2020-06-23 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -65,6 +65,7 @@ module top #(
 	reg [LOG2_OF_TRANSACTIONS_PER_WORD-1:0] rword = TRANSACTIONS_PER_WORD-1; // most significant halfword first
 	reg [31:0] errors = 0;
 	reg [WIDTH-1:0] pre_bus = 0;
+	reg [0:0] astate = 0;
 	localparam COUNTER50_BIT_PICKOFF = 3;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
 	reg reset50 = 1;
@@ -91,6 +92,7 @@ module top #(
 			pre_bus <= 0;
 			errors <= 0;
 			checksum <= 0;
+			astate <= 0;
 		end else begin
 			if (enable) begin
 				ack_valid <= 1;
@@ -119,7 +121,7 @@ module top #(
 								wstate[0] <= 1;
 								write_strobe <= 1;
 								//if (write_data_word==32'h31231507) begin
-								if (write_data_word==16'h1507) begin
+								if (write_data_word==16'hf0f0) begin
 									checksum <= 1;
 								end else begin
 									checksum <= 0;
@@ -127,18 +129,10 @@ module top #(
 							end
 						end
 					end else begin // register_select=0
-						address <= bus;
-						//errors <= errors + rstate[1] + wstate[1];
-						if (wword!=TRANSACTIONS_PER_WORD-1) begin
-							errors <= errors + 1'b1;
+						if (astate[0]==0) begin
+							astate[0] <= 1;
+							address <= bus;
 						end
-						if (rword!=TRANSACTIONS_PER_WORD-1) begin
-							errors <= errors + 1'b1;
-						end
-						wstate <= 0;
-						wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
-						rstate <= 0;
-						rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 					end
 				end
 			end else begin // enable=0
@@ -156,6 +150,19 @@ module top #(
 					rstate[0] <= 0;
 					rword <= rword - 1'b1;
 				end
+				if (astate[0]) begin
+					astate[0] <= 0;
+					if (wword!=TRANSACTIONS_PER_WORD-1) begin
+						errors <= errors + 1'b1;
+					end
+					if (rword!=TRANSACTIONS_PER_WORD-1) begin
+						errors <= errors + 1'b1;
+					end
+					wstate <= 0;
+					wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+					rstate <= 0;
+					rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+				end
 			end
 		end
 	end
@@ -164,14 +171,21 @@ module top #(
 	RAM_inferred #(.addr_width(WIDTH), .data_width(TRANSACTIONS_PER_WORD*WIDTH)) myram (.reset(reset50),
 		.wclk(clock50), .waddr(address), .din(write_data_word), .write_en(write_strobe),
 		.rclk(clock50), .raddr(address), .dout(read_data_word));
-	assign leds[7] = ack_valid;
-	assign leds[6] = write_strobe;
-	assign leds[5] = checksum;
-	assign leds[4] = reset;
-	assign leds[3] = register_select;
-	assign leds[2] = read;
-	assign leds[1] = enable;
-	assign leds[0] = reset50;
+	if (0) begin
+		assign leds[7] = ack_valid;
+		assign leds[6] = write_strobe;
+		//assign leds[5] = checksum;
+		assign leds[5] = |errors;
+		assign leds[4] = reset;
+		assign leds[3] = register_select;
+		assign leds[2] = read;
+		assign leds[1] = enable;
+		assign leds[0] = reset50;
+	end else begin
+		//assign leds = address;
+		//assign leds = write_data[1];
+		assign leds = write_data[0];
+	end
 endmodule
 
 module top_tb;
@@ -214,14 +228,11 @@ module top_tb;
 		input [31:0] data32;
 		begin
 			delay();
-			// write the address
+			// set the address
 			pre_register_select <= 0;
 			pre_read <= 0;
 			pre_bus <= address16[WIDTH-1:0];
-			pre_enable <= 1;
-			delay();
-			pre_enable <= 0;
-			delay();
+			pulse_enable();
 			// write each part of data
 			pre_register_select <= 1;
 			pre_read <= 0;
@@ -246,14 +257,11 @@ module top_tb;
 		integer j;
 		begin
 			delay();
-			// write the address
+			// set the address
 			pre_register_select <= 0;
 			pre_read <= 0;
 			pre_bus <= address16[WIDTH-1:0];
-			pre_enable <= 1;
-			delay();
-			pre_enable <= 0;
-			delay();
+			pulse_enable;
 			// read data
 			pre_read <= 1;
 			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple_1
@@ -291,6 +299,7 @@ module top_tb;
 		#300;
 		a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h3123_1507));
 		a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h0000_1507));
+		pre_register_select <= 0;
 	end
 	always @(posedge clock50_p) begin
 		register_select <= pre_register_select;
@@ -311,7 +320,7 @@ module myalthea (
 	output f_p, // oserdes/trig output other1
 	// other IOs:
 	output m_p, // rpi_gpio2 sda
-	input m_n, // rpi_gpio3 scl
+	output m_n, // rpi_gpio3 scl
 	// 8 bit bus:
 	inout j_p, // rpi_gpio4 gpclk0
 	inout d_n, // rpi_gpio5
@@ -331,6 +340,7 @@ module myalthea (
 	localparam WIDTH = 8;
 	localparam TRANSACTIONS_PER_WORD = 2;
 	wire register_select = e_n;
+	assign m_n = register_select;
 	wire read = l_p;
 	wire enable = l_n;
 	wire ack_valid;
@@ -342,7 +352,7 @@ module myalthea (
 	top #(.WIDTH(WIDTH), .TRANSACTIONS_PER_WORD(TRANSACTIONS_PER_WORD)) althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(e_p),
 		.lemo(lemo), .other0(b_p), .other1(f_p),
-		.bus({ j_p, d_n, d_p, a_p, c_n, a_n, b_n, c_p }), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
+		.bus({ c_p, b_n, a_n, c_n, a_p, d_p, d_n, j_p }), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
 		.leds(leds)
 	);
 endmodule
