@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-20 by mza
+# last updated 2020-06-23 by mza
 
 import time
 import time # time.sleep
@@ -448,21 +448,21 @@ def setup_half_duplex_bus():
 	global bits_bus
 	bits_bus = len(gpio_bus)
 	print("this bus is " + str(bits_bus) + " bits wide")
-	transfers_per_word = 2
+	transfers_per_data_word = 2
 	global bits_word
-	bits_word = transfers_per_word*bits_bus
+	bits_word = transfers_per_data_word*bits_bus
 	#mask_bus = buildmask(gpio_bus)
 	#print(hex(mask_bus, 8))
 	global half_duplex_bus
-	#static char *kwlist[] = { "bus_width", "bus_offset", "transfers_per_word", "register_select", "read", "enable", "ack", NULL };
 	half_duplex_bus = fastgpio.half_duplex_bus(
 		bus_width=bus_width,
 		bus_offset=gpio_bus[0],
-		transfers_per_word=2,
+		transfers_per_address_word=1,
+		transfers_per_data_word=transfers_per_data_word,
 		register_select=13,
 		read=14,
 		enable=15,
-		ack=2
+		ack_valid=2
 	)
 	#half_duplex_bus.write([0])
 	control_bus_list = [ 13, 14, 15 ] # register_select, read, enable
@@ -478,8 +478,8 @@ def setup_half_duplex_bus():
 def test_writing_data_to_half_duplex_bus():
 	print("writing data in half-duplex bus mode...")
 	time.sleep(0.1)
-#	reset_pulse()
-#	time.sleep(0.1)
+	reset_pulse()
+	time.sleep(0.1)
 	data = []
 	NUM = 4500000
 	NUM = 16
@@ -497,25 +497,54 @@ def test_writing_data_to_half_duplex_bus():
 	start = time.time()
 	if 0:
 		data = [ d for d in range(NUM) ]
+		#data = [ NUM-d-1 for d in range(NUM) ]
 		count += half_duplex_bus.write(0, NUM, data)
-		data = [ d<<4 for d in range(NUM) ]
-		count += half_duplex_bus.write(0, NUM, data)
-		data = [ d<<8 for d in range(NUM) ]
-		count += half_duplex_bus.write(0, NUM, data)
-		data = [ d<<12 for d in range(NUM) ]
-		count += half_duplex_bus.write(0, NUM, data)
-	if 1:
+		#data = [ d<<4 for d in range(NUM) ]
+		#count += half_duplex_bus.write(0, NUM, data)
+		#data = [ d<<8 for d in range(NUM) ]
+		#count += half_duplex_bus.write(0, NUM, data)
+		#data = [ d<<12 for d in range(NUM) ]
+		#count += half_duplex_bus.write(0, NUM, data)
+		values = half_duplex_bus.read(0, len(data))
+		#print(len(values))
+		#print(len(data))
+		if len(values) != len(data):
+			print("lengths don't match")
+		for i in range(len(values)):
+			if values[i] != data[i]:
+				#print("  data[" + str(i) + "]=" + hex(data[i], bits_word/4))
+				#print("values[" + str(i) + "]=" + hex(values[i], bits_word/4))
+				print("  data[" + str(i) + "]=" + bin(data[i], bits_word))
+				print("values[" + str(i) + "]=" + bin(values[i], bits_word))
+			else:
+				print("match at address " + str(i))
+	if 0:
 		#data = [ 0x000a, 0x00a0, 0x0500, 0x5000 ]
 		data = [ 0x050a, 0x50a0, 0x050a, 0x50a0, 0 ]
 		data[len(data)-1] = 0xf0f0
 		count += half_duplex_bus.write(0, NUM, data)
 		values = half_duplex_bus.read(0, NUM)
 		#values = data
-		for i in range(len(data)):
+		for i in range(len(values)):
 			print(str(values[i]))
 			#print(hex(int(values[i]), bits_word/4))
 #			if values[i] != data[i]:
-#				print("values[" + str(i) + "]=" + hex(values[i], bits_word/4) + " data[" + str[i] + "]=" + hex(data[i], bits_word/4))
+				#print("  data[" + str(i) + "]=" + hex(data[i], bits_word/4))
+				#print("values[" + str(i) + "]=" + hex(values[i], bits_word/4))
+	if 1:
+		#data = [ 0x8421, 0xffff, 0x1248, 0xa5a5 ]
+		data = [ 0x1248 ]
+		for start_address in range(256):
+			count += half_duplex_bus.write(start_address, len(data), data)
+			time.sleep(0.015)
+	if 0:
+		bunch = [ 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 ]
+		#bunch = [ 0x00, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0 ]
+		start_address = 0
+		for data in bunch:
+			data |= 0xa500
+			count += half_duplex_bus.write(start_address, 1, [data])
+			time.sleep(0.1)
 	#data[len(data)-1] = 0x31231507
 	#print(str(len(data)))
 	#print(str(data))

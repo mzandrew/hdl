@@ -1,16 +1,29 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-18 by mza
+# last updated 2020-06-23 by mza
 
 import math # floor, ceil, log10
 
 epsilon = 1.0e-6
 
 def hex(number, width=1):
+	#number = int(number)
+	#print(str(number))
+	width = int(width)
+	#print(str(width))
 	return "%0*x" % (width, number)
 
 def dec(number, width=1):
+	width = int(width)
 	return "%0*d" % (width, number)
+
+def bin(number, width=1):
+	#number = int(number)
+	#print(str(number))
+	width = int(width)
+	#print(str(width))
+	string = format(number, "0" + str(width) + "b")
+	return string
 
 # from https://stackoverflow.com/a/19270863/5728815
 #def eng(x, format='%s', si=False):
