@@ -478,11 +478,11 @@ def setup_half_duplex_bus():
 def test_writing_data_to_half_duplex_bus():
 	print("writing data in half-duplex bus mode...")
 	time.sleep(0.1)
-	reset_pulse()
-	time.sleep(0.1)
+#	reset_pulse()
+#	time.sleep(0.1)
 	data = []
 	NUM = 4500000
-	#NUM = 1000
+	NUM = 16
 	if NUM>10000:
 		segments = int(NUM/10000)
 		length_of_each_segment = math.ceil(NUM/segments)
@@ -492,15 +492,38 @@ def test_writing_data_to_half_duplex_bus():
 			data.extend(segment)
 	else:
 		data = [ random.randint(0,2**bits_word-1) for d in range(NUM) ]
+	print("running...")
+	count = 0
+	start = time.time()
+	if 0:
+		data = [ d for d in range(NUM) ]
+		count += half_duplex_bus.write(0, NUM, data)
+		data = [ d<<4 for d in range(NUM) ]
+		count += half_duplex_bus.write(0, NUM, data)
+		data = [ d<<8 for d in range(NUM) ]
+		count += half_duplex_bus.write(0, NUM, data)
+		data = [ d<<12 for d in range(NUM) ]
+		count += half_duplex_bus.write(0, NUM, data)
+	if 1:
+		#data = [ 0x000a, 0x00a0, 0x0500, 0x5000 ]
+		data = [ 0x050a, 0x50a0, 0x050a, 0x50a0, 0 ]
+		data[len(data)-1] = 0xf0f0
+		count += half_duplex_bus.write(0, NUM, data)
+		values = half_duplex_bus.read(0, NUM)
+		#values = data
+		for i in range(len(data)):
+			print(str(values[i]))
+			#print(hex(int(values[i]), bits_word/4))
+#			if values[i] != data[i]:
+#				print("values[" + str(i) + "]=" + hex(values[i], bits_word/4) + " data[" + str[i] + "]=" + hex(data[i], bits_word/4))
+	#data[len(data)-1] = 0x31231507
 	#print(str(len(data)))
 	#print(str(data))
-	print("running...")
-	start = time.time()
-	half_duplex_bus.write(0, NUM, data)
+#	count += half_duplex_bus.write(0, NUM, data)
 	end = time.time()
 	diff = end - start
 	per_sec = NUM / diff
-	print("%.3f"%diff + " seconds")
+	print("%.6f"%diff + " seconds")
 	per_sec *= bits_word
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
