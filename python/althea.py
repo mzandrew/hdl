@@ -475,13 +475,28 @@ def setup_half_duplex_bus():
 	#ack_bus_mask = buildmask(ack_bus_list)
 	#ack_bus = fastgpio.bus(ack_bus_mask, 0, ack_bus_list[0])
 
+def check(ref1, ref2):
+	width = math.log2(len(ref2))//4
+	#print(str(width))
+	if len(ref1) != len(ref2):
+		print("lengths don't match")
+	for i in range(len(ref1)):
+		if ref1[i] != ref2[i]:
+			#print("ref1[" + str(i) + "]=" + hex(ref1[i], bits_word/4))
+			#print("ref2[" + str(i) + "]=" + hex(ref2[i], bits_word/4))
+			#print("ref1[" + str(i) + "]=" + bin(ref1[i], bits_word))
+			print("ref2[" + hex(i, width) + "]=" + bin(ref2[i], bits_word))
+#		else:
+#			print("match at address " + str(i))
+
 def test_writing_data_to_half_duplex_bus():
 	print("writing data in half-duplex bus mode...")
 	time.sleep(0.1)
 	reset_pulse()
 	time.sleep(0.1)
 	data = []
-	NUM = 4500000
+	#NUM = 4500000
+	#NUM = 256
 	NUM = 16
 	if NUM>10000:
 		segments = int(NUM/10000)
@@ -495,49 +510,51 @@ def test_writing_data_to_half_duplex_bus():
 	print("running...")
 	count = 0
 	start = time.time()
-	if 0:
+	if 0: # ramp up or down
 		data = [ d for d in range(NUM) ]
 		#data = [ NUM-d-1 for d in range(NUM) ]
 		count += half_duplex_bus.write(0, data)
+		values = half_duplex_bus.read(0, len(data))
+		check(data, values);
 		#data = [ d<<4 for d in range(NUM) ]
 		#count += half_duplex_bus.write(0, data)
+		#values = half_duplex_bus.read(0, len(data))
+		#check(data, values);
 		#data = [ d<<8 for d in range(NUM) ]
 		#count += half_duplex_bus.write(0, data)
+		#values = half_duplex_bus.read(0, len(data))
+		#check(data, values);
 		#data = [ d<<12 for d in range(NUM) ]
 		#count += half_duplex_bus.write(0, data)
+		#values = half_duplex_bus.read(0, len(data))
+		#check(data, values);
+	if 0:
+		count += half_duplex_bus.write(0, data)
 		values = half_duplex_bus.read(0, len(data))
 		#print(len(values))
 		#print(len(data))
-		if len(values) != len(data):
-			print("lengths don't match")
-		for i in range(len(values)):
-			if values[i] != data[i]:
-				#print("  data[" + str(i) + "]=" + hex(data[i], bits_word/4))
-				#print("values[" + str(i) + "]=" + hex(values[i], bits_word/4))
-				print("  data[" + str(i) + "]=" + bin(data[i], bits_word))
-				print("values[" + str(i) + "]=" + bin(values[i], bits_word))
-			else:
-				print("match at address " + str(i))
+		check(data, values);
 	if 0:
 		#data = [ 0x000a, 0x00a0, 0x0500, 0x5000 ]
 		data = [ 0x050a, 0x50a0, 0x050a, 0x50a0, 0 ]
 		data[len(data)-1] = 0xf0f0
 		count += half_duplex_bus.write(0, data)
 		values = half_duplex_bus.read(0, NUM)
-		#values = data
-		for i in range(len(values)):
-			print(str(values[i]))
-			#print(hex(int(values[i]), bits_word/4))
-#			if values[i] != data[i]:
-				#print("  data[" + str(i) + "]=" + hex(data[i], bits_word/4))
-				#print("values[" + str(i) + "]=" + hex(values[i], bits_word/4))
-	if 1:
+		check(data, values);
+	if 0:
 		#data = [ 0x8421, 0xffff, 0x1248, 0xa5a5 ]
 		data = [ 0x1248 ]
 		for start_address in range(256):
-			count += half_duplex_bus.write(start_address, data, False)
+			#count += half_duplex_bus.write(start_address, data, False)
 			count += half_duplex_bus.write(start_address, data)
 			time.sleep(0.015)
+		values = half_duplex_bus.read(0, NUM)
+		check(data, values);
+	if 1: # same value to all addresses
+		data = [ 0x1248 for d in range(NUM) ]
+		count += half_duplex_bus.write(0, data)
+		values = half_duplex_bus.read(0, NUM)
+		check(data, values);
 	if 0:
 		bunch = [ 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 ]
 		#bunch = [ 0x00, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0 ]

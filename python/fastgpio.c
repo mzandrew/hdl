@@ -335,6 +335,8 @@ typedef struct {
 	u32 enable;
 	u32 ack_valid;
 	u32 errors;
+	u32 transactions;
+	u32 retries;
 	volatile u32 *gpio_port;
 	volatile u32 *gpio_pads;
 	volatile u32 *set_reg;
@@ -365,10 +367,10 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	//printf("bus_offset: %08lx\n", self->bus_offset);
 	if (0==transfers_per_data_word || 31<transfers_per_data_word) { return -1; }
 	self->transfers_per_data_word = transfers_per_data_word;
-	printf("transfers_per_data_word: %08lx\n", self->transfers_per_data_word);
+	//printf("transfers_per_data_word: %08lx\n", self->transfers_per_data_word);
 	if (0==transfers_per_address_word || 31<transfers_per_address_word) { return -1; }
 	self->transfers_per_address_word = transfers_per_address_word;
-	printf("transfers_per_address_word: %08lx\n", self->transfers_per_address_word);
+	//printf("transfers_per_address_word: %08lx\n", self->transfers_per_address_word);
 	if (31<register_select) { return -1; }
 	self->register_select = 1<<register_select;
 	//printf("register_select: %08lx\n", self->register_select);
@@ -393,6 +395,8 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	}
 	self->partial_mask = partial_mask;
 	self->errors = 0;
+	self->transactions = 0;
+	self->retries = 0;
 	//printf("partial_mask: %08lx\n", self->partial_mask);
 	self->gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
 	self->gpio_pads = mmap_bcm_register(BCM2835_PADS_GPIO_0_27);
@@ -407,6 +411,12 @@ static void half_duplex_bus_destructor(half_duplex_bus_object *self) {
 	if (self->errors) {
 		printf("there were %ld total errors\n", self->errors);
 	}
+	if (self->transactions) {
+		printf("there were %ld total transactions\n", self->transactions);
+	}
+	if (self->retries) {
+		printf("there were %ld total retries\n", self->retries);
+	}
 	Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
@@ -415,7 +425,8 @@ static void half_duplex_bus_destructor(half_duplex_bus_object *self) {
 //#define WAIT_FOR_ACK_STYLE_WHILE
 #define MAX_ACK_CYCLES_WARNING (3)
 #define MAX_ACK_CYCLES_ERROR (4)
-#define MAX_READBACK_CYCLES_ERROR (10)
+#define MAX_READBACK_CYCLES_ERROR (4)
+#define MAX_RETRY_CYCLES_ERROR (4)
 
 u32 set_address(half_duplex_bus_object *self, u32 address) {
 	volatile u32 *set_reg = self->set_reg;
@@ -629,29 +640,41 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	u32 data, data_readback;
 	u32 everything = bus_mask | register_select | read | enable;
 	u32 count = 0;
+	u32 i;
 	u32 new_errors = 0;
 	volatile u32 *gpio_port = self->gpio_port;
 	volatile u32 *clr_reg = self->clr_reg;
 	*clr_reg = everything;
 	setup_bus_as_outputs(gpio_port, bus_mask);
+	u32 max_retry_cycles_error_var = 1;
+	if (verify) {
+		max_retry_cycles_error_var = MAX_RETRY_CYCLES_ERROR;
+	}
 	while (1) {
 		PyObject *next = PyIter_Next(iter);
 		if (!next) { break; }
 		//if (length<=count) { break; }
-		set_address(self, address);
 		data = PyLong_AsUnsignedLong(next);
-		write_data(self, data);
+		self->transactions++;
+		for (i=0; i<max_retry_cycles_error_var; i++) {
+			set_address(self, address);
+			write_data(self, data);
+			data_readback = read_data(self);
+			if (data == data_readback) {
+				break;
+			}
+			//printf("didn't work the first time\n");
+			self->retries++;
+		}
+		if (max_retry_cycles_error_var==i) {
+			//printf("max_retry_cycles_error_var-1 = %ld\n", max_retry_cycles_error_var-1);
+			//self->retries += max_retry_cycles_error_var - 1;
+			new_errors++;
+			printf("data written (%0*lx) does not match data read back (%0*lx)\n", hex_width, data, hex_width, data_readback);
+		}
 		if (0) {
 			if (0==count%10240) {
 				mynsleep(short_delay);
-			}
-		}
-		if (verify) {
-			data_readback = read_data(self);
-			if (data != data_readback) {
-				// could add a retry here...
-				new_errors++;
-				printf("data written (%0*lx) does not match data read back (%0*lx)\n", hex_width, data, hex_width, data_readback);
 			}
 		}
 		//address += len(u32);
@@ -688,6 +711,7 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 	PyObject *obj = PyList_New(0);
 	while (1) {
 		if (length<=index) { break; }
+		self->transactions++;
 		set_address(self, address);
 		data = read_data(self);
 		PyList_Append(obj, PyLong_FromLong(data));
