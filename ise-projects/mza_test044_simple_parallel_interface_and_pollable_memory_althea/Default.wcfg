@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="28" />
+   <WVObjectSize size="30" />
    <wvobject fp_name="/top_tb/lemo" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">lemo</obj_property>
       <obj_property name="ObjectShortName">lemo</obj_property>
@@ -27,6 +27,10 @@
       <obj_property name="ElementShortName">leds[7:0]</obj_property>
       <obj_property name="ObjectShortName">leds[7:0]</obj_property>
    </wvobject>
+   <wvobject fp_name="/top_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
    <wvobject fp_name="/top_tb/clock50_p" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock50_p</obj_property>
       <obj_property name="ObjectShortName">clock50_p</obj_property>
@@ -34,6 +38,10 @@
    <wvobject fp_name="/top_tb/clock50_n" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock50_n</obj_property>
       <obj_property name="ObjectShortName">clock50_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/reset50" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset50</obj_property>
+      <obj_property name="ObjectShortName">reset50</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/read" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">read</obj_property>
