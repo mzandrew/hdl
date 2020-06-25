@@ -441,6 +441,23 @@ def test_writing_data_to_simple_parallel_bus():
 
 # ---------------------------------------------------------------------------
 
+def check(ref1, ref2):
+	width = math.log2(len(ref2))//4
+	#print(str(width))
+	if len(ref1) != len(ref2):
+		print("lengths don't match")
+	for i in range(len(ref1)):
+		if ref1[i] != ref2[i]:
+			#print("ref1[" + str(i) + "]=" + hex(ref1[i], bits_word/4))
+			#print("ref2[" + str(i) + "]=" + hex(ref2[i], bits_word/4))
+			print("ref1[" + str(i) + "] = " + bin(ref1[i], bits_word))
+			print("ref2[" + hex(i, width) + "] = " + bin(ref2[i], bits_word))
+			sys.exit(1)
+#		else:
+#			print("match at address " + str(i))
+
+# ---------------------------------------------------------------------------
+
 def setup_half_duplex_bus():
 	print("setting up for half-duplex bus mode...")
 	gpio_bus = [ althea_gpio[i] for i in range(bus_start, bus_start+bus_width) ]
@@ -465,7 +482,7 @@ def setup_half_duplex_bus():
 		ack_valid=2
 	)
 	#half_duplex_bus.write([0])
-	control_bus_list = [ 13, 14, 15 ] # register_select, read, enable
+	#control_bus_list = [ 13, 14, 15 ] # register_select, read, enable
 	#control_bus_mask = buildmask(control_bus_list)
 	#global control_bus
 	#control_bus = fastgpio.bus(control_bus_mask, 1, control_bus_list[0])
@@ -474,21 +491,6 @@ def setup_half_duplex_bus():
 	#ack_bus_list = [ 2 ]
 	#ack_bus_mask = buildmask(ack_bus_list)
 	#ack_bus = fastgpio.bus(ack_bus_mask, 0, ack_bus_list[0])
-
-def check(ref1, ref2):
-	width = math.log2(len(ref2))//4
-	#print(str(width))
-	if len(ref1) != len(ref2):
-		print("lengths don't match")
-	for i in range(len(ref1)):
-		if ref1[i] != ref2[i]:
-			#print("ref1[" + str(i) + "]=" + hex(ref1[i], bits_word/4))
-			#print("ref2[" + str(i) + "]=" + hex(ref2[i], bits_word/4))
-			print("ref1[" + str(i) + "] = " + bin(ref1[i], bits_word))
-			print("ref2[" + hex(i, width) + "] = " + bin(ref2[i], bits_word))
-			sys.exit(1)
-#		else:
-#			print("match at address " + str(i))
 
 def test_writing_data_to_half_duplex_bus():
 	print("writing data in half-duplex bus mode...")

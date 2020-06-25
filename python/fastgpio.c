@@ -5,16 +5,36 @@
 // last updated 2020-06-25 by mza
 
 // how to use this module:
-//	import fastgpio
+
 //	# fastgpio.bus:
+//	import fastgpio
 //	mask = 0xfff
 //	output_bus = fastgpio.bus(mask, 1, 0)
 //	data = [0xaaa, 0x555, 0xfff, 0x000]
 //	output_bus.write(data)
+
 //	# fastgpio.clock:
+//	import fastgpio
 //	clock = fastgpio.clock()
 //	...
 //	clock.terminate()
+
+//	# fastgpio.half_duplex_bus:
+//	import fastgpio
+//	half_duplex_bus = fastgpio.half_duplex_bus(
+//		bus_width=bus_width,
+//		bus_offset=gpio_bus[0],
+//		transfers_per_address_word=1,
+//		transfers_per_data_word=transfers_per_data_word,
+//		register_select=13,
+//		read=14,
+//		enable=15,
+//		ack_valid=2
+//	)
+//	data = [0xaaa, 0x555, 0xfff, 0x000]
+//	count += half_duplex_bus.write(0, data)
+//	values = half_duplex_bus.read(0, len(data))
+//	check(data, values);
 
 typedef unsigned char u8;
 typedef unsigned long u32;
