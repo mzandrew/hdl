@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-06-23 by mza
+// last updated 2020-06-25 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -95,8 +95,8 @@ module top #(
 			astate <= 0;
 		end else begin
 			if (enable) begin
-				ack_valid <= 1;
 				if (read) begin // read mode
+					ack_valid <= 1;
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
@@ -115,8 +115,11 @@ module top #(
 							end
 							if (wword==0) begin
 								wstate[1] <= 1;
+							end else begin
+								ack_valid <= 1;
 							end
 						end else begin
+							ack_valid <= 1;
 							if (wstate[0]) begin
 								wstate[0] <= 1;
 								write_strobe <= 1;
@@ -129,6 +132,7 @@ module top #(
 							end
 						end
 					end else begin // register_select=0
+						ack_valid <= 1;
 						if (astate[0]==0) begin
 							astate[0] <= 1;
 							address <= bus;
@@ -189,8 +193,18 @@ module top #(
 endmodule
 
 module top_tb;
+	localparam HALF_PERIOD_OF_MASTER = 1;
+	localparam HALF_PERIOD_OF_SLAVE = 10;
+	localparam NUMBER_OF_HALF_PERIODS_IN_A_DELAY = 2;
+	localparam NUMBER_OF_HALF_PERIODS_WHILE_WAITING_FOR_ACK = 100;
+	reg clock = 0;
 	task automatic delay;
-		#60;
+		integer j;
+		begin
+			for (j=0; j<NUMBER_OF_HALF_PERIODS_IN_A_DELAY; j=j+1) begin : delay_thing
+				#HALF_PERIOD_OF_MASTER;
+			end
+		end
 	endtask
 	localparam WIDTH = 8;
 	localparam TRANSACTIONS_PER_WORD = 4;
@@ -216,11 +230,16 @@ module top_tb;
 		.leds(leds)
 	);
 	task automatic pulse_enable;
+		integer j;
 		begin
 			delay();
 			pre_enable <= 1;
-			delay();
-			pre_enable <= 0;
+			for (j=0; j<NUMBER_OF_HALF_PERIODS_WHILE_WAITING_FOR_ACK; j=j+1) begin : delay_thing
+				#HALF_PERIOD_OF_MASTER;
+				if (ack_valid) begin
+					pre_enable <= 0;
+				end
+			end
 		end
 	endtask
 	task automatic a16_d32_master_write_transaction;
@@ -301,15 +320,19 @@ module top_tb;
 		a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h0000_1507));
 		pre_register_select <= 0;
 	end
-	always @(posedge clock50_p) begin
+	always @(posedge clock) begin
 		register_select <= pre_register_select;
 		read <= pre_read;
 		enable <= pre_enable;
 	end
 	always begin
-		#10;
+		#HALF_PERIOD_OF_SLAVE;
 		clock50_p <= ~clock50_p;
 		clock50_n <= ~clock50_n;
+	end
+	always begin
+		#HALF_PERIOD_OF_MASTER;
+		clock <= ~clock;
 	end
 endmodule
 
