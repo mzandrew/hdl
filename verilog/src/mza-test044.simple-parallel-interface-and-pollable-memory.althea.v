@@ -95,8 +95,8 @@ module top #(
 			astate <= 0;
 		end else begin
 			if (enable) begin
+				ack_valid <= 1;
 				if (read) begin // read mode
-					ack_valid <= 1;
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
@@ -115,24 +115,20 @@ module top #(
 							end
 							if (wword==0) begin
 								wstate[1] <= 1;
-							end else begin
-								ack_valid <= 1;
-							end
-						end else begin
-							ack_valid <= 1;
-							if (wstate[0]) begin
-								wstate[0] <= 1;
 								write_strobe <= 1;
-								//if (write_data_word==32'h31231507) begin
-								if (write_data_word==16'hf0f0) begin
-									checksum <= 1;
-								end else begin
-									checksum <= 0;
-								end
 							end
+//						end else begin
+//							if (wstate[0]) begin
+//								wstate[0] <= 1;
+//								//if (write_data_word==32'h31231507) begin
+//								if (write_data_word==16'hf0f0) begin
+//									checksum <= 1;
+//								end else begin
+//									checksum <= 0;
+//								end
+//							end
 						end
 					end else begin // register_select=0
-						ack_valid <= 1;
 						if (astate[0]==0) begin
 							astate[0] <= 1;
 							address <= bus;
