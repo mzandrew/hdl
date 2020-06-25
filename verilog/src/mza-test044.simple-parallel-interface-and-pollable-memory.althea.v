@@ -117,16 +117,6 @@ module top #(
 								wstate[1] <= 1;
 								write_strobe <= 1;
 							end
-//						end else begin
-//							if (wstate[0]) begin
-//								wstate[0] <= 1;
-//								//if (write_data_word==32'h31231507) begin
-//								if (write_data_word==16'hf0f0) begin
-//									checksum <= 1;
-//								end else begin
-//									checksum <= 0;
-//								end
-//							end
 						end
 					end else begin // register_select=0
 						if (astate[0]==0) begin
@@ -139,6 +129,12 @@ module top #(
 				if (wstate[1]) begin
 					wstate <= 0;
 					wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+					//if (write_data_word==32'h31231507) begin
+					if (write_data_word[15:0]==16'h1507) begin
+						checksum <= 1;
+					end else begin
+						checksum <= 0;
+					end
 				end else if (wstate[0]) begin
 					wstate[0] <= 0;
 					wword <= wword - 1'b1;
@@ -191,17 +187,9 @@ endmodule
 module top_tb;
 	localparam HALF_PERIOD_OF_MASTER = 1;
 	localparam HALF_PERIOD_OF_SLAVE = 10;
-	localparam NUMBER_OF_HALF_PERIODS_IN_A_DELAY = 2;
-	localparam NUMBER_OF_HALF_PERIODS_WHILE_WAITING_FOR_ACK = 100;
+	localparam NUMBER_OF_PERIODS_OF_MASTER_IN_A_DELAY = 1;
+	localparam NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK = 1000;
 	reg clock = 0;
-	task automatic delay;
-		integer j;
-		begin
-			for (j=0; j<NUMBER_OF_HALF_PERIODS_IN_A_DELAY; j=j+1) begin : delay_thing
-				#HALF_PERIOD_OF_MASTER;
-			end
-		end
-	endtask
 	localparam WIDTH = 8;
 	localparam TRANSACTIONS_PER_WORD = 4;
 	reg clock50_p = 0;
@@ -225,16 +213,41 @@ module top_tb;
 		.bus(bus), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
 		.leds(leds)
 	);
+	task automatic slave_clock_delay;
+		input integer number_of_cycles;
+		integer j;
+		begin
+			for (j=0; j<2*number_of_cycles; j=j+1) begin : delay_thing_s
+				#HALF_PERIOD_OF_SLAVE;
+			end
+		end
+	endtask
+	task automatic master_clock_delay;
+		input integer number_of_cycles;
+		integer j;
+		begin
+			for (j=0; j<2*number_of_cycles; j=j+1) begin : delay_thing_m
+				#HALF_PERIOD_OF_MASTER;
+			end
+		end
+	endtask
+	task automatic delay;
+		master_clock_delay(NUMBER_OF_PERIODS_OF_MASTER_IN_A_DELAY);
+	endtask
 	task automatic pulse_enable;
 		integer j;
 		begin
 			delay();
 			pre_enable <= 1;
-			for (j=0; j<NUMBER_OF_HALF_PERIODS_WHILE_WAITING_FOR_ACK; j=j+1) begin : delay_thing
+			for (j=0; j<2*NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK; j=j+1) begin : delay_thing
 				#HALF_PERIOD_OF_MASTER;
 				if (ack_valid) begin
 					pre_enable <= 0;
 				end
+			end
+			if (pre_enable==1) begin
+				//$display(“pre_enable is still 1”);
+				$finish;
 			end
 		end
 	endtask
@@ -253,18 +266,18 @@ module top_tb;
 			pre_read <= 0;
 			if (3<TRANSACTIONS_PER_WORD) begin
 				pre_bus <= data32[4*WIDTH-1:3*WIDTH];
-				pulse_enable;
+				pulse_enable();
 			end
 			if (2<TRANSACTIONS_PER_WORD) begin
 				pre_bus <= data32[3*WIDTH-1:2*WIDTH];
-				pulse_enable;
+				pulse_enable();
 			end
 			if (1<TRANSACTIONS_PER_WORD) begin
 				pre_bus <= data32[2*WIDTH-1:WIDTH];
-				pulse_enable;
+				pulse_enable();
 			end
 			pre_bus <= data32[WIDTH-1:0];
-			pulse_enable;
+			pulse_enable();
 		end
 	endtask
 	task automatic a16_master_read_transaction;
@@ -276,11 +289,11 @@ module top_tb;
 			pre_register_select <= 0;
 			pre_read <= 0;
 			pre_bus <= address16[WIDTH-1:0];
-			pulse_enable;
+			pulse_enable();
 			// read data
 			pre_read <= 1;
 			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple_1
-				pulse_enable;
+				pulse_enable();
 			end
 		end
 	endtask
@@ -289,14 +302,15 @@ module top_tb;
 		begin
 			pre_read <= 1;
 			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple_2
-				pulse_enable;
+				pulse_enable();
 			end
 			delay();
 			pre_read <= 0;
 		end
 	endtask
 	initial begin
-		#300;
+		master_clock_delay(64);
+		slave_clock_delay(64);
 		a16_d32_master_write_transaction(.address16(16'hab4c), .data32(32'h3123_2a12));
 		master_readback_transaction();
 		a16_d32_master_write_transaction(.address16(16'hab4d), .data32(32'h3123_2b34));
@@ -305,21 +319,23 @@ module top_tb;
 		master_readback_transaction();
 		a16_d32_master_write_transaction(.address16(16'hab4f), .data32(32'h3123_2d78));
 		master_readback_transaction();
-		#300;
+		master_clock_delay(64);
+		slave_clock_delay(64);
 		a16_master_read_transaction(.address16(16'hab4c));
 		a16_master_read_transaction(.address16(16'hab4d));
 		a16_master_read_transaction(.address16(16'hab4e));
 		a16_master_read_transaction(.address16(16'hab4f));
 		pre_read <= 0;
-		#300;
+		master_clock_delay(64);
+		slave_clock_delay(64);
 		a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h3123_1507));
 		a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h0000_1507));
 		pre_register_select <= 0;
 	end
 	always @(posedge clock) begin
-		register_select <= pre_register_select;
-		read <= pre_read;
-		enable <= pre_enable;
+		register_select <= #1 pre_register_select;
+		read <= #1 pre_read;
+		enable <= #1 pre_enable;
 	end
 	always begin
 		#HALF_PERIOD_OF_SLAVE;
