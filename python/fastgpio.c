@@ -64,7 +64,7 @@ typedef unsigned long u32;
 
 static PyObject* method_test(PyObject *self, PyObject *args);
 
-u32 short_delay = 10;
+u32 short_delay = 30;
 //u32 short_delay = 100000;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -478,6 +478,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 		#else
 		do { } while (!(*read_port & ack_valid));
 		#endif
+		mynsleep(short_delay);
 		*clr_reg = enable;
 		mynsleep(short_delay);
 	}
@@ -545,6 +546,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 		#else
 		do { } while (!(*read_port & ack_valid));
 		#endif
+		mynsleep(short_delay);
 		*clr_reg = enable;
 		mynsleep(short_delay);
 	}
@@ -598,7 +600,7 @@ u32 read_data(half_duplex_bus_object *self) {
 		#else
 		do { } while (!(*read_port & ack_valid));
 		#endif
-		//mynsleep(short_delay);
+		mynsleep(short_delay);
 		partial_data0 = (value & bus_mask)>>bus_offset;
 //		partial_data1 = (*read_port & bus_mask)>>bus_offset;
 //		if (partial_data0!=partial_data1) {

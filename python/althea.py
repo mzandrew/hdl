@@ -550,19 +550,25 @@ def test_writing_data_to_half_duplex_bus():
 			time.sleep(0.015)
 		values = half_duplex_bus.read(0, NUM)
 		check(data, values);
-	if 1: # same value to all addresses
+	if 0: # same value to all addresses
 		data = [ 0x1248 for d in range(NUM) ]
 		count += half_duplex_bus.write(0, data)
 		values = half_duplex_bus.read(0, NUM)
 		check(data, values);
-	if 0:
-		bunch = [ 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 ]
+	if 1: # single bit
+		bunch = [ 0x0000, 0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800, 0x1000, 0x2000, 0x4000, 0x8000 ]
 		#bunch = [ 0x00, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0 ]
 		start_address = 0
-		for data in bunch:
-			data |= 0xa500
-			count += half_duplex_bus.write(start_address, [data])
-			time.sleep(0.1)
+		repeat = True
+		while True:
+			for data in bunch:
+				#data |= 0xa500
+				count += half_duplex_bus.write(start_address, [data])
+				values = half_duplex_bus.read(0, 1)
+				check([data], values);
+				time.sleep(0.1)
+			if not repeat:
+				break;
 	#data[len(data)-1] = 0x31231507
 	#print(str(len(data)))
 	#print(str(data))
@@ -576,7 +582,6 @@ def test_writing_data_to_half_duplex_bus():
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
 	time.sleep(0.1)
-
 
 # ---------------------------------------------------------------------------
 
