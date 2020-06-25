@@ -2,7 +2,7 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-06-23 by mza
+// last updated 2020-06-25 by mza
 
 // how to use this module:
 //	import fastgpio
@@ -63,9 +63,6 @@ typedef unsigned long u32;
 #define CLK_GP0_DIV (29)
 
 static PyObject* method_test(PyObject *self, PyObject *args);
-
-u32 short_delay = 30;
-//u32 short_delay = 100000;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -242,6 +239,9 @@ void mynsleep(u32 nanoseconds) {
 	}
 }
 
+u32 short_delay = 30;
+//u32 short_delay = 100000;
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 typedef struct {
@@ -403,7 +403,9 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	self->set_reg = self->gpio_port + GPIO_SET_OFFSET;
 	self->clr_reg = self->gpio_port + GPIO_CLR_OFFSET;
 	self->read_port = self->gpio_port + GPIO_PIN_LEVEL;
+	setup_bus_as_inputs(self->gpio_port, self->ack_valid);
 	set_drive_strength_and_slew_rate(self->gpio_pads, 2); // 2 mA seems best
+	setup_bus_as_outputs(self->gpio_port, self->register_select | self->read | self->enable);
 	return 0;
 }
 
@@ -515,7 +517,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 		//printf("adjusted_data to write: %0*lx\n", (int) (bus_width/4+1), adjusted_data);
 		*clr_reg = bus_mask;
 		*set_reg = adjusted_data;
-		//mynsleep(short_delay);
+		mynsleep(short_delay);
 		for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
 			readback = (*read_port & bus_mask) >> bus_offset;
 			if (readback == partial_data) {
@@ -567,7 +569,7 @@ u32 read_data(half_duplex_bus_object *self) {
 	u32 enable = self->enable;
 	u32 ack_valid = self->ack_valid;
 	u32 new_errors = 0;
-	u32 partial_data0;//, partial_data1;
+	u32 partial_data0, partial_data1;
 	u32 value, i, t;
 	// readback data
 	*clr_reg = enable;
@@ -600,13 +602,15 @@ u32 read_data(half_duplex_bus_object *self) {
 		#else
 		do { } while (!(*read_port & ack_valid));
 		#endif
+		//partial_data0 = (value & bus_mask)>>bus_offset;
 		mynsleep(short_delay);
-		partial_data0 = (value & bus_mask)>>bus_offset;
-//		partial_data1 = (*read_port & bus_mask)>>bus_offset;
-//		if (partial_data0!=partial_data1) {
-//			printf("data readpar0: %0*lx\n", (int) (bus_width/4), partial_data0);
-//			printf("data readpar1: %0*lx\n", (int) (bus_width/4), partial_data1);
-//		}
+		partial_data0 = (*read_port & bus_mask)>>bus_offset;
+		mynsleep(short_delay);
+		partial_data1 = (*read_port & bus_mask)>>bus_offset;
+		if (partial_data0!=partial_data1) {
+			printf("data readpar0: %0*lx\n", (int) (bus_width/4), partial_data0);
+			printf("data readpar1: %0*lx\n", (int) (bus_width/4), partial_data1);
+		}
 		data |= partial_data0 << ((transfers_per_data_word-t-1)*bus_width);
 		*clr_reg = enable;
 		//printf("partial_data readback: %0*lx\n", (int) (bus_width/4), partial_data);

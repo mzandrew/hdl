@@ -484,8 +484,9 @@ def check(ref1, ref2):
 		if ref1[i] != ref2[i]:
 			#print("ref1[" + str(i) + "]=" + hex(ref1[i], bits_word/4))
 			#print("ref2[" + str(i) + "]=" + hex(ref2[i], bits_word/4))
-			#print("ref1[" + str(i) + "]=" + bin(ref1[i], bits_word))
-			print("ref2[" + hex(i, width) + "]=" + bin(ref2[i], bits_word))
+			print("ref1[" + str(i) + "] = " + bin(ref1[i], bits_word))
+			print("ref2[" + hex(i, width) + "] = " + bin(ref2[i], bits_word))
+			sys.exit(1)
 #		else:
 #			print("match at address " + str(i))
 
@@ -561,11 +562,12 @@ def test_writing_data_to_half_duplex_bus():
 		start_address = 0
 		repeat = True
 		while True:
-			for data in bunch:
-				#data |= 0xa500
-				count += half_duplex_bus.write(start_address, [data])
+			for value in bunch:
+				#value |= 0xa500
+				data = [ value ]
+				count += half_duplex_bus.write(start_address, data)
 				values = half_duplex_bus.read(0, 1)
-				check([data], values);
+				check(data, values);
 				time.sleep(0.1)
 			if not repeat:
 				break;

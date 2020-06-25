@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-23 by mza
+# last updated 2020-06-25 by mza
 
 import math # floor, ceil, log10
 
@@ -22,7 +22,12 @@ def bin(number, width=1):
 	#print(str(number))
 	width = int(width)
 	#print(str(width))
-	string = format(number, "0" + str(width) + "b")
+	nybbles = [ (number>>(width-n-4))&0xf for n in range(0, width, 4) ]
+	string = ""
+	for i in range(len(nybbles)):
+		string += format(nybbles[i], "04b") + " "
+	string = string[:-1]
+	#string = format(number, "0" + str(width) + "b")
 	return string
 
 # from https://stackoverflow.com/a/19270863/5728815
