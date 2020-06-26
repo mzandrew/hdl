@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="30" />
+   <WVObjectSize size="33" />
    <wvobject fp_name="/top_tb/lemo" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">lemo</obj_property>
       <obj_property name="ObjectShortName">lemo</obj_property>
@@ -129,12 +129,26 @@
       <obj_property name="ObjectShortName">rword[1:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
+   <wvobject fp_name="/top_tb/althea/pre_pre_bus" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pre_pre_bus[7:0]</obj_property>
+      <obj_property name="ObjectShortName">pre_pre_bus[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/pre_bus" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pre_bus[7:0]</obj_property>
+      <obj_property name="ObjectShortName">pre_bus[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
    <wvobject fp_name="divider46" type="divider">
       <obj_property name="label">New Divider</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">128 128 255</obj_property>
       <obj_property name="TextColor">230 230 230</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/pre_ack_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pre_ack_valid</obj_property>
+      <obj_property name="ObjectShortName">pre_ack_valid</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/ack_valid" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">ack_valid</obj_property>

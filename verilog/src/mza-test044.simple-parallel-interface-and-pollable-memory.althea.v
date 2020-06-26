@@ -64,6 +64,7 @@ module top #(
 	reg [1:0] rstate = 0;
 	reg [LOG2_OF_TRANSACTIONS_PER_WORD-1:0] rword = TRANSACTIONS_PER_WORD-1; // most significant halfword first
 	reg [31:0] errors = 0;
+	reg [WIDTH-1:0] pre_pre_bus = 0;
 	reg [WIDTH-1:0] pre_bus = 0;
 	reg pre_ack_valid = 0;
 	reg [0:0] astate = 0;
@@ -90,7 +91,7 @@ module top #(
 			wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 			rstate <= 0;
 			rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
-			pre_bus <= 0;
+			pre_pre_bus <= 0;
 			errors <= 0;
 			checksum <= 0;
 			astate <= 0;
@@ -98,17 +99,13 @@ module top #(
 			if (enable) begin
 				pre_ack_valid <= 1;
 				if (read) begin // read mode
-					pre_bus <= read_data[rword];
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
-//							pre_bus <= read_data[rword];
-						end
-						if (rword==0) begin
-							rstate[1] <= 1;
+							pre_pre_bus <= read_data[rword];
 						end
 //					end else begin
-//						pre_bus <= 8'ha5;
+//						pre_pre_bus <= 8'ha5;
 					end
 				end else begin // write mode
 					if (register_select) begin
@@ -116,10 +113,6 @@ module top #(
 							if (wstate[0]==0) begin
 								wstate[0] <= 1;
 								write_data[wword] <= bus;
-							end
-							if (wword==0) begin
-								wstate[1] <= 1;
-								write_strobe <= 1;
 							end
 						end
 					end else begin // register_select=0
@@ -139,17 +132,30 @@ module top #(
 					end else begin
 						checksum <= 0;
 					end
-				end else if (wstate[0]) begin
-					wstate[0] <= 0;
-					wword <= wword - 1'b1;
+				end else begin
+					if (wstate[0]) begin
+						wstate[0] <= 0;
+						if (|wword) begin
+							wword <= wword - 1'b1;
+						end else begin
+							wstate[1] <= 1;
+							write_strobe <= 1;
+						end
+					end
 				end
 				if (rstate[1]) begin
 					rstate <= 0;
 					rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
-					//pre_bus <= 8'h5a;
-				end else if (rstate[0]) begin
-					rstate[0] <= 0;
-					rword <= rword - 1'b1;
+					//pre_pre_bus <= 8'h5a;
+				end else begin
+					if (rstate[0]) begin
+						rstate[0] <= 0;
+						if (|rword) begin
+							rword <= rword - 1'b1;
+						end else begin
+							rstate[1] <= 1;
+						end
+					end
 				end
 				if (astate[0]) begin
 					astate[0] <= 0;
@@ -166,6 +172,7 @@ module top #(
 				end
 			end
 			ack_valid <= pre_ack_valid;
+			pre_bus <= pre_pre_bus;
 		end
 	end
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
@@ -240,14 +247,20 @@ module top_tb;
 	task automatic delay;
 		master_clock_delay(NUMBER_OF_PERIODS_OF_MASTER_IN_A_DELAY);
 	endtask
+	localparam COUNTER_BIT_PICKOFF = 5;
+	reg [COUNTER_BIT_PICKOFF:0] counter = 0;
 	task automatic pulse_enable;
 		integer j;
 		begin
+			counter <= 0;
 			delay();
 			pre_enable <= 1;
-			for (j=0; j<2*NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK; j=j+1) begin : delay_thing
+			for (j=0; j<2*NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK; j=j+1) begin : delay_thing_1
 				#HALF_PERIOD_OF_MASTER;
 				if (ack_valid) begin
+					counter <= counter + 1'b1;
+				end
+				if (counter[COUNTER_BIT_PICKOFF]) begin
 					pre_enable <= 0;
 				end
 			end
