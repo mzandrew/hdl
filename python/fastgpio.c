@@ -245,6 +245,7 @@ void myusleep(u32 microseconds) {
 }
 
 void mynsleep(u32 nanoseconds) {
+	if (0==nanoseconds) { return; }
 	u32 seconds = 0;
 	if (1000000000<=nanoseconds) {
 		seconds = nanoseconds / 1000000000;
@@ -254,12 +255,16 @@ void mynsleep(u32 nanoseconds) {
 	struct timespec delay = { seconds, nanoseconds };
 	struct timespec remaining_delay = { 0, 0 }; // seconds, nanoseconds
 	if (nanosleep(&delay, &remaining_delay)) {
+		printf("had to wait again!?!\n");
 		delay.tv_sec = remaining_delay.tv_sec;
 		delay.tv_nsec = remaining_delay.tv_nsec;
 	}
 }
 
-u32 short_delay = 30;
+//u32 short_delay = 0;
+u32 short_delay = 1;
+//u32 short_delay = 10;
+//u32 short_delay = 30;
 //u32 short_delay = 100000;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -357,6 +362,7 @@ typedef struct {
 	u32 errors;
 	u32 transactions;
 	u32 retries;
+	u32 user_errors;
 	volatile u32 *gpio_port;
 	volatile u32 *gpio_pads;
 	volatile u32 *set_reg;
@@ -417,6 +423,7 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	self->errors = 0;
 	self->transactions = 0;
 	self->retries = 0;
+	self->user_errors = 0;
 	//printf("partial_mask: %08lx\n", self->partial_mask);
 	self->gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
 	self->gpio_pads = mmap_bcm_register(BCM2835_PADS_GPIO_0_27);
@@ -439,15 +446,28 @@ static void half_duplex_bus_destructor(half_duplex_bus_object *self) {
 	if (self->retries) {
 		printf("there were %ld total retries\n", self->retries);
 	}
+	if (self->user_errors) {
+		printf("there were %ld total user_errors\n", self->user_errors);
+	}
 	Py_TYPE(self)->tp_free((PyObject *) self);
+}
+
+static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyObject *args) {
+	u32 value = 1;
+	if (!PyArg_ParseTuple(args, "|k", &value)) {
+		return PyErr_Format(PyExc_ValueError, "usage:  increment_user_errors(value)");
+	}
+	self->user_errors += value;
+	return PyLong_FromLong(self->user_errors);
 }
 
 // waiting for ack_valid is the difference between 2 MB/sec and 9 MB/sec
 #define WAIT_FOR_ACK_STYLE_FOR
 //#define WAIT_FOR_ACK_STYLE_WHILE
-#define MAX_ACK_CYCLES_WARNING (3)
+#define MAX_ACK_CYCLES_WARNING (2)
 #define MAX_ACK_CYCLES_ERROR (4)
-#define MAX_READBACK_CYCLES_ERROR (4)
+#define MAX_READBACK_CYCLES_WARNING (1)
+#define MAX_READBACK_CYCLES_ERROR (10)
 #define MAX_RETRY_CYCLES_ERROR (4)
 
 u32 set_address(half_duplex_bus_object *self, u32 address) {
@@ -471,7 +491,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	//printf("address: %0*lx\n", (int) (transfers_per_address_word*bus_width/4), address);
 	//for (t=0; t<transfers_per_address_word; t++) {
 	*clr_reg = register_select | read | enable;
-	for (t=0; t<1; t++) {
+	for (t=0; t<transfers_per_address_word; t++) {
 		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
 		//printf("partial_address: %0*lx\n", (int) bus_width/4, partial_address);
 		adjusted_address = (partial_address<<bus_offset) & bus_mask;
@@ -486,16 +506,12 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 		// wait for ack_valid
 		#ifdef WAIT_FOR_ACK_STYLE_FOR
 		for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
-			value = *read_port & ack_valid;
-			//printf("value: %08lx\n", value);
-			if (value) {
-//				if (MAX_ACK_CYCLES_WARNING<i) {
-//					printf("%d ", i);
-//				}
-				break;
-			}
+			value = *read_port;
+			//printf("[%08lx] value&ack_valid: %08lx (set_address)\n", self->transactions, value & ack_valid);
+			if (value & ack_valid) { break; }
 			mynsleep(short_delay);
 		}
+		if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld ", i); }
 		if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
 		#else
 		do { } while (!(*read_port & ack_valid));
@@ -503,6 +519,9 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 		mynsleep(short_delay);
 		*clr_reg = enable;
 		mynsleep(short_delay);
+//		if (t+1<transfers_per_address_word) {
+//			mynsleep(short_delay);
+//		}
 	}
 	self->errors += new_errors;
 	return new_errors;
@@ -537,40 +556,39 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 		//printf("adjusted_data to write: %0*lx\n", (int) (bus_width/4+1), adjusted_data);
 		*clr_reg = bus_mask;
 		*set_reg = adjusted_data;
-		mynsleep(short_delay);
+		//mynsleep(short_delay);
 		for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
 			readback = (*read_port & bus_mask) >> bus_offset;
-			if (readback == partial_data) {
-				break;
-			}
+			if (readback == partial_data) { break; }
 			mynsleep(short_delay);
 		}
+		if (MAX_READBACK_CYCLES_WARNING<i) { printf("%ld ", i); }
 		if (MAX_READBACK_CYCLES_ERROR==i) {
-			printf("can't set things right\n");
+			printf("ERROR: can't change the state of GPIOs\n");
 			new_errors++;
 		}
+		//mynsleep(short_delay);
 		*set_reg = enable;
-		mynsleep(short_delay);
+		//mynsleep(short_delay);
 		// wait for ack_valid
 		#ifdef WAIT_FOR_ACK_STYLE_FOR
 		for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
-			value = *read_port & ack_valid;
-			//printf("value: %08lx\n", value);
-			if (value) {
-//				if (MAX_ACK_CYCLES_WARNING<i) {
-//					printf("%d ", i);
-//				}
-				break;
-			}
+			value = *read_port;
+			//printf("[%08lx] value&ack_valid: %08lx (write_data)\n", self->transactions, value & ack_valid);
+			if (value & ack_valid) { break; }
 			mynsleep(short_delay);
 		}
+		if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld ", i); }
 		if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
 		#else
 		do { } while (!(*read_port & ack_valid));
 		#endif
-		mynsleep(short_delay);
+		//mynsleep(short_delay);
 		*clr_reg = enable;
-		mynsleep(short_delay);
+		//mynsleep(short_delay);
+		if (t+1<transfers_per_data_word) {
+			mynsleep(short_delay);
+		}
 	}
 	self->errors += new_errors;
 	return new_errors;
@@ -602,40 +620,41 @@ u32 read_data(half_duplex_bus_object *self) {
 		//adjusted_data = (partial_data<<bus_offset) & bus_mask;
 		//*set_reg = adjusted_data;
 		//*clr_reg = bus_mask; // shouldn't need to do this...
-		mynsleep(short_delay);
+		//mynsleep(short_delay);
 		*set_reg = enable;
-		mynsleep(short_delay);
+		//mynsleep(short_delay);
 		// wait for ack_valid
 		#ifdef WAIT_FOR_ACK_STYLE_FOR
 		for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
 			value = *read_port;
-			//printf("value: %08lx\n", value);
-			if (value & ack_valid) {
-				//if (MAX_ACK_CYCLES_WARNING<i) {
-				//	printf("%d ", i);
-				//}
-				break;
-			}
+			//printf("[%08lx] value&ack_valid: %08lx (read_data)\n", self->transactions, value & ack_valid);
+			if (value & ack_valid) { break; }
 			mynsleep(short_delay);
 		}
+		if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld ", i); }
 		if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
 		#else
 		do { } while (!(*read_port & ack_valid));
 		#endif
 		//partial_data0 = (value & bus_mask)>>bus_offset;
-		mynsleep(short_delay);
+		//mynsleep(short_delay);
 		partial_data0 = (*read_port & bus_mask)>>bus_offset;
-		mynsleep(short_delay);
+		//mynsleep(short_delay);
 		partial_data1 = (*read_port & bus_mask)>>bus_offset;
 		if (partial_data0!=partial_data1) {
 			printf("data readpar0: %0*lx\n", (int) (bus_width/4), partial_data0);
 			printf("data readpar1: %0*lx\n", (int) (bus_width/4), partial_data1);
 		}
 		data |= partial_data0 << ((transfers_per_data_word-t-1)*bus_width);
+		//mynsleep(short_delay);
 		*clr_reg = enable;
+		//mynsleep(short_delay);
 		//printf("partial_data readback: %0*lx\n", (int) (bus_width/4), partial_data);
+		if (t+1<transfers_per_data_word) {
+			mynsleep(short_delay);
+		}
 	}
-	*clr_reg = read;
+//	*clr_reg = read;
 	setup_bus_as_outputs(gpio_port, bus_mask);
 	//printf("data readback: %0*lx\n", (int) (transfers_per_data_word*bus_width/4), data);
 	self->errors += new_errors;
@@ -762,6 +781,7 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 static PyMethodDef half_duplex_bus_methods[] = {
 	{ "write", (PyCFunction) method_half_duplex_bus_write, METH_VARARGS, "writes iteratable_object to the interface" },
 	{ "read", (PyCFunction) method_half_duplex_bus_read, METH_VARARGS, "reads from the interface" },
+	{ "increment_user_errors", (PyCFunction) method_increment_user_errors, METH_VARARGS, "increment the error count if the user code detects another type of error" },
 //	{ "", (PyCFunction) method_, METH_VARARGS, "" },
 	{ NULL }
 };
