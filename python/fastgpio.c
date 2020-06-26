@@ -567,7 +567,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 			printf("ERROR: can't change the state of GPIOs\n");
 			new_errors++;
 		}
-		//mynsleep(short_delay);
+		mynsleep(short_delay);
 		*set_reg = enable;
 		//mynsleep(short_delay);
 		// wait for ack_valid
@@ -616,10 +616,6 @@ u32 read_data(half_duplex_bus_object *self) {
 	*set_reg = register_select | read; // register_select=1 is data mode
 	u32 data = 0;
 	for (t=0; t<transfers_per_data_word; t++) {
-		//partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
-		//printf("partial_data: %0*lx\n", (int) bus_width/4, partial_data);
-		//adjusted_data = (partial_data<<bus_offset) & bus_mask;
-		//*set_reg = adjusted_data;
 		//*clr_reg = bus_mask; // shouldn't need to do this...
 		//mynsleep(short_delay);
 		*set_reg = enable;
