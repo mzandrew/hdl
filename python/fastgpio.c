@@ -464,16 +464,65 @@ static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyOb
 // waiting for ack_valid is the difference between 2 MB/sec and 9 MB/sec
 #define WAIT_FOR_ACK_STYLE_FOR
 //#define WAIT_FOR_ACK_STYLE_WHILE
-#define MAX_ACK_CYCLES_WARNING (2)
-#define MAX_ACK_CYCLES_ERROR (4)
+#define MAX_ACK_CYCLES_ERROR (30)
+#define MAX_READBACK_CYCLES_ERROR (30)
+#define MAX_RETRY_CYCLES_ERROR (30)
+#define MAX_ACK_CYCLES_WARNING (9)
 #define MAX_READBACK_CYCLES_WARNING (1)
-#define MAX_READBACK_CYCLES_ERROR (10)
-#define MAX_RETRY_CYCLES_ERROR (4)
+
+u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
+	volatile u32 *set_reg = self->set_reg;
+	u32 enable = self->enable;
+	*set_reg = enable;
+	volatile u32 *read_port = self->read_port;
+	u32 ack_valid = self->ack_valid;
+	u32 new_errors = 0;
+	u32 value, i;
+	//mynsleep(short_delay);
+	// wait for ack_valid
+	#ifdef WAIT_FOR_ACK_STYLE_FOR
+	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
+		value = *read_port;
+		//printf("[%08lx] value&ack_valid: %08lx (read_data)\n", self->transactions, value & ack_valid);
+		if (value & ack_valid) { break; }
+		//mynsleep(short_delay);
+	}
+	if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld(r) ", i); }
+	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
+	#else
+	do { } while (!(*read_port & ack_valid));
+	#endif
+	return new_errors;
+}
+
+u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
+	volatile u32 *clr_reg = self->clr_reg;
+	u32 enable = self->enable;
+	*clr_reg = enable;
+	volatile u32 *read_port = self->read_port;
+	u32 ack_valid = self->ack_valid;
+	u32 new_errors = 0;
+	u32 value, i;
+	//mynsleep(short_delay);
+	// wait for ack_valid
+	#ifdef WAIT_FOR_ACK_STYLE_FOR
+	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
+		value = *read_port;
+		//printf("[%08lx] value&ack_valid: %08lx (read_data)\n", self->transactions, value & ack_valid);
+		if (!(value & ack_valid)) { break; }
+		//mynsleep(short_delay);
+	}
+	if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld(r) ", i); }
+	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
+	#else
+	do { } while (!(*read_port & ack_valid));
+	#endif
+	return new_errors;
+}
 
 u32 set_address(half_duplex_bus_object *self, u32 address) {
 	volatile u32 *set_reg = self->set_reg;
 	volatile u32 *clr_reg = self->clr_reg;
-	volatile u32 *read_port = self->read_port;
 	u32 bus_mask = self->bus_mask;
 	u32 bus_width = self->bus_width;
 	u32 bus_offset = self->bus_offset;
@@ -482,11 +531,10 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	u32 register_select = self->register_select;
 	u32 read = self->read;
 	u32 enable = self->enable;
-	u32 ack_valid = self->ack_valid;
 	u32 new_errors = 0;
 	u32 partial_address;
 	u32 adjusted_address;
-	u32 value, i, t;
+	u32 t;
 	// write address
 	//printf("address: %0*lx\n", (int) (transfers_per_address_word*bus_width/4), address);
 	//for (t=0; t<transfers_per_address_word; t++) {
@@ -495,34 +543,17 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
 		//printf("partial_address: %0*lx\n", (int) bus_width/4, partial_address);
 		adjusted_address = (partial_address<<bus_offset) & bus_mask;
+		//printf("adjusted_address: %0*lx\n", bus_width/4, adjusted_address);
 		*clr_reg = bus_mask;
 		*set_reg = adjusted_address;
-		//printf("adjusted_address: %0*lx\n", bus_width/4, adjusted_address);
-		//value = *read_port & ack_valid;
-		//printf("value: %08lx\n", value);
-		mynsleep(short_delay);
-		*set_reg = enable;
-		//mynsleep(short_delay);
-		// wait for ack_valid
-		#ifdef WAIT_FOR_ACK_STYLE_FOR
-		for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
-			value = *read_port;
-			//printf("[%08lx] value&ack_valid: %08lx (set_address)\n", self->transactions, value & ack_valid);
-			if (value & ack_valid) { break; }
-			mynsleep(short_delay);
-		}
-		if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld ", i); }
-		if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
-		#else
-		do { } while (!(*read_port & ack_valid));
-		#endif
-		//mynsleep(short_delay);
-		*clr_reg = enable;
-		//mynsleep(short_delay);
+		set_enable_and_wait_for_ack_valid(self);
 		if (t+1<transfers_per_address_word) {
-			mynsleep(short_delay);
+			clear_enable_and_wait_for_ack_valid(self);
+		} else {
+			*clr_reg = enable;
 		}
 	}
+	if (new_errors) { printf("[%ld] ", new_errors); }
 	self->errors += new_errors;
 	return new_errors;
 }
@@ -539,15 +570,15 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 	u32 register_select = self->register_select;
 	u32 read = self->read;
 	u32 enable = self->enable;
-	u32 ack_valid = self->ack_valid;
 	u32 new_errors = 0;
 	u32 partial_data;
 	u32 adjusted_data;
-	u32 value, i, t;
+	u32 i, t;
 	u32 readback;
 	// write data
 	//printf("data to write: %0*lx\n", (int) (transfers_per_data_word*bus_width/4), data);
-	*clr_reg = read | enable;
+	clear_enable_and_wait_for_ack_valid(self);
+	*clr_reg = read;
 	*set_reg = register_select; // register_select=1 is data mode
 	for (t=0; t<transfers_per_data_word; t++) {
 		partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
@@ -556,38 +587,21 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 		//printf("adjusted_data to write: %0*lx\n", (int) (bus_width/4+1), adjusted_data);
 		*clr_reg = bus_mask;
 		*set_reg = adjusted_data;
-		//mynsleep(short_delay);
 		for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
-			readback = (*read_port & bus_mask) >> bus_offset;
-			if (readback == partial_data) { break; }
-			mynsleep(short_delay);
+			readback = *read_port & bus_mask;
+			if (readback == adjusted_data) { break; }
+			//mynsleep(short_delay);
 		}
-		if (MAX_READBACK_CYCLES_WARNING<i) { printf("%ld ", i); }
+		if (MAX_READBACK_CYCLES_WARNING<i) { printf("%ld(ww) ", i); }
 		if (MAX_READBACK_CYCLES_ERROR==i) {
 			printf("ERROR: can't change the state of GPIOs\n");
 			new_errors++;
 		}
-		mynsleep(short_delay);
-		*set_reg = enable;
-		//mynsleep(short_delay);
-		// wait for ack_valid
-		#ifdef WAIT_FOR_ACK_STYLE_FOR
-		for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
-			value = *read_port;
-			//printf("[%08lx] value&ack_valid: %08lx (write_data)\n", self->transactions, value & ack_valid);
-			if (value & ack_valid) { break; }
-			mynsleep(short_delay);
-		}
-		if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld ", i); }
-		if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
-		#else
-		do { } while (!(*read_port & ack_valid));
-		#endif
-		//mynsleep(short_delay);
-		*clr_reg = enable;
-		//mynsleep(short_delay);
+		set_enable_and_wait_for_ack_valid(self);
 		if (t+1<transfers_per_data_word) {
-			mynsleep(short_delay);
+			clear_enable_and_wait_for_ack_valid(self);
+		} else {
+			*clr_reg = enable;
 		}
 	}
 	self->errors += new_errors;
@@ -606,50 +620,31 @@ u32 read_data(half_duplex_bus_object *self) {
 	u32 register_select = self->register_select;
 	u32 read = self->read;
 	u32 enable = self->enable;
-	u32 ack_valid = self->ack_valid;
 	u32 new_errors = 0;
 	u32 partial_data0, partial_data1;
-	u32 value, i, t;
+	u32 t;
 	// readback data
-	*clr_reg = enable;
+	clear_enable_and_wait_for_ack_valid(self);
 	setup_bus_as_inputs(gpio_port, bus_mask);
 	*set_reg = register_select | read; // register_select=1 is data mode
 	u32 data = 0;
 	for (t=0; t<transfers_per_data_word; t++) {
 		//*clr_reg = bus_mask; // shouldn't need to do this...
-		//mynsleep(short_delay);
-		*set_reg = enable;
-		//mynsleep(short_delay);
-		// wait for ack_valid
-		#ifdef WAIT_FOR_ACK_STYLE_FOR
-		for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
-			value = *read_port;
-			//printf("[%08lx] value&ack_valid: %08lx (read_data)\n", self->transactions, value & ack_valid);
-			if (value & ack_valid) { break; }
-			mynsleep(short_delay);
-		}
-		if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld ", i); }
-		if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
-		#else
-		do { } while (!(*read_port & ack_valid));
-		#endif
-		//partial_data0 = (value & bus_mask)>>bus_offset;
-		//mynsleep(short_delay);
+		set_enable_and_wait_for_ack_valid(self);
 		partial_data0 = (*read_port & bus_mask)>>bus_offset;
-		//mynsleep(short_delay);
 		partial_data1 = (*read_port & bus_mask)>>bus_offset;
 		if (partial_data0!=partial_data1) {
 			printf("data readpar0: %0*lx\n", (int) (bus_width/4), partial_data0);
 			printf("data readpar1: %0*lx\n", (int) (bus_width/4), partial_data1);
 		}
-		data |= partial_data0 << ((transfers_per_data_word-t-1)*bus_width);
-		//mynsleep(short_delay);
-		*clr_reg = enable;
-		//mynsleep(short_delay);
-		//printf("partial_data readback: %0*lx\n", (int) (bus_width/4), partial_data);
+		partial_data1 = (*read_port & bus_mask)>>bus_offset;
+		data |= partial_data1 << ((transfers_per_data_word-t-1)*bus_width);
 		if (t+1<transfers_per_data_word) {
-			mynsleep(short_delay);
+			clear_enable_and_wait_for_ack_valid(self);
+		} else {
+			*clr_reg = enable;
 		}
+		//printf("partial_data readback: %0*lx\n", (int) (bus_width/4), partial_data);
 	}
 	*clr_reg = read;
 	setup_bus_as_outputs(gpio_port, bus_mask);
