@@ -500,7 +500,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 		//printf("adjusted_address: %0*lx\n", bus_width/4, adjusted_address);
 		//value = *read_port & ack_valid;
 		//printf("value: %08lx\n", value);
-		mynsleep(short_delay);
+		//mynsleep(short_delay);
 		*set_reg = enable;
 		//mynsleep(short_delay);
 		// wait for ack_valid
@@ -516,12 +516,12 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 		#else
 		do { } while (!(*read_port & ack_valid));
 		#endif
-		mynsleep(short_delay);
+		//mynsleep(short_delay);
 		*clr_reg = enable;
-		mynsleep(short_delay);
-//		if (t+1<transfers_per_address_word) {
-//			mynsleep(short_delay);
-//		}
+		//mynsleep(short_delay);
+		if (t+1<transfers_per_address_word) {
+			mynsleep(short_delay);
+		}
 	}
 	self->errors += new_errors;
 	return new_errors;
