@@ -490,7 +490,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	// write address
 	//printf("address: %0*lx\n", (int) (transfers_per_address_word*bus_width/4), address);
 	//for (t=0; t<transfers_per_address_word; t++) {
-	*clr_reg = register_select | read | enable;
+	*clr_reg = register_select | read | enable; // register_select=0 is address mode
 	for (t=0; t<transfers_per_address_word; t++) {
 		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
 		//printf("partial_address: %0*lx\n", (int) bus_width/4, partial_address);
@@ -548,7 +548,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 	// write data
 	//printf("data to write: %0*lx\n", (int) (transfers_per_data_word*bus_width/4), data);
 	*clr_reg = read | enable;
-	*set_reg = register_select; // 1=data mode
+	*set_reg = register_select; // register_select=1 is data mode
 	for (t=0; t<transfers_per_data_word; t++) {
 		partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
 		//printf("partial_data to write: %0*lx\n", (int) bus_width/4, partial_data);
@@ -603,6 +603,7 @@ u32 read_data(half_duplex_bus_object *self) {
 	u32 bus_width = self->bus_width;
 	u32 bus_offset = self->bus_offset;
 	u32 transfers_per_data_word = self->transfers_per_data_word;
+	u32 register_select = self->register_select;
 	u32 read = self->read;
 	u32 enable = self->enable;
 	u32 ack_valid = self->ack_valid;
@@ -612,7 +613,7 @@ u32 read_data(half_duplex_bus_object *self) {
 	// readback data
 	*clr_reg = enable;
 	setup_bus_as_inputs(gpio_port, bus_mask);
-	*set_reg = read;
+	*set_reg = register_select | read; // register_select=1 is data mode
 	u32 data = 0;
 	for (t=0; t<transfers_per_data_word; t++) {
 		//partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
@@ -654,7 +655,7 @@ u32 read_data(half_duplex_bus_object *self) {
 			mynsleep(short_delay);
 		}
 	}
-//	*clr_reg = read;
+	*clr_reg = read;
 	setup_bus_as_outputs(gpio_port, bus_mask);
 	//printf("data readback: %0*lx\n", (int) (transfers_per_data_word*bus_width/4), data);
 	self->errors += new_errors;
@@ -760,6 +761,7 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 		set_address(self, address);
 		data = read_data(self);
 		PyList_Append(obj, PyLong_FromLong(data));
+		address++;
 		index++;
 	}
 	*clr_reg = everything;
