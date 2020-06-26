@@ -75,6 +75,7 @@ module top #(
 	localparam COUNTER50_BIT_PICKOFF = 3;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
 	reg reset50 = 1;
+	reg [WIDTH-1:0] bus_pipeline [2:0];
 	integer j;
 	always @(posedge clock50) begin
 		pre_pre_ack_valid <= 0;
@@ -119,13 +120,13 @@ module top #(
 						if (wstate[1]==0) begin
 							if (wstate[0]==0) begin
 								wstate[0] <= 1;
-								write_data[wword] <= bus;
+								write_data[wword] <= bus_pipeline[2];
 							end
 						end
 					end else begin // register_select=0
 						if (astate[0]==0) begin
 							astate[0] <= 1;
-							address <= bus;
+							address <= bus_pipeline[2];
 						end
 					end
 				end
@@ -184,6 +185,9 @@ module top #(
 			register_select_pipeline <= { register_select_pipeline[1:0], register_select };
 			read_pipeline            <= {            read_pipeline[1:0], read };
 			enable_pipeline          <= {          enable_pipeline[1:0], enable };
+			bus_pipeline[2] <= bus_pipeline[1];
+			bus_pipeline[1] <= bus_pipeline[0];
+			bus_pipeline[0] <= bus;
 		end
 	end
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
