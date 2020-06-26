@@ -508,7 +508,8 @@ def test_writing_data_to_half_duplex_bus():
 	time.sleep(0.1)
 	data = []
 	#NUM = 4500000
-	NUM = 768
+	NUM = 8192
+	#NUM = 1024
 	#NUM = 256
 	#NUM = 16
 	#NUM = 4
@@ -516,15 +517,15 @@ def test_writing_data_to_half_duplex_bus():
 	if NUM>MEMSIZE:
 		number_of_times_to_repeat = NUM//MEMSIZE
 		NUM = MEMSIZE
-	if NUM>10000:
-		segments = int(NUM/10000)
-		length_of_each_segment = math.ceil(NUM/segments)
-		print(str(length_of_each_segment))
-		segment = [ random.randint(0,2**bits_word-1) for d in range(length_of_each_segment) ]
-		for i in range(segments):
-			data.extend(segment)
-	else:
-		data = [ random.randint(0,2**bits_word-1) for d in range(NUM) ]
+#	if NUM>10000:
+#		segments = int(NUM/10000)
+#		length_of_each_segment = math.ceil(NUM/segments)
+#		print("each segment is " + str(length_of_each_segment))
+#		segment = [ random.randint(0,2**bits_word-1) for d in range(length_of_each_segment) ]
+#		for i in range(segments):
+#			data.extend(segment)
+#	else:
+	data = [ random.randint(0,2**bits_word-1) for d in range(NUM) ]
 	print("running...")
 	count = 0
 	errors = 0

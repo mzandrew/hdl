@@ -500,7 +500,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 		//printf("adjusted_address: %0*lx\n", bus_width/4, adjusted_address);
 		//value = *read_port & ack_valid;
 		//printf("value: %08lx\n", value);
-		//mynsleep(short_delay);
+		mynsleep(short_delay);
 		*set_reg = enable;
 		//mynsleep(short_delay);
 		// wait for ack_valid
@@ -706,9 +706,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 			set_address(self, address);
 			write_data(self, data);
 			data_readback = read_data(self);
-			if (data == data_readback) {
-				break;
-			}
+			if (data == data_readback) { break; }
 			//printf("didn't work the first time\n");
 			self->retries++;
 		}
