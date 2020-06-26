@@ -64,8 +64,9 @@ module top #(
 	reg [1:0] rstate = 0;
 	reg [LOG2_OF_TRANSACTIONS_PER_WORD-1:0] rword = TRANSACTIONS_PER_WORD-1; // most significant halfword first
 	reg [31:0] errors = 0;
-	reg [WIDTH-1:0] pre_pre_bus = 0;
+//	reg [WIDTH-1:0] pre_pre_bus = 0;
 	reg [WIDTH-1:0] pre_bus = 0;
+	reg pre_pre_ack_valid = 0;
 	reg pre_ack_valid = 0;
 	reg [0:0] astate = 0;
 	localparam COUNTER50_BIT_PICKOFF = 3;
@@ -73,7 +74,7 @@ module top #(
 	reg reset50 = 1;
 	integer j;
 	always @(posedge clock50) begin
-		pre_ack_valid <= 0;
+		pre_pre_ack_valid <= 0;
 		write_strobe <= 0;
 		if (reset) begin
 			counter50 <= 0;
@@ -91,21 +92,21 @@ module top #(
 			wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
 			rstate <= 0;
 			rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
-			pre_pre_bus <= 0;
+			pre_bus <= 0;
 			errors <= 0;
 			checksum <= 0;
 			astate <= 0;
 		end else begin
 			if (enable) begin
-				pre_ack_valid <= 1;
+				pre_pre_ack_valid <= 1;
 				if (read) begin // read mode
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
-							pre_pre_bus <= read_data[rword];
+							pre_bus <= read_data[rword];
 						end
 //					end else begin
-//						pre_pre_bus <= 8'ha5;
+//						pre_bus <= 8'ha5;
 					end
 				end else begin // write mode
 					if (register_select) begin
@@ -146,7 +147,7 @@ module top #(
 				if (rstate[1]) begin
 					rstate <= 0;
 					rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
-					//pre_pre_bus <= 8'h5a;
+					//pre_bus <= 8'h5a;
 				end else begin
 					if (rstate[0]) begin
 						rstate[0] <= 0;
@@ -172,7 +173,8 @@ module top #(
 				end
 			end
 			ack_valid <= pre_ack_valid;
-			pre_bus <= pre_pre_bus;
+			pre_ack_valid <= pre_pre_ack_valid;
+			//pre_bus <= pre_pre_bus;
 		end
 	end
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
