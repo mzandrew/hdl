@@ -42,7 +42,7 @@ module top #(
 );
 	localparam REGISTER_SELECT_PIPELINE_PICKOFF = 3;
 	localparam READ_PIPELINE_PICKOFF = 3;
-	localparam ENABLE_PIPELINE_PICKOFF = 6;
+	localparam ENABLE_PIPELINE_PICKOFF = 23;
 	localparam BUS_PIPELINE_PICKOFF = 3;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
 	reg [READ_PIPELINE_PICKOFF:0] read_pipeline = 0;
@@ -228,7 +228,7 @@ module top_tb;
 	localparam HALF_PERIOD_OF_MASTER = 1;
 	localparam HALF_PERIOD_OF_SLAVE = 10;
 	localparam NUMBER_OF_PERIODS_OF_MASTER_IN_A_DELAY = 1;
-	localparam NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK = 1000;
+	localparam NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK = 2000;
 	reg clock = 0;
 	localparam WIDTH = 8;
 	localparam TRANSACTIONS_PER_WORD = 4;
@@ -274,19 +274,19 @@ module top_tb;
 	task automatic delay;
 		master_clock_delay(NUMBER_OF_PERIODS_OF_MASTER_IN_A_DELAY);
 	endtask
-	localparam COUNTER_BIT_PICKOFF = 7;
-	reg [COUNTER_BIT_PICKOFF:0] counter = 0;
 	task automatic pulse_enable;
+		integer i;
 		integer j;
 		begin
-			counter <= 0;
+			i = 0;
 			//delay();
 			pre_enable <= 1;
 			for (j=0; j<2*NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK; j=j+1) begin : delay_thing_1
 				if (ack_valid) begin
-					counter <= counter + 1'b1;
+					i = i + 1;
+					j = 2*NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK - 100;
 				end
-				if (counter[COUNTER_BIT_PICKOFF]) begin
+				if (64<i) begin
 					pre_enable <= 0;
 				end
 				#HALF_PERIOD_OF_MASTER;
@@ -309,7 +309,6 @@ module top_tb;
 			pulse_enable();
 			// write each part of data
 			pre_register_select <= 1;
-			pre_read <= 0;
 			if (3<TRANSACTIONS_PER_WORD) begin
 				pre_bus <= data32[4*WIDTH-1:3*WIDTH];
 				pulse_enable();
@@ -341,6 +340,7 @@ module top_tb;
 			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple_1
 				pulse_enable();
 			end
+			pre_read <= 0;
 		end
 	endtask
 	task automatic master_readback_transaction;
