@@ -70,8 +70,8 @@
       <obj_property name="ObjectShortName">enable</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/enable_pipeline" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">enable_pipeline[2:0]</obj_property>
-      <obj_property name="ObjectShortName">enable_pipeline[2:0]</obj_property>
+      <obj_property name="ElementShortName">enable_pipeline[4:0]</obj_property>
+      <obj_property name="ObjectShortName">enable_pipeline[4:0]</obj_property>
    </wvobject>
    <wvobject fp_name="divider65" type="divider">
       <obj_property name="label">New Divider</obj_property>

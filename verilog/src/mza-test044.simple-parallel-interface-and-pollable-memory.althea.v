@@ -40,9 +40,13 @@ module top #(
 	output reg ack_valid = 0,
 	output [7:0] leds
 );
-	reg [2:0] register_select_pipeline = 0;
-	reg [2:0] read_pipeline = 0;
-	reg [2:0] enable_pipeline = 0;
+	localparam REGISTER_SELECT_PIPELINE_PICKOFF = 2;
+	localparam READ_PIPELINE_PICKOFF = 2;
+	localparam ENABLE_PIPELINE_PICKOFF = 4;
+	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
+	reg [READ_PIPELINE_PICKOFF:0] read_pipeline = 0;
+	reg [ENABLE_PIPELINE_PICKOFF:0] enable_pipeline = 0;
+	reg [WIDTH-1:0] bus_pipeline [2:0];
 	reg checksum = 0;
 	assign lemo = 0;
 	assign other0 = 0;
@@ -75,7 +79,6 @@ module top #(
 	localparam COUNTER50_BIT_PICKOFF = 3;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
 	reg reset50 = 1;
-	reg [WIDTH-1:0] bus_pipeline [2:0];
 	integer j;
 	always @(posedge clock50) begin
 		pre_pre_ack_valid <= 0;
@@ -104,9 +107,9 @@ module top #(
 			read_pipeline <= 0;
 			enable_pipeline <= 0;
 		end else begin
-			if (enable_pipeline[2]==1) begin
+			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF]==1) begin
 				pre_pre_ack_valid <= 1;
-				if (read_pipeline[2]==1) begin // read mode
+				if (read_pipeline[READ_PIPELINE_PICKOFF]==1) begin // read mode
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
@@ -116,7 +119,7 @@ module top #(
 //						pre_bus <= 8'ha5;
 					end
 				end else begin // write mode
-					if (register_select_pipeline[2]==1) begin
+					if (register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF]==1) begin
 						if (wstate[1]==0) begin
 							if (wstate[0]==0) begin
 								wstate[0] <= 1;
@@ -182,9 +185,9 @@ module top #(
 			ack_valid <= pre_ack_valid;
 			pre_ack_valid <= pre_pre_ack_valid;
 			//pre_bus <= pre_pre_bus;
-			register_select_pipeline <= { register_select_pipeline[1:0], register_select };
-			read_pipeline            <= {            read_pipeline[1:0], read };
-			enable_pipeline          <= {          enable_pipeline[1:0], enable };
+			register_select_pipeline <= { register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF-1:0], register_select };
+			read_pipeline            <= {                       read_pipeline[READ_PIPELINE_PICKOFF-1:0], read };
+			enable_pipeline          <= {                   enable_pipeline[ENABLE_PIPELINE_PICKOFF-1:0], enable };
 			bus_pipeline[2] <= bus_pipeline[1];
 			bus_pipeline[1] <= bus_pipeline[0];
 			bus_pipeline[0] <= bus;
@@ -206,9 +209,9 @@ module top #(
 		assign leds[1] = enable;
 		assign leds[0] = reset50;
 	end else begin
-		//assign leds = address;
+		assign leds = address;
 		//assign leds = write_data[1];
-		assign leds = write_data[0];
+		//assign leds = write_data[0];
 	end
 endmodule
 
@@ -262,22 +265,22 @@ module top_tb;
 	task automatic delay;
 		master_clock_delay(NUMBER_OF_PERIODS_OF_MASTER_IN_A_DELAY);
 	endtask
-	localparam COUNTER_BIT_PICKOFF = 5;
+	localparam COUNTER_BIT_PICKOFF = 7;
 	reg [COUNTER_BIT_PICKOFF:0] counter = 0;
 	task automatic pulse_enable;
 		integer j;
 		begin
 			counter <= 0;
-			delay();
+			//delay();
 			pre_enable <= 1;
 			for (j=0; j<2*NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK; j=j+1) begin : delay_thing_1
-				#HALF_PERIOD_OF_MASTER;
 				if (ack_valid) begin
 					counter <= counter + 1'b1;
 				end
 				if (counter[COUNTER_BIT_PICKOFF]) begin
 					pre_enable <= 0;
 				end
+				#HALF_PERIOD_OF_MASTER;
 			end
 			if (pre_enable==1) begin
 				//$display(“pre_enable is still 1”);
@@ -338,7 +341,7 @@ module top_tb;
 			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple_2
 				pulse_enable();
 			end
-			delay();
+			//delay();
 			pre_read <= 0;
 		end
 	endtask
