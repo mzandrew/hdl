@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-06-25 by mza
+// last updated 2020-06-26 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -40,13 +40,14 @@ module top #(
 	output reg ack_valid = 0,
 	output [7:0] leds
 );
-	localparam REGISTER_SELECT_PIPELINE_PICKOFF = 2;
-	localparam READ_PIPELINE_PICKOFF = 2;
-	localparam ENABLE_PIPELINE_PICKOFF = 4;
+	localparam REGISTER_SELECT_PIPELINE_PICKOFF = 3;
+	localparam READ_PIPELINE_PICKOFF = 3;
+	localparam ENABLE_PIPELINE_PICKOFF = 6;
+	localparam BUS_PIPELINE_PICKOFF = 3;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
 	reg [READ_PIPELINE_PICKOFF:0] read_pipeline = 0;
 	reg [ENABLE_PIPELINE_PICKOFF:0] enable_pipeline = 0;
-	reg [WIDTH-1:0] bus_pipeline [2:0];
+	reg [WIDTH-1:0] bus_pipeline [BUS_PIPELINE_PICKOFF:0];
 	reg checksum = 0;
 	assign lemo = 0;
 	assign other0 = 0;
@@ -106,6 +107,7 @@ module top #(
 			register_select_pipeline <= 0;
 			read_pipeline <= 0;
 			enable_pipeline <= 0;
+			bus_pipeline[0] <= 0;
 		end else begin
 			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF]==1) begin
 				pre_pre_ack_valid <= 1;
@@ -123,13 +125,13 @@ module top #(
 						if (wstate[1]==0) begin
 							if (wstate[0]==0) begin
 								wstate[0] <= 1;
-								write_data[wword] <= bus_pipeline[2];
+								write_data[wword] <= bus_pipeline[BUS_PIPELINE_PICKOFF];
 							end
 						end
 					end else begin // register_select=0
 						if (astate[0]==0) begin
 							astate[0] <= 1;
-							address <= bus_pipeline[2];
+							address <= bus_pipeline[BUS_PIPELINE_PICKOFF];
 						end
 					end
 				end
@@ -188,9 +190,16 @@ module top #(
 			register_select_pipeline <= { register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF-1:0], register_select };
 			read_pipeline            <= {                       read_pipeline[READ_PIPELINE_PICKOFF-1:0], read };
 			enable_pipeline          <= {                   enable_pipeline[ENABLE_PIPELINE_PICKOFF-1:0], enable };
-			bus_pipeline[2] <= bus_pipeline[1];
-			bus_pipeline[1] <= bus_pipeline[0];
 			bus_pipeline[0] <= bus;
+		end
+	end
+	for (i=1; i<BUS_PIPELINE_PICKOFF+1; i=i+1) begin : bus_pipeline_thing
+		always @(posedge clock50) begin
+			if (reset50) begin
+				bus_pipeline[i] <= 0;
+			end else begin
+				bus_pipeline[i] <= bus_pipeline[i-1];
+			end
 		end
 	end
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
@@ -366,7 +375,9 @@ module top_tb;
 		master_clock_delay(64);
 		slave_clock_delay(64);
 		a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h3123_1507));
-		a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h0000_1507));
+		master_readback_transaction();
+		a16_d32_master_write_transaction(.address16(16'h3412), .data32(32'h0000_1507));
+		master_readback_transaction();
 		pre_register_select <= 0;
 	end
 	always @(posedge clock) begin
