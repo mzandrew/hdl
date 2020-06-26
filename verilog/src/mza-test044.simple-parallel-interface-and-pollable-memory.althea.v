@@ -40,6 +40,9 @@ module top #(
 	output reg ack_valid = 0,
 	output [7:0] leds
 );
+	reg [2:0] register_select_pipeline = 0;
+	reg [2:0] read_pipeline = 0;
+	reg [2:0] enable_pipeline = 0;
 	reg checksum = 0;
 	assign lemo = 0;
 	assign other0 = 0;
@@ -96,10 +99,13 @@ module top #(
 			errors <= 0;
 			checksum <= 0;
 			astate <= 0;
+			register_select_pipeline <= 0;
+			read_pipeline <= 0;
+			enable_pipeline <= 0;
 		end else begin
-			if (enable) begin
+			if (enable_pipeline[2]==1) begin
 				pre_pre_ack_valid <= 1;
-				if (read) begin // read mode
+				if (read_pipeline[2]==1) begin // read mode
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
@@ -109,7 +115,7 @@ module top #(
 //						pre_bus <= 8'ha5;
 					end
 				end else begin // write mode
-					if (register_select) begin
+					if (register_select_pipeline[2]==1) begin
 						if (wstate[1]==0) begin
 							if (wstate[0]==0) begin
 								wstate[0] <= 1;
@@ -175,6 +181,9 @@ module top #(
 			ack_valid <= pre_ack_valid;
 			pre_ack_valid <= pre_pre_ack_valid;
 			//pre_bus <= pre_pre_bus;
+			register_select_pipeline <= { register_select_pipeline[1:0], register_select };
+			read_pipeline            <= {            read_pipeline[1:0], read };
+			enable_pipeline          <= {          enable_pipeline[1:0], enable };
 		end
 	end
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
