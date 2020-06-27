@@ -9,9 +9,9 @@
 `define althea_revA
 `include "lib/generic.v"
 `include "lib/RAM8.v"
+`include "lib/dcm.v"
 //`include "lib/spi.v"
 //`include "lib/serdes_pll.v"
-//`include "lib/dcm.v"
 //`include "lib/reset.v"
 //`include "lib/frequency_counter.v"
 //`include "lib/axi4lite.v"
@@ -55,8 +55,18 @@ module top #(
 	assign lemo = 0;
 	assign other0 = 0;
 	assign other1 = 0;
+	// ----------------------------------------------------------------------
+	reg reset50 = 1;
 	wire clock50;
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
+	reg reset125 = 1;
+	wire rawclock125;
+	wire clock125;
+	wire pll_locked;
+	simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm_125 (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
+	BUFG mrt (.I(rawclock125), .O(clock125));
+	wire clock = clock125;
+	// ----------------------------------------------------------------------
 	reg [1:0] astate = 0;
 	wire [TRANSACTIONS_PER_ADDRESS_WORD*BUS_WIDTH-1:0] address_word;
 	reg [BUS_WIDTH-1:0] address [TRANSACTIONS_PER_ADDRESS_WORD-1:0];
@@ -86,11 +96,7 @@ module top #(
 	reg pre_ack_valid = 0;
 	localparam COUNTER50_BIT_PICKOFF = 3;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
-	reg reset50 = 1;
-	integer j;
 	always @(posedge clock50) begin
-		pre_pre_ack_valid <= 0;
-		write_strobe <= 0;
 		if (reset) begin
 			counter50 <= 0;
 			reset50 <= 1;
@@ -99,6 +105,26 @@ module top #(
 				reset50 <= 0;
 			end
 			counter50 <= counter50 + 1'b1;
+		end
+	end
+	reg [2:0] reset50_pipeline125 = 0;
+	localparam COUNTER125_BIT_PICKOFF = 3;
+	reg [COUNTER125_BIT_PICKOFF:0] counter125 = 0;
+	integer j;
+	always @(posedge clock125) begin
+		reset50_pipeline125 =  { reset50_pipeline125[1:0], reset50 };
+	end
+	always @(posedge clock) begin
+		pre_pre_ack_valid <= 0;
+		write_strobe <= 0;
+		if (reset || reset50_pipeline125[2]) begin
+			counter125 <= 0;
+			reset125 <= 1;
+		end else if (reset125) begin
+			if (counter125[COUNTER50_BIT_PICKOFF]) begin
+				reset125 <= 0;
+			end
+			counter125 <= counter125 + 1'b1;
 			for (j=0; j<TRANSACTIONS_PER_ADDRESS_WORD; j=j+1) begin : address_clear
 				address[j] <= 0;
 			end
@@ -231,7 +257,7 @@ module top #(
 		end
 	end
 	for (i=1; i<BUS_PIPELINE_PICKOFF+1; i=i+1) begin : bus_pipeline_thing
-		always @(posedge clock50) begin
+		always @(posedge clock) begin
 			if (reset50) begin
 				bus_pipeline[i] <= 0;
 			end else begin
@@ -243,8 +269,8 @@ module top #(
 	assign bus = 'bz;
 	wire [ADDRESS_DEPTH-1:0] address__word = address_word[ADDRESS_DEPTH-1:0];
 	RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset50),
-		.wclk(clock50), .waddr(address__word), .din(write_data_word), .write_en(write_strobe),
-		.rclk(clock50), .raddr(address__word), .dout(read_data_word));
+		.wclk(clock), .waddr(address__word), .din(write_data_word), .write_en(write_strobe),
+		.rclk(clock), .raddr(address__word), .dout(read_data_word));
 	if (0) begin
 		assign leds[7] = ack_valid;
 		assign leds[6] = write_strobe;
