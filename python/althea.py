@@ -485,7 +485,7 @@ def setup_half_duplex_bus():
 	half_duplex_bus = fastgpio.half_duplex_bus(
 		bus_width=bus_width,
 		bus_offset=gpio_bus[0],
-		transfers_per_address_word=1,
+		transfers_per_address_word=2,
 		transfers_per_data_word=transfers_per_data_word,
 		register_select=13,
 		read=14,
@@ -504,14 +504,14 @@ def setup_half_duplex_bus():
 	#ack_bus = fastgpio.bus(ack_bus_mask, 0, ack_bus_list[0])
 
 def test_writing_data_to_half_duplex_bus():
-	MEMSIZE = 256
+	MEMSIZE = 2**14
 	print("writing data in half-duplex bus mode...")
 	time.sleep(0.1)
 	reset_pulse()
 	time.sleep(0.1)
 	data = []
 	#NUM = 4500000
-	NUM = 50000
+	NUM = MEMSIZE
 	#NUM = 1024
 	#NUM = 256
 	#NUM = 16
