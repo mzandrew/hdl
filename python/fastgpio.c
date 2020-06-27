@@ -184,7 +184,7 @@ void set_drive_strength_and_slew_rate(volatile u32 *gpio_pads, u8 milliamps) {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-void setup_bus_as_inputs(volatile u32 *gpio_port, u32 mask) {
+void setup_as_inputs(volatile u32 *gpio_port, u32 mask) {
 	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
 	//printf("\n%08lx", mask);
 	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
@@ -197,7 +197,7 @@ void setup_bus_as_inputs(volatile u32 *gpio_port, u32 mask) {
 	}
 }
 
-void setup_bus_as_outputs(volatile u32 *gpio_port, u32 mask) {
+void setup_as_outputs(volatile u32 *gpio_port, u32 mask) {
 	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
 	//printf("\n%08lx", mask);
 	for (int i=0; i<32; i++) {
@@ -334,6 +334,7 @@ typedef struct {
 	u32 partial_mask;
 	u32 bus_width;
 	u32 bus_offset;
+	u32 bus_mode;
 	u32 transfers_per_data_word;
 	u32 transfers_per_address_word;
 	u32 register_select;
@@ -420,13 +421,49 @@ u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 	return new_errors;
 }
 
+void set_bus_as_input_if_necessary(half_duplex_bus_object *self) {
+	setup_as_inputs(self->gpio_port, self->bus_mask);
+	*self->set_reg = self->read;
+	if (self->bus_mode) {
+		//printf("\nsetting bus to input");
+		setup_as_inputs(self->gpio_port, self->bus_mask);
+		//mynsleep(short_delay);
+		self->bus_mode = 0;
+		*self->set_reg = self->read;
+	}
+}
+
+u32 nop(u32 b) {
+	u32 a = 0xa5a5a5a5;
+	u32 c = a^b;
+	for (int i=0; i<150000; i++) {
+		c ^= a^b;
+	}
+	return c;
+}
+
+void set_bus_as_output_if_necessary(half_duplex_bus_object *self) {
+	*self->clr_reg = self->read;
+	setup_as_outputs(self->gpio_port, self->bus_mask);
+	if (!self->bus_mode) {
+		//printf("\nsetting bus to output");
+		*self->clr_reg = self->read;
+		self->bus_mode = 1;
+		setup_as_outputs(self->gpio_port, self->bus_mask);
+		// here is where the delay helps reduce the number of errors by a factor of 4
+		//mynsleep(short_delay);
+		//nop(0x78787878);
+	}
+}
+
 u32 set_bus(half_duplex_bus_object *self, u32 partial_data) {
-	volatile u32 *set_reg = self->set_reg;
 	volatile u32 *clr_reg = self->clr_reg;
 	u32 bus_mask = self->bus_mask;
+	*clr_reg = bus_mask;
 	u32 bus_offset = self->bus_offset;
 	u32 adjusted_data = (partial_data<<bus_offset) & bus_mask;
-	*clr_reg = bus_mask;
+	set_bus_as_output_if_necessary(self);
+	volatile u32 *set_reg = self->set_reg;
 	*set_reg = adjusted_data;
 	volatile u32 *read_port = self->read_port;
 	u32 readback;
@@ -477,41 +514,43 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	self->register_select = 1<<register_select;
 	//printf("\nregister_select: %08lx", self->register_select);
 	if (31<read) { return -1; }
-	self->read = 1<<read;
+	read = 1<<read;
+	self->read = read;
 	//printf("\nread: %08lx", self->read);
 	if (31<enable) { return -1; }
-	self->enable = 1<<enable;
+	enable = 1<<enable;
+	self->enable = enable;
 	//printf("\nenable: %08lx", self->enable);
 	if (31<ack_valid) { return -1; }
-	self->ack_valid = 1<<ack_valid;
+	ack_valid = 1<<ack_valid;
+	self->ack_valid = ack_valid;
 	//printf("\nack_valid: %08lx", self->ack_valid);
-	u32 bus_mask = 0;
-	for (int i=0; i<bus_width; i++) {
-		bus_mask |= 1<<(i+bus_offset);
-	}
-	self->bus_mask = bus_mask;
-	//printf("\nbus_mask: %08lx", self->bus_mask);
 	u32 partial_mask = 0;
 	for (int i=0; i<bus_width; i++) {
 		partial_mask |= 1<<i;
 	}
 	self->partial_mask = partial_mask;
+	//printf("\npartial_mask: %08lx", self->partial_mask);
+	u32 bus_mask = partial_mask<<bus_offset;
+	self->bus_mask = bus_mask;
+	//printf("\nbus_mask: %08lx", self->bus_mask);
 	self->errors = 0;
 	self->transactions = 0;
 	self->retries = 0;
 	self->user_errors = 0;
-	//printf("\npartial_mask: %08lx", self->partial_mask);
 	self->gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
-	self->gpio_pads = mmap_bcm_register(BCM2835_PADS_GPIO_0_27);
 	self->set_reg = self->gpio_port + GPIO_SET_OFFSET;
 	self->clr_reg = self->gpio_port + GPIO_CLR_OFFSET;
 	self->read_port = self->gpio_port + GPIO_PIN_LEVEL;
-	setup_bus_as_inputs(self->gpio_port, self->ack_valid);
+	self->gpio_pads = mmap_bcm_register(BCM2835_PADS_GPIO_0_27);
 	set_drive_strength_and_slew_rate(self->gpio_pads, 2); // 2 mA seems best
-	setup_bus_as_outputs(self->gpio_port, self->register_select | self->read | self->enable);
-	clear_enable_and_wait_for_ack_valid(self);
-	u32 everything = bus_mask | register_select | read | enable;
+	setup_as_inputs(self->gpio_port, self->ack_valid);
+	u32 everything = self->register_select | self->read | self->enable;
+	setup_as_outputs(self->gpio_port, everything);
 	*self->clr_reg = everything;
+	self->bus_mode = 0; // 0 means to set as inputs
+	set_bus_as_output_if_necessary(self); // sets self->bus_mode to 1
+	clear_enable_and_wait_for_ack_valid(self);
 	return 0;
 }
 
@@ -529,6 +568,7 @@ static void half_duplex_bus_destructor(half_duplex_bus_object *self) {
 		printf("\nthere were %ld total user_errors", self->user_errors);
 	}
 	printf("\n");
+	*self->clr_reg = self->bus_mask | self->register_select | self->read | self->enable;
 	Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
@@ -542,13 +582,13 @@ static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyOb
 }
 
 u32 set_address(half_duplex_bus_object *self, u32 address) {
+	//printf("\nset_address()");
 //	sprintf(string1, "set_address() ");
 	volatile u32 *clr_reg = self->clr_reg;
 	u32 bus_width = self->bus_width;
 	u32 partial_mask = self->partial_mask;
 	u32 transfers_per_address_word = self->transfers_per_address_word;
 	u32 register_select = self->register_select;
-	u32 read = self->read;
 	u32 enable = self->enable;
 	u32 new_errors = 0;
 	u32 partial_address;
@@ -557,9 +597,10 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	//printf("\naddress: %0*lx", (int) (transfers_per_address_word*bus_width/4), address);
 	//for (t=0; t<transfers_per_address_word; t++) {
 	//mynsleep(1);
+	set_bus_as_output_if_necessary(self);
 	new_errors += clear_enable_and_wait_for_ack_valid(self);
 //	sprintf(string2, " _ "); strcat(string1, string2);
-	*clr_reg = register_select | read; // register_select=0 is address mode
+	*clr_reg = register_select; // register_select=0 is address mode
 	for (t=0; t<transfers_per_address_word; t++) {
 		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
 		//printf("\npartial_address: %0*lx", (int) bus_width/4, partial_address);
@@ -579,21 +620,21 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 }
 
 u32 write_data(half_duplex_bus_object *self, u32 data) {
+	//printf("\nwrite_data()");
 	volatile u32 *set_reg = self->set_reg;
 	volatile u32 *clr_reg = self->clr_reg;
 	u32 bus_width = self->bus_width;
 	u32 partial_mask = self->partial_mask;
 	u32 transfers_per_data_word = self->transfers_per_data_word;
 	u32 register_select = self->register_select;
-	u32 read = self->read;
 	u32 enable = self->enable;
 	u32 new_errors = 0;
 	u32 partial_data;
 	u32 t;
 	// write data
 	//printf("\ndata to write: %0*lx", (int) (transfers_per_data_word*bus_width/4), data);
+	set_bus_as_output_if_necessary(self);
 	new_errors += clear_enable_and_wait_for_ack_valid(self);
-	*clr_reg = read;
 	*set_reg = register_select; // register_select=1 is data mode
 	for (t=0; t<transfers_per_data_word; t++) {
 		partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
@@ -612,7 +653,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 }
 
 u32 read_data(half_duplex_bus_object *self) {
-	volatile u32 *gpio_port = self->gpio_port;
+	//printf("\nread_data()");
 	volatile u32 *set_reg = self->set_reg;
 	volatile u32 *clr_reg = self->clr_reg;
 	volatile u32 *read_port = self->read_port;
@@ -621,16 +662,16 @@ u32 read_data(half_duplex_bus_object *self) {
 	u32 bus_offset = self->bus_offset;
 	u32 transfers_per_data_word = self->transfers_per_data_word;
 	u32 register_select = self->register_select;
-	u32 read = self->read;
+//	u32 read = self->read;
 	u32 enable = self->enable;
 	u32 new_errors = 0;
 //	u32 partial_data0;
 	u32 partial_data1;
 	u32 t;
 	// readback data
+	set_bus_as_input_if_necessary(self);
+	*set_reg = register_select; // register_select=1 is data mode
 	new_errors += clear_enable_and_wait_for_ack_valid(self);
-	setup_bus_as_inputs(gpio_port, bus_mask);
-	*set_reg = register_select | read; // register_select=1 is data mode
 	u32 data = 0;
 	for (t=0; t<transfers_per_data_word; t++) {
 		//*clr_reg = bus_mask; // shouldn't need to do this...
@@ -650,8 +691,8 @@ u32 read_data(half_duplex_bus_object *self) {
 		}
 		//printf("\npartial_data readback: %0*lx", (int) (bus_width/4), partial_data);
 	}
-	*clr_reg = read;
-	setup_bus_as_outputs(gpio_port, bus_mask);
+//	*clr_reg = read;
+	//setup_as_outputs(gpio_port, bus_mask);
 	//printf("\ndata readback: %0*lx", (int) (transfers_per_data_word*bus_width/4), data);
 	if (new_errors) { printf("\nnew_errors: %ld (read_data)", new_errors); }
 	self->errors += new_errors;
@@ -685,7 +726,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	volatile u32 *gpio_port = self->gpio_port;
 	volatile u32 *clr_reg = self->clr_reg;
 	*clr_reg = everything;
-	setup_bus_as_outputs(gpio_port, bus_mask);
+	setup_as_outputs(gpio_port, bus_mask);
 	u32 max_retry_cycles_error_var = 1;
 	if (verify) {
 		max_retry_cycles_error_var = MAX_RETRY_CYCLES_ERROR;
@@ -762,15 +803,17 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 	if (!PyArg_ParseTuple(args, "k|k", &start_address, &length)) {
 		return PyErr_Format(PyExc_ValueError, "usage:  read(start_address, length)");
 	}
+	volatile u32 *gpio_port = self->gpio_port;
+	volatile u32 *clr_reg = self->clr_reg;
 	u32 bus_mask = self->bus_mask;
 	u32 register_select = self->register_select;
 	u32 read = self->read;
 	u32 enable = self->enable;
 	u32 address = start_address;
 	u32 data;
-	volatile u32 *clr_reg = self->clr_reg;
 	u32 everything = bus_mask | register_select | read | enable;
 	*clr_reg = everything;
+	setup_as_outputs(gpio_port, bus_mask);
 	u32 index = 0;
 //	u32 new_errors = 0;
 	PyObject *obj = PyList_New(0);
@@ -855,9 +898,9 @@ static int init_anubis(bus_object *self, PyObject *args, PyObject *kwds) {
 	self->gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
 	self->gpio_pads = mmap_bcm_register(BCM2835_PADS_GPIO_0_27);
 	if (direction) {
-		setup_bus_as_outputs(self->gpio_port, mask);
+		setup_as_outputs(self->gpio_port, mask);
 	} else {
-		setup_bus_as_inputs(self->gpio_port, mask);
+		setup_as_inputs(self->gpio_port, mask);
 	}
 	set_drive_strength_and_slew_rate(self->gpio_pads, 2); // 2 mA seems best
 	// according to looking at traces on a MSOX6004A and noting the overshoot on any higher value
