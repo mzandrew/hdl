@@ -422,37 +422,21 @@ u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 }
 
 void set_bus_as_input_if_necessary(half_duplex_bus_object *self) {
-	setup_as_inputs(self->gpio_port, self->bus_mask);
-	*self->set_reg = self->read;
 	if (self->bus_mode) {
 		//printf("\nsetting bus to input");
 		setup_as_inputs(self->gpio_port, self->bus_mask);
-		//mynsleep(short_delay);
 		self->bus_mode = 0;
 		*self->set_reg = self->read;
 	}
-}
-
-u32 nop(u32 b) {
-	u32 a = 0xa5a5a5a5;
-	u32 c = a^b;
-	for (int i=0; i<150000; i++) {
-		c ^= a^b;
-	}
-	return c;
+	*self->set_reg = self->read;
 }
 
 void set_bus_as_output_if_necessary(half_duplex_bus_object *self) {
 	*self->clr_reg = self->read;
-	setup_as_outputs(self->gpio_port, self->bus_mask);
 	if (!self->bus_mode) {
 		//printf("\nsetting bus to output");
-		*self->clr_reg = self->read;
 		self->bus_mode = 1;
 		setup_as_outputs(self->gpio_port, self->bus_mask);
-		// here is where the delay helps reduce the number of errors by a factor of 4
-		//mynsleep(short_delay);
-		//nop(0x78787878);
 	}
 }
 
@@ -756,7 +740,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		}
 		if (0) {
 			if (0==count%10240) {
-				mynsleep(short_delay);
+				//mynsleep(short_delay);
 			}
 		}
 		address++;
@@ -964,7 +948,7 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 //		old_value = value;
 		if (0) {
 			if (0==count%10240) {
-				mynsleep(short_delay);
+				//mynsleep(short_delay);
 			}
 		}
 		Py_DECREF(next);
