@@ -529,16 +529,16 @@ u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 u32 set_bus(half_duplex_bus_object *self, u32 partial_data) {
 	volatile u32 *set_reg = self->set_reg;
 	volatile u32 *clr_reg = self->clr_reg;
-	volatile u32 *read_port = self->read_port;
 	u32 bus_mask = self->bus_mask;
 	u32 bus_offset = self->bus_offset;
 	u32 adjusted_data = (partial_data<<bus_offset) & bus_mask;
+	*clr_reg = bus_mask;
+	*set_reg = adjusted_data;
+	volatile u32 *read_port = self->read_port;
 	u32 readback;
 	u32 new_errors = 0;
 	u32 i;
 	//printf("adjusted_data to write: %0*lx\n", (int) (bus_width/4+1), adjusted_data);
-	*clr_reg = bus_mask;
-	*set_reg = adjusted_data;
 	for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
 		readback = *read_port & bus_mask;
 		if (readback == adjusted_data) { break; }
