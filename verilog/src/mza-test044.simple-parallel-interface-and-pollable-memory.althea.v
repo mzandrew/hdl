@@ -42,7 +42,7 @@ module top #(
 );
 	localparam REGISTER_SELECT_PIPELINE_PICKOFF = 3;
 	localparam READ_PIPELINE_PICKOFF = 3;
-	localparam ENABLE_PIPELINE_PICKOFF = 23;
+	localparam ENABLE_PIPELINE_PICKOFF = 4;
 	localparam BUS_PIPELINE_PICKOFF = 3;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
 	reg [READ_PIPELINE_PICKOFF:0] read_pipeline = 0;
