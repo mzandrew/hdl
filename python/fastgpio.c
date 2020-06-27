@@ -467,7 +467,11 @@ static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyOb
 #define MAX_ACK_CYCLES_ERROR (30)
 #define MAX_READBACK_CYCLES_ERROR (30)
 #define MAX_RETRY_CYCLES_ERROR (30)
-#define MAX_ACK_CYCLES_WARNING (9)
+#define MAX_ACK_CYCLES_WARNING (4)
+// pickoff reg_sel/read=3:enable= 4->WARNING=occasionally 4
+// pickoff reg_sel/read=3:enable=10->WARNING=occasionally 6
+// pickoff reg_sel/read=3:enable=23->WARNING=occasionally 9
+// pickoff reg_sel/read=3:enable=30->WARNING=occasionally 11
 #define MAX_READBACK_CYCLES_WARNING (1)
 
 u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
@@ -487,7 +491,7 @@ u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 		if (value & ack_valid) { break; }
 		//mynsleep(short_delay);
 	}
-	if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld(r) ", i); }
+	if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld(s) ", i); }
 	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
 	#else
 	do { } while (!(*read_port & ack_valid));
@@ -512,7 +516,7 @@ u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 		if (!(value & ack_valid)) { break; }
 		//mynsleep(short_delay);
 	}
-	if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld(r) ", i); }
+	if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld(c) ", i); }
 	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
 	#else
 	do { } while (!(*read_port & ack_valid));

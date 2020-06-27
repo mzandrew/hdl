@@ -441,25 +441,28 @@ def test_writing_data_to_simple_parallel_bus():
 
 # ---------------------------------------------------------------------------
 
-def check(ref1, ref2, offset=0, width=0):
+def check(ref1, ref2, should_print=1, offset=0, width=0):
 	if 0==width:
 		width = math.log2(len(ref2))//4
 	#print(str(width))
 	errors = 0
 	if len(ref1) != len(ref2):
-		print("lengths don't match")
+		if should_print:
+			print("lengths don't match")
 		errors += 1
 	for i in range(len(ref1)):
 		if ref1[i] != ref2[i]:
 			errors += 1
-			#print("ref1[" + str(i) + "]=" + hex(ref1[i], bits_word/4))
-			#print("ref2[" + str(i) + "]=" + hex(ref2[i], bits_word/4))
-			print("ref1[" + hex(i+offset, width) + "] = " + bin(ref1[i], bits_word))
-			print("ref2[" + hex(i+offset, width) + "] = " + bin(ref2[i], bits_word))
-			#sys.exit(1)
+			if should_print:
+				#print("ref1[" + str(i) + "]=" + hex(ref1[i], bits_word/4))
+				#print("ref2[" + str(i) + "]=" + hex(ref2[i], bits_word/4))
+				print("ref1[" + hex(i+offset, width) + "] = " + bin(ref1[i], bits_word))
+				print("ref2[" + hex(i+offset, width) + "] = " + bin(ref2[i], bits_word))
+				#sys.exit(1)
 		#else:
+			#if should_print:
 			#print("ref1[" + hex(i+offset, width) + "] = " + bin(ref1[i], bits_word))
-#			print("match at address " + str(i))
+			#print("match at address " + str(i))
 		#print("\n")
 #	print(str(errors))
 	return errors
@@ -534,32 +537,33 @@ def test_writing_data_to_half_duplex_bus():
 		if 1: # use above list and check it
 			count += half_duplex_bus.write(0, data)
 			values = half_duplex_bus.read(0, len(data))
-			errors += check(data, values)
+			#errors += check(data, values, True)
+			errors += check(data, values, False)
 		if 0: # ramp up or down
 			#data = [ d for d in range(NUM) ]
 			data = [ NUM-d-1 for d in range(NUM) ]
 			count += half_duplex_bus.write(0, data)
 			values = half_duplex_bus.read(0, len(data))
-			errors += check(data, values)
+			errors += check(data, values, True)
 			#data = [ d<<4 for d in range(NUM) ]
 			#count += half_duplex_bus.write(0, data)
 			#values = half_duplex_bus.read(0, len(data))
-			#errors += check(data, values)
+			#errors += check(data, values, True)
 			#data = [ d<<8 for d in range(NUM) ]
 			#count += half_duplex_bus.write(0, data)
 			#values = half_duplex_bus.read(0, len(data))
-			#errors += check(data, values)
+			#errors += check(data, values, True)
 			#data = [ d<<12 for d in range(NUM) ]
 			#count += half_duplex_bus.write(0, data)
 			#values = half_duplex_bus.read(0, len(data))
-			#errors += check(data, values)
+			#errors += check(data, values, True)
 		if 0:
 			#data = [ 0x000a, 0x00a0, 0x0500, 0x5000 ]
 			data = [ 0x050a, 0x50a0, 0x050a, 0x50a0, 0 ]
 			data[len(data)-1] = 0xf0f0
 			count += half_duplex_bus.write(0, data)
 			values = half_duplex_bus.read(0, NUM)
-			errors += check(data, values)
+			errors += check(data, values, True)
 		if 0: # same value to all addresses, but written from a different start_address each time
 			#data = [ 0x8421, 0xffff, 0x1248, 0xa5a5 ]
 			data = [ 0x1248 ]
@@ -571,12 +575,12 @@ def test_writing_data_to_half_duplex_bus():
 			for j in range(MEMSIZE):
 				if values[j] != data[0]:
 					print("wrong")
-			#errors += check(data, values)
+			#errors += check(data, values, True)
 		if 0: # same value to all addresses
 			data = [ 0x1248 for d in range(NUM) ]
 			count += half_duplex_bus.write(0, data)
 			values = half_duplex_bus.read(0, NUM)
-			errors += check(data, values)
+			errors += check(data, values, True)
 		if 0: # single bit
 			bunch = [ 0x0000, 0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800, 0x1000, 0x2000, 0x4000, 0x8000 ]
 			#bunch = [ 0x00, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0 ]
@@ -589,7 +593,7 @@ def test_writing_data_to_half_duplex_bus():
 					data = [ value ]
 					count += half_duplex_bus.write(start_address, data)
 					values = half_duplex_bus.read(start_address, 1)
-					errors += check(data, values)
+					errors += check(data, values, True)
 					time.sleep(0.1)
 				if not repeat:
 					break
@@ -608,12 +612,12 @@ def test_writing_data_to_half_duplex_bus():
 			data = [ 0x1248 ]
 			count += half_duplex_bus.write(address_a, data)
 			values = half_duplex_bus.read(address_a, 1)
-			errors += check(data, values)
+			errors += check(data, values, True)
 			#print(hex(values[0]))
 			data = [ 0x8421 ]
 			count += half_duplex_bus.write(address_b, data)
 			values = half_duplex_bus.read(address_b, 1)
-			errors += check(data, values)
+			errors += check(data, values, True)
 			#print(hex(values[0]))
 			values = half_duplex_bus.read(address_a, 1)
 			print(hex(values[0]))
@@ -626,7 +630,7 @@ def test_writing_data_to_half_duplex_bus():
 				data = [ value ]
 				count += half_duplex_bus.write(address, data)
 				values = half_duplex_bus.read(address, len(data))
-				errors += check(data, values, address, math.log2(MEMSIZE)//4)
+				errors += check(data, values, True, address, math.log2(MEMSIZE)//4)
 		if 0:
 			address = 0
 			#bunch = [ 0x1248, 0x8421 ]
@@ -636,7 +640,7 @@ def test_writing_data_to_half_duplex_bus():
 				data = [ value ]
 				count += half_duplex_bus.write(address, data)
 				values = half_duplex_bus.read(address, len(data))
-				errors += check(data, values, address, math.log2(MEMSIZE)//4)
+				errors += check(data, values, True, address, math.log2(MEMSIZE)//4)
 				address += 1
 				address %= MEMSIZE
 	#data[len(data)-1] = 0x31231507
