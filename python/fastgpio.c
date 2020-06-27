@@ -668,11 +668,10 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	bool verify = true;
 	PyObject *obj;
 	if (!PyArg_ParseTuple(args, "kO|p", &start_address, &obj, &verify)) {
-		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, iteratable_object)");
+		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, list)");
 	}
-	PyObject *iter = PyObject_GetIter(obj);
-	if (!iter) {
-		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, iteratable_object)");
+	if (!PyList_Check(obj)) {
+		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, list)");
 	}
 	u32 bus_mask = self->bus_mask;
 	u32 register_select = self->register_select;
@@ -684,7 +683,6 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	int hex_width = transfers_per_data_word*bus_width/4;
 	u32 data, data_readback;
 	u32 everything = bus_mask | register_select | read | enable;
-	u32 count = 0;
 	u32 i;
 	u32 new_errors = 0;
 	volatile u32 *gpio_port = self->gpio_port;
@@ -695,10 +693,12 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	if (verify) {
 		max_retry_cycles_error_var = MAX_RETRY_CYCLES_ERROR;
 	}
-	while (1) {
-		PyObject *next = PyIter_Next(iter);
+	u32 count;
+	u32 length = (u32) PyList_Size(obj);
+	printf("length = %ld\n", length);
+	for (count=0; count<length; count++) {
+		PyObject *next = PyList_GetItem(obj, count);
 		if (!next) { break; }
-		//if (length<=count) { break; }
 		data = PyLong_AsUnsignedLong(next);
 		self->transactions++;
 		for (i=0; i<max_retry_cycles_error_var; i++) {
@@ -720,10 +720,24 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 				mynsleep(short_delay);
 			}
 		}
-		//address += len(u32);
-		count++;
 		address++;
-		Py_DECREF(next);
+	}
+	//if (verify) {
+	if (0) {
+		address = start_address;
+		for (count=0; count<length; count++) {
+			PyObject *next = PyList_GetItem(obj, count);
+			if (!next) { break; }
+			data = PyLong_AsUnsignedLong(next);
+			for (i=0; i<max_retry_cycles_error_var; i++) {
+				set_address(self, address);
+				data_readback = read_data(self);
+				if (data == data_readback) { break; }
+				self->retries++;
+				write_data(self, data);
+			}
+			address++;
+		}
 	}
 	*clr_reg = everything;
 	//printf("completed %ld transactions\n", count);
@@ -731,7 +745,6 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 //		printf("there were %ld new errors\n", new_errors);
 //	}
 	self->errors += new_errors;
-	Py_DECREF(iter);
 	return PyLong_FromLong(count);
 }
 
