@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-06-26 by mza
+// last updated 2020-06-27 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -155,6 +155,16 @@ module top #(
 //					end else begin
 //						checksum <= 0;
 //					end
+					if (rstate || rword!=TRANSACTIONS_PER_DATA_WORD-1) begin
+						rstate <= 0;
+						errors <= errors + 1'b1;
+						rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
+					end
+					if (astate || aword!=TRANSACTIONS_PER_ADDRESS_WORD-1) begin
+						astate <= 0;
+						errors <= errors + 1'b1;
+						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+					end
 				end else begin
 					if (wstate[0]) begin
 						wstate[0] <= 0;
@@ -169,6 +179,16 @@ module top #(
 				if (rstate[1]) begin
 					rstate <= 0;
 					rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
+					if (wstate || wword!=TRANSACTIONS_PER_DATA_WORD-1) begin
+						wstate <= 0;
+						errors <= errors + 1'b1;
+						wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
+					end
+					if (astate || aword!=TRANSACTIONS_PER_ADDRESS_WORD-1) begin
+						astate <= 0;
+						errors <= errors + 1'b1;
+						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+					end
 				end else begin
 					if (rstate[0]) begin
 						rstate[0] <= 0;
@@ -182,6 +202,16 @@ module top #(
 				if (astate[1]) begin
 					astate <= 0;
 					aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+					if (wstate || wword!=TRANSACTIONS_PER_DATA_WORD-1) begin
+						wstate <= 0;
+						errors <= errors + 1'b1;
+						wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
+					end
+					if (rstate || rword!=TRANSACTIONS_PER_DATA_WORD-1) begin
+						rstate <= 0;
+						errors <= errors + 1'b1;
+						rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
+					end
 				end else begin
 					if (astate[0]) begin
 						astate[0] <= 0;
@@ -190,16 +220,6 @@ module top #(
 						end else begin
 							astate[1] <= 1;
 						end
-						if (wword!=TRANSACTIONS_PER_DATA_WORD-1) begin
-							errors <= errors + 1'b1;
-						end
-						if (rword!=TRANSACTIONS_PER_DATA_WORD-1) begin
-							errors <= errors + 1'b1;
-						end
-						wstate <= 0;
-						wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
-						rstate <= 0;
-						rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					end
 				end
 			end
@@ -387,6 +407,7 @@ module top_tb;
 		end
 	endtask
 	initial begin
+		// write some data to some addresses
 		master_clock_delay(64);
 		slave_clock_delay(64);
 		a16_d32_master_write_transaction(.address16(16'hab4c), .data32(32'h3123_2a12));
@@ -397,6 +418,7 @@ module top_tb;
 		master_readback_transaction();
 		a16_d32_master_write_transaction(.address16(16'hab4f), .data32(32'h3123_2d78));
 		master_readback_transaction();
+		// read back from those addresses
 		master_clock_delay(64);
 		slave_clock_delay(64);
 		a16_master_read_transaction(.address16(16'hab4c));
@@ -404,13 +426,26 @@ module top_tb;
 		a16_master_read_transaction(.address16(16'hab4e));
 		a16_master_read_transaction(.address16(16'hab4f));
 		pre_read <= 0;
+		// write the two checksum words to the memory
+		//master_clock_delay(64);
+		//slave_clock_delay(64);
+		//a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h3123_1507));
+		//master_readback_transaction();
+		//a16_d32_master_write_transaction(.address16(16'h3412), .data32(32'h0000_1507));
+		//master_readback_transaction();
+		//pre_register_select <= 0;
+		// now mess things up
 		master_clock_delay(64);
 		slave_clock_delay(64);
-		a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h3123_1507));
-		master_readback_transaction();
-		a16_d32_master_write_transaction(.address16(16'h3412), .data32(32'h0000_1507));
-		master_readback_transaction();
-		pre_register_select <= 0;
+		pre_register_select <= 1;
+		pre_read <= 1;
+		pre_bus <= 8'h99;
+		pulse_enable();
+		a16_d32_master_write_transaction(.address16(16'hab4f), .data32(32'h3123_2d78));
+		pre_read <= 0;
+		pre_bus <= 8'h99;
+		pulse_enable();
+		a16_master_read_transaction(.address16(16'hab4f));
 	end
 	always @(posedge clock) begin
 		register_select <= #1 pre_register_select;
