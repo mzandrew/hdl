@@ -655,7 +655,7 @@ def test_writing_data_to_half_duplex_bus():
 	#print(str(data))
 #	count += half_duplex_bus.write(0, data)
 	end = time.time()
-	print_messages()
+	#print_messages()
 	diff = end - start
 	per_sec = NUM / diff
 	print("%.6f"%diff + " seconds")

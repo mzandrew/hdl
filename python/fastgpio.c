@@ -87,11 +87,11 @@ static PyObject* method_test(PyObject *self, PyObject *args);
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void show_a_block_of_registers(volatile u32 *start, u32 count) {
-	if (0==start) { fprintf(warning, "cowardly refusing to show target of NULL pointer (run with sudo?)...\n"); return; }
+	if (0==start) { fprintf(warning, "\ncowardly refusing to show target of NULL pointer (run with sudo?)..."); return; }
 	u32 value;
 	for (u32 i=0; i<count+1; i++) {
 		value = start[i];
-		printf("%08lx:%08lx\n", (u32) &start[i], value); // read-only registers return 0x6770696f "gpio"
+		printf("\n%08lx:%08lx", (u32) &start[i], value); // read-only registers return 0x6770696f "gpio"
 	}
 }
 
@@ -104,7 +104,7 @@ static void *mmap_bcm_gpio_register(off_t page_offset) {
 	// see also https://github.com/raspberrypi/linux/pull/1112
 	int dev_mem_fd = open("/dev/gpiomem", O_RDWR | O_SYNC);
 	if (dev_mem_fd < 0) {
-		printf("Cannot open /dev/gpiomem, fallback to /dev/mem\n");
+		printf("\nCannot open /dev/gpiomem, fallback to /dev/mem");
 		dev_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
 		if (dev_mem_fd < 0) {
 			perror("can't open /dev/mem: ");
@@ -114,7 +114,7 @@ static void *mmap_bcm_gpio_register(off_t page_offset) {
 	} else {
 		page_offset = 0; // just to prove the offset is meaningless for the gpiomem device
 	}
-	//printf("page_offset: %08lx\n", page_offset);
+	//printf("\npage_offset: %08lx", page_offset);
 	u32 *result =
 		(u32*) mmap(NULL,                  // Any adddress in our space will do
 		                 sysconf(_SC_PAGE_SIZE),
@@ -143,7 +143,7 @@ static void *mmap_bcm_register(off_t page_offset) {
 	}
 	//const off_t base = PERI_BASE;
 	const off_t base = bcm_host_get_peripheral_address(); // https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
-	//printf("base+page_offset: %08lx\n", base + page_offset);
+	//printf("\nbase+page_offset: %08lx", base + page_offset);
 	u32 *result =
 		(u32*) mmap(NULL,                  // Any adddress in our space will do
 		                 sysconf(_SC_PAGE_SIZE),
@@ -175,23 +175,23 @@ void set_drive_strength_and_slew_rate(volatile u32 *gpio_pads, u8 milliamps) {
 //	value |= 1<<4; // slew rate NOT limited
 	value |= 1<<3; // input hysteresis enabled
 	value |= (milliamps>>1)-1; // set drive strength
-	//printf("intended value for gpio_pads register: %08lx\n", value);
+	//printf("\nintended value for gpio_pads register: %08lx", value);
 	gpio_pads[BCM2835_PADS_GPIO_0_27_OFFSET] = value;
 	//show_a_block_of_registers(gpio_pads, BCM2835_PADS_GPIO_MAX);
 	value = gpio_pads[BCM2835_PADS_GPIO_0_27_OFFSET];
-	//printf("pads register reads: %08lx\n", value);
+	//printf("\npads register reads: %08lx", value);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void setup_bus_as_inputs(volatile u32 *gpio_port, u32 mask) {
 	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
-	//printf("%08lx\n", mask);
+	//printf("\n%08lx", mask);
 	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
 	for (int i=0; i<32; i++) {
 		u32 bit = 1<<i;
 		if (bit&mask) {
-//			printf("bit %d = input\n", i);
+//			printf("\nbit %d = input", i);
 			*(gpio_port+(i/10)) &= ~(7<<((i%10)*3));  // set as input
 		}
 	}
@@ -199,11 +199,11 @@ void setup_bus_as_inputs(volatile u32 *gpio_port, u32 mask) {
 
 void setup_bus_as_outputs(volatile u32 *gpio_port, u32 mask) {
 	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
-	//printf("%08lx\n", mask);
+	//printf("\n%08lx", mask);
 	for (int i=0; i<32; i++) {
 		u32 bit = 1<<i;
 		if (bit&mask) {
-//			printf("bit %d = output\n", i);
+//			printf("\nbit %d = output", i);
 			*(gpio_port+(i/10)) &= ~(7<<((i%10)*3));  // prepare: set as input
 			*(gpio_port+(i/10)) |=  (1<<((i%10)*3));  // set as output
 		}
@@ -219,7 +219,7 @@ void myusleep(u32 microseconds) {
 		microseconds -= seconds * 1000000;
 	}
 	u32 nanoseconds = 1000 * microseconds;
-	//printf("seconds=%ld, nanoseconds=%ld\n", seconds, nanoseconds);
+	//printf("\nseconds=%ld, nanoseconds=%ld", seconds, nanoseconds);
 	struct timespec delay = { seconds, nanoseconds };
 	struct timespec remaining_delay = { 0, 0 }; // seconds, nanoseconds
 	nanosleep(&delay, &remaining_delay);
@@ -232,11 +232,11 @@ void mynsleep(u32 nanoseconds) {
 		seconds = nanoseconds / 1000000000;
 		nanoseconds -= seconds * 1000000000;
 	}
-	//printf("seconds=%ld, nanoseconds=%ld\n", seconds, nanoseconds);
+	//printf("\nseconds=%ld, nanoseconds=%ld", seconds, nanoseconds);
 	struct timespec delay = { seconds, nanoseconds };
 	struct timespec remaining_delay = { 0, 0 }; // seconds, nanoseconds
 	if (nanosleep(&delay, &remaining_delay)) {
-		printf("had to wait again!?!\n");
+		printf("\nhad to wait again!?!");
 		delay.tv_sec = remaining_delay.tv_sec;
 		delay.tv_nsec = remaining_delay.tv_nsec;
 	}
@@ -296,13 +296,13 @@ static int init_clock(clock_object *self) {
 	self->gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
 	self->gpio_clock = mmap_bcm_register(CLK_BASE);
 	setup_clock10_on_gpclk0_gpio4(self->gpio_port, self->gpio_clock);
-	printf("clock initialized\n");
+	printf("\nclock initialized");
 	return 0;
 }
 
 static PyObject *method_terminate(clock_object *self) {
 	terminate_clock10_on_gpclk0_gpio4(self->gpio_port, self->gpio_clock);
-	printf("clock terminated\n");
+	printf("\nclock terminated");
 	return PyLong_FromLong(0);
 }
 
@@ -368,34 +368,34 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	if (!success) { return -1; }
 	if (bus_width<1 || 31<bus_width) { return -1; }
 	self->bus_width = bus_width;
-	//printf("bus_width: %08lx\n", self->bus_width);
+	//printf("\nbus_width: %08lx", self->bus_width);
 	if (31<bus_offset) { return -1; }
 	self->bus_offset = bus_offset;
-	//printf("bus_offset: %08lx\n", self->bus_offset);
+	//printf("\nbus_offset: %08lx", self->bus_offset);
 	if (0==transfers_per_data_word || 31<transfers_per_data_word) { return -1; }
 	self->transfers_per_data_word = transfers_per_data_word;
-	//printf("transfers_per_data_word: %08lx\n", self->transfers_per_data_word);
+	//printf("\ntransfers_per_data_word: %08lx", self->transfers_per_data_word);
 	if (0==transfers_per_address_word || 31<transfers_per_address_word) { return -1; }
 	self->transfers_per_address_word = transfers_per_address_word;
-	//printf("transfers_per_address_word: %08lx\n", self->transfers_per_address_word);
+	//printf("\ntransfers_per_address_word: %08lx", self->transfers_per_address_word);
 	if (31<register_select) { return -1; }
 	self->register_select = 1<<register_select;
-	//printf("register_select: %08lx\n", self->register_select);
+	//printf("\nregister_select: %08lx", self->register_select);
 	if (31<read) { return -1; }
 	self->read = 1<<read;
-	//printf("read: %08lx\n", self->read);
+	//printf("\nread: %08lx", self->read);
 	if (31<enable) { return -1; }
 	self->enable = 1<<enable;
-	//printf("enable: %08lx\n", self->enable);
+	//printf("\nenable: %08lx", self->enable);
 	if (31<ack_valid) { return -1; }
 	self->ack_valid = 1<<ack_valid;
-	//printf("ack_valid: %08lx\n", self->ack_valid);
+	//printf("\nack_valid: %08lx", self->ack_valid);
 	u32 bus_mask = 0;
 	for (int i=0; i<bus_width; i++) {
 		bus_mask |= 1<<(i+bus_offset);
 	}
 	self->bus_mask = bus_mask;
-	//printf("bus_mask: %08lx\n", self->bus_mask);
+	//printf("\nbus_mask: %08lx", self->bus_mask);
 	u32 partial_mask = 0;
 	for (int i=0; i<bus_width; i++) {
 		partial_mask |= 1<<i;
@@ -405,7 +405,7 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	self->transactions = 0;
 	self->retries = 0;
 	self->user_errors = 0;
-	//printf("partial_mask: %08lx\n", self->partial_mask);
+	//printf("\npartial_mask: %08lx", self->partial_mask);
 	self->gpio_port = mmap_bcm_gpio_register(GPIO_REGISTER_BASE);
 	self->gpio_pads = mmap_bcm_register(BCM2835_PADS_GPIO_0_27);
 	self->set_reg = self->gpio_port + GPIO_SET_OFFSET;
@@ -419,16 +419,16 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 
 static void half_duplex_bus_destructor(half_duplex_bus_object *self) {
 	if (self->errors) {
-		printf("there were %ld total errors\n", self->errors);
+		printf("\nthere were %ld total errors", self->errors);
 	}
 	if (self->transactions) {
-		printf("there were %ld total transactions\n", self->transactions);
+		printf("\nthere were %ld total transactions", self->transactions);
 	}
 	if (self->retries) {
-		printf("there were %ld total retries\n", self->retries);
+		printf("\nthere were %ld total retries", self->retries);
 	}
 	if (self->user_errors) {
-		printf("there were %ld total user_errors\n", self->user_errors);
+		printf("\nthere were %ld total user_errors", self->user_errors);
 	}
 	Py_TYPE(self)->tp_free((PyObject *) self);
 }
@@ -471,11 +471,11 @@ u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 	#ifdef WAIT_FOR_ACK_STYLE_FOR
 	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
 		value = *read_port;
-		//printf("[%08lx] value&ack_valid: %08lx (read_data)\n", self->transactions, value & ack_valid);
+		//printf("\n[%08lx] value&ack_valid: %08lx (read_data)", self->transactions, value & ack_valid);
 		if (value & ack_valid) { break; }
 		//mynsleep(short_delay);
 	}
-	if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld(s) ", i); }
+	if (MAX_ACK_CYCLES_WARNING<i) { printf(" %ld(s)", i); }
 	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
 	#else
 	do { } while (!(*read_port & ack_valid));
@@ -496,11 +496,11 @@ u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 	#ifdef WAIT_FOR_ACK_STYLE_FOR
 	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
 		value = *read_port;
-		//printf("[%08lx] value&ack_valid: %08lx (read_data)\n", self->transactions, value & ack_valid);
+		//printf("\n[%08lx] value&ack_valid: %08lx (read_data)", self->transactions, value & ack_valid);
 		if (!(value & ack_valid)) { break; }
 		//mynsleep(short_delay);
 	}
-	if (MAX_ACK_CYCLES_WARNING<i) { printf("%ld(c) ", i); }
+	if (MAX_ACK_CYCLES_WARNING<i) { printf(" %ld(c)", i); }
 	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
 	#else
 	do { } while (!(*read_port & ack_valid));
@@ -520,15 +520,15 @@ u32 set_bus(half_duplex_bus_object *self, u32 partial_data) {
 	u32 readback;
 	u32 new_errors = 0;
 	u32 i;
-	//printf("adjusted_data to write: %0*lx\n", (int) (bus_width/4+1), adjusted_data);
+	//printf("\nadjusted_data to write: %0*lx", (int) (bus_width/4+1), adjusted_data);
 	for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
 		readback = *read_port & bus_mask;
 		if (readback == adjusted_data) { break; }
 		//mynsleep(short_delay);
 	}
-	if (MAX_READBACK_CYCLES_WARNING<i) { printf("%ld(ww) ", i); }
+	if (MAX_READBACK_CYCLES_WARNING<i) { printf(" %ld(ww)", i); }
 	if (MAX_READBACK_CYCLES_ERROR==i) {
-		printf("ERROR: can't change the state of GPIOs\n");
+		printf("\nERROR: can't change the state of GPIOs");
 		new_errors++;
 	}
 	return new_errors;
@@ -546,13 +546,13 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	u32 partial_address;
 	u32 t;
 	// write address
-	//printf("address: %0*lx\n", (int) (transfers_per_address_word*bus_width/4), address);
+	//printf("\naddress: %0*lx", (int) (transfers_per_address_word*bus_width/4), address);
 	//for (t=0; t<transfers_per_address_word; t++) {
 	new_errors += clear_enable_and_wait_for_ack_valid(self);
 	*clr_reg = register_select | read; // register_select=0 is address mode
 	for (t=0; t<transfers_per_address_word; t++) {
 		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
-		//printf("partial_address: %0*lx\n", (int) bus_width/4, partial_address);
+		//printf("\npartial_address: %0*lx", (int) bus_width/4, partial_address);
 		set_bus(self, partial_address);
 		new_errors += set_enable_and_wait_for_ack_valid(self);
 		if (t+1<transfers_per_address_word) {
@@ -579,13 +579,13 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 	u32 partial_data;
 	u32 t;
 	// write data
-	//printf("data to write: %0*lx\n", (int) (transfers_per_data_word*bus_width/4), data);
+	//printf("\ndata to write: %0*lx", (int) (transfers_per_data_word*bus_width/4), data);
 	new_errors += clear_enable_and_wait_for_ack_valid(self);
 	*clr_reg = read;
 	*set_reg = register_select; // register_select=1 is data mode
 	for (t=0; t<transfers_per_data_word; t++) {
 		partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
-		//printf("partial_data to write: %0*lx\n", (int) bus_width/4, partial_data);
+		//printf("\npartial_data to write: %0*lx", (int) bus_width/4, partial_data);
 		set_bus(self, partial_data);
 		new_errors += set_enable_and_wait_for_ack_valid(self);
 		if (t+1<transfers_per_data_word) {
@@ -626,8 +626,8 @@ u32 read_data(half_duplex_bus_object *self) {
 //		partial_data0 = (*read_port & bus_mask)>>bus_offset;
 //		partial_data1 = (*read_port & bus_mask)>>bus_offset;
 //		if (partial_data0!=partial_data1) {
-//			printf("data readpar0: %0*lx\n", (int) (bus_width/4), partial_data0);
-//			printf("data readpar1: %0*lx\n", (int) (bus_width/4), partial_data1);
+//			printf("\ndata readpar0: %0*lx", (int) (bus_width/4), partial_data0);
+//			printf("\ndata readpar1: %0*lx", (int) (bus_width/4), partial_data1);
 //		}
 		partial_data1 = (*read_port & bus_mask)>>bus_offset;
 		data |= partial_data1 << ((transfers_per_data_word-t-1)*bus_width);
@@ -636,11 +636,11 @@ u32 read_data(half_duplex_bus_object *self) {
 		} else {
 			*clr_reg = enable;
 		}
-		//printf("partial_data readback: %0*lx\n", (int) (bus_width/4), partial_data);
+		//printf("\npartial_data readback: %0*lx", (int) (bus_width/4), partial_data);
 	}
 	*clr_reg = read;
 	setup_bus_as_outputs(gpio_port, bus_mask);
-	//printf("data readback: %0*lx\n", (int) (transfers_per_data_word*bus_width/4), data);
+	//printf("\ndata readback: %0*lx", (int) (transfers_per_data_word*bus_width/4), data);
 	if (new_errors) { printf("\nnew_errors: %ld (read_data)", new_errors); }
 	self->errors += new_errors;
 	return data;
@@ -680,7 +680,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	}
 	u32 count;
 	u32 length = (u32) PyList_Size(obj);
-	//printf("length = %ld\n", length);
+	//printf("\nlength = %ld", length);
 	u32 new_retries = 0;
 	for (count=0; count<length; count++) {
 		PyObject *next = PyList_GetItem(obj, count);
@@ -692,14 +692,14 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 			write_data(self, data);
 			data_readback = read_data(self);
 			if (data == data_readback) { break; }
-			//printf("didn't work the first time\n");
+			//printf("\ndidn't work the first time");
 			new_retries++;
 		}
 		if (max_retry_cycles_error_var==i) {
-			//printf("max_retry_cycles_error_var-1 = %ld\n", max_retry_cycles_error_var-1);
+			//printf("\nmax_retry_cycles_error_var-1 = %ld", max_retry_cycles_error_var-1);
 			//new_retries += max_retry_cycles_error_var - 1;
 			new_errors++;
-			printf("data written (%0*lx) does not match data read back (%0*lx)\n", hex_width, data, hex_width, data_readback);
+			printf("\ndata written (%0*lx) does not match data read back (%0*lx)", hex_width, data, hex_width, data_readback);
 		}
 		if (0) {
 			if (0==count%10240) {
@@ -725,19 +725,19 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 					data_readback = read_data(self);
 					if (data == data_readback) { break; }
 					new_retries++;
-					//printf("retrying address=%0*lx data=%0*lx readback=%0*lx...\n", width, address, width, data, width, data_readback);
+					//printf("\nretrying address=%0*lx data=%0*lx readback=%0*lx...", width, address, width, data, width, data_readback);
 					write_data(self, data);
 				}
 				address++;
 			}
-			//printf("that was %ld retries...\n", new_retries);
+			//printf("\nthat was %ld retries...", new_retries);
 			self->retries += new_retries;
 		}
 	}
 	*clr_reg = everything;
-	//printf("completed %ld transactions\n", count);
+	//printf("\ncompleted %ld transactions", count);
 //	if (new_errors) {
-//		printf("there were %ld new errors\n", new_errors);
+//		printf("\nthere were %ld new errors", new_errors);
 //	}
 	self->errors += new_errors;
 	return PyLong_FromLong(count);
@@ -776,13 +776,13 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 	*clr_reg = everything;
 	u32 other_length = PyList_Size(obj);
 	if (length!=other_length) {
-		printf("lengths don't match\n");
+		printf("\nlengths don't match");
 	}
 	if (index<length) {
-		printf("didn't get 'em all\n");
+		printf("\ndidn't get 'em all");
 	}
 //	if (new_errors) {
-//		printf("there were %ld new errors\n", new_errors);
+//		printf("\nthere were %ld new errors", new_errors);
 //	}
 //	self->errors += new_errors;
 	return obj;
@@ -831,9 +831,9 @@ static int init_anubis(bus_object *self, PyObject *args, PyObject *kwds) {
 		//return PyErr_Format(PyExc_ValueError, "usage:  anubis(mask, direction=1)");
 		return -1;
 	}
-	//printf("%08lx\n", mask);
-	//printf("direction: %ld\n", direction);
-	//printf("offset: %ld\n", offset);
+	//printf("\n%08lx", mask);
+	//printf("\ndirection: %ld", direction);
+	//printf("\noffset: %ld", offset);
 //	if (offset) {
 //		mask <<= offset;
 //	}
@@ -889,7 +889,7 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 		PyObject *next = PyIter_Next(iter);
 		if (!next) { break; }
 		value = PyLong_AsUnsignedLong(next);
-		//printf("%08lx %08lx\n", value, mask);
+		//printf("\n%08lx %08lx", value, mask);
 //		value <<= offset;
 //		value &= mask;
 		value = (value<<offset) & mask;
@@ -914,13 +914,13 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 		}
 		Py_DECREF(next);
 	}
-	//printf("%ld\n", count);
+	//printf("\n%ld", count);
 //	value = *set_reg;
-//	printf("%08lx:%08lx\n", (u32) set_reg, value);
+//	printf("\n%08lx:%08lx", (u32) set_reg, value);
 //	*set_reg = 0xffffffff && mask;
-//	printf("%08lx:%08lx\n", (u32) set_reg, *set_reg);
+//	printf("\n%08lx:%08lx", (u32) set_reg, *set_reg);
 //	*clr_reg = 0;
-//	printf("%08lx:%08lx\n", (u32) clr_reg, *clr_reg);
+//	printf("\n%08lx:%08lx", (u32) clr_reg, *clr_reg);
 	//*clr_reg = 1<<ALE;
 	Py_DECREF(iter);
 	return PyLong_FromLong(count);
@@ -951,7 +951,7 @@ static PyTypeObject bus_type = {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 static PyObject* method_test(PyObject *self, PyObject *args) {
-	printf("starting test...\n");
+	printf("\nstarting test...");
 	if (1) {
 		FILE *devnull_FILE = fopen("/dev/null",   "w");
 		fprintf(devnull_FILE, "blah");
@@ -969,7 +969,7 @@ static PyObject* method_test(PyObject *self, PyObject *args) {
 		volatile u32 *gpio_clock = mmap_bcm_register(CLK_BASE);
 		setup_clock10_on_gpclk0_gpio4(gpio_port, gpio_clock);
 	}
-	printf("test completed\n");
+	printf("\ntest completed");
 	return PyLong_FromLong(0);
 }
 
