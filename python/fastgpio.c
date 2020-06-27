@@ -696,6 +696,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	u32 count;
 	u32 length = (u32) PyList_Size(obj);
 	printf("length = %ld\n", length);
+	u32 new_retries = 0;
 	for (count=0; count<length; count++) {
 		PyObject *next = PyList_GetItem(obj, count);
 		if (!next) { break; }
@@ -707,11 +708,11 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 			data_readback = read_data(self);
 			if (data == data_readback) { break; }
 			//printf("didn't work the first time\n");
-			self->retries++;
+			new_retries++;
 		}
 		if (max_retry_cycles_error_var==i) {
 			//printf("max_retry_cycles_error_var-1 = %ld\n", max_retry_cycles_error_var-1);
-			//self->retries += max_retry_cycles_error_var - 1;
+			//new_retries += max_retry_cycles_error_var - 1;
 			new_errors++;
 			printf("data written (%0*lx) does not match data read back (%0*lx)\n", hex_width, data, hex_width, data_readback);
 		}
@@ -722,21 +723,30 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		}
 		address++;
 	}
-	//if (verify) {
-	if (0) {
-		address = start_address;
-		for (count=0; count<length; count++) {
-			PyObject *next = PyList_GetItem(obj, count);
-			if (!next) { break; }
-			data = PyLong_AsUnsignedLong(next);
-			for (i=0; i<max_retry_cycles_error_var; i++) {
-				set_address(self, address);
-				data_readback = read_data(self);
-				if (data == data_readback) { break; }
-				self->retries++;
-				write_data(self, data);
+	self->retries += new_retries;
+	if (verify) {
+		u32 j;
+		u8 width = (int) (transfers_per_data_word*bus_width/4);
+	//if (0) {
+		for (j=0; j<2; j++) {
+			new_retries = 0;
+			address = start_address;
+			for (count=0; count<length; count++) {
+				PyObject *next = PyList_GetItem(obj, count);
+				if (!next) { break; }
+				data = PyLong_AsUnsignedLong(next);
+				for (i=0; i<max_retry_cycles_error_var; i++) {
+					set_address(self, address);
+					data_readback = read_data(self);
+					if (data == data_readback) { break; }
+					new_retries++;
+					//printf("retrying address=%0*lx data=%0*lx readback=%0*lx...\n", width, address, width, data, width, data_readback);
+					write_data(self, data);
+				}
+				address++;
 			}
-			address++;
+			printf("that was %ld retries...\n", new_retries);
+			self->retries += new_retries;
 		}
 	}
 	*clr_reg = everything;
