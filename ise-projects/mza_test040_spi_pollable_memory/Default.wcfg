@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test040_spi_pollable_memory/top_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="top_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="18" />
+   <wvobject fp_name="/top_tb/clock100" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock100</obj_property>
+      <obj_property name="ObjectShortName">clock100</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/mytop/reset1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset1</obj_property>
+      <obj_property name="ObjectShortName">reset1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/mytop/clock16" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock16</obj_property>
+      <obj_property name="ObjectShortName">clock16</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/mytop/reset2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset2</obj_property>
+      <obj_property name="ObjectShortName">reset2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/led1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led1</obj_property>
+      <obj_property name="ObjectShortName">led1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/led2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led2</obj_property>
+      <obj_property name="ObjectShortName">led2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/led3" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led3</obj_property>
+      <obj_property name="ObjectShortName">led3</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/i" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i[7:0]</obj_property>
+      <obj_property name="ObjectShortName">i[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/j" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">j[7:0]</obj_property>
+      <obj_property name="ObjectShortName">j[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/SCK" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">SCK</obj_property>
+      <obj_property name="ObjectShortName">SCK</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/MOSI" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">MOSI</obj_property>
+      <obj_property name="ObjectShortName">MOSI</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/SSEL" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">SSEL</obj_property>
+      <obj_property name="ObjectShortName">SSEL</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/MISO" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">MISO</obj_property>
+      <obj_property name="ObjectShortName">MISO</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/mytop/command8" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">command8[7:0]</obj_property>
+      <obj_property name="ObjectShortName">command8[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/mytop/data32" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data32[31:0]</obj_property>
+      <obj_property name="ObjectShortName">data32[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/mytop/read_data32" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">read_data32[31:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data32[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/mytop/address16" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">address16[15:0]</obj_property>
+      <obj_property name="ObjectShortName">address16[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/mytop/transaction_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">transaction_valid</obj_property>
+      <obj_property name="ObjectShortName">transaction_valid</obj_property>
+   </wvobject>
+</wave_config>

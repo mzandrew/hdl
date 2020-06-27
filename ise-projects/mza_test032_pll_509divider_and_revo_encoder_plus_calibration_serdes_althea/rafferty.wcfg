@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea/rafferty_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="rafferty_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="18" />
+   <wvobject fp_name="/rafferty_tb/rafferty_local_clock50_in_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_local_clock50_in_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_local_clock50_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_remote_clock509_in_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_remote_clock509_in_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_remote_clock509_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_clk78_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_clk78_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_clk78_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_remote_revo_in_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_remote_revo_in_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_remote_revo_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_out1_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_out1_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_out1_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_ack12_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_ack12_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_ack12_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_outa_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_outa_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_outa_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_trg36_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_trg36_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_trg36_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/raw_recovered_revo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">raw_recovered_revo</obj_property>
+      <obj_property name="ObjectShortName">raw_recovered_revo</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/recovered_revo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">recovered_revo</obj_property>
+      <obj_property name="ObjectShortName">recovered_revo</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_rsv54_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_rsv54_p</obj_property>
+      <obj_property name="ObjectShortName">rafferty_rsv54_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_led_revo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_revo</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_revo</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_led_rfclock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_rfclock</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_rfclock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_led_4" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_4</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_4</obj_property>
+   </wvobject>
+   <wvobject fp_name="vbus36" type="vbus" db_ref_id="1">
+      <obj_property name="label">select4</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/rafferty_tb/rafferty_led_0" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rafferty_led_0</obj_property>
+         <obj_property name="ObjectShortName">rafferty_led_0</obj_property>
+      </wvobject>
+      <wvobject fp_name="/rafferty_tb/rafferty_led_1" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rafferty_led_1</obj_property>
+         <obj_property name="ObjectShortName">rafferty_led_1</obj_property>
+      </wvobject>
+      <wvobject fp_name="/rafferty_tb/rafferty_led_2" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rafferty_led_2</obj_property>
+         <obj_property name="ObjectShortName">rafferty_led_2</obj_property>
+      </wvobject>
+      <wvobject fp_name="/rafferty_tb/rafferty_led_3" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rafferty_led_3</obj_property>
+         <obj_property name="ObjectShortName">rafferty_led_3</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_led_5" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_5</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_5</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_led_6" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_6</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_6</obj_property>
+   </wvobject>
+   <wvobject fp_name="/rafferty_tb/rafferty_led_7" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rafferty_led_7</obj_property>
+      <obj_property name="ObjectShortName">rafferty_led_7</obj_property>
+   </wvobject>
+</wave_config>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test026_serdes_pll_dual_differential_althea/mything_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="mything_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="22" />
+   <wvobject fp_name="/mything_tb/clock127_out_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock127_out_p</obj_property>
+      <obj_property name="ObjectShortName">clock127_out_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/clock127_out_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock127_out_n</obj_property>
+      <obj_property name="ObjectShortName">clock127_out_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/trg_out_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trg_out_p</obj_property>
+      <obj_property name="ObjectShortName">trg_out_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/trg_out_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trg_out_n</obj_property>
+      <obj_property name="ObjectShortName">trg_out_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/out1_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">out1_p</obj_property>
+      <obj_property name="ObjectShortName">out1_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/out1_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">out1_n</obj_property>
+      <obj_property name="ObjectShortName">out1_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/outa_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">outa_p</obj_property>
+      <obj_property name="ObjectShortName">outa_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/outa_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">outa_n</obj_property>
+      <obj_property name="ObjectShortName">outa_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/led_0" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_0</obj_property>
+      <obj_property name="ObjectShortName">led_0</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/led_1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_1</obj_property>
+      <obj_property name="ObjectShortName">led_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/led_2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_2</obj_property>
+      <obj_property name="ObjectShortName">led_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/led_3" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_3</obj_property>
+      <obj_property name="ObjectShortName">led_3</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/led_4" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_4</obj_property>
+      <obj_property name="ObjectShortName">led_4</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/led_5" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_5</obj_property>
+      <obj_property name="ObjectShortName">led_5</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/led_6" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_6</obj_property>
+      <obj_property name="ObjectShortName">led_6</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/led_7" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">led_7</obj_property>
+      <obj_property name="ObjectShortName">led_7</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/remote_clock509_in_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">remote_clock509_in_p</obj_property>
+      <obj_property name="ObjectShortName">remote_clock509_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/remote_clock509_in_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">remote_clock509_in_n</obj_property>
+      <obj_property name="ObjectShortName">remote_clock509_in_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/remote_revo_in_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">remote_revo_in_p</obj_property>
+      <obj_property name="ObjectShortName">remote_revo_in_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/remote_revo_in_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">remote_revo_in_n</obj_property>
+      <obj_property name="ObjectShortName">remote_revo_in_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/recovered_revo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">recovered_revo</obj_property>
+      <obj_property name="ObjectShortName">recovered_revo</obj_property>
+   </wvobject>
+   <wvobject fp_name="/mything_tb/uut/trgstream" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">trgstream[7:0]</obj_property>
+      <obj_property name="ObjectShortName">trgstream[7:0]</obj_property>
+   </wvobject>
+</wave_config>

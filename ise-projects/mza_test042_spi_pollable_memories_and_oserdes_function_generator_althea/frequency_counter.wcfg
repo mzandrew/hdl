@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea/frequency_counter_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="frequency_counter_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="4" />
+   <wvobject fp_name="/frequency_counter_tb/frequency_of_unknown_clock" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">frequency_of_unknown_clock[31:0]</obj_property>
+      <obj_property name="ObjectShortName">frequency_of_unknown_clock[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/frequency_counter_tb/reference_clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reference_clock</obj_property>
+      <obj_property name="ObjectShortName">reference_clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/frequency_counter_tb/unknown_clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">unknown_clock</obj_property>
+      <obj_property name="ObjectShortName">unknown_clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/frequency_counter_tb/fc/valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">valid</obj_property>
+      <obj_property name="ObjectShortName">valid</obj_property>
+   </wvobject>
+</wave_config>

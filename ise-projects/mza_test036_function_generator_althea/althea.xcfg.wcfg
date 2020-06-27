@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test036_function_generator_althea/function_generator_althea_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="function_generator_althea_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="4" />
+   <wvobject fp_name="/function_generator_althea_tb/lemo" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">lemo</obj_property>
+      <obj_property name="ObjectShortName">lemo</obj_property>
+   </wvobject>
+   <wvobject fp_name="vbus21" type="vbus" db_ref_id="1">
+      <obj_property name="label">leds</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/function_generator_althea_tb/led_0" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">led_0</obj_property>
+         <obj_property name="ObjectShortName">led_0</obj_property>
+      </wvobject>
+      <wvobject fp_name="/function_generator_althea_tb/led_1" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">led_1</obj_property>
+         <obj_property name="ObjectShortName">led_1</obj_property>
+      </wvobject>
+      <wvobject fp_name="/function_generator_althea_tb/led_2" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">led_2</obj_property>
+         <obj_property name="ObjectShortName">led_2</obj_property>
+      </wvobject>
+      <wvobject fp_name="/function_generator_althea_tb/led_3" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">led_3</obj_property>
+         <obj_property name="ObjectShortName">led_3</obj_property>
+      </wvobject>
+      <wvobject fp_name="/function_generator_althea_tb/led_4" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">led_4</obj_property>
+         <obj_property name="ObjectShortName">led_4</obj_property>
+      </wvobject>
+      <wvobject fp_name="/function_generator_althea_tb/led_5" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">led_5</obj_property>
+         <obj_property name="ObjectShortName">led_5</obj_property>
+      </wvobject>
+      <wvobject fp_name="/function_generator_althea_tb/led_6" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">led_6</obj_property>
+         <obj_property name="ObjectShortName">led_6</obj_property>
+      </wvobject>
+      <wvobject fp_name="/function_generator_althea_tb/led_7" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">led_7</obj_property>
+         <obj_property name="ObjectShortName">led_7</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/clock50_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock50_p</obj_property>
+      <obj_property name="ObjectShortName">clock50_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/function_generator_althea_tb/clock50_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock50_n</obj_property>
+      <obj_property name="ObjectShortName">clock50_n</obj_property>
+   </wvobject>
+</wave_config>

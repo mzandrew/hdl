@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test039_spi_icezero/SPI_slave_simple8_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="SPI_slave_simple8_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="8" />
+   <wvobject fp_name="/SPI_slave_simple8_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_simple8_tb/SCK" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">SCK</obj_property>
+      <obj_property name="ObjectShortName">SCK</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_simple8_tb/MOSI" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">MOSI</obj_property>
+      <obj_property name="ObjectShortName">MOSI</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_simple8_tb/SSEL" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">SSEL</obj_property>
+      <obj_property name="ObjectShortName">SSEL</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_simple8_tb/data_from_master" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_from_master[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_from_master[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_simple8_tb/data_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">data_valid</obj_property>
+      <obj_property name="ObjectShortName">data_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_simple8_tb/MISO" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">MISO</obj_property>
+      <obj_property name="ObjectShortName">MISO</obj_property>
+   </wvobject>
+   <wvobject fp_name="/SPI_slave_simple8_tb/data_to_master" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_to_master[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_to_master[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>

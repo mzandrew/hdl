@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea/ring_oscillator_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="ring_oscillator_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="10" />
+   <wvobject fp_name="/ring_oscillator_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ring_oscillator_tb/enable" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">enable</obj_property>
+      <obj_property name="ObjectShortName">enable</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ring_oscillator_tb/select" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">select[7:0]</obj_property>
+      <obj_property name="ObjectShortName">select[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ring_oscillator_tb/select_coarse" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">select_coarse[3:0]</obj_property>
+      <obj_property name="ObjectShortName">select_coarse[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ring_oscillator_tb/select_medium" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">select_medium[1:0]</obj_property>
+      <obj_property name="ObjectShortName">select_medium[1:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ring_oscillator_tb/select_fine" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">select_fine[1:0]</obj_property>
+      <obj_property name="ObjectShortName">select_fine[1:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ring_oscillator_tb/ro/aftercoarse" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">aftercoarse</obj_property>
+      <obj_property name="ObjectShortName">aftercoarse</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ring_oscillator_tb/ro/aftermedium" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">aftermedium</obj_property>
+      <obj_property name="ObjectShortName">aftermedium</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ring_oscillator_tb/ro/afterfine" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">afterfine</obj_property>
+      <obj_property name="ObjectShortName">afterfine</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ring_oscillator_tb/ro/stage" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">stage[23:0]</obj_property>
+      <obj_property name="ObjectShortName">stage[23:0]</obj_property>
+   </wvobject>
+</wave_config>

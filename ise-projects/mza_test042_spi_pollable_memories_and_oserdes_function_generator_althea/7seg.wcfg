@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea/segmented_display_driver_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="segmented_display_driver_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="7" />
+   <wvobject fp_name="/segmented_display_driver_tb/data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/segmented_display_driver_tb/my_segmented_display_driver/rawcathode" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rawcathode[6:0]</obj_property>
+      <obj_property name="ObjectShortName">rawcathode[6:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/segmented_display_driver_tb/my_segmented_display_driver/rawanode" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rawanode[1:0]</obj_property>
+      <obj_property name="ObjectShortName">rawanode[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/segmented_display_driver_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/segmented_display_driver_tb/cathode" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cathode[6:0]</obj_property>
+      <obj_property name="ObjectShortName">cathode[6:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/segmented_display_driver_tb/anode" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">anode[1:0]</obj_property>
+      <obj_property name="ObjectShortName">anode[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/segmented_display_driver_tb/dp" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">dp[1:0]</obj_property>
+      <obj_property name="ObjectShortName">dp[1:0]</obj_property>
+   </wvobject>
+</wave_config>

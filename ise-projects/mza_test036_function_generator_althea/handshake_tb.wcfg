@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test036_function_generator_althea/handshake_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="handshake_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="5" />
+   <wvobject fp_name="/handshake_tb/clock_a" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock_a</obj_property>
+      <obj_property name="ObjectShortName">clock_a</obj_property>
+   </wvobject>
+   <wvobject fp_name="/handshake_tb/t_a" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">t_a</obj_property>
+      <obj_property name="ObjectShortName">t_a</obj_property>
+   </wvobject>
+   <wvobject fp_name="/handshake_tb/clock_b" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock_b</obj_property>
+      <obj_property name="ObjectShortName">clock_b</obj_property>
+   </wvobject>
+   <wvobject fp_name="/handshake_tb/t_b" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">t_b</obj_property>
+      <obj_property name="ObjectShortName">t_b</obj_property>
+   </wvobject>
+   <wvobject fp_name="/handshake_tb/busy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">busy</obj_property>
+      <obj_property name="ObjectShortName">busy</obj_property>
+   </wvobject>
+</wave_config>

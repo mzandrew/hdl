@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home2/mza/build/hdl/ise-projects/mza_test036_function_generator_althea/button_debounce_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="button_debounce_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="11" />
+   <wvobject fp_name="/button_debounce_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/button_debounce_tb/button_raw" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">button_raw</obj_property>
+      <obj_property name="ObjectShortName">button_raw</obj_property>
+   </wvobject>
+   <wvobject fp_name="/button_debounce_tb/bd/button_pipeline_short" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">button_pipeline_short[2:0]</obj_property>
+      <obj_property name="ObjectShortName">button_pipeline_short[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/button_debounce_tb/bd/button_raw_previous" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">button_raw_previous</obj_property>
+      <obj_property name="ObjectShortName">button_raw_previous</obj_property>
+   </wvobject>
+   <wvobject fp_name="/button_debounce_tb/bd/sequential_0_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">sequential_0_counter[31:0]</obj_property>
+      <obj_property name="ObjectShortName">sequential_0_counter[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/button_debounce_tb/bd/sequential_1_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">sequential_1_counter[31:0]</obj_property>
+      <obj_property name="ObjectShortName">sequential_1_counter[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/button_debounce_tb/bd/button_state_is_stable" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">button_state_is_stable</obj_property>
+      <obj_property name="ObjectShortName">button_state_is_stable</obj_property>
+   </wvobject>
+   <wvobject fp_name="/button_debounce_tb/button_just_changed" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">button_just_changed</obj_property>
+      <obj_property name="ObjectShortName">button_just_changed</obj_property>
+   </wvobject>
+   <wvobject fp_name="/button_debounce_tb/button_just_went_active" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">button_just_went_active</obj_property>
+      <obj_property name="ObjectShortName">button_just_went_active</obj_property>
+   </wvobject>
+   <wvobject fp_name="/button_debounce_tb/button_just_went_inactive" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">button_just_went_inactive</obj_property>
+      <obj_property name="ObjectShortName">button_just_went_inactive</obj_property>
+   </wvobject>
+   <wvobject fp_name="/button_debounce_tb/button_state" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">button_state</obj_property>
+      <obj_property name="ObjectShortName">button_state</obj_property>
+   </wvobject>
+</wave_config>
