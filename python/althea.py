@@ -518,9 +518,9 @@ def test_writing_data_to_half_duplex_bus():
 	time.sleep(0.1)
 	data = []
 	#NUM = 4500000
-	NUM = MEMSIZE
+	#NUM = MEMSIZE
 	#NUM = 1024
-	#NUM = 256
+	NUM = 256
 	#NUM = 16
 	#NUM = 4
 	number_of_times_to_repeat = 1

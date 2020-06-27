@@ -726,7 +726,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 				}
 				address++;
 			}
-			//printf("that was %ld retries...\n", new_retries);
+			printf("that was %ld retries...\n", new_retries);
 			self->retries += new_retries;
 		}
 	}
