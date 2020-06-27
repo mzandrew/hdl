@@ -17,7 +17,7 @@
   <files>
     <file xil_pn:name="../verilog/src/mza-test044.simple-parallel-interface-and-pollable-memory.althea.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="3"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="3"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="1"/>
     </file>
     <file xil_pn:name="../verilog/src/mza-test044.simple-parallel-interface-and-pollable-memory.althea.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
