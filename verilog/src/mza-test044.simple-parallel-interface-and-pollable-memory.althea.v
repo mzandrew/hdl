@@ -24,8 +24,8 @@
 
 module top #(
 	parameter WIDTH = 8,
-	parameter TRANSACTIONS_PER_WORD = 2,
-	parameter LOG2_OF_TRANSACTIONS_PER_WORD = $clog2(TRANSACTIONS_PER_WORD)
+	parameter TRANSACTIONS_PER_DATA_WORD = 2,
+	parameter LOG2_OF_TRANSACTIONS_PER_DATA_WORD = $clog2(TRANSACTIONS_PER_DATA_WORD)
 ) (
 	input clock50_p, clock50_n,
 	input clock10,
@@ -56,21 +56,21 @@ module top #(
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
 	reg write_strobe = 0;
 	reg [WIDTH-1:0] address = 0;
-	wire [TRANSACTIONS_PER_WORD*WIDTH-1:0] write_data_word;
-	reg [WIDTH-1:0] write_data [TRANSACTIONS_PER_WORD-1:0];
+	wire [TRANSACTIONS_PER_DATA_WORD*WIDTH-1:0] write_data_word;
+	reg [WIDTH-1:0] write_data [TRANSACTIONS_PER_DATA_WORD-1:0];
 	genvar i;
-	for (i=0; i<TRANSACTIONS_PER_WORD; i=i+1) begin : write_data_array
+	for (i=0; i<TRANSACTIONS_PER_DATA_WORD; i=i+1) begin : write_data_array
 		assign write_data_word[(i+1)*WIDTH-1:i*WIDTH] = write_data[i];
 	end
 	reg [1:0] wstate = 0;
-	reg [LOG2_OF_TRANSACTIONS_PER_WORD-1:0] wword = TRANSACTIONS_PER_WORD-1; // most significant halfword first
-	wire [TRANSACTIONS_PER_WORD*WIDTH-1:0] read_data_word;
-	wire [WIDTH-1:0] read_data [TRANSACTIONS_PER_WORD-1:0];
-	for (i=0; i<TRANSACTIONS_PER_WORD; i=i+1) begin : read_data_array
+	reg [LOG2_OF_TRANSACTIONS_PER_DATA_WORD-1:0] wword = TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
+	wire [TRANSACTIONS_PER_DATA_WORD*WIDTH-1:0] read_data_word;
+	wire [WIDTH-1:0] read_data [TRANSACTIONS_PER_DATA_WORD-1:0];
+	for (i=0; i<TRANSACTIONS_PER_DATA_WORD; i=i+1) begin : read_data_array
 		assign read_data[i] = read_data_word[(i+1)*WIDTH-1:i*WIDTH];
 	end
 	reg [1:0] rstate = 0;
-	reg [LOG2_OF_TRANSACTIONS_PER_WORD-1:0] rword = TRANSACTIONS_PER_WORD-1; // most significant halfword first
+	reg [LOG2_OF_TRANSACTIONS_PER_DATA_WORD-1:0] rword = TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 	reg [31:0] errors = 0;
 //	reg [WIDTH-1:0] pre_pre_bus = 0;
 	reg [WIDTH-1:0] pre_bus = 0;
@@ -93,13 +93,13 @@ module top #(
 			end
 			counter50 <= counter50 + 1'b1;
 			address <= 0;
-			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : write_data_clear
+			for (j=0; j<TRANSACTIONS_PER_DATA_WORD; j=j+1) begin : write_data_clear
 				write_data[j] <= 0;
 			end
 			wstate <= 0;
-			wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+			wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 			rstate <= 0;
-			rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+			rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 			pre_bus <= 0;
 			errors <= 0;
 			checksum <= 0;
@@ -138,7 +138,7 @@ module top #(
 			end else begin // enable=0
 				if (wstate[1]) begin
 					wstate <= 0;
-					wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+					wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					//if (write_data_word==32'h31231507) begin
 					if (write_data_word[15:0]==16'h1507) begin
 						checksum <= 1;
@@ -158,7 +158,7 @@ module top #(
 				end
 				if (rstate[1]) begin
 					rstate <= 0;
-					rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+					rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					//pre_bus <= 8'h5a;
 				end else begin
 					if (rstate[0]) begin
@@ -172,16 +172,16 @@ module top #(
 				end
 				if (astate[0]) begin
 					astate[0] <= 0;
-					if (wword!=TRANSACTIONS_PER_WORD-1) begin
+					if (wword!=TRANSACTIONS_PER_DATA_WORD-1) begin
 						errors <= errors + 1'b1;
 					end
-					if (rword!=TRANSACTIONS_PER_WORD-1) begin
+					if (rword!=TRANSACTIONS_PER_DATA_WORD-1) begin
 						errors <= errors + 1'b1;
 					end
 					wstate <= 0;
-					wword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+					wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					rstate <= 0;
-					rword <= TRANSACTIONS_PER_WORD-1; // most significant halfword first
+					rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 				end
 			end
 			ack_valid <= pre_ack_valid;
@@ -204,7 +204,7 @@ module top #(
 	end
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
 	assign bus = 'bz;
-	RAM_inferred #(.addr_width(WIDTH), .data_width(TRANSACTIONS_PER_WORD*WIDTH)) myram (.reset(reset50),
+	RAM_inferred #(.addr_width(WIDTH), .data_width(TRANSACTIONS_PER_DATA_WORD*WIDTH)) myram (.reset(reset50),
 		.wclk(clock50), .waddr(address), .din(write_data_word), .write_en(write_strobe),
 		.rclk(clock50), .raddr(address), .dout(read_data_word));
 	if (0) begin
@@ -231,7 +231,7 @@ module top_tb;
 	localparam NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK = 2000;
 	reg clock = 0;
 	localparam WIDTH = 8;
-	localparam TRANSACTIONS_PER_WORD = 4;
+	localparam TRANSACTIONS_PER_DATA_WORD = 4;
 	reg clock50_p = 0;
 	reg clock50_n = 1;
 	reg clock10 = 0;
@@ -247,7 +247,7 @@ module top_tb;
 	reg pre_enable = 0;
 	reg enable = 0;
 	bus_entry_3state #(.WIDTH(WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are master
-	top #(.WIDTH(WIDTH), .TRANSACTIONS_PER_WORD(TRANSACTIONS_PER_WORD)) althea (
+	top #(.WIDTH(WIDTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD)) althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(reset),
 		.lemo(lemo), .other0(other0), .other1(other1),
 		.bus(bus), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
@@ -309,15 +309,15 @@ module top_tb;
 			pulse_enable();
 			// write each part of data
 			pre_register_select <= 1;
-			if (3<TRANSACTIONS_PER_WORD) begin
+			if (3<TRANSACTIONS_PER_DATA_WORD) begin
 				pre_bus <= data32[4*WIDTH-1:3*WIDTH];
 				pulse_enable();
 			end
-			if (2<TRANSACTIONS_PER_WORD) begin
+			if (2<TRANSACTIONS_PER_DATA_WORD) begin
 				pre_bus <= data32[3*WIDTH-1:2*WIDTH];
 				pulse_enable();
 			end
-			if (1<TRANSACTIONS_PER_WORD) begin
+			if (1<TRANSACTIONS_PER_DATA_WORD) begin
 				pre_bus <= data32[2*WIDTH-1:WIDTH];
 				pulse_enable();
 			end
@@ -337,7 +337,7 @@ module top_tb;
 			pulse_enable();
 			// read data
 			pre_read <= 1;
-			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple_1
+			for (j=0; j<TRANSACTIONS_PER_DATA_WORD; j=j+1) begin : read_data_multiple_1
 				pulse_enable();
 			end
 			pre_read <= 0;
@@ -347,7 +347,7 @@ module top_tb;
 		integer j;
 		begin
 			pre_read <= 1;
-			for (j=0; j<TRANSACTIONS_PER_WORD; j=j+1) begin : read_data_multiple_2
+			for (j=0; j<TRANSACTIONS_PER_DATA_WORD; j=j+1) begin : read_data_multiple_2
 				pulse_enable();
 			end
 			//delay();
@@ -421,7 +421,7 @@ module myalthea (
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	localparam WIDTH = 8;
-	localparam TRANSACTIONS_PER_WORD = 2;
+	localparam TRANSACTIONS_PER_DATA_WORD = 2;
 	wire register_select = e_n;
 	assign m_n = register_select;
 	wire read = l_p;
@@ -432,7 +432,7 @@ module myalthea (
 	assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
 	//wire clock10 = j_p;
 	wire clock10 = 0;
-	top #(.WIDTH(WIDTH), .TRANSACTIONS_PER_WORD(TRANSACTIONS_PER_WORD)) althea (
+	top #(.WIDTH(WIDTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD)) althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(e_p),
 		.lemo(lemo), .other0(b_p), .other1(f_p),
 		.bus({ c_p, b_n, a_n, c_n, a_p, d_p, d_n, j_p }), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
