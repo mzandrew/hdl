@@ -175,11 +175,11 @@ void set_drive_strength_and_slew_rate(volatile u32 *gpio_pads, u8 milliamps) {
 //	value |= 1<<4; // slew rate NOT limited
 	value |= 1<<3; // input hysteresis enabled
 	value |= (milliamps>>1)-1; // set drive strength
-	printf("intended value for gpio_pads register: %08lx\n", value);
+	//printf("intended value for gpio_pads register: %08lx\n", value);
 	gpio_pads[BCM2835_PADS_GPIO_0_27_OFFSET] = value;
 	//show_a_block_of_registers(gpio_pads, BCM2835_PADS_GPIO_MAX);
 	value = gpio_pads[BCM2835_PADS_GPIO_0_27_OFFSET];
-	printf("pads register reads: %08lx\n", value);
+	//printf("pads register reads: %08lx\n", value);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -448,13 +448,14 @@ static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyOb
 #define MAX_ACK_CYCLES_ERROR (30)
 #define MAX_READBACK_CYCLES_ERROR (30)
 #define MAX_RETRY_CYCLES_ERROR (30)
-#define MAX_ACK_CYCLES_WARNING (4)
-// pickoff reg_sel/read=1:enable= 2->WARNING=occasionally 4
-// pickoff reg_sel/read=2:enable= 3->WARNING=occasionally 4
-// pickoff reg_sel/read=3:enable= 4->WARNING=occasionally 4
-// pickoff reg_sel/read=3:enable=10->WARNING=occasionally 6
-// pickoff reg_sel/read=3:enable=23->WARNING=occasionally 9
-// pickoff reg_sel/read=3:enable=30->WARNING=occasionally 11
+#define MAX_ACK_CYCLES_WARNING (8)
+// pickoff reg_sel/read=1:enable= 2:clock125->WARNING=occasionally 8
+// pickoff reg_sel/read=1:enable= 2:clock50->WARNING=occasionally 4
+// pickoff reg_sel/read=2:enable= 3:clock50->WARNING=occasionally 4
+// pickoff reg_sel/read=3:enable= 4:clock50->WARNING=occasionally 4
+// pickoff reg_sel/read=3:enable=10:clock50->WARNING=occasionally 6
+// pickoff reg_sel/read=3:enable=23:clock50->WARNING=occasionally 9
+// pickoff reg_sel/read=3:enable=30:clock50->WARNING=occasionally 11
 #define MAX_READBACK_CYCLES_WARNING (1)
 
 u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
@@ -676,7 +677,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	}
 	u32 count;
 	u32 length = (u32) PyList_Size(obj);
-	printf("length = %ld\n", length);
+	//printf("length = %ld\n", length);
 	u32 new_retries = 0;
 	for (count=0; count<length; count++) {
 		PyObject *next = PyList_GetItem(obj, count);
@@ -705,8 +706,8 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		address++;
 	}
 	self->retries += new_retries;
-	//if (0) {
-	if (verify) {
+	if (0) {
+	//if (verify) {
 		u32 j;
 		u8 width = (int) (transfers_per_data_word*bus_width/4);
 		for (j=0; j<20; j++) {
@@ -726,7 +727,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 				}
 				address++;
 			}
-			printf("that was %ld retries...\n", new_retries);
+			//printf("that was %ld retries...\n", new_retries);
 			self->retries += new_retries;
 		}
 	}

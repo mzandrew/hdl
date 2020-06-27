@@ -479,10 +479,10 @@ def print_messages():
 def setup_half_duplex_bus():
 	print("setting up for half-duplex bus mode...")
 	gpio_bus = [ althea_gpio[i] for i in range(bus_start, bus_start+bus_width) ]
-	print(str(gpio_bus))
+	#print(str(gpio_bus))
 	global bits_bus
 	bits_bus = len(gpio_bus)
-	print("this bus is " + str(bits_bus) + " bits wide")
+	#print("this bus is " + str(bits_bus) + " bits wide")
 	transfers_per_data_word = 2
 	global bits_word
 	bits_word = transfers_per_data_word*bits_bus
@@ -518,9 +518,9 @@ def test_writing_data_to_half_duplex_bus():
 	time.sleep(0.1)
 	data = []
 	#NUM = 4500000
-	#NUM = MEMSIZE
+	NUM = MEMSIZE
 	#NUM = 1024
-	NUM = 256
+	#NUM = 256
 	#NUM = 16
 	#NUM = 4
 	number_of_times_to_repeat = 1
@@ -536,7 +536,7 @@ def test_writing_data_to_half_duplex_bus():
 #			data.extend(segment)
 #	else:
 	data = [ random.randint(0,2**bits_word-1) for d in range(NUM) ]
-	print("running...")
+	#print("running...")
 	count = 0
 	errors = 0
 	start = time.time()
