@@ -139,6 +139,7 @@ module top #(
 			errors <= 0;
 //			checksum <= 0;
 			astate <= 0;
+			aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 			register_select_pipeline <= 0;
 			read_pipeline <= 0;
 			enable_pipeline <= 0;
@@ -282,7 +283,8 @@ module top #(
 		assign leds[1] = enable;
 		assign leds[0] = reset50;
 	end else begin
-		assign leds = errors[7:0];
+		assign leds[7] = |errors[31:7];
+		assign leds[6:0] = errors[6:0];
 		//assign leds = address[1];
 		//assign leds = address[0];
 		//assign leds = write_data[1];
