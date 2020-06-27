@@ -351,6 +351,101 @@ typedef struct {
 	volatile u32 *read_port;
 } half_duplex_bus_object;
 
+// waiting for ack_valid is the difference between 2 MB/sec and 9 MB/sec
+#define WAIT_FOR_ACK_STYLE_FOR
+//#define WAIT_FOR_ACK_STYLE_WHILE
+#define MAX_ACK_CYCLES_ERROR (1000)
+#define MAX_READBACK_CYCLES_ERROR (1000)
+#define MAX_RETRY_CYCLES_ERROR (1000)
+#define MAX_ACK_CYCLES_WARNING (8)
+// pickoff reg_sel/read=1:enable= 2:clock125->WARNING=occasionally 8
+// pickoff reg_sel/read=1:enable= 2:clock50->WARNING=occasionally 4
+// pickoff reg_sel/read=2:enable= 3:clock50->WARNING=occasionally 4
+// pickoff reg_sel/read=3:enable= 4:clock50->WARNING=occasionally 4
+// pickoff reg_sel/read=3:enable=10:clock50->WARNING=occasionally 6
+// pickoff reg_sel/read=3:enable=23:clock50->WARNING=occasionally 9
+// pickoff reg_sel/read=3:enable=30:clock50->WARNING=occasionally 11
+#define MAX_READBACK_CYCLES_WARNING (1)
+
+char string1[4096] = "";
+char string2[4096] = "";
+
+u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
+	volatile u32 *set_reg = self->set_reg;
+	u32 enable = self->enable;
+	*set_reg = enable;
+	volatile u32 *read_port = self->read_port;
+	u32 ack_valid = self->ack_valid;
+	u32 new_errors = 0;
+	u32 value, i;
+	//mynsleep(short_delay);
+	// wait for ack_valid
+	#ifdef WAIT_FOR_ACK_STYLE_FOR
+	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
+		value = *read_port;
+		//printf("\n[%08lx] value&ack_valid: %08lx (read_data)", self->transactions, value & ack_valid);
+		if (value & ack_valid) { break; }
+		//mynsleep(short_delay);
+	}
+//	if (MAX_ACK_CYCLES_WARNING<i) { sprintf(string2, " ack_valid=%ld(s)", i); strcat(string1, string2); }
+	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
+	#else
+	do { } while (!(*read_port & ack_valid));
+	#endif
+	return new_errors;
+}
+
+u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
+	volatile u32 *clr_reg = self->clr_reg;
+	u32 enable = self->enable;
+	*clr_reg = enable;
+	volatile u32 *read_port = self->read_port;
+	u32 ack_valid = self->ack_valid;
+	u32 new_errors = 0;
+	u32 value, i;
+	//mynsleep(short_delay);
+	// wait for ack_valid
+	#ifdef WAIT_FOR_ACK_STYLE_FOR
+	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
+		value = *read_port;
+		//printf("\n[%08lx] value&ack_valid: %08lx (read_data)", self->transactions, value & ack_valid);
+		if (!(value & ack_valid)) { break; }
+		//mynsleep(short_delay);
+	}
+//	if (MAX_ACK_CYCLES_WARNING<i) { sprintf(string2, " ack_valid=%ld(c)", i); strcat(string1, string2); }
+	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
+	#else
+	do { } while (!(*read_port & ack_valid));
+	#endif
+	return new_errors;
+}
+
+u32 set_bus(half_duplex_bus_object *self, u32 partial_data) {
+	volatile u32 *set_reg = self->set_reg;
+	volatile u32 *clr_reg = self->clr_reg;
+	u32 bus_mask = self->bus_mask;
+	u32 bus_offset = self->bus_offset;
+	u32 adjusted_data = (partial_data<<bus_offset) & bus_mask;
+	*clr_reg = bus_mask;
+	*set_reg = adjusted_data;
+	volatile u32 *read_port = self->read_port;
+	u32 readback;
+	u32 new_errors = 0;
+	u32 i;
+	//printf("\nadjusted_data to write: %0*lx", (int) (bus_width/4+1), adjusted_data);
+	for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
+		readback = *read_port & bus_mask;
+		if (readback == adjusted_data) { break; }
+		//mynsleep(short_delay);
+	}
+	if (MAX_READBACK_CYCLES_WARNING<i) { printf(" %ld(ww)", i); }
+	if (MAX_READBACK_CYCLES_ERROR==i) {
+		printf("\nERROR: can't change the state of GPIOs");
+		new_errors++;
+	}
+	return new_errors;
+}
+
 static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, PyObject *kwds) {
 	setup_DebugInfoWarningError_if_needed();
 	u32 bus_offset = 0;
@@ -414,22 +509,26 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	setup_bus_as_inputs(self->gpio_port, self->ack_valid);
 	set_drive_strength_and_slew_rate(self->gpio_pads, 2); // 2 mA seems best
 	setup_bus_as_outputs(self->gpio_port, self->register_select | self->read | self->enable);
+	clear_enable_and_wait_for_ack_valid(self);
+	u32 everything = bus_mask | register_select | read | enable;
+	*self->clr_reg = everything;
 	return 0;
 }
 
 static void half_duplex_bus_destructor(half_duplex_bus_object *self) {
-	if (self->errors) {
-		printf("\nthere were %ld total errors", self->errors);
-	}
 	if (self->transactions) {
 		printf("\nthere were %ld total transactions", self->transactions);
 	}
 	if (self->retries) {
 		printf("\nthere were %ld total retries", self->retries);
 	}
+	if (self->errors) {
+		printf("\nthere were %ld total errors", self->errors);
+	}
 	if (self->user_errors) {
 		printf("\nthere were %ld total user_errors", self->user_errors);
 	}
+	printf("\n");
 	Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
@@ -442,99 +541,8 @@ static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyOb
 	return PyLong_FromLong(self->user_errors);
 }
 
-// waiting for ack_valid is the difference between 2 MB/sec and 9 MB/sec
-#define WAIT_FOR_ACK_STYLE_FOR
-//#define WAIT_FOR_ACK_STYLE_WHILE
-#define MAX_ACK_CYCLES_ERROR (90)
-#define MAX_READBACK_CYCLES_ERROR (30)
-#define MAX_RETRY_CYCLES_ERROR (30)
-#define MAX_ACK_CYCLES_WARNING (8)
-// pickoff reg_sel/read=1:enable= 2:clock125->WARNING=occasionally 8
-// pickoff reg_sel/read=1:enable= 2:clock50->WARNING=occasionally 4
-// pickoff reg_sel/read=2:enable= 3:clock50->WARNING=occasionally 4
-// pickoff reg_sel/read=3:enable= 4:clock50->WARNING=occasionally 4
-// pickoff reg_sel/read=3:enable=10:clock50->WARNING=occasionally 6
-// pickoff reg_sel/read=3:enable=23:clock50->WARNING=occasionally 9
-// pickoff reg_sel/read=3:enable=30:clock50->WARNING=occasionally 11
-#define MAX_READBACK_CYCLES_WARNING (1)
-
-u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
-	volatile u32 *set_reg = self->set_reg;
-	u32 enable = self->enable;
-	*set_reg = enable;
-	volatile u32 *read_port = self->read_port;
-	u32 ack_valid = self->ack_valid;
-	u32 new_errors = 0;
-	u32 value, i;
-	//mynsleep(short_delay);
-	// wait for ack_valid
-	#ifdef WAIT_FOR_ACK_STYLE_FOR
-	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
-		value = *read_port;
-		//printf("\n[%08lx] value&ack_valid: %08lx (read_data)", self->transactions, value & ack_valid);
-		if (value & ack_valid) { break; }
-		//mynsleep(short_delay);
-	}
-	if (MAX_ACK_CYCLES_WARNING<i) { printf(" %ld(s)", i); }
-	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
-	#else
-	do { } while (!(*read_port & ack_valid));
-	#endif
-	return new_errors;
-}
-
-u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
-	volatile u32 *clr_reg = self->clr_reg;
-	u32 enable = self->enable;
-	*clr_reg = enable;
-	volatile u32 *read_port = self->read_port;
-	u32 ack_valid = self->ack_valid;
-	u32 new_errors = 0;
-	u32 value, i;
-	//mynsleep(short_delay);
-	// wait for ack_valid
-	#ifdef WAIT_FOR_ACK_STYLE_FOR
-	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
-		value = *read_port;
-		//printf("\n[%08lx] value&ack_valid: %08lx (read_data)", self->transactions, value & ack_valid);
-		if (!(value & ack_valid)) { break; }
-		//mynsleep(short_delay);
-	}
-	if (MAX_ACK_CYCLES_WARNING<i) { printf(" %ld(c)", i); }
-	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
-	#else
-	do { } while (!(*read_port & ack_valid));
-	#endif
-	return new_errors;
-}
-
-u32 set_bus(half_duplex_bus_object *self, u32 partial_data) {
-	volatile u32 *set_reg = self->set_reg;
-	volatile u32 *clr_reg = self->clr_reg;
-	u32 bus_mask = self->bus_mask;
-	u32 bus_offset = self->bus_offset;
-	u32 adjusted_data = (partial_data<<bus_offset) & bus_mask;
-	*clr_reg = bus_mask;
-	*set_reg = adjusted_data;
-	volatile u32 *read_port = self->read_port;
-	u32 readback;
-	u32 new_errors = 0;
-	u32 i;
-	//printf("\nadjusted_data to write: %0*lx", (int) (bus_width/4+1), adjusted_data);
-	for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
-		readback = *read_port & bus_mask;
-		if (readback == adjusted_data) { break; }
-		//mynsleep(short_delay);
-	}
-	if (MAX_READBACK_CYCLES_WARNING<i) { printf(" %ld(ww)", i); }
-	if (MAX_READBACK_CYCLES_ERROR==i) {
-		printf("\nERROR: can't change the state of GPIOs");
-		new_errors++;
-	}
-	return new_errors;
-}
-
 u32 set_address(half_duplex_bus_object *self, u32 address) {
+//	sprintf(string1, "set_address() ");
 	volatile u32 *clr_reg = self->clr_reg;
 	u32 bus_width = self->bus_width;
 	u32 partial_mask = self->partial_mask;
@@ -548,19 +556,23 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	// write address
 	//printf("\naddress: %0*lx", (int) (transfers_per_address_word*bus_width/4), address);
 	//for (t=0; t<transfers_per_address_word; t++) {
+	//mynsleep(1);
 	new_errors += clear_enable_and_wait_for_ack_valid(self);
+//	sprintf(string2, " _ "); strcat(string1, string2);
 	*clr_reg = register_select | read; // register_select=0 is address mode
 	for (t=0; t<transfers_per_address_word; t++) {
 		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
 		//printf("\npartial_address: %0*lx", (int) bus_width/4, partial_address);
 		set_bus(self, partial_address);
 		new_errors += set_enable_and_wait_for_ack_valid(self);
+//		sprintf(string2, " + "); strcat(string1, string2);
 		if (t+1<transfers_per_address_word) {
 			new_errors += clear_enable_and_wait_for_ack_valid(self);
 		} else {
 			*clr_reg = enable;
 		}
 	}
+//	if (new_errors) { sprintf(string2, " new_errors=%ld", new_errors); strcat(string1, string2); fprintf(info, "\n%s", string1); }
 	if (new_errors) { printf("\nnew_errors: %ld (set_address)", new_errors); }
 	self->errors += new_errors;
 	return new_errors;
