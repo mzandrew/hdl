@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-26 by mza
+# last updated 2020-06-27 by mza
 
 import time
 import time # time.sleep
@@ -17,6 +17,7 @@ import fastgpio # fastgpio.bus fastgpio.clock
 
 #GPIO.setwarnings(False)
 #GPIO.setmode(GPIO.BCM)
+messages = []
 
 # ---------------------------------------------------------------------------
 
@@ -443,12 +444,14 @@ def test_writing_data_to_simple_parallel_bus():
 
 def check(ref1, ref2, should_print=1, offset=0, width=0):
 	if 0==width:
-		width = math.log2(len(ref2))//4
+		width = math.ceil(math.log2(len(ref2)+offset)/4)
 	#print(str(width))
 	errors = 0
+	if should_print:
+		global messages
 	if len(ref1) != len(ref2):
 		if should_print:
-			print("lengths don't match")
+			messages.append("lengths don't match")
 		errors += 1
 	for i in range(len(ref1)):
 		if ref1[i] != ref2[i]:
@@ -456,8 +459,8 @@ def check(ref1, ref2, should_print=1, offset=0, width=0):
 			if should_print:
 				#print("ref1[" + str(i) + "]=" + hex(ref1[i], bits_word/4))
 				#print("ref2[" + str(i) + "]=" + hex(ref2[i], bits_word/4))
-				print("ref1[" + hex(i+offset, width) + "] = " + bin(ref1[i], bits_word))
-				print("ref2[" + hex(i+offset, width) + "] = " + bin(ref2[i], bits_word))
+				messages.append("ref1[" + hex(i+offset, width) + "] = " + bin(ref1[i], bits_word))
+				messages.append("ref2[" + hex(i+offset, width) + "] = " + bin(ref2[i], bits_word))
 				#sys.exit(1)
 		#else:
 			#if should_print:
@@ -466,6 +469,10 @@ def check(ref1, ref2, should_print=1, offset=0, width=0):
 		#print("\n")
 #	print(str(errors))
 	return errors
+
+def print_messages():
+	for message in messages:
+		print(message)
 
 # ---------------------------------------------------------------------------
 
@@ -537,8 +544,8 @@ def test_writing_data_to_half_duplex_bus():
 		if 1: # use above list and check it
 			count += half_duplex_bus.write(0, data)
 			values = half_duplex_bus.read(0, len(data))
-			#errors += check(data, values, True)
-			errors += check(data, values, False)
+			errors += check(data, values, True)
+			#errors += check(data, values, False)
 		if 0: # ramp up or down
 			#data = [ d for d in range(NUM) ]
 			data = [ NUM-d-1 for d in range(NUM) ]
@@ -648,6 +655,7 @@ def test_writing_data_to_half_duplex_bus():
 	#print(str(data))
 #	count += half_duplex_bus.write(0, data)
 	end = time.time()
+	print_messages()
 	diff = end - start
 	per_sec = NUM / diff
 	print("%.6f"%diff + " seconds")
