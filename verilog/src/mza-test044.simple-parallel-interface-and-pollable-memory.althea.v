@@ -112,12 +112,12 @@ module top #(
 	reg [COUNTER125_BIT_PICKOFF:0] counter125 = 0;
 	integer j;
 	always @(posedge clock125) begin
-		reset50_pipeline125 =  { reset50_pipeline125[1:0], reset50 };
+		reset50_pipeline125 <= { reset50_pipeline125[1:0], reset50 };
 	end
 	always @(posedge clock) begin
 		pre_pre_ack_valid <= 0;
 		write_strobe <= 0;
-		if (reset || reset50_pipeline125[2]) begin
+		if (reset || reset50_pipeline125[2] || ~pll_locked) begin
 			counter125 <= 0;
 			reset125 <= 1;
 		end else if (reset125) begin
