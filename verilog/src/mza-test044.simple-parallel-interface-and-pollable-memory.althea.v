@@ -227,7 +227,7 @@ module top #(
 	RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset50),
 		.wclk(clock50), .waddr(address__word), .din(write_data_word), .write_en(write_strobe),
 		.rclk(clock50), .raddr(address__word), .dout(read_data_word));
-	if (1) begin
+	if (0) begin
 		assign leds[7] = ack_valid;
 		assign leds[6] = write_strobe;
 		//assign leds[5] = checksum;
@@ -238,8 +238,9 @@ module top #(
 		assign leds[1] = enable;
 		assign leds[0] = reset50;
 	end else begin
+		assign leds = errors[7:0];
 		//assign leds = address[1];
-		assign leds = address[0];
+		//assign leds = address[0];
 		//assign leds = write_data[1];
 		//assign leds = write_data[0];
 	end
