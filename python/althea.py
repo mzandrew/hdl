@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-23 by mza
+# last updated 2020-06-26 by mza
 
 import time
 import time # time.sleep

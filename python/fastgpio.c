@@ -2,7 +2,7 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-06-25 by mza
+// last updated 2020-06-26 by mza
 
 // how to use this module:
 
@@ -468,6 +468,8 @@ static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyOb
 #define MAX_READBACK_CYCLES_ERROR (30)
 #define MAX_RETRY_CYCLES_ERROR (30)
 #define MAX_ACK_CYCLES_WARNING (4)
+// pickoff reg_sel/read=1:enable= 2->WARNING=occasionally 4
+// pickoff reg_sel/read=2:enable= 3->WARNING=occasionally 4
 // pickoff reg_sel/read=3:enable= 4->WARNING=occasionally 4
 // pickoff reg_sel/read=3:enable=10->WARNING=occasionally 6
 // pickoff reg_sel/read=3:enable=23->WARNING=occasionally 9
@@ -524,12 +526,35 @@ u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 	return new_errors;
 }
 
-u32 set_address(half_duplex_bus_object *self, u32 address) {
+u32 set_bus(half_duplex_bus_object *self, u32 partial_data) {
 	volatile u32 *set_reg = self->set_reg;
 	volatile u32 *clr_reg = self->clr_reg;
+	volatile u32 *read_port = self->read_port;
 	u32 bus_mask = self->bus_mask;
-	u32 bus_width = self->bus_width;
 	u32 bus_offset = self->bus_offset;
+	u32 adjusted_data = (partial_data<<bus_offset) & bus_mask;
+	u32 readback;
+	u32 new_errors = 0;
+	u32 i;
+	//printf("adjusted_data to write: %0*lx\n", (int) (bus_width/4+1), adjusted_data);
+	*clr_reg = bus_mask;
+	*set_reg = adjusted_data;
+	for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
+		readback = *read_port & bus_mask;
+		if (readback == adjusted_data) { break; }
+		//mynsleep(short_delay);
+	}
+	if (MAX_READBACK_CYCLES_WARNING<i) { printf("%ld(ww) ", i); }
+	if (MAX_READBACK_CYCLES_ERROR==i) {
+		printf("ERROR: can't change the state of GPIOs\n");
+		new_errors++;
+	}
+	return new_errors;
+}
+
+u32 set_address(half_duplex_bus_object *self, u32 address) {
+	volatile u32 *clr_reg = self->clr_reg;
+	u32 bus_width = self->bus_width;
 	u32 partial_mask = self->partial_mask;
 	u32 transfers_per_address_word = self->transfers_per_address_word;
 	u32 register_select = self->register_select;
@@ -537,7 +562,6 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	u32 enable = self->enable;
 	u32 new_errors = 0;
 	u32 partial_address;
-	u32 adjusted_address;
 	u32 t;
 	// write address
 	//printf("address: %0*lx\n", (int) (transfers_per_address_word*bus_width/4), address);
@@ -546,10 +570,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	for (t=0; t<transfers_per_address_word; t++) {
 		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
 		//printf("partial_address: %0*lx\n", (int) bus_width/4, partial_address);
-		adjusted_address = (partial_address<<bus_offset) & bus_mask;
-		//printf("adjusted_address: %0*lx\n", bus_width/4, adjusted_address);
-		*clr_reg = bus_mask;
-		*set_reg = adjusted_address;
+		set_bus(self, partial_address);
 		set_enable_and_wait_for_ack_valid(self);
 		if (t+1<transfers_per_address_word) {
 			clear_enable_and_wait_for_ack_valid(self);
@@ -565,10 +586,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 u32 write_data(half_duplex_bus_object *self, u32 data) {
 	volatile u32 *set_reg = self->set_reg;
 	volatile u32 *clr_reg = self->clr_reg;
-	volatile u32 *read_port = self->read_port;
-	u32 bus_mask = self->bus_mask;
 	u32 bus_width = self->bus_width;
-	u32 bus_offset = self->bus_offset;
 	u32 partial_mask = self->partial_mask;
 	u32 transfers_per_data_word = self->transfers_per_data_word;
 	u32 register_select = self->register_select;
@@ -576,9 +594,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 	u32 enable = self->enable;
 	u32 new_errors = 0;
 	u32 partial_data;
-	u32 adjusted_data;
-	u32 i, t;
-	u32 readback;
+	u32 t;
 	// write data
 	//printf("data to write: %0*lx\n", (int) (transfers_per_data_word*bus_width/4), data);
 	clear_enable_and_wait_for_ack_valid(self);
@@ -587,20 +603,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 	for (t=0; t<transfers_per_data_word; t++) {
 		partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
 		//printf("partial_data to write: %0*lx\n", (int) bus_width/4, partial_data);
-		adjusted_data = (partial_data<<bus_offset) & bus_mask;
-		//printf("adjusted_data to write: %0*lx\n", (int) (bus_width/4+1), adjusted_data);
-		*clr_reg = bus_mask;
-		*set_reg = adjusted_data;
-		for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
-			readback = *read_port & bus_mask;
-			if (readback == adjusted_data) { break; }
-			//mynsleep(short_delay);
-		}
-		if (MAX_READBACK_CYCLES_WARNING<i) { printf("%ld(ww) ", i); }
-		if (MAX_READBACK_CYCLES_ERROR==i) {
-			printf("ERROR: can't change the state of GPIOs\n");
-			new_errors++;
-		}
+		set_bus(self, partial_data);
 		set_enable_and_wait_for_ack_valid(self);
 		if (t+1<transfers_per_data_word) {
 			clear_enable_and_wait_for_ack_valid(self);
@@ -625,7 +628,8 @@ u32 read_data(half_duplex_bus_object *self) {
 	u32 read = self->read;
 	u32 enable = self->enable;
 	u32 new_errors = 0;
-	u32 partial_data0, partial_data1;
+//	u32 partial_data0;
+	u32 partial_data1;
 	u32 t;
 	// readback data
 	clear_enable_and_wait_for_ack_valid(self);
@@ -635,12 +639,12 @@ u32 read_data(half_duplex_bus_object *self) {
 	for (t=0; t<transfers_per_data_word; t++) {
 		//*clr_reg = bus_mask; // shouldn't need to do this...
 		set_enable_and_wait_for_ack_valid(self);
-		partial_data0 = (*read_port & bus_mask)>>bus_offset;
-		partial_data1 = (*read_port & bus_mask)>>bus_offset;
-		if (partial_data0!=partial_data1) {
-			printf("data readpar0: %0*lx\n", (int) (bus_width/4), partial_data0);
-			printf("data readpar1: %0*lx\n", (int) (bus_width/4), partial_data1);
-		}
+//		partial_data0 = (*read_port & bus_mask)>>bus_offset;
+//		partial_data1 = (*read_port & bus_mask)>>bus_offset;
+//		if (partial_data0!=partial_data1) {
+//			printf("data readpar0: %0*lx\n", (int) (bus_width/4), partial_data0);
+//			printf("data readpar1: %0*lx\n", (int) (bus_width/4), partial_data1);
+//		}
 		partial_data1 = (*read_port & bus_mask)>>bus_offset;
 		data |= partial_data1 << ((transfers_per_data_word-t-1)*bus_width);
 		if (t+1<transfers_per_data_word) {
