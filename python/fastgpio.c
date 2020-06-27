@@ -715,6 +715,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		//address += len(u32);
 		count++;
 		address++;
+		Py_DECREF(next);
 	}
 	*clr_reg = everything;
 	//printf("completed %ld transactions\n", count);
@@ -722,6 +723,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 //		printf("there were %ld new errors\n", new_errors);
 //	}
 	self->errors += new_errors;
+	Py_DECREF(iter);
 	return PyLong_FromLong(count);
 }
 
@@ -862,14 +864,12 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 	*clr_reg = mask;
 	u32 count = 0;
 //	struct timespec short_delay = { 0, 1 }; // seconds, nanoseconds
-#define ALE (22)
+//#define ALE (22)
 	//*clr_reg = 1<<ALE;
-	*set_reg = 1<<ALE;
+	//*set_reg = 1<<ALE;
 	while (1) {
 		PyObject *next = PyIter_Next(iter);
-		if (!next) {
-			break;
-		}
+		if (!next) { break; }
 		value = PyLong_AsUnsignedLong(next);
 		//printf("%08lx %08lx\n", value, mask);
 //		value <<= offset;
@@ -894,6 +894,7 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 				mynsleep(short_delay);
 			}
 		}
+		Py_DECREF(next);
 	}
 	//printf("%ld\n", count);
 //	value = *set_reg;
@@ -902,7 +903,8 @@ static PyObject* method_write(bus_object *self, PyObject *args) {
 //	printf("%08lx:%08lx\n", (u32) set_reg, *set_reg);
 //	*clr_reg = 0;
 //	printf("%08lx:%08lx\n", (u32) clr_reg, *clr_reg);
-	*clr_reg = 1<<ALE;
+	//*clr_reg = 1<<ALE;
+	Py_DECREF(iter);
 	return PyLong_FromLong(count);
 }
 
