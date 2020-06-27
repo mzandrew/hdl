@@ -81,7 +81,6 @@ module top #(
 	reg [1:0] rstate = 0;
 	reg [LOG2_OF_TRANSACTIONS_PER_DATA_WORD-1:0] rword = TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 	reg [31:0] errors = 0;
-//	reg [BUS_WIDTH-1:0] pre_pre_bus = 0;
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
 	reg pre_pre_ack_valid = 0;
 	reg pre_ack_valid = 0;
@@ -146,15 +145,7 @@ module top #(
 					end
 				end
 			end else begin // enable=0
-				if (wstate[1]) begin
-					wstate <= 0;
-					wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
-					//if (write_data_word==32'h31231507) begin
-//					if (write_data_word[15:0]==16'h1507) begin
-//						checksum <= 1;
-//					end else begin
-//						checksum <= 0;
-//					end
+				if (wstate) begin
 					if (rstate || rword!=TRANSACTIONS_PER_DATA_WORD-1) begin
 						rstate <= 0;
 						errors <= errors + 1'b1;
@@ -165,8 +156,16 @@ module top #(
 						errors <= errors + 1'b1;
 						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 					end
-				end else begin
-					if (wstate[0]) begin
+					if (wstate[1]) begin
+						wstate <= 0;
+						wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
+						//if (write_data_word==32'h31231507) begin
+//						if (write_data_word[15:0]==16'h1507) begin
+//							checksum <= 1;
+//						end else begin
+//							checksum <= 0;
+//						end
+					end else begin
 						wstate[0] <= 0;
 						if (|wword) begin
 							wword <= wword - 1'b1;
@@ -176,9 +175,7 @@ module top #(
 						end
 					end
 				end
-				if (rstate[1]) begin
-					rstate <= 0;
-					rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
+				if (rstate) begin
 					if (wstate || wword!=TRANSACTIONS_PER_DATA_WORD-1) begin
 						wstate <= 0;
 						errors <= errors + 1'b1;
@@ -189,8 +186,10 @@ module top #(
 						errors <= errors + 1'b1;
 						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 					end
-				end else begin
-					if (rstate[0]) begin
+					if (rstate[1]) begin
+						rstate <= 0;
+						rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
+					end else begin
 						rstate[0] <= 0;
 						if (|rword) begin
 							rword <= rword - 1'b1;
@@ -199,9 +198,7 @@ module top #(
 						end
 					end
 				end
-				if (astate[1]) begin
-					astate <= 0;
-					aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+				if (astate) begin
 					if (wstate || wword!=TRANSACTIONS_PER_DATA_WORD-1) begin
 						wstate <= 0;
 						errors <= errors + 1'b1;
@@ -212,8 +209,10 @@ module top #(
 						errors <= errors + 1'b1;
 						rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					end
-				end else begin
-					if (astate[0]) begin
+					if (astate[1]) begin
+						astate <= 0;
+						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+					end else begin
 						astate[0] <= 0;
 						if (|aword) begin
 							aword <= aword - 1'b1;
@@ -225,7 +224,6 @@ module top #(
 			end
 			ack_valid <= pre_ack_valid;
 			pre_ack_valid <= pre_pre_ack_valid;
-			//pre_bus <= pre_pre_bus;
 			register_select_pipeline <= { register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF-1:0], register_select };
 			read_pipeline            <= {                       read_pipeline[READ_PIPELINE_PICKOFF-1:0], read };
 			enable_pipeline          <= {                   enable_pipeline[ENABLE_PIPELINE_PICKOFF-1:0], enable };
