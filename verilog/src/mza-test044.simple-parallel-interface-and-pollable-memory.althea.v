@@ -26,7 +26,7 @@ module top #(
 	parameter BUS_WIDTH = 8,
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
 	parameter LOG2_OF_TRANSACTIONS_PER_DATA_WORD = $clog2(TRANSACTIONS_PER_DATA_WORD),
-	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
+	parameter TRANSACTIONS_PER_ADDRESS_WORD = 2,
 	parameter LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD = $clog2(TRANSACTIONS_PER_ADDRESS_WORD),
 	parameter ADDRESS_DEPTH = 14
 ) (
@@ -43,15 +43,15 @@ module top #(
 	output reg ack_valid = 0,
 	output [7:0] leds
 );
-	localparam REGISTER_SELECT_PIPELINE_PICKOFF = 3;
-	localparam READ_PIPELINE_PICKOFF = 3;
-	localparam ENABLE_PIPELINE_PICKOFF = 4;
-	localparam BUS_PIPELINE_PICKOFF = 3;
+	localparam REGISTER_SELECT_PIPELINE_PICKOFF = 1;
+	localparam READ_PIPELINE_PICKOFF            = 1;
+	localparam BUS_PIPELINE_PICKOFF             = 1;
+	localparam ENABLE_PIPELINE_PICKOFF          = 2;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
 	reg [READ_PIPELINE_PICKOFF:0] read_pipeline = 0;
 	reg [ENABLE_PIPELINE_PICKOFF:0] enable_pipeline = 0;
 	reg [BUS_WIDTH-1:0] bus_pipeline [BUS_PIPELINE_PICKOFF:0];
-	reg checksum = 0;
+//	reg checksum = 0;
 	assign lemo = 0;
 	assign other0 = 0;
 	assign other1 = 0;
@@ -112,26 +112,24 @@ module top #(
 			rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 			pre_bus <= 0;
 			errors <= 0;
-			checksum <= 0;
+//			checksum <= 0;
 			astate <= 0;
 			register_select_pipeline <= 0;
 			read_pipeline <= 0;
 			enable_pipeline <= 0;
 			bus_pipeline[0] <= 0;
 		end else begin
-			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF]==1) begin
+			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF]) begin
 				pre_pre_ack_valid <= 1;
-				if (read_pipeline[READ_PIPELINE_PICKOFF]==1) begin // read mode
+				if (read_pipeline[READ_PIPELINE_PICKOFF]) begin // read mode
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
 							pre_bus <= read_data[rword];
 						end
-//					end else begin
-//						pre_bus <= 8'ha5;
 					end
 				end else begin // write mode
-					if (register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF]==1) begin
+					if (register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF]) begin
 						if (wstate[1]==0) begin
 							if (wstate[0]==0) begin
 								wstate[0] <= 1;
@@ -152,11 +150,11 @@ module top #(
 					wstate <= 0;
 					wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					//if (write_data_word==32'h31231507) begin
-					if (write_data_word[15:0]==16'h1507) begin
-						checksum <= 1;
-					end else begin
-						checksum <= 0;
-					end
+//					if (write_data_word[15:0]==16'h1507) begin
+//						checksum <= 1;
+//					end else begin
+//						checksum <= 0;
+//					end
 				end else begin
 					if (wstate[0]) begin
 						wstate[0] <= 0;
@@ -229,7 +227,7 @@ module top #(
 	RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset50),
 		.wclk(clock50), .waddr(address__word), .din(write_data_word), .write_en(write_strobe),
 		.rclk(clock50), .raddr(address__word), .dout(read_data_word));
-	if (0) begin
+	if (1) begin
 		assign leds[7] = ack_valid;
 		assign leds[6] = write_strobe;
 		//assign leds[5] = checksum;
