@@ -184,49 +184,30 @@ void set_drive_strength_and_slew_rate(volatile u32 *gpio_pads, u8 milliamps) {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-void initialize_gpio_for_input(volatile u32 *gpio_port, int bit) {
+void setup_bus_as_inputs(volatile u32 *gpio_port, u32 mask) {
 	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
-	*(gpio_port+(bit/10)) &= ~(7<<((bit%10)*3));  // set as input
-}
-
-void initialize_gpio_for_output(volatile u32 *gpio_port, int bit) {
-	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
-	*(gpio_port+(bit/10)) &= ~(7<<((bit%10)*3));  // prepare: set as input
-	*(gpio_port+(bit/10)) |=  (1<<((bit%10)*3));  // set as output
-}
-
-void initialize_gpios_for_input(volatile u32 *gpio_port, u32 mask) {
+	//printf("%08lx\n", mask);
 	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
 	for (int i=0; i<32; i++) {
 		u32 bit = 1<<i;
 		if (bit&mask) {
 //			printf("bit %d = input\n", i);
-			initialize_gpio_for_input(gpio_port, i);
+			*(gpio_port+(i/10)) &= ~(7<<((i%10)*3));  // set as input
 		}
 	}
-}
-
-void initialize_gpios_for_output(volatile u32 *gpio_port, u32 mask) {
-	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
-	for (int i=0; i<32; i++) {
-		u32 bit = 1<<i;
-		if (bit&mask) {
-//			printf("bit %d = output\n", i);
-			initialize_gpio_for_output(gpio_port, i);
-		}
-	}
-}
-
-void setup_bus_as_inputs(volatile u32 *gpio_port, u32 mask) {
-	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
-	//printf("%08lx\n", mask);
-	initialize_gpios_for_input(gpio_port, mask);
 }
 
 void setup_bus_as_outputs(volatile u32 *gpio_port, u32 mask) {
 	if (0==gpio_port) { fprintf(warning, "cowardly refusing to change gpio mode using a NULL pointer (run with sudo?)...\n"); return; }
 	//printf("%08lx\n", mask);
-	initialize_gpios_for_output(gpio_port, mask);
+	for (int i=0; i<32; i++) {
+		u32 bit = 1<<i;
+		if (bit&mask) {
+//			printf("bit %d = output\n", i);
+			*(gpio_port+(i/10)) &= ~(7<<((i%10)*3));  // prepare: set as input
+			*(gpio_port+(i/10)) |=  (1<<((i%10)*3));  // set as output
+		}
+	}
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -724,11 +705,11 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		address++;
 	}
 	self->retries += new_retries;
+	//if (0) {
 	if (verify) {
 		u32 j;
 		u8 width = (int) (transfers_per_data_word*bus_width/4);
-	//if (0) {
-		for (j=0; j<2; j++) {
+		for (j=0; j<20; j++) {
 			new_retries = 0;
 			address = start_address;
 			for (count=0; count<length; count++) {
@@ -745,7 +726,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 				}
 				address++;
 			}
-			printf("that was %ld retries...\n", new_retries);
+			//printf("that was %ld retries...\n", new_retries);
 			self->retries += new_retries;
 		}
 	}
