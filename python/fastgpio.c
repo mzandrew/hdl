@@ -766,7 +766,7 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 		self->transactions++;
 		set_address(self, address);
 		data = read_data(self);
-		PyObject *new = PyLong_FromLong(data);
+		PyObject *new = PyLong_FromUnsignedLong(data);
 		PyList_Append(obj, new);
 		Py_DECREF(new);
 		address++;

@@ -483,7 +483,7 @@ def setup_half_duplex_bus():
 	global bits_bus
 	bits_bus = len(gpio_bus)
 	#print("this bus is " + str(bits_bus) + " bits wide")
-	transfers_per_data_word = 2
+	transfers_per_data_word = 3
 	global bits_word
 	bits_word = transfers_per_data_word*bits_bus
 	#mask_bus = buildmask(gpio_bus)
@@ -656,7 +656,7 @@ def test_writing_data_to_half_duplex_bus():
 	#print(str(data))
 #	count += half_duplex_bus.write(0, data)
 	end = time.time()
-	#print_messages()
+	print_messages()
 	diff = end - start
 	per_sec = NUM / diff
 	print("%.6f"%diff + " seconds")
