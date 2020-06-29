@@ -682,7 +682,6 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	u32 i;
 	u32 new_errors = 0;
 	*self->clr_reg = everything;
-	setup_as_outputs(self->gpio_port, self->bus_mask);
 	u32 max_retry_cycles_error_var = 1;
 	if (verify) {
 		max_retry_cycles_error_var = MAX_RETRY_CYCLES_ERROR;
@@ -761,7 +760,6 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 	u32 data;
 	u32 everything = self->bus_mask | self->register_select | self->read | self->enable;
 	*self->clr_reg = everything;
-	//setup_as_outputs(self->gpio_port, self->bus_mask);
 	PyObject *obj = PyList_New(0);
 	while (1) {
 		if (ending_address<=address) { break; }

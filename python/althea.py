@@ -518,6 +518,7 @@ def test_writing_data_to_half_duplex_bus():
 	time.sleep(0.1)
 	data = []
 	#NUM = 4500000
+	#NUM = 4*MEMSIZE
 	NUM = MEMSIZE
 	#NUM = 1024
 	#NUM = 256
