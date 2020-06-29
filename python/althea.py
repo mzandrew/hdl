@@ -483,11 +483,10 @@ def setup_half_duplex_bus():
 	global bits_bus
 	bits_bus = len(gpio_bus)
 	#print("this bus is " + str(bits_bus) + " bits wide")
+	global transfers_per_data_word
 	transfers_per_data_word = 4
 	global bits_word
 	bits_word = transfers_per_data_word*bits_bus
-	#mask_bus = buildmask(gpio_bus)
-	#print(hex(mask_bus, 8))
 	global half_duplex_bus
 	half_duplex_bus = fastgpio.half_duplex_bus(
 		bus_width=bus_width,
@@ -499,16 +498,6 @@ def setup_half_duplex_bus():
 		enable=15,
 		ack_valid=2
 	)
-	#half_duplex_bus.write([0])
-	#control_bus_list = [ 13, 14, 15 ] # register_select, read, enable
-	#control_bus_mask = buildmask(control_bus_list)
-	#global control_bus
-	#control_bus = fastgpio.bus(control_bus_mask, 1, control_bus_list[0])
-	#control_bus.write([0])
-	#global ack_bus
-	#ack_bus_list = [ 2 ]
-	#ack_bus_mask = buildmask(ack_bus_list)
-	#ack_bus = fastgpio.bus(ack_bus_mask, 0, ack_bus_list[0])
 
 def test_writing_data_to_half_duplex_bus():
 	MEMSIZE = 2**14
@@ -536,25 +525,25 @@ def test_writing_data_to_half_duplex_bus():
 #		for i in range(segments):
 #			data.extend(segment)
 #	else:
-	if (0):
+	if 1:
 		ALL_ONES = 2**bits_word - 1
 		#ALL_ONES = 2**24 - 1
 		data = [ random.randint(0,ALL_ONES) for d in range(NUM) ]
 	#data = [ random.randint(0x100,ALL_ONES) for d in range(NUM) ]
 	#for i in range(len(data)):
 	#	data[i] &= ALL_ONES
-	if (0):
+	if 0: # fill in ones for only a bus_width-sized part of the word
 		part = NUM//4
-		data  = [ 0x000000ff for d in range(0*part, 1*part) ]
-		data += [ 0x0000ff00 for d in range(1*part, 2*part) ]
-		data += [ 0x00ff0000 for d in range(2*part, 3*part) ]
-		data += [ 0xff000000 for d in range(3*part, 4*part) ]
-	if (1):
-		part = NUM//4
-		data  = [ random.randint(0,0xff)<<0  for d in range(part) ]
-		data += [ random.randint(0,0xff)<<8  for d in range(part) ]
-		data += [ random.randint(0,0xff)<<16 for d in range(part) ]
-		data += [ random.randint(0,0xff)<<24 for d in range(part) ]
+		data  = [ 0x000000ff for d in range(part) ]
+		data += [ 0x0000ff00 for d in range(part) ]
+		data += [ 0x00ff0000 for d in range(part) ]
+		data += [ 0xff000000 for d in range(part) ]
+	if 0: # fill up only a bus_width-sized part of the word with pseudorandom data
+		part = NUM//transfers_per_data_word
+		data = []
+		for i in range(transfers_per_data_word):
+			ALL_ONES = 2**bus_width-1
+			data += [ random.randint(0,ALL_ONES)<<(i*bus_width)  for d in range(part) ]
 	#print("running...")
 	count = 0
 	errors = 0
