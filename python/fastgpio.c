@@ -374,7 +374,7 @@ typedef struct {
 u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 	*self->set_reg = self->enable;
 	volatile u32 *read_port = self->read_port;
-	u32 ack_valid = self->ack_valid;
+	const u32 ack_valid = self->ack_valid;
 	u32 new_errors = 0;
 	u32 value, i;
 	// wait for ack_valid
@@ -395,7 +395,7 @@ u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
 	*self->clr_reg = self->enable;
 	volatile u32 *read_port = self->read_port;
-	u32 ack_valid = self->ack_valid;
+	const u32 ack_valid = self->ack_valid;
 	u32 new_errors = 0;
 	u32 value, i;
 	// wait for ack_valid
@@ -433,10 +433,10 @@ void set_bus_as_output_if_necessary(half_duplex_bus_object *self) {
 }
 
 u32 set_bus(half_duplex_bus_object *self, u32 partial_data) {
-	u32 bus_mask = self->bus_mask;
+	set_bus_as_output_if_necessary(self);
+	const u32 bus_mask = self->bus_mask;
 	*self->clr_reg = bus_mask;
 	u32 adjusted_data = (partial_data<<self->bus_offset) & bus_mask;
-	set_bus_as_output_if_necessary(self);
 	*self->set_reg = adjusted_data;
 	volatile u32 *read_port = self->read_port;
 	u32 readback;
@@ -556,9 +556,9 @@ static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyOb
 u32 set_address(half_duplex_bus_object *self, u32 address) {
 	//printf("\nset_address()");
 //	sprintf(string1, "set_address() ");
-	u32 bus_width = self->bus_width;
-	u32 partial_mask = self->partial_mask;
-	u32 transfers_per_address_word = self->transfers_per_address_word;
+	const u32 bus_width = self->bus_width;
+	const u32 partial_mask = self->partial_mask;
+	const u32 transfers_per_address_word = self->transfers_per_address_word;
 	u32 new_errors = 0;
 	u32 partial_address;
 	u32 t;
@@ -591,9 +591,9 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 
 u32 write_data(half_duplex_bus_object *self, u32 data) {
 	//printf("\nwrite_data()");
-	u32 bus_width = self->bus_width;
+	const u32 bus_width = self->bus_width;
 	u32 partial_mask = self->partial_mask;
-	u32 transfers_per_data_word = self->transfers_per_data_word;
+	const u32 transfers_per_data_word = self->transfers_per_data_word;
 	u32 new_errors = 0;
 	u32 partial_data;
 	u32 t;
@@ -623,10 +623,10 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 u32 read_data(half_duplex_bus_object *self) {
 	//printf("\nread_data()");
 	volatile u32 *read_port = self->read_port;
-	u32 bus_mask = self->bus_mask;
-	u32 bus_width = self->bus_width;
-	u32 bus_offset = self->bus_offset;
-	u32 transfers_per_data_word = self->transfers_per_data_word;
+	const u32 bus_mask = self->bus_mask;
+	const u32 bus_width = self->bus_width;
+	const u32 bus_offset = self->bus_offset;
+	const u32 transfers_per_data_word = self->transfers_per_data_word;
 	u32 new_errors = 0;
 //	u32 partial_data0;
 	u32 partial_data1;
