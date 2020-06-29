@@ -547,7 +547,7 @@ static void half_duplex_bus_destructor(half_duplex_bus_object *self) {
 static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyObject *args) {
 	u32 value = 1;
 	if (!PyArg_ParseTuple(args, "|k", &value)) {
-		return PyErr_Format(PyExc_ValueError, "usage:  increment_user_errors(value)");
+		return PyErr_Format(PyExc_ValueError, "usage:  increment_user_errors()\nusage:  increment_user_errors(value)");
 	}
 	self->user_errors += value;
 	return PyLong_FromLong(self->user_errors);
@@ -556,12 +556,9 @@ static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyOb
 u32 set_address(half_duplex_bus_object *self, u32 address) {
 	//printf("\nset_address()");
 //	sprintf(string1, "set_address() ");
-	volatile u32 *clr_reg = self->clr_reg;
 	u32 bus_width = self->bus_width;
 	u32 partial_mask = self->partial_mask;
 	u32 transfers_per_address_word = self->transfers_per_address_word;
-	u32 register_select = self->register_select;
-	u32 enable = self->enable;
 	u32 new_errors = 0;
 	u32 partial_address;
 	u32 t;
@@ -571,7 +568,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	set_bus_as_output_if_necessary(self);
 	new_errors += clear_enable_and_wait_for_ack_valid(self);
 //	sprintf(string2, " _ "); strcat(string1, string2);
-	*clr_reg = register_select; // register_select=0 is address mode
+	*self->clr_reg = self->register_select; // register_select=0 is address mode
 	for (t=0; t<transfers_per_address_word; t++) {
 		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
 		//printf("\npartial_address: %0*lx", (int) bus_width/4, partial_address);
@@ -581,24 +578,22 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 		if (t+1<transfers_per_address_word) {
 			new_errors += clear_enable_and_wait_for_ack_valid(self);
 		} else {
-			*clr_reg = enable;
+			*self->clr_reg = self->enable;
 		}
 	}
 //	if (new_errors) { sprintf(string2, " new_errors=%ld", new_errors); strcat(string1, string2); fprintf(info, "\n%s", string1); }
-	if (new_errors) { printf("\nnew_errors: %ld (set_address)", new_errors); }
-	self->errors += new_errors;
+	if (new_errors) {
+		printf("\nnew_errors: %ld (set_address)", new_errors);
+		self->errors += new_errors;
+	}
 	return new_errors;
 }
 
 u32 write_data(half_duplex_bus_object *self, u32 data) {
 	//printf("\nwrite_data()");
-	volatile u32 *set_reg = self->set_reg;
-	volatile u32 *clr_reg = self->clr_reg;
 	u32 bus_width = self->bus_width;
 	u32 partial_mask = self->partial_mask;
 	u32 transfers_per_data_word = self->transfers_per_data_word;
-	u32 register_select = self->register_select;
-	u32 enable = self->enable;
 	u32 new_errors = 0;
 	u32 partial_data;
 	u32 t;
@@ -606,7 +601,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 	//printf("\ndata to write: %0*lx", (int) (transfers_per_data_word*bus_width/4), data);
 	set_bus_as_output_if_necessary(self);
 	new_errors += clear_enable_and_wait_for_ack_valid(self);
-	*set_reg = register_select; // register_select=1 is data mode
+	*self->set_reg = self->register_select; // register_select=1 is data mode
 	for (t=0; t<transfers_per_data_word; t++) {
 		partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
 		//printf("\npartial_data to write: %0*lx", (int) bus_width/4, partial_data);
@@ -615,33 +610,30 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 		if (t+1<transfers_per_data_word) {
 			new_errors += clear_enable_and_wait_for_ack_valid(self);
 		} else {
-			*clr_reg = enable;
+			*self->clr_reg = self->enable;
 		}
 	}
-	if (new_errors) { printf("\nnew_errors: %ld (write_data)", new_errors); }
-	self->errors += new_errors;
+	if (new_errors) {
+		printf("\nnew_errors: %ld (write_data)", new_errors);
+		self->errors += new_errors;
+	}
 	return new_errors;
 }
 
 u32 read_data(half_duplex_bus_object *self) {
 	//printf("\nread_data()");
-	volatile u32 *set_reg = self->set_reg;
-	volatile u32 *clr_reg = self->clr_reg;
 	volatile u32 *read_port = self->read_port;
 	u32 bus_mask = self->bus_mask;
 	u32 bus_width = self->bus_width;
 	u32 bus_offset = self->bus_offset;
 	u32 transfers_per_data_word = self->transfers_per_data_word;
-	u32 register_select = self->register_select;
-//	u32 read = self->read;
-	u32 enable = self->enable;
 	u32 new_errors = 0;
 //	u32 partial_data0;
 	u32 partial_data1;
 	u32 t;
 	// readback data
 	set_bus_as_input_if_necessary(self);
-	*set_reg = register_select; // register_select=1 is data mode
+	*self->set_reg = self->register_select; // register_select=1 is data mode
 	new_errors += clear_enable_and_wait_for_ack_valid(self);
 	u32 data = 0;
 	for (t=0; t<transfers_per_data_word; t++) {
@@ -658,15 +650,15 @@ u32 read_data(half_duplex_bus_object *self) {
 		if (t+1<transfers_per_data_word) {
 			new_errors += clear_enable_and_wait_for_ack_valid(self);
 		} else {
-			*clr_reg = enable;
+			*self->clr_reg = self->enable;
 		}
 		//printf("\npartial_data readback: %0*lx", (int) (bus_width/4), partial_data);
 	}
-//	*clr_reg = read;
-	//setup_as_outputs(gpio_port, bus_mask);
 	//printf("\ndata readback: %0*lx", (int) (transfers_per_data_word*bus_width/4), data);
-	if (new_errors) { printf("\nnew_errors: %ld (read_data)", new_errors); }
-	self->errors += new_errors;
+	if (new_errors) {
+		printf("\nnew_errors: %ld (read_data)", new_errors);
+		self->errors += new_errors;
+	}
 	return data;
 }
 
@@ -675,29 +667,22 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	u32 start_address = 0;
 	//u32 length = 0;
 	bool verify = true;
+	bool reverify = false;
 	PyObject *obj;
-	if (!PyArg_ParseTuple(args, "kO|p", &start_address, &obj, &verify)) {
+	if (!PyArg_ParseTuple(args, "kO|pp", &start_address, &obj, &verify, &reverify)) {
 		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, list)");
 	}
 	if (!PyList_Check(obj)) {
 		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, list)");
 	}
-	u32 bus_mask = self->bus_mask;
-	u32 register_select = self->register_select;
-	u32 read = self->read;
-	u32 enable = self->enable;
 	u32 address = start_address;
-	u32 bus_width = self->bus_width;
-	u32 transfers_per_data_word = self->transfers_per_data_word;
-	int hex_width = transfers_per_data_word*bus_width/4;
+	int hex_width = self->transfers_per_data_word*self->bus_width/4;
 	u32 data, data_readback;
-	u32 everything = bus_mask | register_select | read | enable;
+	u32 everything = self->bus_mask | self->register_select | self->read | self->enable;
 	u32 i;
 	u32 new_errors = 0;
-	volatile u32 *gpio_port = self->gpio_port;
-	volatile u32 *clr_reg = self->clr_reg;
-	*clr_reg = everything;
-	setup_as_outputs(gpio_port, bus_mask);
+	*self->clr_reg = everything;
+	setup_as_outputs(self->gpio_port, self->bus_mask);
 	u32 max_retry_cycles_error_var = 1;
 	if (verify) {
 		max_retry_cycles_error_var = MAX_RETRY_CYCLES_ERROR;
@@ -733,10 +718,8 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		address++;
 	}
 	self->retries += new_retries;
-	if (0) {
-	//if (verify) {
+	if (reverify) {
 		u32 j;
-		u8 width = (int) (transfers_per_data_word*bus_width/4);
 		for (j=0; j<20; j++) {
 			new_retries = 0;
 			address = start_address;
@@ -749,7 +732,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 					data_readback = read_data(self);
 					if (data == data_readback) { break; }
 					new_retries++;
-					//printf("\nretrying address=%0*lx data=%0*lx readback=%0*lx...", width, address, width, data, width, data_readback);
+					//printf("\nretrying address=%0*lx data=%0*lx readback=%0*lx...", hex_width, address, hex_width, data, hex_width, data_readback);
 					write_data(self, data);
 				}
 				address++;
@@ -758,38 +741,30 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 			self->retries += new_retries;
 		}
 	}
-	*clr_reg = everything;
+	*self->clr_reg = everything;
 	//printf("\ncompleted %ld transactions", count);
-//	if (new_errors) {
-//		printf("\nthere were %ld new errors", new_errors);
-//	}
-	self->errors += new_errors;
+	if (new_errors) {
+		printf("\nnew_errors: %ld (half_duplex_bus_write)", new_errors);
+		self->errors += new_errors;
+	}
 	return PyLong_FromLong(count);
 }
 
 static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObject *args) {
 	// borrowed from https://stackoverflow.com/a/22487015/5728815
-	u32 start_address = 0;
+	u32 address = 0;
 	u32 length = 1;
-	if (!PyArg_ParseTuple(args, "k|k", &start_address, &length)) {
-		return PyErr_Format(PyExc_ValueError, "usage:  read(start_address, length)");
+	if (!PyArg_ParseTuple(args, "|kk", &address, &length)) {
+		return PyErr_Format(PyExc_ValueError, "usage:  read(start_address=0, length=1)");
 	}
-	volatile u32 *gpio_port = self->gpio_port;
-	volatile u32 *clr_reg = self->clr_reg;
-	u32 bus_mask = self->bus_mask;
-	u32 register_select = self->register_select;
-	u32 read = self->read;
-	u32 enable = self->enable;
-	u32 address = start_address;
+	u32 ending_address = address + length;
 	u32 data;
-	u32 everything = bus_mask | register_select | read | enable;
-	*clr_reg = everything;
-	setup_as_outputs(gpio_port, bus_mask);
-	u32 index = 0;
-//	u32 new_errors = 0;
+	u32 everything = self->bus_mask | self->register_select | self->read | self->enable;
+	*self->clr_reg = everything;
+	//setup_as_outputs(self->gpio_port, self->bus_mask);
 	PyObject *obj = PyList_New(0);
 	while (1) {
-		if (length<=index) { break; }
+		if (ending_address<=address) { break; }
 		self->transactions++;
 		set_address(self, address);
 		data = read_data(self);
@@ -797,20 +772,21 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 		PyList_Append(obj, new);
 		Py_DECREF(new);
 		address++;
-		index++;
 	}
-	*clr_reg = everything;
-	u32 other_length = PyList_Size(obj);
-	if (length!=other_length) {
+	*self->clr_reg = everything;
+	u32 new_errors = 0;
+	if (length!=PyList_Size(obj)) {
 		printf("\nlengths don't match");
+		new_errors++;
 	}
-	if (index<length) {
+	if (address<ending_address) {
 		printf("\ndidn't get 'em all");
+		new_errors++;
 	}
-//	if (new_errors) {
-//		printf("\nthere were %ld new errors", new_errors);
-//	}
-//	self->errors += new_errors;
+	if (new_errors) {
+		self->errors += new_errors;
+		printf("\nnew_errors: %ld (half_duplex_bus_read)", new_errors);
+	}
 	return obj;
 }
 
