@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-06-27 by mza
+// last updated 2020-06-29 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -24,7 +24,7 @@
 
 module top #(
 	parameter BUS_WIDTH = 8,
-	parameter TRANSACTIONS_PER_DATA_WORD = 2,
+	parameter TRANSACTIONS_PER_DATA_WORD = 4,
 	parameter LOG2_OF_TRANSACTIONS_PER_DATA_WORD = $clog2(TRANSACTIONS_PER_DATA_WORD),
 	parameter TRANSACTIONS_PER_ADDRESS_WORD = 2,
 	parameter LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD = $clog2(TRANSACTIONS_PER_ADDRESS_WORD),
@@ -515,7 +515,7 @@ module myalthea (
 );
 	localparam BUS_WIDTH = 8;
 	localparam ADDRESS_DEPTH = 14;
-	localparam TRANSACTIONS_PER_DATA_WORD = 2;
+	localparam TRANSACTIONS_PER_DATA_WORD = 3;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 2;
 	wire register_select = e_n;
 	assign m_n = register_select;
