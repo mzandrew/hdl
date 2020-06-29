@@ -432,25 +432,28 @@ void set_bus_as_output_if_necessary(half_duplex_bus_object *self) {
 	}
 }
 
-u32 set_bus(half_duplex_bus_object *self, u32 partial_data) {
+u32 set_bus(half_duplex_bus_object *self, u32 partial_data, bool verify) {
 	set_bus_as_output_if_necessary(self);
 	const u32 bus_mask = self->bus_mask;
 	*self->clr_reg = bus_mask;
 	u32 adjusted_data = (partial_data<<self->bus_offset) & bus_mask;
 	*self->set_reg = adjusted_data;
-	volatile u32 *read_port = self->read_port;
-	u32 readback;
 	u32 new_errors = 0;
-	u32 i;
-	//printf("\nadjusted_data to write: %0*lx", (int) (bus_width/4+1), adjusted_data);
-	for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
-		readback = *read_port & bus_mask;
-		if (readback == adjusted_data) { break; }
-	}
-	if (MAX_READBACK_CYCLES_WARNING<i) { printf(" %ld(ww)", i); }
-	if (MAX_READBACK_CYCLES_ERROR==i) {
-		printf("\nERROR: can't change the state of GPIOs");
-		new_errors++;
+	if (verify) {
+		volatile u32 *read_port = self->read_port;
+		u32 readback;
+		u32 i;
+		//mynsleep(short_delay);
+		//printf("\nadjusted_data to write: %0*lx", (int) (bus_width/4+1), adjusted_data);
+		for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
+			readback = *read_port & bus_mask;
+			if (readback == adjusted_data) { break; }
+		}
+		if (MAX_READBACK_CYCLES_WARNING<i) { printf(" %ld(ww)", i); }
+		if (MAX_READBACK_CYCLES_ERROR==i) {
+			printf("\nERROR: can't change the state of GPIOs");
+			new_errors++;
+		}
 	}
 	return new_errors;
 }
@@ -572,7 +575,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	for (t=0; t<transfers_per_address_word; t++) {
 		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
 		//printf("\npartial_address: %0*lx", (int) bus_width/4, partial_address);
-		set_bus(self, partial_address);
+		set_bus(self, partial_address, false);
 		new_errors += set_enable_and_wait_for_ack_valid(self);
 //		sprintf(string2, " + "); strcat(string1, string2);
 		if (t+1<transfers_per_address_word) {
@@ -605,7 +608,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 	for (t=0; t<transfers_per_data_word; t++) {
 		partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
 		//printf("\npartial_data to write: %0*lx", (int) bus_width/4, partial_data);
-		set_bus(self, partial_data);
+		set_bus(self, partial_data, false);
 		new_errors += set_enable_and_wait_for_ack_valid(self);
 		if (t+1<transfers_per_data_word) {
 			new_errors += clear_enable_and_wait_for_ack_valid(self);
@@ -698,12 +701,16 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		for (i=0; i<max_retry_cycles_error_var; i++) {
 			set_address(self, address);
 			write_data(self, data);
-			data_readback = read_data(self);
-			if (data == data_readback) { break; }
+			if (verify) {
+				data_readback = read_data(self);
+				if (data == data_readback) { break; }
+			} else {
+				break;
+			}
 			//printf("\ndidn't work the first time");
 			new_retries++;
 		}
-		if (max_retry_cycles_error_var==i) {
+		if (verify && max_retry_cycles_error_var==i) {
 			//printf("\nmax_retry_cycles_error_var-1 = %ld", max_retry_cycles_error_var-1);
 			//new_retries += max_retry_cycles_error_var - 1;
 			new_errors++;

@@ -483,7 +483,7 @@ def setup_half_duplex_bus():
 	global bits_bus
 	bits_bus = len(gpio_bus)
 	#print("this bus is " + str(bits_bus) + " bits wide")
-	transfers_per_data_word = 3
+	transfers_per_data_word = 4
 	global bits_word
 	bits_word = transfers_per_data_word*bits_bus
 	#mask_bus = buildmask(gpio_bus)
@@ -514,8 +514,8 @@ def test_writing_data_to_half_duplex_bus():
 	MEMSIZE = 2**14
 	print("writing data in half-duplex bus mode...")
 	time.sleep(0.1)
-	reset_pulse()
-	time.sleep(0.1)
+	#reset_pulse()
+	#time.sleep(0.1)
 	data = []
 	#NUM = 4500000
 	#NUM = 4*MEMSIZE
@@ -536,14 +536,37 @@ def test_writing_data_to_half_duplex_bus():
 #		for i in range(segments):
 #			data.extend(segment)
 #	else:
-	data = [ random.randint(0,2**bits_word-1) for d in range(NUM) ]
+	if (0):
+		ALL_ONES = 2**bits_word - 1
+		#ALL_ONES = 2**24 - 1
+		data = [ random.randint(0,ALL_ONES) for d in range(NUM) ]
+	#data = [ random.randint(0x100,ALL_ONES) for d in range(NUM) ]
+	#for i in range(len(data)):
+	#	data[i] &= ALL_ONES
+	if (0):
+		part = NUM//4
+		data  = [ 0x000000ff for d in range(0*part, 1*part) ]
+		data += [ 0x0000ff00 for d in range(1*part, 2*part) ]
+		data += [ 0x00ff0000 for d in range(2*part, 3*part) ]
+		data += [ 0xff000000 for d in range(3*part, 4*part) ]
+	if (1):
+		part = NUM//4
+		data  = [ random.randint(0,0xff)<<0  for d in range(part) ]
+		data += [ random.randint(0,0xff)<<8  for d in range(part) ]
+		data += [ random.randint(0,0xff)<<16 for d in range(part) ]
+		data += [ random.randint(0,0xff)<<24 for d in range(part) ]
 	#print("running...")
 	count = 0
 	errors = 0
 	start = time.time()
 	for i in range(number_of_times_to_repeat):
-		if 1: # use above list and check it
+		if 0: # use above list and check it
 			count += half_duplex_bus.write(0, data)
+			values = half_duplex_bus.read(0, len(data))
+			errors += check(data, values, True)
+			#errors += check(data, values, False)
+		if 1: # use above list and write it without verification, then read it and verify
+			count += half_duplex_bus.write(0, data, False)
 			values = half_duplex_bus.read(0, len(data))
 			errors += check(data, values, True)
 			#errors += check(data, values, False)
