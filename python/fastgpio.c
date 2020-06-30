@@ -328,6 +328,21 @@ static PyTypeObject clock_type = {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+void append_message(char *string) {
+	// https://stackoverflow.com/a/285498/5728815
+	PyObject *module = PyImport_AddModule("__althea__");
+	if (!module) { return; }
+	PyObject *messages = PyObject_GetAttrString(module, "messages");
+	if (!messages) { return; }
+	PyObject *py_string = PyUnicode_FromString(string);
+	if (!py_string ) { Py_DECREF(messages); return; }
+	PyList_Append(messages, py_string);
+	Py_DECREF(py_string);
+	Py_DECREF(messages);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 typedef struct {
 	PyObject_HEAD
 	u32 bus_mask;
@@ -337,6 +352,7 @@ typedef struct {
 	u32 bus_mode;
 	u32 transfers_per_data_word;
 	u32 transfers_per_address_word;
+	u32 address_autoincrement_mode;
 	u32 register_select;
 	u32 read;
 	u32 enable;
@@ -356,8 +372,8 @@ typedef struct {
 #define WAIT_FOR_ACK_STYLE_FOR
 //#define WAIT_FOR_ACK_STYLE_WHILE
 #define MAX_ACK_CYCLES_ERROR (1000)
-#define MAX_READBACK_CYCLES_ERROR (1000)
-#define MAX_RETRY_CYCLES_ERROR (1000)
+#define MAX_READBACK_CYCLES_ERROR (10)
+#define MAX_RETRY_CYCLES_ERROR (4)
 #define MAX_ACK_CYCLES_WARNING (8)
 // pickoff reg_sel/read=1:enable= 2:clock125->WARNING=occasionally 8
 // pickoff reg_sel/read=1:enable= 2:clock50->WARNING=occasionally 4
@@ -464,14 +480,15 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	u32 bus_width = 0;
 	u32 transfers_per_data_word = 0;
 	u32 transfers_per_address_word = 0;
+	u32 address_autoincrement_mode = 0;
 	u32 register_select = 0;
 	u32 read = 0;
 	u32 enable = 0;
 	u32 ack_valid = 0;
 	// with help from https://gist.github.com/vuonghv/44dc334f3e116e32cc58d7a18b921fc3
-	const char *format = "kkkkkkkk";
-	static char *kwlist[] = { "bus_width", "bus_offset", "transfers_per_address_word", "transfers_per_data_word", "register_select", "read", "enable", "ack_valid", NULL };
-	int success = PyArg_ParseTupleAndKeywords(args, kwds, format, kwlist, &bus_width, &bus_offset, &transfers_per_address_word, &transfers_per_data_word, &register_select, &read, &enable, &ack_valid);
+	const char *format = "kkkkkkkkk";
+	static char *kwlist[] = { "bus_width", "bus_offset", "transfers_per_address_word", "transfers_per_data_word", "address_autoincrement_mode", "register_select", "read", "enable", "ack_valid", NULL };
+	int success = PyArg_ParseTupleAndKeywords(args, kwds, format, kwlist, &bus_width, &bus_offset, &transfers_per_address_word, &transfers_per_data_word, &address_autoincrement_mode, &register_select, &read, &enable, &ack_valid);
 	if (!success) { return -1; }
 	if (bus_width<1 || 31<bus_width) { return -1; }
 	self->bus_width = bus_width;
@@ -485,6 +502,8 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	if (0==transfers_per_address_word || 31<transfers_per_address_word) { return -1; }
 	self->transfers_per_address_word = transfers_per_address_word;
 	//printf("\ntransfers_per_address_word: %08lx", self->transfers_per_address_word);
+	if (1<address_autoincrement_mode) { return -1; }
+	self->address_autoincrement_mode = address_autoincrement_mode;
 	if (31<register_select) { return -1; }
 	self->register_select = 1<<register_select;
 	//printf("\nregister_select: %08lx", self->register_select);
@@ -557,7 +576,11 @@ static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyOb
 }
 
 u32 set_address(half_duplex_bus_object *self, u32 address) {
-	//printf("\nset_address()");
+	if (0) {
+		int hex_width = self->transfers_per_address_word*self->bus_width/4;
+		//append_message("hihihi");
+		printf("\nset_address(%0*lx)", hex_width, address);
+	}
 //	sprintf(string1, "set_address() ");
 	const u32 bus_width = self->bus_width;
 	const u32 partial_mask = self->partial_mask;
@@ -593,7 +616,10 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 }
 
 u32 write_data(half_duplex_bus_object *self, u32 data) {
-	//printf("\nwrite_data()");
+	if (0) {
+		int hex_width = self->transfers_per_data_word*self->bus_width/4;
+		printf("\nwrite_data(%0*lx)", hex_width, data);
+	}
 	const u32 bus_width = self->bus_width;
 	u32 partial_mask = self->partial_mask;
 	const u32 transfers_per_data_word = self->transfers_per_data_word;
@@ -624,7 +650,6 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 }
 
 u32 read_data(half_duplex_bus_object *self) {
-	//printf("\nread_data()");
 	volatile u32 *read_port = self->read_port;
 	const u32 bus_mask = self->bus_mask;
 	const u32 bus_width = self->bus_width;
@@ -662,6 +687,10 @@ u32 read_data(half_duplex_bus_object *self) {
 		printf("\nnew_errors: %ld (read_data)", new_errors);
 		self->errors += new_errors;
 	}
+	if (0) {
+		int hex_width = self->transfers_per_data_word*self->bus_width/4;
+		printf("\nread_data(%0*lx)", hex_width, data);
+	}
 	return data;
 }
 
@@ -673,13 +702,14 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	bool reverify = false;
 	PyObject *obj;
 	if (!PyArg_ParseTuple(args, "kO|pp", &start_address, &obj, &verify, &reverify)) {
-		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, list)");
+		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, list, verify=True, reverify=False)");
 	}
 	if (!PyList_Check(obj)) {
-		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, list)");
+		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, list, verify=True, reverify=False)");
 	}
 	u32 address = start_address;
-	int hex_width = self->transfers_per_data_word*self->bus_width/4;
+	int hex_width_a = self->transfers_per_address_word*self->bus_width/4;
+	int hex_width_d = self->transfers_per_data_word*self->bus_width/4;
 	u32 data, data_readback;
 	u32 everything = self->bus_mask | self->register_select | self->read | self->enable;
 	u32 i;
@@ -693,15 +723,18 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	u32 length = (u32) PyList_Size(obj);
 	//printf("\nlength = %ld", length);
 	u32 new_retries = 0;
+	u32 address_autoincrement_mode = self->address_autoincrement_mode;
+	if (address_autoincrement_mode) { set_address(self, address); }
 	for (count=0; count<length; count++) {
 		PyObject *next = PyList_GetItem(obj, count);
 		if (!next) { break; }
 		data = PyLong_AsUnsignedLong(next);
 		self->transactions++;
 		for (i=0; i<max_retry_cycles_error_var; i++) {
-			set_address(self, address);
+			if (!address_autoincrement_mode) { set_address(self, address); }
 			write_data(self, data);
 			if (verify) {
+				if (address_autoincrement_mode) { set_address(self, address); }
 				data_readback = read_data(self);
 				if (data == data_readback) { break; }
 			} else {
@@ -709,16 +742,23 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 			}
 			//printf("\ndidn't work the first time");
 			new_retries++;
+			if (address_autoincrement_mode) { set_address(self, address); }
 		}
-		if (verify && max_retry_cycles_error_var==i) {
-			//printf("\nmax_retry_cycles_error_var-1 = %ld", max_retry_cycles_error_var-1);
-			//new_retries += max_retry_cycles_error_var - 1;
-			new_errors++;
-			printf("\ndata written (%0*lx) does not match data read back (%0*lx)", hex_width, data, hex_width, data_readback);
+		if (verify) {
+			if (max_retry_cycles_error_var==i) {
+				//printf("\nmax_retry_cycles_error_var-1 = %ld", max_retry_cycles_error_var-1);
+				//new_retries += max_retry_cycles_error_var - 1;
+				new_errors++;
+				printf("\n[%0*lx] data written (%0*lx) does not match data read back (%0*lx)", hex_width_a, address, hex_width_d, data, hex_width_d, data_readback);
+			} else {
+				if (0) {
+					printf("\n[%0*lx] data written (%0*lx) matches data read back", hex_width_a, address, hex_width_d, data);
+				}
+			}
 		}
 		if (0) {
-			if (0==count%10240) {
-				//mynsleep(short_delay);
+			if (0==count%4096) {
+				mynsleep(short_delay);
 			}
 		}
 		address++;
@@ -729,16 +769,18 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		for (j=0; j<20; j++) {
 			new_retries = 0;
 			address = start_address;
+			if (address_autoincrement_mode) { set_address(self, address); }
 			for (count=0; count<length; count++) {
 				PyObject *next = PyList_GetItem(obj, count);
 				if (!next) { break; }
 				data = PyLong_AsUnsignedLong(next);
 				for (i=0; i<max_retry_cycles_error_var; i++) {
-					set_address(self, address);
+					if (!address_autoincrement_mode) { set_address(self, address); }
 					data_readback = read_data(self);
 					if (data == data_readback) { break; }
 					new_retries++;
-					//printf("\nretrying address=%0*lx data=%0*lx readback=%0*lx...", hex_width, address, hex_width, data, hex_width, data_readback);
+					//printf("\nretrying address=%0*lx data=%0*lx readback=%0*lx...", hex_width_a, address, hex_width_d, data, hex_width_d, data_readback);
+					if (!address_autoincrement_mode) { set_address(self, address); }
 					write_data(self, data);
 				}
 				address++;
@@ -768,10 +810,12 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 	u32 everything = self->bus_mask | self->register_select | self->read | self->enable;
 	*self->clr_reg = everything;
 	PyObject *obj = PyList_New(0);
+	u32 address_autoincrement_mode = self->address_autoincrement_mode;
+	if (address_autoincrement_mode) { set_address(self, address); }
 	while (1) {
 		if (ending_address<=address) { break; }
 		self->transactions++;
-		set_address(self, address);
+		if (!address_autoincrement_mode) { set_address(self, address); }
 		data = read_data(self);
 		PyObject *new = PyLong_FromUnsignedLong(data);
 		PyList_Append(obj, new);
