@@ -515,7 +515,7 @@ module myalthea (
 );
 	localparam BUS_WIDTH = 8;
 	localparam ADDRESS_DEPTH = 14;
-	localparam TRANSACTIONS_PER_DATA_WORD = 3;
+	localparam TRANSACTIONS_PER_DATA_WORD = 4;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 2;
 	wire register_select = e_n;
 	assign m_n = register_select;
