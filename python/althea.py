@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-29 by mza
+# last updated 2020-06-30 by mza
 
 import time
 import time # time.sleep
@@ -533,17 +533,17 @@ def test_writing_data_to_half_duplex_bus():
 	#for i in range(len(data)):
 	#	data[i] &= ALL_ONES
 	if 0: # fill in ones for only a bus_width-sized part of the word
-		part = NUM//4
-		data  = [ 0x000000ff for d in range(part) ]
-		data += [ 0x0000ff00 for d in range(part) ]
-		data += [ 0x00ff0000 for d in range(part) ]
-		data += [ 0xff000000 for d in range(part) ]
+		part = NUM//transfers_per_data_word
+		data = []
+		ALL_ONES = 2**bus_width-1
+		for i in range(transfers_per_data_word):
+			data += [ ALL_ONES<<(i*bus_width)for d in range(part) ]
 	if 0: # fill up only a bus_width-sized part of the word with pseudorandom data
 		part = NUM//transfers_per_data_word
 		data = []
+		ALL_ONES = 2**bus_width-1
 		for i in range(transfers_per_data_word):
-			ALL_ONES = 2**bus_width-1
-			data += [ random.randint(0,ALL_ONES)<<(i*bus_width)  for d in range(part) ]
+			data += [ random.randint(0,ALL_ONES)<<(i*bus_width) for d in range(part) ]
 	#print("running...")
 	count = 0
 	errors = 0
