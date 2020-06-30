@@ -58,8 +58,8 @@ module top #(
 	assign other1 = 0;
 	// ----------------------------------------------------------------------
 	reg [3:0] reset_counter = 0; // this counts how many times the reset input gets pulsed
-	reg [3:0] reset_pipeline50 = 0;
-	reg [3:0] reset_pipeline125 = 0;
+	reg [5:0] reset_pipeline50 = 0;
+	reg [5:0] reset_pipeline125 = 0;
 	reg reset50 = 1;
 	wire clock50;
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
@@ -104,17 +104,18 @@ module top #(
 	localparam COUNTER50_BIT_PICKOFF = 3;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
 	always @(posedge clock50) begin
-		if (reset_pipeline50[3:2]==2'b01) begin
+		if (reset_pipeline50[5:2]==4'b0011) begin
+			reset_counter <= reset_counter + 1'b1;
+		end else if (reset_pipeline50[5]) begin
 			counter50 <= 0;
 			reset50 <= 1;
-			reset_counter <= reset_counter + 1'b1;
 		end else if (reset50) begin
 			if (counter50[COUNTER50_BIT_PICKOFF]) begin
 				reset50 <= 0;
 			end
 			counter50 <= counter50 + 1'b1;
 		end
-		reset_pipeline50 <= { reset_pipeline50[2:0], reset };
+		reset_pipeline50 <= { reset_pipeline50[4:0], reset };
 	end
 	reg [2:0] reset50_pipeline125 = 0;
 	localparam COUNTER125_BIT_PICKOFF = 3;
@@ -126,13 +127,13 @@ module top #(
 			reset_pipeline125 <= 0;
 		end else begin
 			reset50_pipeline125 <= { reset50_pipeline125[1:0], reset50 };
-			reset_pipeline125 <= { reset_pipeline125[2:0], reset };
+			reset_pipeline125 <= { reset_pipeline125[4:0], reset };
 		end
 	end
 	always @(posedge clock) begin
 		pre_pre_ack_valid <= 0;
 		write_strobe <= 0;
-		if (reset_pipeline125[3:2]==2'b01 || reset50_pipeline125[2] || ~pll_locked) begin
+		if (reset_pipeline125[5] || reset50_pipeline125[2] || ~pll_locked) begin
 			counter125 <= 0;
 			reset125 <= 1;
 		end else if (reset125) begin
