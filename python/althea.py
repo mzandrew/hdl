@@ -489,7 +489,7 @@ def setup_half_duplex_bus():
 	bits_bus = len(gpio_bus)
 	#print("this bus is " + str(bits_bus) + " bits wide")
 	global transfers_per_data_word
-	transfers_per_data_word = 4
+	transfers_per_data_word = 3
 	global bits_word
 	bits_word = transfers_per_data_word*bits_bus
 	global half_duplex_bus
@@ -555,7 +555,8 @@ def test_writing_data_to_half_duplex_bus():
 	#NUM = 16
 	#NUM = 4
 	number_of_times_to_repeat = 1
-	if NUM>MEMSIZE:
+	OFFSET = 0
+	if NUM+OFFSET>MEMSIZE:
 		number_of_times_to_repeat = NUM//MEMSIZE
 		NUM = MEMSIZE
 	if 1:
@@ -578,9 +579,9 @@ def test_writing_data_to_half_duplex_bus():
 	errors = 0
 	start = time.time()
 	for i in range(number_of_times_to_repeat):
-		if 1: # use above list and write it without verification, then read it and verify and retry only starting from the first bad index
+		if 0: # use above list and write it without verification, then read it and verify and retry only starting from the first bad index
 			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, False)
-		elif 0: # use above list and write it without verification, then read it and verify and retry only starting from the first bad index
+		elif 1: # use above list and write it without verification, then read it and verify and retry only starting from the first bad index
 			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, True)
 		elif 0: # address = data
 			data = [ d for d in range(MEMSIZE) ]
