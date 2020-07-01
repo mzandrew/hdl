@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-30 by mza
+# last updated 2020-07-01 by mza
 
 import time
 import time # time.sleep
@@ -453,9 +453,12 @@ def check(ref1, ref2, should_print=1, offset=0, width=0):
 		if should_print:
 			messages.append("lengths don't match")
 		errors += 1
+	first_bad_index = 0
 	for i in range(len(ref1)):
 		address_string = hex(i+offset, width)
 		if ref1[i] != ref2[i]:
+			if 0==first_bad_index:
+				first_bad_index = i
 			errors += 1
 			if should_print:
 				#print("ref1[" + str(i) + "]=" + hex(ref1[i], bits_word/4))
@@ -470,7 +473,7 @@ def check(ref1, ref2, should_print=1, offset=0, width=0):
 			#print("match at address " + str(i))
 		#print("\n")
 #	print(str(errors))
-	return errors
+	return errors, first_bad_index
 
 def print_messages():
 	for message in messages:
@@ -501,6 +504,29 @@ def setup_half_duplex_bus():
 		enable=15,
 		ack_valid=2
 	)
+
+def write_to_half_duplex_bus_and_then_verify(start_address, data, number_of_remaining_retries=5):
+	if 0==number_of_remaining_retries:
+		return 0, 0
+	new_new_count = 0
+	new_count = half_duplex_bus.write(start_address, data, False)
+	values = half_duplex_bus.read(start_address, len(data))
+	new_errors, first_bad_index = check(data, values, False)
+	if new_errors:
+		#print("0123")
+		new_data = []
+		for i in range(first_bad_index, len(data)):
+			new_data.append(data[i])
+		new_values = half_duplex_bus.read(start_address + first_bad_index, len(new_data))
+		new_errors, first_bad_index = check(new_data, new_values, False)
+		if new_errors:
+			#print("4567")
+			new_new_data = []
+			for i in range(first_bad_index, len(new_data)):
+				new_new_data.append(new_data[i])
+			new_new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address + first_bad_index, new_new_data, number_of_remaining_retries-1)
+	new_count += new_new_count
+	return new_count, new_errors
 
 def test_writing_data_to_half_duplex_bus():
 	MEMSIZE = 2**14
@@ -550,7 +576,11 @@ def test_writing_data_to_half_duplex_bus():
 			values = half_duplex_bus.read(0, len(data))
 			errors += check(data, values, True)
 			#errors += check(data, values, False)
-		if 1: # use above list and write it without verification, then read it and verify
+		if 1: # use above list and write it without verification, then read it and verify and retry only starting from the first bad index
+			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data)
+			count += new_count
+			errors += new_errors
+		if 0: # use above list and write it without verification, then read it and verify
 			count += half_duplex_bus.write(0, data, False)
 			#time.sleep(0.01)
 			values = half_duplex_bus.read(0, len(data))
