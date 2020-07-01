@@ -10,18 +10,19 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="45" />
+   <WVObjectSize size="43" />
    <wvobject fp_name="/top_tb/leds" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">leds[7:0]</obj_property>
       <obj_property name="ObjectShortName">leds[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/top_tb/clock50_p" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">clock50_p</obj_property>
-      <obj_property name="ObjectShortName">clock50_p</obj_property>
+   <wvobject fp_name="/top_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
    </wvobject>
-   <wvobject fp_name="/top_tb/clock50_n" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">clock50_n</obj_property>
-      <obj_property name="ObjectShortName">clock50_n</obj_property>
+   <wvobject fp_name="/top_tb/althea/reset_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reset_counter[3:0]</obj_property>
+      <obj_property name="ObjectShortName">reset_counter[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/clock50" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock50</obj_property>
@@ -42,15 +43,6 @@
    <wvobject fp_name="/top_tb/althea/pll_locked" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">pll_locked</obj_property>
       <obj_property name="ObjectShortName">pll_locked</obj_property>
-   </wvobject>
-   <wvobject fp_name="/top_tb/reset" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">reset</obj_property>
-      <obj_property name="ObjectShortName">reset</obj_property>
-   </wvobject>
-   <wvobject fp_name="/top_tb/althea/reset_counter" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">reset_counter[3:0]</obj_property>
-      <obj_property name="ObjectShortName">reset_counter[3:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/reset125" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">reset125</obj_property>

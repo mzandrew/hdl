@@ -120,20 +120,23 @@ module top #(
 	reg [2:0] reset50_pipeline125 = 0;
 	localparam COUNTER125_BIT_PICKOFF = 5;
 	reg [COUNTER125_BIT_PICKOFF:0] counter125 = 0;
+	localparam PLL_LOCKED_PIPELINE125_PICKOFF = 2;
+	reg [PLL_LOCKED_PIPELINE125_PICKOFF:0] pll_locked_pipeline125 = 0;
 	integer j;
 	always @(posedge clock125) begin
-		if (~pll_locked) begin
+		if (~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF]) begin
 			reset50_pipeline125 <= 0;
 			reset_pipeline125 <= 0;
 		end else begin
 			reset50_pipeline125 <= { reset50_pipeline125[1:0], reset50 };
 			reset_pipeline125 <= { reset_pipeline125[4:0], reset };
 		end
+		pll_locked_pipeline125 <= { pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF-1:0], pll_locked };
 	end
 	always @(posedge clock) begin
 		pre_pre_ack_valid <= 0;
 		write_strobe <= 0;
-		if (reset_pipeline125[5] || reset50_pipeline125[2] || ~pll_locked) begin
+		if (reset_pipeline125[5] || reset50_pipeline125[2] || ~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF]) begin
 			counter125 <= 0;
 			reset125 <= 1;
 		end else if (reset125) begin
@@ -547,6 +550,10 @@ module top_tb;
 		pulse_enable();
 		master_set_address16(16'h1b4f);
 		master_read_data32();
+		// clear all signals
+		pre_register_select <= 0;
+		pre_read <= 0;
+		pre_enable <= 0;
 		// inject global reset
 		master_clock_delay(64);
 		slave_clock_delay(64);
