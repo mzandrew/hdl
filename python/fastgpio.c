@@ -605,6 +605,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 			new_errors += clear_enable_and_wait_for_ack_valid(self);
 		} else {
 			*self->clr_reg = self->enable;
+			*self->clr_reg = self->enable;
 		}
 	}
 //	if (new_errors) { sprintf(string2, " new_errors=%ld", new_errors); strcat(string1, string2); fprintf(info, "\n%s", string1); }
@@ -639,6 +640,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 		if (t+1<transfers_per_data_word) {
 			new_errors += clear_enable_and_wait_for_ack_valid(self);
 		} else {
+			*self->clr_reg = self->enable;
 			*self->clr_reg = self->enable;
 		}
 	}
@@ -683,6 +685,7 @@ u32 read_data(half_duplex_bus_object *self) {
 		if (t+1<transfers_per_data_word) {
 			new_errors += clear_enable_and_wait_for_ack_valid(self);
 		} else {
+			*self->clr_reg = self->enable;
 			*self->clr_reg = self->enable;
 		}
 		//printf("\npartial_data readback: %0*lx", (int) (bus_width/4), partial_data);
