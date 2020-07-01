@@ -10,22 +10,26 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="44" />
-   <wvobject fp_name="/top_tb/lemo" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">lemo</obj_property>
-      <obj_property name="ObjectShortName">lemo</obj_property>
-   </wvobject>
-   <wvobject fp_name="/top_tb/other0" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">other0</obj_property>
-      <obj_property name="ObjectShortName">other0</obj_property>
-   </wvobject>
-   <wvobject fp_name="/top_tb/other1" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">other1</obj_property>
-      <obj_property name="ObjectShortName">other1</obj_property>
-   </wvobject>
+   <WVObjectSize size="45" />
    <wvobject fp_name="/top_tb/leds" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">leds[7:0]</obj_property>
       <obj_property name="ObjectShortName">leds[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/clock50_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock50_p</obj_property>
+      <obj_property name="ObjectShortName">clock50_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/clock50_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock50_n</obj_property>
+      <obj_property name="ObjectShortName">clock50_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/clock50" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock50</obj_property>
+      <obj_property name="ObjectShortName">clock50</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/reset50" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset50</obj_property>
+      <obj_property name="ObjectShortName">reset50</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock</obj_property>
@@ -63,24 +67,24 @@
       <obj_property name="ObjectShortName">register_select</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/register_select_pipeline" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">register_select_pipeline[1:0]</obj_property>
-      <obj_property name="ObjectShortName">register_select_pipeline[1:0]</obj_property>
+      <obj_property name="ElementShortName">register_select_pipeline[2:0]</obj_property>
+      <obj_property name="ObjectShortName">register_select_pipeline[2:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/read" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">read</obj_property>
       <obj_property name="ObjectShortName">read</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/read_pipeline" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">read_pipeline[1:0]</obj_property>
-      <obj_property name="ObjectShortName">read_pipeline[1:0]</obj_property>
+      <obj_property name="ElementShortName">read_pipeline[2:0]</obj_property>
+      <obj_property name="ObjectShortName">read_pipeline[2:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/enable" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">enable</obj_property>
       <obj_property name="ObjectShortName">enable</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/enable_pipeline" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">enable_pipeline[2:0]</obj_property>
-      <obj_property name="ObjectShortName">enable_pipeline[2:0]</obj_property>
+      <obj_property name="ElementShortName">enable_pipeline[4:0]</obj_property>
+      <obj_property name="ObjectShortName">enable_pipeline[4:0]</obj_property>
    </wvobject>
    <wvobject fp_name="divider65" type="divider">
       <obj_property name="label">New Divider</obj_property>
@@ -89,8 +93,8 @@
       <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/bus_pipeline" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">bus_pipeline[1:0,7:0]</obj_property>
-      <obj_property name="ObjectShortName">bus_pipeline[1:0,7:0]</obj_property>
+      <obj_property name="ElementShortName">bus_pipeline[2:0,7:0]</obj_property>
+      <obj_property name="ObjectShortName">bus_pipeline[2:0,7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/bus" type="array" db_ref_id="1">

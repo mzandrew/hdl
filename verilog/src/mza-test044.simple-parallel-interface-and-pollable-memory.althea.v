@@ -44,10 +44,10 @@ module top #(
 	output reg ack_valid = 0,
 	output [7:0] leds
 );
-	localparam REGISTER_SELECT_PIPELINE_PICKOFF = 1;
-	localparam READ_PIPELINE_PICKOFF            = 1;
-	localparam BUS_PIPELINE_PICKOFF             = 1;
-	localparam ENABLE_PIPELINE_PICKOFF          = 2;
+	localparam REGISTER_SELECT_PIPELINE_PICKOFF = 2;
+	localparam READ_PIPELINE_PICKOFF            = 2;
+	localparam BUS_PIPELINE_PICKOFF             = 2;
+	localparam ENABLE_PIPELINE_PICKOFF          = 4;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
 	reg [READ_PIPELINE_PICKOFF:0] read_pipeline = 0;
 	reg [ENABLE_PIPELINE_PICKOFF:0] enable_pipeline = 0;
@@ -101,7 +101,7 @@ module top #(
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
 	reg pre_pre_ack_valid = 0;
 	reg pre_ack_valid = 0;
-	localparam COUNTER50_BIT_PICKOFF = 3;
+	localparam COUNTER50_BIT_PICKOFF = 5;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
 	always @(posedge clock50) begin
 		if (reset_pipeline50[5:2]==4'b0011) begin
@@ -118,7 +118,7 @@ module top #(
 		reset_pipeline50 <= { reset_pipeline50[4:0], reset };
 	end
 	reg [2:0] reset50_pipeline125 = 0;
-	localparam COUNTER125_BIT_PICKOFF = 3;
+	localparam COUNTER125_BIT_PICKOFF = 5;
 	reg [COUNTER125_BIT_PICKOFF:0] counter125 = 0;
 	integer j;
 	always @(posedge clock125) begin
@@ -165,24 +165,26 @@ module top #(
 			pre_bus <= 0;
 			pre_ack_valid <= 0;
 		end else begin
-			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF]) begin
-				pre_pre_ack_valid <= 1;
-				if (read_pipeline[READ_PIPELINE_PICKOFF]) begin // read mode
+			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF:ENABLE_PIPELINE_PICKOFF-1]==2'b11) begin
+				if (read_pipeline[READ_PIPELINE_PICKOFF:READ_PIPELINE_PICKOFF-1]==2'b11) begin // read mode
+					pre_pre_ack_valid <= 1;
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
 							pre_bus <= read_data[rword];
 						end
 					end
-				end else begin // write mode
-					if (register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF]) begin
+				end else if (read_pipeline[READ_PIPELINE_PICKOFF:READ_PIPELINE_PICKOFF-1]==2'b00) begin // write mode
+					if (register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF:REGISTER_SELECT_PIPELINE_PICKOFF-1]==2'b11) begin
+						pre_pre_ack_valid <= 1;
 						if (wstate[1]==0) begin
 							if (wstate[0]==0) begin
 								wstate[0] <= 1;
 								write_data[wword] <= bus_pipeline[BUS_PIPELINE_PICKOFF];
 							end
 						end
-					end else begin // register_select=0 means address
+					end else if (register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF:REGISTER_SELECT_PIPELINE_PICKOFF-1]==2'b00) begin // register_select=0 means address
+						pre_pre_ack_valid <= 1;
 						if (astate[1]==0) begin
 							if (astate[0]==0) begin
 								astate[0] <= 1;
@@ -191,7 +193,7 @@ module top #(
 						end
 					end
 				end
-			end else begin // enable=0
+			end else if (enable_pipeline[ENABLE_PIPELINE_PICKOFF:ENABLE_PIPELINE_PICKOFF-1]==2'b00) begin // enable=0
 				if (ADDRESS_AUTOINCREMENT_MODE) begin
 					if (rstate[1] || wstate[1]) begin
 						address_word_reg <= address_word_reg + 1'b1;
@@ -470,6 +472,7 @@ module top_tb;
 	initial begin
 		// inject global reset
 		#300; reset <= 1; #300; reset <= 0;
+		#1000;
 		// test the interface
 		if (ADDRESS_AUTOINCREMENT_MODE) begin
 			// write some data to some addresses
@@ -557,12 +560,12 @@ module top_tb;
 	end
 	always begin
 		#HALF_PERIOD_OF_SLAVE;
-		clock50_p <= ~clock50_p;
-		clock50_n <= ~clock50_n;
+		clock50_p <= #1.5 ~clock50_p;
+		clock50_n <= #2.5 ~clock50_n;
 	end
 	always begin
 		#HALF_PERIOD_OF_MASTER;
-		clock <= ~clock;
+		clock <= #0.625 ~clock;
 	end
 endmodule
 
