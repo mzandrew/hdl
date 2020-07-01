@@ -548,6 +548,7 @@ def test_writing_data_to_half_duplex_bus():
 	#NUM = MEMSIZE
 	#NUM = 8192
 	#NUM = 4096
+	#NUM = 2048
 	#NUM = 1024
 	#NUM = 300
 	#NUM = 256

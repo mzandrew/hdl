@@ -2,7 +2,7 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-06-29 by mza
+// last updated 2020-07-01 by mza
 
 // how to use this module:
 
@@ -383,49 +383,46 @@ typedef struct {
 // pickoff reg_sel/read=3:enable=23:clock50->WARNING=occasionally 9
 // pickoff reg_sel/read=3:enable=30:clock50->WARNING=occasionally 11
 #define MAX_READBACK_CYCLES_WARNING (1)
+#define REQUIRED_ACK_QUANTITY (10)
 
 //char string1[4096] = "";
 //char string2[4096] = "";
 
 u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
-	*self->set_reg = self->enable;
 	volatile u32 *read_port = self->read_port;
 	const u32 ack_valid = self->ack_valid;
 	u32 new_errors = 0;
+	u32 ack_count = 0;
 	u32 value, i;
-	// wait for ack_valid
-	#ifdef WAIT_FOR_ACK_STYLE_FOR
 	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
+		*self->set_reg = self->enable;
 		value = *read_port;
 		//printf("\n[%08lx] value&ack_valid: %08lx (read_data)", self->transactions, value & ack_valid);
-		if (value & ack_valid) { break; }
+		if (value & ack_valid) { ack_count++; }
+		if (REQUIRED_ACK_QUANTITY<=ack_count) { break; }
 	}
 //	if (MAX_ACK_CYCLES_WARNING<i) { sprintf(string2, " ack_valid=%ld(s)", i); strcat(string1, string2); }
-	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
-	#else
-	do { } while (!(*read_port & ack_valid));
-	#endif
+	//if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
+	if (ack_count<REQUIRED_ACK_QUANTITY) { new_errors++; }
 	return new_errors;
 }
 
 u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
-	*self->clr_reg = self->enable;
 	volatile u32 *read_port = self->read_port;
 	const u32 ack_valid = self->ack_valid;
 	u32 new_errors = 0;
+	u32 ack_count = 0;
 	u32 value, i;
-	// wait for ack_valid
-	#ifdef WAIT_FOR_ACK_STYLE_FOR
 	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
+		*self->clr_reg = self->enable;
 		value = *read_port;
 		//printf("\n[%08lx] value&ack_valid: %08lx (read_data)", self->transactions, value & ack_valid);
-		if (!(value & ack_valid)) { break; }
+		if (!(value & ack_valid)) { ack_count++; }
+		if (REQUIRED_ACK_QUANTITY<=ack_count) { break; }
 	}
 //	if (MAX_ACK_CYCLES_WARNING<i) { sprintf(string2, " ack_valid=%ld(c)", i); strcat(string1, string2); }
-	if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
-	#else
-	do { } while (!(*read_port & ack_valid));
-	#endif
+	//if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
+	if (ack_count<REQUIRED_ACK_QUANTITY) { new_errors++; }
 	return new_errors;
 }
 
