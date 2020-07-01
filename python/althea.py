@@ -505,26 +505,29 @@ def setup_half_duplex_bus():
 		ack_valid=2
 	)
 
-def write_to_half_duplex_bus_and_then_verify(start_address, data, number_of_remaining_retries=5):
+def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print, number_of_remaining_retries=5):
 	if 0==number_of_remaining_retries:
 		return 0, 0
+	current_should_print = False
+	if 1==number_of_remaining_retries:
+		current_should_print = should_print
 	new_new_count = 0
 	new_count = half_duplex_bus.write(start_address, data, False)
 	values = half_duplex_bus.read(start_address, len(data))
-	new_errors, first_bad_index = check(data, values, False)
+	new_errors, first_bad_index = check(data, values, current_should_print)
 	if new_errors:
-		#print("0123")
+		print("read again")
 		new_data = []
 		for i in range(first_bad_index, len(data)):
 			new_data.append(data[i])
 		new_values = half_duplex_bus.read(start_address + first_bad_index, len(new_data))
-		new_errors, first_bad_index = check(new_data, new_values, False)
+		new_errors, first_bad_index = check(new_data, new_values, current_should_print)
 		if new_errors:
-			#print("4567")
+			print("write again")
 			new_new_data = []
 			for i in range(first_bad_index, len(new_data)):
 				new_new_data.append(new_data[i])
-			new_new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address + first_bad_index, new_new_data, number_of_remaining_retries-1)
+			new_new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address + first_bad_index, new_new_data, should_print, number_of_remaining_retries-1)
 	new_count += new_new_count
 	return new_count, new_errors
 
@@ -577,7 +580,7 @@ def test_writing_data_to_half_duplex_bus():
 			errors += check(data, values, True)
 			#errors += check(data, values, False)
 		if 1: # use above list and write it without verification, then read it and verify and retry only starting from the first bad index
-			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data)
+			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, False)
 			count += new_count
 			errors += new_errors
 		if 0: # use above list and write it without verification, then read it and verify
