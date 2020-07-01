@@ -87,7 +87,7 @@ def pulse(gpio, duration):
 	return bus
 
 def reset_pulse(gpio=19):
-	bus = pulse(gpio, 0.1)
+	bus = pulse(gpio, 0.05)
 	time.sleep(0.05)
 	return bus
 
@@ -505,9 +505,9 @@ def setup_half_duplex_bus():
 def test_writing_data_to_half_duplex_bus():
 	MEMSIZE = 2**14
 	print("writing data in half-duplex bus mode...")
+	if 1:
+		reset_pulse()
 	time.sleep(0.1)
-	#reset_pulse()
-	#time.sleep(0.1)
 	data = []
 	NUM = transfers_per_data_word
 	#NUM = 4500000
@@ -516,6 +516,7 @@ def test_writing_data_to_half_duplex_bus():
 	#NUM = 8192
 	#NUM = 4096
 	#NUM = 1024
+	#NUM = 300
 	#NUM = 256
 	#NUM = 32
 	#NUM = 16
@@ -524,22 +525,10 @@ def test_writing_data_to_half_duplex_bus():
 	if NUM>MEMSIZE:
 		number_of_times_to_repeat = NUM//MEMSIZE
 		NUM = MEMSIZE
-#	if NUM>10000:
-#		segments = int(NUM/10000)
-#		length_of_each_segment = math.ceil(NUM/segments)
-#		print("each segment is " + str(length_of_each_segment))
-#		segment = [ random.randint(0,2**bits_word-1) for d in range(length_of_each_segment) ]
-#		for i in range(segments):
-#			data.extend(segment)
-#	else:
-	if 0:
+	if 1:
 		ALL_ONES = 2**bits_word - 1
-		#ALL_ONES = 2**24 - 1
 		data = [ random.randint(0,ALL_ONES) for d in range(NUM) ]
-	#data = [ random.randint(0x100,ALL_ONES) for d in range(NUM) ]
-	#for i in range(len(data)):
-	#	data[i] &= ALL_ONES
-	if 1: # fill in ones for only a bus_width-sized part of the word
+	if 0: # fill in ones for only a bus_width-sized part of the word
 		part = NUM//transfers_per_data_word
 		data = []
 		ALL_ONES = 2**bus_width-1
@@ -561,12 +550,26 @@ def test_writing_data_to_half_duplex_bus():
 			values = half_duplex_bus.read(0, len(data))
 			errors += check(data, values, True)
 			#errors += check(data, values, False)
-		if 0: # use above list and write it without verification, then read it and verify
+		if 1: # use above list and write it without verification, then read it and verify
+			count += half_duplex_bus.write(0, data, False)
+			values = half_duplex_bus.read(0, len(data))
+			errors += check(data, values)
+			#if errors:
+			#	values = half_duplex_bus.read(0, len(data))
+			#	errors += check(data, values, True)
+			#errors += check(data, values, False)
+		if 0: # address = data
+			data = [ d for d in range(MEMSIZE) ]
 			count += half_duplex_bus.write(0, data, False)
 			values = half_duplex_bus.read(0, len(data))
 			errors += check(data, values, True)
-			#errors += check(data, values, False)
-		if 1: # ramp up or down
+		if 0: # up but skip diff inbetween
+			diff = 2
+			data = [ d for d in range(0, MEMSIZE, diff) ]
+			count += half_duplex_bus.write(0, data)
+			values = half_duplex_bus.read(0, len(data))
+			errors += check(data, values, True)
+		if 0: # ramp up or down
 			data = [ d for d in range(NUM) ]
 			#data = [ NUM-d-1 for d in range(NUM) ]
 			count += half_duplex_bus.write(0, data)
