@@ -29,7 +29,9 @@ module top #(
 	parameter TRANSACTIONS_PER_ADDRESS_WORD = 2,
 	parameter LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD = $clog2(TRANSACTIONS_PER_ADDRESS_WORD),
 	parameter ADDRESS_DEPTH = 14,
-	parameter ADDRESS_AUTOINCREMENT_MODE = 1
+	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
+	parameter TESTBENCH = 0,
+	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 4 : 10
 ) (
 	input clock50_p, clock50_n,
 	input clock10,
@@ -102,7 +104,7 @@ module top #(
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
 	reg pre_pre_ack_valid = 0;
 	reg pre_ack_valid = 0;
-	localparam COUNTER50_BIT_PICKOFF = 5;
+	localparam COUNTER50_BIT_PICKOFF = 4;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
 	always @(posedge clock50) begin
 		if (reset_pipeline50[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
@@ -119,7 +121,6 @@ module top #(
 		reset_pipeline50 <= { reset_pipeline50[RESET_PIPELINE_PICKOFF-1:0], reset };
 	end
 	reg [2:0] reset50_pipeline125 = 0;
-	localparam COUNTER125_BIT_PICKOFF = 5;
 	reg [COUNTER125_BIT_PICKOFF:0] counter125 = 0;
 	localparam PLL_LOCKED_PIPELINE125_PICKOFF = 2;
 	reg [PLL_LOCKED_PIPELINE125_PICKOFF:0] pll_locked_pipeline125 = 0;
@@ -141,7 +142,7 @@ module top #(
 			counter125 <= 0;
 			reset125 <= 1;
 		end else if (reset125) begin
-			if (counter125[COUNTER50_BIT_PICKOFF]) begin
+			if (counter125[COUNTER125_BIT_PICKOFF]) begin
 				reset125 <= 0;
 			end
 			counter125 <= counter125 + 1'b1;
@@ -354,7 +355,7 @@ module top_tb;
 	reg pre_enable = 0;
 	reg enable = 0;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are master
-	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)) althea (
+	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(reset),
 		.lemo(lemo), .other0(other0), .other1(other1),
 		.bus(bus), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
@@ -476,7 +477,8 @@ module top_tb;
 	initial begin
 		// inject global reset
 		#300; reset <= 1; #300; reset <= 0;
-		#1000;
+		#512; // wait for reset50
+		#512; // wait for reset125
 		// test the interface
 		if (ADDRESS_AUTOINCREMENT_MODE) begin
 			// write some data to some addresses

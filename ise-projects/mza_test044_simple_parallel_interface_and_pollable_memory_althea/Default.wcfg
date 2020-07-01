@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="43" />
+   <WVObjectSize size="44" />
    <wvobject fp_name="/top_tb/leds" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">leds[7:0]</obj_property>
       <obj_property name="ObjectShortName">leds[7:0]</obj_property>
@@ -43,6 +43,10 @@
    <wvobject fp_name="/top_tb/althea/pll_locked" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">pll_locked</obj_property>
       <obj_property name="ObjectShortName">pll_locked</obj_property>
+   </wvobject>
+   <wvobject fp_name="/top_tb/althea/pll_locked_pipeline125" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_locked_pipeline125[2:0]</obj_property>
+      <obj_property name="ObjectShortName">pll_locked_pipeline125[2:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/top_tb/althea/reset125" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">reset125</obj_property>
