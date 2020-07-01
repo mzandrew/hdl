@@ -489,7 +489,7 @@ def setup_half_duplex_bus():
 	bits_bus = len(gpio_bus)
 	#print("this bus is " + str(bits_bus) + " bits wide")
 	global transfers_per_data_word
-	transfers_per_data_word = 3
+	transfers_per_data_word = 4
 	global bits_word
 	bits_word = transfers_per_data_word*bits_bus
 	global half_duplex_bus
@@ -505,25 +505,29 @@ def setup_half_duplex_bus():
 		ack_valid=2
 	)
 
-def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=True, number_of_remaining_retries=5):
-	if 0==number_of_remaining_retries:
-		return 0, 0
+default_number_of_retries = 5
+def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=True, number_of_remaining_retries=default_number_of_retries):
 	current_should_print = False
-	if 1==number_of_remaining_retries:
+	if 0==number_of_remaining_retries:
 		current_should_print = should_print
+	prefix_string = ""
+	for i in range(default_number_of_retries - number_of_remaining_retries):
+		prefix_string += " "
 	new_new_count = 0
 	new_count = half_duplex_bus.write(start_address, data, False)
 	values = half_duplex_bus.read(start_address, len(data))
 	new_errors, first_bad_index = check(data, values, current_should_print)
 	if new_errors:
-		print("read again")
+		print(prefix_string + "read again")
 		new_data = []
 		for i in range(first_bad_index, len(data)):
 			new_data.append(data[i])
 		new_values = half_duplex_bus.read(start_address + first_bad_index, len(new_data))
 		new_errors, first_bad_index = check(new_data, new_values, current_should_print)
+		if 0==number_of_remaining_retries:
+			return new_count, new_errors
 		if new_errors:
-			print("write again")
+			print(prefix_string + "write again")
 			new_new_data = []
 			for i in range(first_bad_index, len(new_data)):
 				new_new_data.append(new_data[i])
