@@ -368,12 +368,9 @@ typedef struct {
 	volatile u32 *read_port;
 } half_duplex_bus_object;
 
-// waiting for ack_valid is the difference between 2 MB/sec and 9 MB/sec
-#define WAIT_FOR_ACK_STYLE_FOR
-//#define WAIT_FOR_ACK_STYLE_WHILE
 #define MAX_ACK_CYCLES_ERROR (1000)
-#define MAX_READBACK_CYCLES_ERROR (10)
-#define MAX_RETRY_CYCLES_ERROR (4)
+#define MAX_READBACK_CYCLES_ERROR (100)
+#define MAX_RETRY_CYCLES_ERROR (40)
 #define MAX_ACK_CYCLES_WARNING (8)
 // pickoff reg_sel/read=1:enable= 2:clock125->WARNING=occasionally 8
 // pickoff reg_sel/read=1:enable= 2:clock50->WARNING=occasionally 4
