@@ -511,8 +511,8 @@ def test_writing_data_to_half_duplex_bus():
 	data = []
 	NUM = transfers_per_data_word
 	#NUM = 4500000
-	#NUM = 4*MEMSIZE
-	NUM = MEMSIZE
+	NUM = 6*MEMSIZE
+	#NUM = MEMSIZE
 	#NUM = 8192
 	#NUM = 4096
 	#NUM = 1024
@@ -552,12 +552,12 @@ def test_writing_data_to_half_duplex_bus():
 			#errors += check(data, values, False)
 		if 1: # use above list and write it without verification, then read it and verify
 			count += half_duplex_bus.write(0, data, False)
+			#time.sleep(0.01)
 			values = half_duplex_bus.read(0, len(data))
-			errors += check(data, values)
-			#if errors:
+			#if check(data, values):
 			#	values = half_duplex_bus.read(0, len(data))
-			#	errors += check(data, values, True)
-			#errors += check(data, values, False)
+			#errors += check(data, values, True)
+			errors += check(data, values, False)
 		if 0: # address = data
 			data = [ d for d in range(MEMSIZE) ]
 			count += half_duplex_bus.write(0, data, False)
@@ -680,7 +680,7 @@ def test_writing_data_to_half_duplex_bus():
 	end = time.time()
 	print_messages()
 	diff = end - start
-	per_sec = NUM / diff
+	per_sec = count / diff
 	print("%.6f"%diff + " seconds")
 	per_sec *= bits_word
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
