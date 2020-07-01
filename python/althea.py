@@ -409,14 +409,14 @@ CONTROL_BUS_IDLE = CONTROL_BUS_WRITE_ADDRESS
 def test_writing_data_to_simple_parallel_bus():
 	print("writing data in simple parallel bus mode...")
 	time.sleep(0.1)
-	reset_pulse()
-	time.sleep(0.1)
+	#reset_pulse()
+	#time.sleep(0.1)
 	data = []
 	NUM = 200000
 	if NUM>10000:
 		segments = int(NUM/10000)
 		length_of_each_segment = math.ceil(NUM/segments)
-		print(str(length_of_each_segment))
+		print("length_of_each_segment: " + str(length_of_each_segment))
 		segment = [ random.randint(0,2**bits_word-1) for d in range(length_of_each_segment) ]
 		for i in range(segments):
 			data.extend(segment)
@@ -460,12 +460,12 @@ def check(ref1, ref2, should_print=1, offset=0, width=0):
 			if should_print:
 				#print("ref1[" + str(i) + "]=" + hex(ref1[i], bits_word/4))
 				#print("ref2[" + str(i) + "]=" + hex(ref2[i], bits_word/4))
-				messages.append("ref1[" + address_string + "] = " + bin(ref1[i], bits_word) + " = " + hex(ref1[i], bits_word/4) + " error")
-				messages.append("ref2[" + address_string + "] = " + bin(ref2[i], bits_word) + " = " + hex(ref2[i], bits_word/4) + " error")
+				messages.append("ref1[" + address_string + "] = " + bin(ref1[i], bits_word) + " = " + hex(ref1[i], bits_word/4) + " [intended]")
+				messages.append("ref2[" + address_string + "] = " + bin(ref2[i], bits_word) + " = " + hex(ref2[i], bits_word/4) + " [error]")
 				#sys.exit(1)
 		else:
 			if 0 and should_print:
-				messages.append("ref1[" + address_string + "] = " + bin(ref1[i], bits_word) + " = " + hex(ref1[i], bits_word/4))
+				messages.append("ref1[" + address_string + "] = " + bin(ref1[i], bits_word) + " = " + hex(ref1[i], bits_word/4) + " [intended]")
 				messages.append("ref2[" + address_string + "] = " + bin(ref2[i], bits_word) + " = " + hex(ref2[i], bits_word/4))
 			#print("match at address " + str(i))
 		#print("\n")
@@ -506,15 +506,17 @@ def test_writing_data_to_half_duplex_bus():
 	MEMSIZE = 2**14
 	print("writing data in half-duplex bus mode...")
 	time.sleep(0.1)
-	reset_pulse()
-	time.sleep(0.1)
+	#reset_pulse()
+	#time.sleep(0.1)
 	data = []
 	NUM = transfers_per_data_word
 	#NUM = 4500000
 	#NUM = 4*MEMSIZE
-	#NUM = MEMSIZE
+	NUM = MEMSIZE
+	#NUM = 8192
+	#NUM = 4096
 	#NUM = 1024
-	NUM = 256
+	#NUM = 256
 	#NUM = 32
 	#NUM = 16
 	#NUM = 4

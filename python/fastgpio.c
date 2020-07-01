@@ -656,7 +656,7 @@ u32 read_data(half_duplex_bus_object *self) {
 	const u32 bus_offset = self->bus_offset;
 	const u32 transfers_per_data_word = self->transfers_per_data_word;
 	u32 new_errors = 0;
-//	u32 partial_data0;
+	u32 partial_data0;
 	u32 partial_data1;
 	u32 t;
 	// readback data
@@ -664,17 +664,22 @@ u32 read_data(half_duplex_bus_object *self) {
 	*self->set_reg = self->register_select; // register_select=1 is data mode
 	new_errors += clear_enable_and_wait_for_ack_valid(self);
 	u32 data = 0;
+	u32 shift [transfers_per_data_word];
+	for (t=0; t<transfers_per_data_word; t++) {
+		shift[t] = (transfers_per_data_word-t-1)*bus_width;
+		//printf("\nshift[%ld]: %ld", t, shift[t]);
+	}
 	for (t=0; t<transfers_per_data_word; t++) {
 		//*clr_reg = bus_mask; // shouldn't need to do this...
 		new_errors += set_enable_and_wait_for_ack_valid(self);
-//		partial_data0 = (*read_port & bus_mask)>>bus_offset;
-//		partial_data1 = (*read_port & bus_mask)>>bus_offset;
-//		if (partial_data0!=partial_data1) {
+		partial_data0 = (*read_port & bus_mask)>>bus_offset;
+		partial_data1 = (*read_port & bus_mask)>>bus_offset;
+		if (partial_data0!=partial_data1) {
+			new_errors++;
 //			printf("\ndata readpar0: %0*lx", (int) (bus_width/4), partial_data0);
 //			printf("\ndata readpar1: %0*lx", (int) (bus_width/4), partial_data1);
-//		}
-		partial_data1 = (*read_port & bus_mask)>>bus_offset;
-		data |= partial_data1 << ((transfers_per_data_word-t-1)*bus_width);
+		}
+		data |= partial_data1 << shift[t];
 		if (t+1<transfers_per_data_word) {
 			new_errors += clear_enable_and_wait_for_ack_valid(self);
 		} else {
@@ -816,6 +821,7 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 		if (ending_address<=address) { break; }
 		self->transactions++;
 		if (!address_autoincrement_mode) { set_address(self, address); }
+		//set_address(self, address);
 		data = read_data(self);
 		PyObject *new = PyLong_FromUnsignedLong(data);
 		PyList_Append(obj, new);
