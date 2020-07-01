@@ -585,8 +585,8 @@ module myalthea (
 	output b_p, // oserdes/trig output other0
 	output f_p, // oserdes/trig output other1
 	// other IOs:
-	output m_p, // rpi_gpio2 sda
-	output m_n, // rpi_gpio3 scl
+	output m_p, // rpi_gpio2 sda / ack_valid
+	output m_n, // rpi_gpio3 scl / register_select
 	// 8 bit bus:
 	inout j_p, // rpi_gpio4 gpclk0
 	inout d_n, // rpi_gpio5
@@ -598,8 +598,8 @@ module myalthea (
 	inout c_p, // rpi_gpio11 spi
 	// other IOs:
 	input e_n, // rpi_gpio13
-	input l_p, // rpi_gpio14 tx
-	input l_n, // rpi_gpio15 rd
+	input l_p, // rpi_gpio14 tx / read
+	input l_n, // rpi_gpio15 rd / enable
 	input e_p, // rpi_gpio19
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );

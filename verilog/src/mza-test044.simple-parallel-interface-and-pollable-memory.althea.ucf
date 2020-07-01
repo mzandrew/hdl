@@ -37,7 +37,7 @@ net e_n loc=p137 | iostandard=lvcmos25; # E- bank0 TL
 net e_p loc=p138 | iostandard=lvcmos25; # E+ bank0 TL
 
 # first column, closest to FPGA on right side of board
-net m_p loc=p67  | iostandard=lvcmos25; # M+ bank3 BR
+net m_p loc=p67  | iostandard=lvcmos25 | drive = 2 | slew = slow; # M+ bank3 BR
 net m_n loc=p66  | iostandard=lvcmos25; # M- bank3 BR
 net l_p loc=p58  | iostandard=lvcmos25; # L+ bank3 BR
 net l_n loc=p57  | iostandard=lvcmos25; # L- bank3 BR
