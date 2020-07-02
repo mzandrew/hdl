@@ -364,7 +364,6 @@ typedef struct {
 	u32 transactions;
 	u32 retries;
 	u32 user_errors;
-	u32 shift[MAX_TRANSFERS_PER_WORD];
 	volatile u32 *gpio_port;
 	volatile u32 *gpio_pads;
 	volatile u32 *set_reg;
@@ -535,11 +534,6 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	u32 bus_mask = partial_mask<<bus_offset;
 	self->bus_mask = bus_mask;
 	//printf("\nbus_mask: %08lx", self->bus_mask);
-	for (s32 t=MAX_TRANSFERS_PER_WORD-1; 0<=t; t--) {
-		//self->shift[t] = (transfers_per_data_word-t-1)*bus_width;
-		self->shift[t] = t*bus_width;
-		//printf("\nshift[%ld]: %ld", t, self->shift[t]);
-	}
 	self->errors = 0;
 	self->transactions = 0;
 	self->retries = 0;
@@ -602,7 +596,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	set_bus_as_output_if_necessary(self);
 	*self->clr_reg = self->register_select; // register_select=0 is address mode
 	for (s32 t=transfers_per_address_word-1; 0<=t; t--) {
-		partial_address = (address>>self->shift[t]) & partial_mask;
+		partial_address = address>>t*bus_width & partial_mask;
 		//printf("\npartial_address: %0*lx", (int) bus_width/4, partial_address);
 		set_bus(self, partial_address, REQUIRED_QUANTITY_OF_VALID_READBACKS_ERROR);
 		new_errors += set_enable_and_wait_for_ack_valid(self);
@@ -629,7 +623,7 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 	set_bus_as_output_if_necessary(self);
 	*self->set_reg = self->register_select; // register_select=1 is data mode
 	for (s32 t=transfers_per_data_word-1; 0<=t; t--) {
-		partial_data = (data>>self->shift[t]) & partial_mask;
+		partial_data = data>>t*bus_width & partial_mask;
 		//printf("\npartial_data to write: %0*lx", (int) bus_width/4, partial_data);
 		set_bus(self, partial_data, REQUIRED_QUANTITY_OF_VALID_READBACKS_ERROR);
 		new_errors += set_enable_and_wait_for_ack_valid(self);
@@ -664,7 +658,7 @@ u32 read_data(half_duplex_bus_object *self) {
 //			printf("\ndata readpar0: %0*lx", (int) (bus_width/4), partial_data0);
 //			printf("\ndata readpar1: %0*lx", (int) (bus_width/4), partial_data1);
 		}
-		data |= partial_data1 << self->shift[t];
+		data |= partial_data1 << t*bus_width;
 		new_errors += clear_enable_and_wait_for_ack_valid(self);
 		//printf("\npartial_data readback: %0*lx", (int) (bus_width/4), partial_data);
 	}
