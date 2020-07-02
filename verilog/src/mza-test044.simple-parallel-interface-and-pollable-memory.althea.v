@@ -597,15 +597,15 @@ module myalthea (
 	inout b_n, // rpi_gpio10 spi
 	inout c_p, // rpi_gpio11 spi
 	// other IOs:
-	input e_n, // rpi_gpio13
+	input e_n, // rpi_gpio13 / register_select
 	input l_p, // rpi_gpio14 tx / read
 	input l_n, // rpi_gpio15 rd / enable
-	input e_p, // rpi_gpio19
+	input e_p, // rpi_gpio19 / reset
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	localparam BUS_WIDTH = 8;
 	localparam ADDRESS_DEPTH = 14;
-	localparam TRANSACTIONS_PER_DATA_WORD = 3;
+	localparam TRANSACTIONS_PER_DATA_WORD = 4;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 2;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 	wire register_select = e_n;
