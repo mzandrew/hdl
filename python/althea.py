@@ -558,7 +558,7 @@ def test_writing_data_to_half_duplex_bus():
 	number_of_times_to_repeat = 1
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	start_address = random.randint(0, MEMSIZE)
-	NUM = random.randint(0, MEMSIZE - start_address)
+	NUM = random.randint(1, MEMSIZE - start_address)
 	#start_address = 0x1000
 	#start_address = 10557
 	#NUM = 4500000
