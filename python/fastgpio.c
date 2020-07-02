@@ -371,7 +371,7 @@ typedef struct {
 #define MAX_ACK_CYCLES_ERROR (1000)
 #define MAX_READBACK_CYCLES_ERROR (100)
 #define MAX_RETRY_CYCLES_ERROR (40)
-#define MAX_ACK_CYCLES_WARNING (8)
+//#define MAX_ACK_CYCLES_WARNING (1)
 // pickoff reg_sel/read=1:enable= 2:clock125->WARNING=occasionally 8
 // pickoff reg_sel/read=1:enable= 2:clock50->WARNING=occasionally 4
 // pickoff reg_sel/read=2:enable= 3:clock50->WARNING=occasionally 4
@@ -380,7 +380,8 @@ typedef struct {
 // pickoff reg_sel/read=3:enable=23:clock50->WARNING=occasionally 9
 // pickoff reg_sel/read=3:enable=30:clock50->WARNING=occasionally 11
 #define MAX_READBACK_CYCLES_WARNING (1)
-#define REQUIRED_ACK_QUANTITY (2)
+#define REQUIRED_ACK_QUANTITY (1)
+#define REQUIRED_QUANTITY_OF_VALID_READBACKS_ERROR (2) // 0=10ns; 1=300ns; 2=450ns; 4=500ns [between data bus change and enable going high]
 
 //char string1[4096] = "";
 //char string2[4096] = "";
@@ -447,28 +448,31 @@ void set_bus_as_output_if_necessary(half_duplex_bus_object *self) {
 	}
 }
 
-u32 set_bus(half_duplex_bus_object *self, u32 partial_data, bool verify) {
+u32 set_bus(half_duplex_bus_object *self, u32 partial_data, u32 required_quantity_of_valid_readbacks) {
 	set_bus_as_output_if_necessary(self);
 	const u32 bus_mask = self->bus_mask;
 	*self->clr_reg = bus_mask;
 	u32 adjusted_data = (partial_data<<self->bus_offset) & bus_mask;
 	*self->set_reg = adjusted_data;
 	u32 new_errors = 0;
-	if (verify) {
+	if (required_quantity_of_valid_readbacks) {
 		volatile u32 *read_port = self->read_port;
 		u32 readback;
 		u32 i;
+		u32 valid_count = 0;
 		//mynsleep(short_delay);
 		//printf("\nadjusted_data to write: %0*lx", (int) (bus_width/4+1), adjusted_data);
 		for (i=0; i<MAX_READBACK_CYCLES_ERROR; i++) {
 			readback = *read_port & bus_mask;
-			if (readback == adjusted_data) { break; }
+			if (readback == adjusted_data) { valid_count++; }
+			if (required_quantity_of_valid_readbacks<=valid_count) { break; }
 		}
-		if (MAX_READBACK_CYCLES_WARNING<i) { printf(" %ld(ww)", i); }
-		if (MAX_READBACK_CYCLES_ERROR==i) {
-			printf("\nERROR: can't change the state of GPIOs");
-			new_errors++;
-		}
+		if (valid_count<required_quantity_of_valid_readbacks) { new_errors++; }
+//		if (MAX_READBACK_CYCLES_WARNING<i) { printf(" %ld(ww)", i); }
+//		if (MAX_READBACK_CYCLES_ERROR==i) {
+//			printf("\nERROR: can't change the state of GPIOs");
+//			new_errors++;
+//		}
 	}
 	return new_errors;
 }
@@ -597,15 +601,10 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	for (t=0; t<transfers_per_address_word; t++) {
 		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
 		//printf("\npartial_address: %0*lx", (int) bus_width/4, partial_address);
-		set_bus(self, partial_address, false);
-		new_errors += set_enable_and_wait_for_ack_valid(self);
+		set_bus(self, partial_address, REQUIRED_QUANTITY_OF_VALID_READBACKS_ERROR);
 //		sprintf(string2, " + "); strcat(string1, string2);
-		if (t+1<transfers_per_address_word) {
-			new_errors += clear_enable_and_wait_for_ack_valid(self);
-		} else {
-			*self->clr_reg = self->enable;
-			*self->clr_reg = self->enable;
-		}
+		new_errors += set_enable_and_wait_for_ack_valid(self);
+		new_errors += clear_enable_and_wait_for_ack_valid(self);
 	}
 //	if (new_errors) { sprintf(string2, " new_errors=%ld", new_errors); strcat(string1, string2); fprintf(info, "\n%s", string1); }
 	if (new_errors) {
@@ -634,14 +633,9 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 	for (t=0; t<transfers_per_data_word; t++) {
 		partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
 		//printf("\npartial_data to write: %0*lx", (int) bus_width/4, partial_data);
-		set_bus(self, partial_data, false);
+		set_bus(self, partial_data, REQUIRED_QUANTITY_OF_VALID_READBACKS_ERROR);
 		new_errors += set_enable_and_wait_for_ack_valid(self);
-		if (t+1<transfers_per_data_word) {
-			new_errors += clear_enable_and_wait_for_ack_valid(self);
-		} else {
-			*self->clr_reg = self->enable;
-			*self->clr_reg = self->enable;
-		}
+		new_errors += clear_enable_and_wait_for_ack_valid(self);
 	}
 	if (new_errors) {
 		printf("\nnew_errors: %ld (write_data)", new_errors);
@@ -675,18 +669,13 @@ u32 read_data(half_duplex_bus_object *self) {
 		new_errors += set_enable_and_wait_for_ack_valid(self);
 		partial_data0 = (*read_port & bus_mask)>>bus_offset;
 		partial_data1 = (*read_port & bus_mask)>>bus_offset;
-		if (partial_data0!=partial_data1) {
+		if (partial_data0 != partial_data1) {
 			new_errors++;
 //			printf("\ndata readpar0: %0*lx", (int) (bus_width/4), partial_data0);
 //			printf("\ndata readpar1: %0*lx", (int) (bus_width/4), partial_data1);
 		}
 		data |= partial_data1 << shift[t];
-		if (t+1<transfers_per_data_word) {
-			new_errors += clear_enable_and_wait_for_ack_valid(self);
-		} else {
-			*self->clr_reg = self->enable;
-			*self->clr_reg = self->enable;
-		}
+		new_errors += clear_enable_and_wait_for_ack_valid(self);
 		//printf("\npartial_data readback: %0*lx", (int) (bus_width/4), partial_data);
 	}
 	//printf("\ndata readback: %0*lx", (int) (transfers_per_data_word*bus_width/4), data);
