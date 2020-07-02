@@ -38,6 +38,7 @@
 
 typedef unsigned char u8;
 typedef unsigned long u32;
+typedef signed long s32;
 
 #include <stdio.h> // printf, fprintf
 #include <stdlib.h> // srandom, random
@@ -343,6 +344,8 @@ void append_message(char *string) {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+#define MAX_TRANSFERS_PER_WORD (8)
+
 typedef struct {
 	PyObject_HEAD
 	u32 bus_mask;
@@ -361,6 +364,7 @@ typedef struct {
 	u32 transactions;
 	u32 retries;
 	u32 user_errors;
+	u32 shift[MAX_TRANSFERS_PER_WORD];
 	volatile u32 *gpio_port;
 	volatile u32 *gpio_pads;
 	volatile u32 *set_reg;
@@ -499,10 +503,10 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	if (31<bus_offset) { return -1; }
 	self->bus_offset = bus_offset;
 	//printf("\nbus_offset: %08lx", self->bus_offset);
-	if (0==transfers_per_data_word || 31<transfers_per_data_word) { return -1; }
+	if (0==transfers_per_data_word || MAX_TRANSFERS_PER_WORD<transfers_per_data_word) { return -1; }
 	self->transfers_per_data_word = transfers_per_data_word;
 	//printf("\ntransfers_per_data_word: %08lx", self->transfers_per_data_word);
-	if (0==transfers_per_address_word || 31<transfers_per_address_word) { return -1; }
+	if (0==transfers_per_address_word || MAX_TRANSFERS_PER_WORD<transfers_per_address_word) { return -1; }
 	self->transfers_per_address_word = transfers_per_address_word;
 	//printf("\ntransfers_per_address_word: %08lx", self->transfers_per_address_word);
 	if (1<address_autoincrement_mode) { return -1; }
@@ -531,6 +535,11 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	u32 bus_mask = partial_mask<<bus_offset;
 	self->bus_mask = bus_mask;
 	//printf("\nbus_mask: %08lx", self->bus_mask);
+	for (s32 t=MAX_TRANSFERS_PER_WORD-1; 0<=t; t--) {
+		//self->shift[t] = (transfers_per_data_word-t-1)*bus_width;
+		self->shift[t] = t*bus_width;
+		//printf("\nshift[%ld]: %ld", t, self->shift[t]);
+	}
 	self->errors = 0;
 	self->transactions = 0;
 	self->retries = 0;
@@ -590,24 +599,17 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 	const u32 transfers_per_address_word = self->transfers_per_address_word;
 	u32 new_errors = 0;
 	u32 partial_address;
-	u32 t;
-	// write address
-	//printf("\naddress: %0*lx", (int) (transfers_per_address_word*bus_width/4), address);
-	//for (t=0; t<transfers_per_address_word; t++) {
 	set_bus_as_output_if_necessary(self);
-	new_errors += clear_enable_and_wait_for_ack_valid(self);
-//	sprintf(string2, " _ "); strcat(string1, string2);
 	*self->clr_reg = self->register_select; // register_select=0 is address mode
-	for (t=0; t<transfers_per_address_word; t++) {
-		partial_address = (address>>((transfers_per_address_word-t-1)*bus_width)) & partial_mask;
+	for (s32 t=transfers_per_address_word-1; 0<=t; t--) {
+		partial_address = (address>>self->shift[t]) & partial_mask;
 		//printf("\npartial_address: %0*lx", (int) bus_width/4, partial_address);
 		set_bus(self, partial_address, REQUIRED_QUANTITY_OF_VALID_READBACKS_ERROR);
-//		sprintf(string2, " + "); strcat(string1, string2);
 		new_errors += set_enable_and_wait_for_ack_valid(self);
 		new_errors += clear_enable_and_wait_for_ack_valid(self);
 	}
-//	if (new_errors) { sprintf(string2, " new_errors=%ld", new_errors); strcat(string1, string2); fprintf(info, "\n%s", string1); }
 	if (new_errors) {
+//		sprintf(string2, " new_errors=%ld", new_errors); strcat(string1, string2); fprintf(info, "\n%s", string1);
 		printf("\nnew_errors: %ld (set_address)", new_errors);
 		self->errors += new_errors;
 	}
@@ -624,14 +626,10 @@ u32 write_data(half_duplex_bus_object *self, u32 data) {
 	const u32 transfers_per_data_word = self->transfers_per_data_word;
 	u32 new_errors = 0;
 	u32 partial_data;
-	u32 t;
-	// write data
-	//printf("\ndata to write: %0*lx", (int) (transfers_per_data_word*bus_width/4), data);
 	set_bus_as_output_if_necessary(self);
-	new_errors += clear_enable_and_wait_for_ack_valid(self);
 	*self->set_reg = self->register_select; // register_select=1 is data mode
-	for (t=0; t<transfers_per_data_word; t++) {
-		partial_data = (data>>((transfers_per_data_word-t-1)*bus_width)) & partial_mask;
+	for (s32 t=transfers_per_data_word-1; 0<=t; t--) {
+		partial_data = (data>>self->shift[t]) & partial_mask;
 		//printf("\npartial_data to write: %0*lx", (int) bus_width/4, partial_data);
 		set_bus(self, partial_data, REQUIRED_QUANTITY_OF_VALID_READBACKS_ERROR);
 		new_errors += set_enable_and_wait_for_ack_valid(self);
@@ -653,18 +651,10 @@ u32 read_data(half_duplex_bus_object *self) {
 	u32 new_errors = 0;
 	u32 partial_data0;
 	u32 partial_data1;
-	u32 t;
-	// readback data
 	set_bus_as_input_if_necessary(self);
 	*self->set_reg = self->register_select; // register_select=1 is data mode
-	new_errors += clear_enable_and_wait_for_ack_valid(self);
 	u32 data = 0;
-	u32 shift [transfers_per_data_word];
-	for (t=0; t<transfers_per_data_word; t++) {
-		shift[t] = (transfers_per_data_word-t-1)*bus_width;
-		//printf("\nshift[%ld]: %ld", t, shift[t]);
-	}
-	for (t=0; t<transfers_per_data_word; t++) {
+	for (s32 t=transfers_per_data_word-1; 0<=t; t--) {
 		//*clr_reg = bus_mask; // shouldn't need to do this...
 		new_errors += set_enable_and_wait_for_ack_valid(self);
 		partial_data0 = (*read_port & bus_mask)>>bus_offset;
@@ -674,11 +664,10 @@ u32 read_data(half_duplex_bus_object *self) {
 //			printf("\ndata readpar0: %0*lx", (int) (bus_width/4), partial_data0);
 //			printf("\ndata readpar1: %0*lx", (int) (bus_width/4), partial_data1);
 		}
-		data |= partial_data1 << shift[t];
+		data |= partial_data1 << self->shift[t];
 		new_errors += clear_enable_and_wait_for_ack_valid(self);
 		//printf("\npartial_data readback: %0*lx", (int) (bus_width/4), partial_data);
 	}
-	//printf("\ndata readback: %0*lx", (int) (transfers_per_data_word*bus_width/4), data);
 	if (new_errors) {
 		printf("\nnew_errors: %ld (read_data)", new_errors);
 		self->errors += new_errors;
