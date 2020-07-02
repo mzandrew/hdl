@@ -559,6 +559,9 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 }
 
 static void half_duplex_bus_destructor(half_duplex_bus_object *self) {
+	fflush(stdout);
+	fflush(stderr);
+	printf("\n");
 	if (self->transactions) {
 		printf("\nthere were %ld total transactions", self->transactions);
 	}
@@ -566,10 +569,10 @@ static void half_duplex_bus_destructor(half_duplex_bus_object *self) {
 		printf("\nthere were %ld total retries", self->retries);
 	}
 	if (self->errors) {
-		printf("\nthere were %ld total errors", self->errors);
+		fprintf(stderr, "\nthere were %ld total errors", self->errors);
 	}
 	if (self->user_errors) {
-		printf("\nthere were %ld total user_errors", self->user_errors);
+		fprintf(stderr, "\nthere were %ld total user_errors", self->user_errors);
 	}
 	printf("\n");
 	*self->clr_reg = self->bus_mask | self->register_select | self->read | self->enable;
@@ -691,6 +694,9 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	}
 	u32 address = start_address;
 	u32 length = (u32) PyList_Size(obj);
+	if (3<=self->verbosity) {
+		printf("\nwrite(start_address=%lx, PyList_length=%lx)", address, length);
+	}
 	//printf("\n(write_data) start_address = %lx; length = %ld", start_address, length);
 	int hex_width_a = self->transfers_per_address_word*self->bus_width/4;
 	int hex_width_d = self->transfers_per_data_word*self->bus_width/4;
@@ -789,7 +795,9 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 	if (!PyArg_ParseTuple(args, "|kk", &address, &length)) {
 		return PyErr_Format(PyExc_ValueError, "usage:  read(start_address=0, length=1)");
 	}
-	//printf("\n(read_data) start_address = %lx; length = %lx", address, length);
+	if (3<=self->verbosity) {
+		printf("\nread(start_address=%lx, length=%lx)", address, length);
+	}
 	u32 ending_address = address + length;
 	u32 data;
 	u32 everything = self->bus_mask | self->register_select | self->read | self->enable;
