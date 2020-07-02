@@ -2,7 +2,7 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-07-01 by mza
+// last updated 2020-07-02 by mza
 
 // how to use this module:
 
@@ -364,6 +364,7 @@ typedef struct {
 	u32 transactions;
 	u32 retries;
 	u32 user_errors;
+	u32 verbosity;
 	volatile u32 *gpio_port;
 	volatile u32 *gpio_pads;
 	volatile u32 *set_reg;
@@ -492,9 +493,9 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	u32 enable = 0;
 	u32 ack_valid = 0;
 	// with help from https://gist.github.com/vuonghv/44dc334f3e116e32cc58d7a18b921fc3
-	const char *format = "kkkkkkkkk";
-	static char *kwlist[] = { "bus_width", "bus_offset", "transfers_per_address_word", "transfers_per_data_word", "address_autoincrement_mode", "register_select", "read", "enable", "ack_valid", NULL };
-	int success = PyArg_ParseTupleAndKeywords(args, kwds, format, kwlist, &bus_width, &bus_offset, &transfers_per_address_word, &transfers_per_data_word, &address_autoincrement_mode, &register_select, &read, &enable, &ack_valid);
+	const char *format = "kkkkkkKkkk";
+	static char *kwlist[] = { "bus_width", "bus_offset", "transfers_per_address_word", "transfers_per_data_word", "address_autoincrement_mode", "register_select", "read", "enable", "ack_valid", "verbosity", NULL };
+	int success = PyArg_ParseTupleAndKeywords(args, kwds, format, kwlist, &bus_width, &bus_offset, &transfers_per_address_word, &transfers_per_data_word, &address_autoincrement_mode, &register_select, &read, &enable, &ack_valid, &verbosity);
 	if (!success) { return -1; }
 	if (bus_width<1 || 31<bus_width) { return -1; }
 	self->bus_width = bus_width;
@@ -534,6 +535,7 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	u32 bus_mask = partial_mask<<bus_offset;
 	self->bus_mask = bus_mask;
 	//printf("\nbus_mask: %08lx", self->bus_mask);
+	self->verbosity = verbosity;
 	self->errors = 0;
 	self->transactions = 0;
 	self->retries = 0;
@@ -582,7 +584,7 @@ static PyObject *method_increment_user_errors(half_duplex_bus_object *self, PyOb
 }
 
 u32 set_address(half_duplex_bus_object *self, u32 address) {
-	if (0) {
+	if (4<=self->verbosity) {
 		int hex_width = self->transfers_per_address_word*self->bus_width/4;
 		//append_message("hihihi");
 		printf("\nset_address(%0*lx)", hex_width, address);
@@ -611,7 +613,7 @@ u32 set_address(half_duplex_bus_object *self, u32 address) {
 }
 
 u32 write_data(half_duplex_bus_object *self, u32 data) {
-	if (0) {
+	if (4<=self->verbosity) {
 		int hex_width = self->transfers_per_data_word*self->bus_width/4;
 		printf("\nwrite_data(%0*lx)", hex_width, data);
 	}
@@ -666,7 +668,7 @@ u32 read_data(half_duplex_bus_object *self) {
 		printf("\nnew_errors: %ld (read_data)", new_errors);
 		self->errors += new_errors;
 	}
-	if (0) {
+	if (4<=self->verbosity) {
 		int hex_width = self->transfers_per_data_word*self->bus_width/4;
 		printf("\nread_data(%0*lx)", hex_width, data);
 	}
@@ -675,8 +677,7 @@ u32 read_data(half_duplex_bus_object *self) {
 
 static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyObject *args) {
 	// borrowed from https://stackoverflow.com/a/22487015/5728815
-	u32 start_address = 0;
-	//u32 length = 0;
+	u32 start_address;
 	bool verify = true;
 	bool reverify = false;
 	PyObject *obj;
@@ -687,6 +688,11 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, list, verify=True, reverify=False)");
 	}
 	u32 address = start_address;
+	u32 length = (u32) PyList_Size(obj);
+	printf("\n(write_data) start_address = %lx; length = %ld", start_address, length);
+	if (start_address==0) {
+		exit(1);
+	}
 	int hex_width_a = self->transfers_per_address_word*self->bus_width/4;
 	int hex_width_d = self->transfers_per_data_word*self->bus_width/4;
 	u32 data, data_readback;
@@ -699,7 +705,6 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 		max_retry_cycles_error_var = MAX_RETRY_CYCLES_ERROR;
 	}
 	u32 count;
-	u32 length = (u32) PyList_Size(obj);
 	//printf("\nlength = %ld", length);
 	u32 new_retries = 0;
 	u32 address_autoincrement_mode = self->address_autoincrement_mode;
@@ -759,8 +764,9 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 					if (data == data_readback) { break; }
 					new_retries++;
 					//printf("\nretrying address=%0*lx data=%0*lx readback=%0*lx...", hex_width_a, address, hex_width_d, data, hex_width_d, data_readback);
-					if (!address_autoincrement_mode) { set_address(self, address); }
+					if (address_autoincrement_mode) { set_address(self, address); }
 					write_data(self, data);
+					if (address_autoincrement_mode) { set_address(self, address); }
 				}
 				address++;
 			}
@@ -784,6 +790,7 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 	if (!PyArg_ParseTuple(args, "|kk", &address, &length)) {
 		return PyErr_Format(PyExc_ValueError, "usage:  read(start_address=0, length=1)");
 	}
+	printf("\n(read_data) start_address = %lx; length = %lx", address, length);
 	u32 ending_address = address + length;
 	u32 data;
 	u32 everything = self->bus_mask | self->register_select | self->read | self->enable;
@@ -821,7 +828,7 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 
 //static PyMethodDef fastgpio_methods[] = {
 static PyMethodDef half_duplex_bus_methods[] = {
-	{ "write", (PyCFunction) method_half_duplex_bus_write, METH_VARARGS, "writes iteratable_object to the interface" },
+	{ "write", (PyCFunction) method_half_duplex_bus_write, METH_VARARGS, "writes data from list to the interface" },
 	{ "read", (PyCFunction) method_half_duplex_bus_read, METH_VARARGS, "reads from the interface" },
 	{ "increment_user_errors", (PyCFunction) method_increment_user_errors, METH_VARARGS, "increment the error count if the user code detects another type of error" },
 //	{ "", (PyCFunction) method_, METH_VARARGS, "" },

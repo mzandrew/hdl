@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-07-01 by mza
+# last updated 2020-07-02 by mza
 
 import time
 import time # time.sleep
@@ -442,7 +442,7 @@ def test_writing_data_to_simple_parallel_bus():
 
 # ---------------------------------------------------------------------------
 
-def check(ref1, ref2, should_print=1, offset=0, width=0):
+def check(ref1, ref2, should_print=True, offset=0, width=0):
 	if 0==width:
 		width = math.ceil(math.log2(len(ref2)+offset)/4)
 	#print(str(width))
@@ -467,7 +467,7 @@ def check(ref1, ref2, should_print=1, offset=0, width=0):
 				messages.append("ref2[" + address_string + "] = " + bin(ref2[i], bits_word) + " = " + hex(ref2[i], bits_word/4) + " [error]")
 				#sys.exit(1)
 		else:
-			if 0 and should_print:
+			if 1 and should_print:
 				messages.append("ref1[" + address_string + "] = " + bin(ref1[i], bits_word) + " = " + hex(ref1[i], bits_word/4) + " [intended]")
 				messages.append("ref2[" + address_string + "] = " + bin(ref2[i], bits_word) + " = " + hex(ref2[i], bits_word/4))
 			#print("match at address " + str(i))
@@ -502,7 +502,8 @@ def setup_half_duplex_bus():
 		register_select=13,
 		read=14,
 		enable=15,
-		ack_valid=2
+		ack_valid=2,
+		verbosity=4
 	)
 
 default_number_of_retries = 5
@@ -514,24 +515,26 @@ def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=T
 	for i in range(default_number_of_retries - number_of_remaining_retries):
 		prefix_string += " "
 	new_new_count = 0
+	print("start address " + hex(start_address))
 	new_count = half_duplex_bus.write(start_address, data, False)
+	#new_count = half_duplex_bus.write(start_address, data, True)
 	values = half_duplex_bus.read(start_address, len(data))
-	new_errors, first_bad_index = check(data, values, current_should_print)
+	new_errors, first_bad_index = check(data, values, current_should_print, start_address)
 	if new_errors:
 		print(prefix_string + "read again")
 		new_data = []
 		for i in range(first_bad_index, len(data)):
 			new_data.append(data[i])
 		new_values = half_duplex_bus.read(start_address + first_bad_index, len(new_data))
-		new_errors, first_bad_index = check(new_data, new_values, current_should_print)
+		new_errors, new_first_bad_index = check(new_data, new_values, current_should_print, start_address + first_bad_index)
 		if 0==number_of_remaining_retries:
 			return new_count, new_errors
 		if new_errors:
 			print(prefix_string + "write again")
 			new_new_data = []
-			for i in range(first_bad_index, len(new_data)):
+			for i in range(new_first_bad_index, len(new_data)):
 				new_new_data.append(new_data[i])
-			new_new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address + first_bad_index, new_new_data, should_print, number_of_remaining_retries-1)
+			new_new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address + first_bad_index + new_first_bad_index, new_new_data, should_print, number_of_remaining_retries-1)
 	new_count += new_new_count
 	return new_count, new_errors
 
@@ -543,8 +546,10 @@ def test_writing_data_to_half_duplex_bus():
 	time.sleep(0.1)
 	data = []
 	NUM = transfers_per_data_word
+	start_address = 1
+	number_of_times_to_repeat = 1
 	#NUM = 4500000
-	NUM = 6*MEMSIZE
+	#NUM = 6*MEMSIZE
 	#NUM = MEMSIZE
 	#NUM = 8192
 	#NUM = 4096
@@ -554,10 +559,9 @@ def test_writing_data_to_half_duplex_bus():
 	#NUM = 256
 	#NUM = 32
 	#NUM = 16
-	#NUM = 4
-	number_of_times_to_repeat = 1
-	OFFSET = 0
-	if NUM+OFFSET>MEMSIZE:
+	NUM = 4
+	#start_address = 0x1000
+	if NUM>MEMSIZE:
 		number_of_times_to_repeat = NUM//MEMSIZE
 		NUM = MEMSIZE
 	if 1:
@@ -576,38 +580,41 @@ def test_writing_data_to_half_duplex_bus():
 		for i in range(transfers_per_data_word):
 			data += [ random.randint(0,ALL_ONES)<<(i*bus_width) for d in range(part) ]
 	#print("running...")
+	if 1:
+		for i in range(len(data)):
+			print("data[" + hex(start_address + i, math.log2(NUM+start_address)/4) + "] " + hex(data[i], bits_word/4))
 	count = 0
 	errors = 0
 	start = time.time()
 	for i in range(number_of_times_to_repeat):
 		if 0: # use above list and write it without verification, then read it and verify and retry only starting from the first bad index
-			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, False)
+			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address, data, False)
 		elif 1: # use above list and write it without verification, then read it and verify and retry only starting from the first bad index
-			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, True)
+			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address, data, True)
 		elif 0: # address = data
 			data = [ d for d in range(MEMSIZE) ]
-			count += half_duplex_bus.write(0, data, False)
-			values = half_duplex_bus.read(0, len(data))
+			count += half_duplex_bus.write(start_address, data, False)
+			values = half_duplex_bus.read(start_address, len(data))
 			errors += check(data, values, True)
 		elif 0: # ramp up but skip diff inbetween
 			diff = 2
-			data = [ d for d in range(0, MEMSIZE, diff) ]
-			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, True)
+			data = [ d for d in range(start_address, MEMSIZE, diff) ]
+			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address, data, True)
 		elif 0: # ramp up or down
 			data = [ d for d in range(NUM) ]
 			#data = [ NUM-d-1 for d in range(NUM) ]
-			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, True)
+			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address, data, True)
 			#data = [ d<<4 for d in range(NUM) ]
-			#new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, True)
+			#new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address, data, True)
 			#data = [ d<<8 for d in range(NUM) ]
-			#new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, True)
+			#new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address, data, True)
 			#data = [ d<<12 for d in range(NUM) ]
-			#new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, True)
+			#new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address, data, True)
 		elif 0:
 			#data = [ 0x000a, 0x00a0, 0x0500, 0x5000 ]
 			data = [ 0x050a, 0x50a0, 0x050a, 0x50a0, 0 ]
 			data[len(data)-1] = 0xf0f0
-			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, True)
+			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address, data, True)
 		elif 0: # same value to all addresses, but written from a different start_address each time
 			#data = [ 0x8421, 0xffff, 0x1248, 0xa5a5 ]
 			data = [ 0x1248 ]
@@ -622,7 +629,7 @@ def test_writing_data_to_half_duplex_bus():
 			#errors += check(data, values, True)
 		elif 0: # same value to all addresses
 			data = [ 0x1248 for d in range(NUM) ]
-			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(0, data, True)
+			new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address, data, True)
 		elif 0: # single bit
 			bunch = [ 0x0000, 0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800, 0x1000, 0x2000, 0x4000, 0x8000 ]
 			#bunch = [ 0x00, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0 ]
