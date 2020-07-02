@@ -515,9 +515,7 @@ def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=T
 	for i in range(default_number_of_retries - number_of_remaining_retries):
 		prefix_string += " "
 	new_new_count = 0
-	print("start address " + hex(start_address))
-	new_count = half_duplex_bus.write(start_address, data, False)
-	#new_count = half_duplex_bus.write(start_address, data, True)
+	new_count = half_duplex_bus.write(start_address, data, 0)
 	values = half_duplex_bus.read(start_address, len(data))
 	new_errors, first_bad_index = check(data, values, current_should_print, start_address)
 	if new_errors:
@@ -538,6 +536,11 @@ def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=T
 	new_count += new_new_count
 	return new_count, new_errors
 
+def show(start_address, data):
+	for i in range(len(data)):
+		#print("data[" + hex(start_address + i, math.log2(NUM+start_address)/4) + "] " + hex(data[i], bits_word/4))
+		print("data[" + hex(start_address + i, math.log2(start_address + len(data))/4) + "] " + hex(data[i], bits_word/4))
+
 def test_writing_data_to_half_duplex_bus():
 	MEMSIZE = 2**14
 	print("writing data in half-duplex bus mode...")
@@ -550,7 +553,7 @@ def test_writing_data_to_half_duplex_bus():
 	number_of_times_to_repeat = 1
 	#NUM = 4500000
 	#NUM = 6*MEMSIZE
-	#NUM = MEMSIZE
+	NUM = MEMSIZE
 	#NUM = 8192
 	#NUM = 4096
 	#NUM = 2048
@@ -559,7 +562,7 @@ def test_writing_data_to_half_duplex_bus():
 	#NUM = 256
 	#NUM = 32
 	#NUM = 16
-	NUM = 4
+	#NUM = 4
 	#start_address = 0x1000
 	if NUM>MEMSIZE:
 		number_of_times_to_repeat = NUM//MEMSIZE
@@ -581,8 +584,7 @@ def test_writing_data_to_half_duplex_bus():
 			data += [ random.randint(0,ALL_ONES)<<(i*bus_width) for d in range(part) ]
 	#print("running...")
 	if 1:
-		for i in range(len(data)):
-			print("data[" + hex(start_address + i, math.log2(NUM+start_address)/4) + "] " + hex(data[i], bits_word/4))
+		show(start_address, data)
 	count = 0
 	errors = 0
 	start = time.time()

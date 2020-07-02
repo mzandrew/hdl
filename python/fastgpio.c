@@ -50,6 +50,8 @@ typedef signed long s32;
 #include <bcm_host.h> // bcm_host_get_peripheral_address -I/opt/vc/include -L/opt/vc/lib -lbcm_host
 #include "DebugInfoWarningError.h"
 
+// note:  bool mybool; PyArg_ParseTuple(args, "p", &mybool); will fail; use int mybool
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 // ---- GPIO specific defines
@@ -678,8 +680,8 @@ u32 read_data(half_duplex_bus_object *self) {
 static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyObject *args) {
 	// borrowed from https://stackoverflow.com/a/22487015/5728815
 	u32 start_address;
-	bool verify = true;
-	bool reverify = false;
+	u32 verify = 1;
+	u32 reverify = 0;
 	PyObject *obj;
 	if (!PyArg_ParseTuple(args, "kO|pp", &start_address, &obj, &verify, &reverify)) {
 		return PyErr_Format(PyExc_ValueError, "usage:  write(start_address, list, verify=True, reverify=False)");
@@ -689,10 +691,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	}
 	u32 address = start_address;
 	u32 length = (u32) PyList_Size(obj);
-	printf("\n(write_data) start_address = %lx; length = %ld", start_address, length);
-	if (start_address==0) {
-		exit(1);
-	}
+	//printf("\n(write_data) start_address = %lx; length = %ld", start_address, length);
 	int hex_width_a = self->transfers_per_address_word*self->bus_width/4;
 	int hex_width_d = self->transfers_per_data_word*self->bus_width/4;
 	u32 data, data_readback;
@@ -790,7 +789,7 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 	if (!PyArg_ParseTuple(args, "|kk", &address, &length)) {
 		return PyErr_Format(PyExc_ValueError, "usage:  read(start_address=0, length=1)");
 	}
-	printf("\n(read_data) start_address = %lx; length = %lx", address, length);
+	//printf("\n(read_data) start_address = %lx; length = %lx", address, length);
 	u32 ending_address = address + length;
 	u32 data;
 	u32 everything = self->bus_mask | self->register_select | self->read | self->enable;
