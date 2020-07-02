@@ -705,7 +705,7 @@ def test_writing_data_to_half_duplex_bus():
 	print_messages()
 	diff = end - start
 	per_sec = count / diff
-	sys.stdout.flush()
+	half_duplex_bus.close()
 	print("")
 	print("%.6f"%diff + " seconds")
 	per_sec *= bits_word
@@ -713,7 +713,6 @@ def test_writing_data_to_half_duplex_bus():
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
 	half_duplex_bus.increment_user_errors(errors)
-	time.sleep(0.1)
 
 # ---------------------------------------------------------------------------
 

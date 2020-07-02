@@ -559,9 +559,6 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 }
 
 static void half_duplex_bus_destructor(half_duplex_bus_object *self) {
-	fflush(stdout);
-	fflush(stderr);
-	printf("\n");
 	if (self->transactions) {
 		printf("\nthere were %ld total transactions", self->transactions);
 	}
@@ -788,6 +785,13 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 	return PyLong_FromLong(count);
 }
 
+static PyObject* method_close(half_duplex_bus_object *self) {
+	if (3<=self->verbosity) {
+		printf("\n");
+	}
+	return PyLong_FromLong(0);
+}
+
 static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObject *args) {
 	// borrowed from https://stackoverflow.com/a/22487015/5728815
 	u32 address = 0;
@@ -838,6 +842,7 @@ static PyMethodDef half_duplex_bus_methods[] = {
 	{ "write", (PyCFunction) method_half_duplex_bus_write, METH_VARARGS, "writes data from list to the interface" },
 	{ "read", (PyCFunction) method_half_duplex_bus_read, METH_VARARGS, "reads from the interface" },
 	{ "increment_user_errors", (PyCFunction) method_increment_user_errors, METH_VARARGS, "increment the error count if the user code detects another type of error" },
+	{ "close", (PyCFunction) method_close, METH_NOARGS, "closes the interface" },
 //	{ "", (PyCFunction) method_, METH_VARARGS, "" },
 	{ NULL }
 };
