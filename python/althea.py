@@ -506,7 +506,7 @@ def setup_half_duplex_bus():
 		verbosity=3
 	)
 
-default_number_of_retries = 5
+default_number_of_retries = 200
 def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=True, number_of_remaining_retries=default_number_of_retries):
 	current_should_print = False
 	if 0==number_of_remaining_retries:
@@ -517,6 +517,8 @@ def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=T
 	new_new_count = 0
 	new_count = half_duplex_bus.write(start_address, data, False)
 	values = half_duplex_bus.read(start_address, len(data))
+	print("readback1:")
+	show(start_address, values)
 	if 0:
 		inject_error_address = 0x3450
 		inject_error_value = 0x55aa55
@@ -524,21 +526,25 @@ def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=T
 			values[inject_error_address] = inject_error_value
 	new_errors, first_bad_index = check(data, values, current_should_print, start_address)
 	if new_errors:
-		#print(prefix_string + "read again")
+		print(prefix_string + "read again")
 		new_data = []
 		for i in range(first_bad_index, len(data)):
 			new_data.append(data[i])
+		#show(start_address + first_bad_index, new_data)
+		time.sleep(0.1)
 		new_values = half_duplex_bus.read(start_address + first_bad_index, len(new_data))
+		print("readback2:")
+		show(start_address + first_bad_index, new_values)
 		new_errors, new_first_bad_index = check(new_data, new_values, current_should_print, start_address + first_bad_index)
 		if 0==number_of_remaining_retries:
 			return new_count, new_errors
 		if new_errors:
-			#print(prefix_string + "write again")
+			print(prefix_string + "write again")
 			new_new_data = []
 			for i in range(new_first_bad_index, len(new_data)):
 				new_new_data.append(new_data[i])
+			#show(start_address + first_bad_index + new_first_bad_index, new_new_data)
 			new_new_count, new_errors = write_to_half_duplex_bus_and_then_verify(start_address + first_bad_index + new_first_bad_index, new_new_data, should_print, number_of_remaining_retries-1)
-	new_count += new_new_count
 	return new_count, new_errors
 
 def show(start_address, data):
@@ -546,56 +552,86 @@ def show(start_address, data):
 		#print("data[" + hex(start_address + i, math.log2(NUM+start_address)/4) + "] " + hex(data[i], bits_word/4))
 		print("data[" + hex(start_address + i, math.log2(start_address + len(data))/4) + "] " + hex(data[i], bits_word/4))
 
+def read_data_from_pollable_memory_on_half_duplex_bus(start_address, NUM):
+	reset_pulse()
+	start_address = 16300
+	MEMSIZE = 2**14
+	NUM = MEMSIZE
+	NUM = 64
+	start = time.time()
+	values = half_duplex_bus.read(start_address, NUM)
+	end = time.time()
+	show(start_address, values)
+	diff = end - start
+	per_sec = NUM / diff
+	half_duplex_bus.close()
+	print("")
+	print("%.6f"%diff + " seconds")
+	per_sec *= bits_word
+	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
+	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
+
 def test_writing_data_to_half_duplex_bus():
 	MEMSIZE = 2**14
 	print("writing data in half-duplex bus mode...")
 	if 1:
 		reset_pulse()
-	time.sleep(0.1)
 	data = []
 	NUM = transfers_per_data_word
 	start_address = 0
 	number_of_times_to_repeat = 1
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	start_address = random.randint(0, MEMSIZE)
-	NUM = random.randint(1, MEMSIZE - start_address)
-	#start_address = 0x1000
-	#start_address = 10557
-	#NUM = 4500000
-	#NUM = 6*MEMSIZE
-	#NUM = MEMSIZE
-	#NUM = 8192
-	#NUM = 4096
-	#NUM = 2048
-	#NUM = 1024
-	#NUM = 300
-	#NUM = 256
-	#NUM = 32
-	#NUM = 16
-	#NUM = 4
+	if 0: # pseudorandom start_address and length
+		start_address = random.randint(0, MEMSIZE)
+		NUM = random.randint(1, MEMSIZE - start_address)
+	else:
+		#start_address = 0x1000
+		start_address = 16300
+		#NUM = 4500000
+		#NUM = 6*MEMSIZE
+		#NUM = MEMSIZE
+		NUM = MEMSIZE - start_address
+		#NUM = 8192
+		#NUM = 4096
+		#NUM = 2048
+		#NUM = 1024
+		#NUM = 300
+		#NUM = 256
+		#NUM = 64
+		#NUM = 32
+		#NUM = 16
+		#NUM = 4
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	MEMSIZE_partial = MEMSIZE - start_address
 	end_address = start_address + MEMSIZE_partial
 	if NUM>MEMSIZE_partial:
 		number_of_times_to_repeat = NUM//MEMSIZE_partial
 		NUM = MEMSIZE_partial
-	if 1:
+	if 0: # pseudorandom numbers from all zeroes to all ones
 		ALL_ONES = 2**bits_word - 1
 		data = [ random.randint(0,ALL_ONES) for d in range(NUM) ]
-	if 0: # fill in ones for only a bus_width-sized part of the word
+	elif 0: # fill in ones for only a bus_width-sized part of the word
 		part = NUM//transfers_per_data_word
 		data = []
 		ALL_ONES = 2**bus_width-1
 		for i in range(transfers_per_data_word):
 			data += [ ALL_ONES<<(i*bus_width)for d in range(part) ]
-	if 0: # fill up only a bus_width-sized part of the word with pseudorandom data
+	elif 0: # fill up only a bus_width-sized part of the word with pseudorandom data
 		part = NUM//transfers_per_data_word
 		data = []
 		ALL_ONES = 2**bus_width-1
 		for i in range(transfers_per_data_word):
 			data += [ random.randint(0,ALL_ONES)<<(i*bus_width) for d in range(part) ]
+	elif 1: # address = data
+		data = [ start_address + d for d in range(NUM) ]
+	elif 0: # address = data
+		data = [ start_address + d for d in range(MEMSIZE_partial) ]
+	elif 0: # address = data
+		start_address = 0
+		data = [ d for d in range(MEMSIZE) ]
 	#print("running...")
-	if 0:
+	if 1:
 		show(start_address, data)
 	count = 0
 	errors = 0

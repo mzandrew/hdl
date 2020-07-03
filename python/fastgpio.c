@@ -743,7 +743,7 @@ static PyObject* method_half_duplex_bus_write(half_duplex_bus_object *self, PyOb
 			}
 		}
 		if (0) {
-			if (0==count%4096) {
+			if (0==count%256) {
 				mynsleep(short_delay);
 			}
 		}

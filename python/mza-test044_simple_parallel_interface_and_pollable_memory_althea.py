@@ -106,6 +106,7 @@ if 0:
 if 1:
 	althea.setup_half_duplex_bus()
 	althea.test_writing_data_to_half_duplex_bus()
+	althea.read_data_from_pollable_memory_on_half_duplex_bus(0, 2**14)
 
 if 0:
 	#print("asdf")
