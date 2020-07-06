@@ -4,7 +4,7 @@
 
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-06-30 by mza
+// last updated 2020-07-06 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -43,13 +43,16 @@ module top #(
 	input read, // 0=write; 1=read
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
-	output reg ack_valid = 0,
+	output ack_valid,
 	output [7:0] leds
 );
-	localparam REGISTER_SELECT_PIPELINE_PICKOFF = 2;
-	localparam READ_PIPELINE_PICKOFF            = 2;
-	localparam BUS_PIPELINE_PICKOFF             = 2;
-	localparam ENABLE_PIPELINE_PICKOFF          = 4;
+	localparam OTHER_PICKOFF                    = 10;
+	localparam ENABLE_PIPELINE_PICKOFF          = 20;
+	localparam ACK_VALID_PIPELINE_PICKOFF       = 30;
+	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
+	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
+	localparam BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF;
+	reg [ACK_VALID_PIPELINE_PICKOFF:0] ack_valid_pipeline = 0;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
 	reg [READ_PIPELINE_PICKOFF:0] read_pipeline = 0;
 	reg [ENABLE_PIPELINE_PICKOFF:0] enable_pipeline = 0;
@@ -102,7 +105,6 @@ module top #(
 	reg [31:0] write_errors = 0;
 	reg [31:0] address_errors = 0;
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
-	reg pre_pre_ack_valid = 0;
 	reg pre_ack_valid = 0;
 	localparam COUNTER50_BIT_PICKOFF = 4;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
@@ -136,7 +138,7 @@ module top #(
 		pll_locked_pipeline125 <= { pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF-1:0], pll_locked };
 	end
 	always @(posedge clock) begin
-		pre_pre_ack_valid <= 0;
+		pre_ack_valid <= 0;
 		write_strobe <= 0;
 		if (reset_pipeline125[RESET_PIPELINE_PICKOFF] || reset50_pipeline125[2] || ~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF]) begin
 			counter125 <= 0;
@@ -168,11 +170,10 @@ module top #(
 			write_errors <= 0;
 			address_errors <= 0;
 			pre_bus <= 0;
-			pre_ack_valid <= 0;
 		end else begin
 			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF:ENABLE_PIPELINE_PICKOFF-1]==2'b11) begin
 				if (read_pipeline[READ_PIPELINE_PICKOFF:READ_PIPELINE_PICKOFF-1]==2'b11) begin // read mode
-					pre_pre_ack_valid <= 1;
+					pre_ack_valid <= 1;
 					if (rstate[1]==0) begin
 						if (rstate[0]==0) begin
 							rstate[0] <= 1;
@@ -181,7 +182,7 @@ module top #(
 					end
 				end else if (read_pipeline[READ_PIPELINE_PICKOFF:READ_PIPELINE_PICKOFF-1]==2'b00) begin // write mode
 					if (register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF:REGISTER_SELECT_PIPELINE_PICKOFF-1]==2'b11) begin
-						pre_pre_ack_valid <= 1;
+						pre_ack_valid <= 1;
 						if (wstate[1]==0) begin
 							if (wstate[0]==0) begin
 								wstate[0] <= 1;
@@ -189,7 +190,7 @@ module top #(
 							end
 						end
 					end else if (register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF:REGISTER_SELECT_PIPELINE_PICKOFF-1]==2'b00) begin // register_select=0 means address
-						pre_pre_ack_valid <= 1;
+						pre_ack_valid <= 1;
 						if (astate[1]==0) begin
 							if (astate[0]==0) begin
 								astate[0] <= 1;
@@ -282,8 +283,7 @@ module top #(
 					end
 				end
 			end
-			ack_valid <= pre_ack_valid;
-			pre_ack_valid <= pre_pre_ack_valid;
+			ack_valid_pipeline <= { ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF-1:0], pre_ack_valid };
 			register_select_pipeline <= { register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF-1:0], register_select };
 			read_pipeline            <= {                       read_pipeline[READ_PIPELINE_PICKOFF-1:0], read };
 			enable_pipeline          <= {                   enable_pipeline[ENABLE_PIPELINE_PICKOFF-1:0], enable };
@@ -299,13 +299,14 @@ module top #(
 			end
 		end
 	end
+	assign ack_valid = ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF];
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
 	assign bus = 'bz;
 	RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset50),
 		.wclk(clock), .waddr(address_word_reg), .din(write_data_word), .write_en(write_strobe),
 		.rclk(clock), .raddr(address_word_reg), .dout(read_data_word));
 	if (0) begin
-		assign leds[7] = ack_valid;
+		assign leds[7] = ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF];
 		assign leds[6] = write_strobe;
 		//assign leds[5] = checksum;
 		//assign leds[5] = |all_errors;
