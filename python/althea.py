@@ -568,6 +568,9 @@ def test_writing_data_to_half_duplex_bus():
 	if NUM>MEMSIZE_partial:
 		number_of_times_to_repeat = NUM//MEMSIZE_partial
 		NUM = MEMSIZE_partial
+	#print("MEMSIZE_partial: " + str(MEMSIZE_partial))
+	#print("NUM: " + str(NUM))
+	#print("number_of_times_to_repeat: " + str(number_of_times_to_repeat))
 	if 1: # pseudorandom numbers from all zeroes to all ones
 		ALL_ONES = 2**bits_word - 1
 		data = [ random.randint(0,ALL_ONES) for d in range(NUM) ]
