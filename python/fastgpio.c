@@ -2,7 +2,7 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-07-02 by mza
+// last updated 2020-07-06 by mza
 
 // how to use this module:
 
@@ -392,45 +392,33 @@ typedef struct {
 //char string1[4096] = "";
 //char string2[4096] = "";
 
-u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
-	volatile u32 *set_reg = self->set_reg;
+u32 wait_for_ack_valid(half_duplex_bus_object *self, bool desired_state) {
 	volatile u32 *read_port = self->read_port;
 	const u32 ack_valid = self->ack_valid;
-	const u32 enable = self->enable;
-	u32 new_errors = 0;
 	u32 ack_count = 0;
 	u32 value, i;
+	bool state;
 	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
-		*set_reg = enable;
 		value = *read_port;
-		//printf("\n[%08lx] value&ack_valid: %08lx (read_data)", self->transactions, value & ack_valid);
-		if (value & ack_valid) { ack_count++; }
+		state = value & ack_valid;
+		if (state==desired_state) { ack_count++; }
 		if (REQUIRED_ACK_QUANTITY<=ack_count) { break; }
 	}
-//	if (MAX_ACK_CYCLES_WARNING<i) { sprintf(string2, " ack_valid=%ld(s)", i); strcat(string1, string2); }
-	//if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
-	//printf("\nack_count: %ld", ack_count);
+	return ack_count;
+}
+
+u32 set_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
+	*self->set_reg = self->enable;
+	u32 ack_count = wait_for_ack_valid(self, true);
+	u32 new_errors = 0;
 	if (ack_count<REQUIRED_ACK_QUANTITY) { new_errors++; }
 	return new_errors;
 }
 
 u32 clear_enable_and_wait_for_ack_valid(half_duplex_bus_object *self) {
-	volatile u32 *clr_reg = self->clr_reg;
-	volatile u32 *read_port = self->read_port;
-	const u32 ack_valid = self->ack_valid;
-	const u32 enable = self->enable;
+	*self->clr_reg = self->enable;
+	u32 ack_count = wait_for_ack_valid(self, false);
 	u32 new_errors = 0;
-	u32 ack_count = 0;
-	u32 value, i;
-	for (i=0; i<MAX_ACK_CYCLES_ERROR; i++) {
-		*clr_reg = enable;
-		value = *read_port;
-		//printf("\n[%08lx] value&ack_valid: %08lx (read_data)", self->transactions, value & ack_valid);
-		if (!(value & ack_valid)) { ack_count++; }
-		if (REQUIRED_ACK_QUANTITY<=ack_count) { break; }
-	}
-//	if (MAX_ACK_CYCLES_WARNING<i) { sprintf(string2, " ack_valid=%ld(c)", i); strcat(string1, string2); }
-	//if (MAX_ACK_CYCLES_ERROR==i) { new_errors++; }
 	if (ack_count<REQUIRED_ACK_QUANTITY) { new_errors++; }
 	return new_errors;
 }
@@ -554,7 +542,7 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	*self->clr_reg = everything;
 	self->bus_mode = 0; // 0 means to set as inputs
 	set_bus_as_output_if_necessary(self); // sets self->bus_mode to 1
-	clear_enable_and_wait_for_ack_valid(self);
+	wait_for_ack_valid(self, false);
 	return 0;
 }
 
