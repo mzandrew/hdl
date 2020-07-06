@@ -47,7 +47,7 @@ module top #(
 	output [7:0] leds
 );
 	localparam OTHER_PICKOFF                    = 10;
-	localparam ENABLE_PIPELINE_PICKOFF          = 20;
+	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + 10;
 	localparam ACK_VALID_PIPELINE_PICKOFF       = 30;
 	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
 	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
