@@ -435,6 +435,11 @@ def setup_half_duplex_bus():
 		verbosity=3
 	)
 
+def show(start_address, data):
+	for i in range(len(data)):
+		#print("data[" + hex(start_address + i, math.log2(NUM+start_address)/4) + "] " + hex(data[i], bits_word/4))
+		print("data[" + hex(start_address + i, math.log2(start_address + len(data))/4) + "] " + hex(data[i], bits_word/4))
+
 default_number_of_retries = 200
 def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=True, number_of_remaining_retries=default_number_of_retries):
 	current_should_print = False
@@ -483,12 +488,28 @@ def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=T
 	#show(start_address, values)
 	return new_count, new_errors
 
-def show(start_address, data):
-	for i in range(len(data)):
-		#print("data[" + hex(start_address + i, math.log2(NUM+start_address)/4) + "] " + hex(data[i], bits_word/4))
-		print("data[" + hex(start_address + i, math.log2(start_address + len(data))/4) + "] " + hex(data[i], bits_word/4))
+def write_data_from_pollable_memory_on_half_duplex_bus(start_address, data):
+	print("write_data_from_pollable_memory_on_half_duplex_bus")
+	if 0:
+		reset_pulse()
+	start = time.time()
+	new_count = half_duplex_bus.write(start_address, data, False)
+	end = time.time()
+	#show(start_address, values)
+	diff = end - start
+	per_sec = new_count / diff
+	half_duplex_bus.close()
+	print("")
+	print("%.6f"%diff + " seconds")
+	per_sec *= bits_word
+	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
+	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
+	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
+	print("")
+	return new_count
 
 def read_data_from_pollable_memory_on_half_duplex_bus(start_address, NUM):
+	print("read_data_from_pollable_memory_on_half_duplex_bus")
 	if 0:
 		reset_pulse()
 	start_address = 0
@@ -509,6 +530,7 @@ def read_data_from_pollable_memory_on_half_duplex_bus(start_address, NUM):
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
+	print("")
 
 def test_writing_data_to_half_duplex_bus():
 	MEMSIZE = 2**14
