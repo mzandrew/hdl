@@ -1,6 +1,9 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2020-05-21 by mza
+// last updated 2020-05-27 by mza
+
+`ifndef DCM_LIB
+`define DCM_LIB
 
 // can only be used to directly feed a DCM
 //simplepll_ADV #(.overall_divide(1), .multiply(10), .divide(4), .period(20.0)) mypll (.clockin(clock50), .reset(reset), .clockout(clock), .locked()); // 50->125
@@ -276,4 +279,6 @@ module plldcm #(parameter overall_divide=1, pllmultiply=1, plldivide=1, pllperio
 		.clockout180(clockout180),
 		.locked(dcmlocked));
 endmodule
+
+`endif
 
