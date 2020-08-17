@@ -18,8 +18,9 @@ bcm2835gpio_peripheral_base 0x3F000000; # rpi2
 adapter speed 1000
 # gpio/bcm #s         tck tms tdi tdo
 bcm2835gpio_jtag_nums 23  22  27  24
-##bcm2835gpio_swd_nums 
+#bcm2835gpio_srst_num 26
 #bcm2835gpio_trst_num 26
+#reset_config srst_only
 #reset_config trst_only
 reset_config none
 
@@ -35,7 +36,6 @@ source [find cpld/xilinx-xc6s.cfg]
 #source [find cpld/jtagspi.cfg]
 
 init
-#xc6s_program xc6s.tap
 pld load 0 mza_test043_spi_pollable_memories_and_multiple_oserdes_function_generator_outputs_althea/mza_test043_spi_pollable_memories_and_multiple_oserdes_function_generator_outputs_althea_top.bit
 
 exit
