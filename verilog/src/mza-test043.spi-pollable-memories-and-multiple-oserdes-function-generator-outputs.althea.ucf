@@ -1,13 +1,19 @@
 # written 2020-05-18 by mza
 # based off of mza_test042_spi_pollable_memories_and_oserdes_function_generator_althea
 # for an althea revB attached to a raspberry pi
-# last updated 2020-05-23 by mza
+# last updated 2020-08-17 by mza
 
 # 100 MHz local oscillator:
-net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
-net clock100_n loc=p126 | iostandard=lvds_33 | diff_term=true; # CLOCK100-
-net "clock100_p" tnm_net = tnm_clock100_p;
-timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
+#net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
+#net clock100_n loc=p126 | iostandard=lvds_33 | diff_term=true; # CLOCK100-
+#net "clock100_p" tnm_net = tnm_clock100_p;
+#timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
+
+# 50 MHz local oscillator:
+net clock50_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK50+
+net clock50_n loc=p126 | iostandard=lvds_33 | diff_term=true; # CLOCK50-
+net "clock50_p" tnm_net = tnm_clock50_p;
+timespec "ts_clock50_p" = period "tnm_clock50_p" 20.0 ns high 50%; # 50 MHz
 
 #net "k_p" tnm_net = tnm_remote_clock_p;
 #timespec "ts_remote_clock_p" = period "tnm_remote_clock_p" 1.965 ns high 50%; # 508.9 MHz
@@ -85,7 +91,7 @@ timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
 # raspberry pi 40pin headers, broadcom spi peripheral:
 net rpi_spi_ce0  loc=p82  | iostandard=lvcmos33; # bank1
 net rpi_spi_ce1  loc=p80  | iostandard=lvcmos33; # bank1
-net rpi_spi_sclk loc=p114 | iostandard=lvcmos33; # bank0
+net rpi_spi_sclk loc=p93  | iostandard=lvcmos33; # bank
 net rpi_spi_mosi loc=p111 | iostandard=lvcmos33; # bank0
 net rpi_spi_miso loc=p112 | iostandard=lvcmos33; # bank0
 

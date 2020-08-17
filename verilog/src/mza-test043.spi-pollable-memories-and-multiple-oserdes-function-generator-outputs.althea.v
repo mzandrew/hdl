@@ -1,10 +1,6 @@
-// to run on an althea
-//`define TESTBENCH;
-//`define xilinx
-
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-05-29 by mza
+// last updated 2020-08-17 by mza
 
 `define althea_revB
 `include "lib/spi.v"
@@ -22,7 +18,7 @@
 //`endif
 
 module top (
-	input clock100_p, clock100_n,
+	input clock50_p, clock50_n,
 	input rpi_spi_sclk,
 	input rpi_spi_mosi,
 	output rpi_spi_miso,
@@ -35,16 +31,16 @@ module top (
 	reg reset1 = 1;
 	reg reset2_clock125 = 1;
 	reg reset3_word_clock = 1;
-	wire clock100;
-	IBUFGDS mybuf (.I(clock100_p), .IB(clock100_n), .O(clock100));
+	wire clock50;
+	IBUFGDS mybuf (.I(clock50_p), .IB(clock50_n), .O(clock50));
 	wire pll_locked;
 	wire rawclock125;
 	wire clock125;
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	if (0) begin
-		simplepll_BASE #(.overall_divide(1), .multiply(5), .divide0(4), .phase0(0.0), .period(10.0)) kronos (.clockin(clock100), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 100->125
+		simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 100->125
 	end else begin
-		simpledcm_SP #(.multiply(5), .divide(4), .alt_clockout_divide(2), .period(10.0)) mydcm (.clockin(clock100), .reset(reset1), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked));
+		simpledcm_SP #(.multiply(10), .divide(4), .alt_clockout_divide(2), .period(20.0)) mydcm (.clockin(clock50), .reset(reset1), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked));
 	end
 	// ----------------------------------------------------------------------
 	wire word_clock;
@@ -55,7 +51,7 @@ module top (
 	assign clock_ram = word_clock;
 	assign clock_spi = word_clock;
 	reg [7:0] reset_counter = 0;
-	always @(posedge clock100) begin
+	always @(posedge clock50) begin
 		if (reset1) begin
 			if (reset_counter[7]) begin
 				reset1 <= 0;
@@ -178,7 +174,7 @@ module top (
 			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
 		assign coax[4] = 0;
 		assign coax[5] = 0;
-	end else begin
+	end else if (1) begin
 		// hex8 won't work because each bufpll only covers a single bank
 //		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
 //			.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
@@ -191,6 +187,17 @@ module top (
 			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out),
 			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
 		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE1("n")) mylei2 (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(),
+			.word0_in(oserdes_word_out), .D0_out(coax[4]),
+			.word1_in(oserdes_word_out), .D1_out(coax[5]),
+			.locked(pll_oserdes_locked_2));
+		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
+	end else begin
+		assign pll_oserdes_locked_1 = 1;
+		assign coax[0] = 0;
+		assign coax[1] = 0;
+		assign coax[2] = 0;
+		assign coax[3] = 0;
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE1("n")) mylei2 (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock),
 			.word0_in(oserdes_word_out), .D0_out(coax[4]),
 			.word1_in(oserdes_word_out), .D1_out(coax[5]),
 			.locked(pll_oserdes_locked_2));
@@ -208,7 +215,7 @@ module top (
 		assign led_4 = ~rpi_spi_ce0;
 		assign led_3 = ~rpi_spi_ce1;
 		assign led_2 = 0;
-		assign led_1 = 0;
+		assign led_1 = 1;
 		assign led_0 = 0;
 		//assign led_2 = data32_ce0[2];
 		//assign led_1 = data32_ce0[1];
@@ -217,7 +224,7 @@ module top (
 endmodule
 
 module mza_test043_spi_pollable_memories_and_multiple_oserdes_function_generator_outputs_althea_top (
-	input clock100_p, clock100_n,
+	input clock50_p, clock50_n,
 	input rpi_spi_sclk,
 	input rpi_spi_ce0,
 	input rpi_spi_ce1,
@@ -227,7 +234,7 @@ module mza_test043_spi_pollable_memories_and_multiple_oserdes_function_generator
 	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
 );
 	top mytop (
-		.clock100_p(clock100_p), .clock100_n(clock100_n),
+		.clock50_p(clock50_p), .clock50_n(clock50_n),
 		.rpi_spi_mosi(rpi_spi_mosi), .rpi_spi_miso(rpi_spi_miso), .rpi_spi_sclk(rpi_spi_sclk), .rpi_spi_ce0(rpi_spi_ce0), .rpi_spi_ce1(rpi_spi_ce1),
 		.coax(coax),
 		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
