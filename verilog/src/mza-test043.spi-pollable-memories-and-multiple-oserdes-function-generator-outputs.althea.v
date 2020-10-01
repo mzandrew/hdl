@@ -1,6 +1,6 @@
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-08-17 by mza
+// last updated 2020-10-01 by mza
 
 `define althea_revB
 `include "lib/spi.v"
@@ -187,7 +187,7 @@ module top (
 			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out),
 			//.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
 			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out());
-		assign coax[3] = sync_out_stream[2];
+		assign coax[3] = sync_out_stream[2]; // scope trigger
 		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE1("n")) mylei2 (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(),
 			.word0_in(oserdes_word_out), .D0_out(coax[4]),
 			.word1_in(oserdes_word_out), .D1_out(coax[5]),
