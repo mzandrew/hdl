@@ -23,6 +23,7 @@ bcm2835gpio_jtag_nums 23  22  27  24
 #reset_config srst_only
 #reset_config trst_only
 reset_config none
+#adapter srst delay 1000
 
 #adapter driver sysfsgpio
 # gpio/bcm #s        tck tms tdi tdo
