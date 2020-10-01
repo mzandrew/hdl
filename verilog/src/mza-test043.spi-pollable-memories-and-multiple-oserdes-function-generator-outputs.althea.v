@@ -185,7 +185,9 @@ module top (
 		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
 			.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
 			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out),
-			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
+			//.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
+			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out());
+		assign coax[3] = sync_out_stream[2];
 		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE1("n")) mylei2 (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(),
 			.word0_in(oserdes_word_out), .D0_out(coax[4]),
 			.word1_in(oserdes_word_out), .D1_out(coax[5]),
