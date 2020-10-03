@@ -20,11 +20,12 @@
 //`define USE_BRAM_4K
 
 module top #(
-	parameter BUS_WIDTH = 8,
+	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
-	parameter TRANSACTIONS_PER_DATA_WORD = 4,
+	parameter TRANSACTIONS_PER_DATA_WORD = 2,
 	parameter LOG2_OF_TRANSACTIONS_PER_DATA_WORD = $clog2(TRANSACTIONS_PER_DATA_WORD),
-	parameter TRANSACTIONS_PER_ADDRESS_WORD = 2,
+	parameter BUS_WIDTH_OSERDES = 8,
+	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
 	parameter LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD = $clog2(TRANSACTIONS_PER_ADDRESS_WORD),
 	parameter ADDRESS_DEPTH = 14,
 	parameter OSERDES_DATA_WIDTH = 8,
@@ -297,11 +298,10 @@ module top #(
 	end
 	assign ack_valid = ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF];
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
-	//assign bus = 'bz;
 	assign bus = {BUS_WIDTH{1'bz}};
 	// ----------------------------------------------------------------------
 	wire word_clock;
-	wire [7:0] oserdes_word;
+	wire [BUS_WIDTH_OSERDES-1:0] oserdes_word;
 	reg [ADDRESS_DEPTH_OSERDES-1:0] read_address = 0; // in 8-bit words
 //	wire [13:0] read_address14 = read_address[13:0]; // in 8-bit words
 //	wire [11:0] address12 = address_word_reg[11:0]; // in 32-bit words
@@ -313,14 +313,14 @@ module top #(
 	end else if (1) begin
 		RAM_inferred_dual_port_gearbox #(
 			.ADDR_WIDTH_A(ADDRESS_DEPTH), .ADDR_WIDTH_B(ADDRESS_DEPTH_OSERDES),
-			.DATA_WIDTH_A(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .DATA_WIDTH_B(BUS_WIDTH)
+			.DATA_WIDTH_A(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .DATA_WIDTH_B(BUS_WIDTH_OSERDES)
 		) myram (
 			.clk_a(clock), .addr_a(address_word_reg), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
 			.clk_b(word_clock), .addr_b(read_address), .dout_b(oserdes_word));
 	end else if (1) begin
 		RAM_inferred_dual #(
 			.addr_width_a(ADDRESS_DEPTH), .addr_width_b(ADDRESS_DEPTH_OSERDES),
-			.data_width_a(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .data_width_b(BUS_WIDTH)
+			.data_width_a(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .data_width_b(BUS_WIDTH_OSERDES)
 		) myram (
 			.reset(reset125),
 			.clk_a(clock), .addr_a(address_word_reg), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
@@ -339,7 +339,8 @@ module top #(
 			.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
 			.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(oserdes_word),
 			//.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
-			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out());
+			//.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out());
+			.D0_out(coax[0]), .D1_out(), .D2_out(), .D3_out());
 //		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE1("n")) mylei2 (
 //			.clock_in(clock125), .reset(reset125), .word_clock_out(),
 //			.word0_in(oserdes_word), .D0_out(coax[4]),
@@ -369,6 +370,8 @@ module top #(
 		end
 		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
+	assign coax[1] = 0;
+	assign coax[2] = 0;
 	assign coax[3] = sync_out_stream[2]; // scope trigger
 	assign coax[4] = 0;
 	assign coax[5] = 0;
@@ -383,16 +386,16 @@ module top #(
 		assign led[1] = 0;
 		assign led[0] = 0;
 	end else if (1) begin
-		assign led[7] = ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF];
-		assign led[6] = write_strobe;
+		assign led[7] = ~pll_locked;
+		assign led[6] = ~pll_oserdes_locked;
 		//assign led[5] = checksum;
 		//assign led[5] = |all_errors;
 		assign led[5] = |read_errors;
-		assign led[4] = 0;
-		assign led[3] = register_select;
+		assign led[4] = ack_valid;
+		assign led[3] = write_strobe;
 		assign led[2] = read;
 		assign led[1] = enable;
-		assign led[0] = 0;
+		assign led[0] = register_select;
 	end else begin
 		assign led[7:6] = address_errors[1:0];
 		assign led[5:4] = write_errors[1:0];
@@ -410,34 +413,54 @@ endmodule
 module myalthea (
 	input clock50_p, clock50_n,
 	output [5:0] coax,
+	// other IOs:
 	output rpi_gpio2_i2c1_sda, // ack_valid
-	// 8 bit bus:
-	inout rpi_gpio4_gpclk0,
-	inout rpi_gpio5,
+	input rpi_gpio3_i2c1_scl, // register_select
+	input rpi_gpio4_gpclk0, // enable
+	input rpi_gpio5, // read
+	// 16 bit bus:
 	inout rpi_gpio6_gpclk2,
 	inout rpi_gpio7_spi_ce1,
 	inout rpi_gpio8_spi_ce0,
 	inout rpi_gpio9_spi_miso,
 	inout rpi_gpio10_spi_mosi,
 	inout rpi_gpio11_spi_sclk,
+	inout rpi_gpio12,
+	inout rpi_gpio13,
+	inout rpi_gpio14,
+	inout rpi_gpio15,
+	inout rpi_gpio16,
+	inout rpi_gpio17,
+	inout rpi_gpio18,
+	inout rpi_gpio19,
+	inout rpi_gpio20,
+	inout rpi_gpio21,
 	// other IOs:
-	input rpi_gpio13, // register_select
-	input rpi_gpio14, // read
-	input rpi_gpio15, // enable
-	input rpi_gpio19, // reset
+	input button, // reset
 	output [7:0] led
 );
-	localparam BUS_WIDTH = 8;
+	localparam BUS_WIDTH = 16;
 	localparam ADDRESS_DEPTH = 14;
-	localparam TRANSACTIONS_PER_DATA_WORD = 4;
-	localparam TRANSACTIONS_PER_ADDRESS_WORD = 2;
+	localparam TRANSACTIONS_PER_DATA_WORD = 2;
+	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 	wire clock10 = 0;
-	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)) althea (
-		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(rpi_gpio19),
+	top #(
+		.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH),
+		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
+		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
+		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
+	) althea (
+		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(button),
 		.coax(coax),
-		.bus({ rpi_gpio11_spi_sclk, rpi_gpio10_spi_mosi, rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2, rpi_gpio5, rpi_gpio4_gpclk0 }),
-		.register_select(rpi_gpio13), .read(rpi_gpio14), .enable(rpi_gpio15), .ack_valid(rpi_gpio2_i2c1_sda),
+		.bus({
+			rpi_gpio21, rpi_gpio20, rpi_gpio19, rpi_gpio18,
+			rpi_gpio17, rpi_gpio16, rpi_gpio15, rpi_gpio14,
+			rpi_gpio13, rpi_gpio12, rpi_gpio11_spi_sclk, rpi_gpio10_spi_mosi,
+			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
+		}),
+		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
+		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio2_i2c1_sda),
 		.led(led)
 	);
 endmodule
