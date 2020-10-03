@@ -1,5 +1,5 @@
 // written 2019-09-22 by mza
-// last updated 2020-06-20 by mza
+// last updated 2020-10-02 by mza
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
@@ -23,6 +23,20 @@ module mux_2to1 #(
 	output [WIDTH-1:0] out
 );
 	assign out = sel ? in1 : in0;
+endmodule
+
+module mux_4to1 #(
+	parameter WIDTH = 1
+) (
+	input [WIDTH-1:0] in0, in1, in2, in3,
+	input [1:0] sel,
+	output [WIDTH-1:0] out
+);
+	assign out =
+		(sel==2'd0) ? in0 :
+		(sel==2'd1) ? in1 :
+		(sel==2'd2) ? in2 :
+		              in3 ;
 endmodule
 
 module mux_8to1 #(

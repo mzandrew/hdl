@@ -1,4 +1,4 @@
-// last updated 2020-06-20 by mza
+// last updated 2020-10-02 by mza
 `ifndef RAM8_LIB
 `define RAM8_LIB
 
@@ -100,6 +100,280 @@ module RAM_inferred_with_register_outputs #(
 	assign register1 = mem[1];
 	assign register2 = mem[2];
 	assign register3 = mem[3];
+endmodule
+
+module RAM_inferred_dual_port_nonworking #(
+	parameter ADDR_WIDTH_A = 9,
+	parameter ADDR_WIDTH_B = 11,
+	parameter DATA_WIDTH_A = 32,
+	parameter DATA_WIDTH_B = 8,
+	parameter ADDR_WIDTH_DIFF = ADDR_WIDTH_B - ADDR_WIDTH_A,
+	parameter GEARBOX_RATIO = 1<<ADDR_WIDTH_DIFF
+) (
+	input write_en_a, clk_a, clk_b,
+	input [ADDR_WIDTH_A-1:0] addr_a,
+	input [ADDR_WIDTH_B-1:0] addr_b,
+	input [DATA_WIDTH_A-1:0] din_a,
+	output reg [DATA_WIDTH_A-1:0] dout_a = 0,
+	output [DATA_WIDTH_B-1:0] dout_b
+);
+	reg [DATA_WIDTH_A-1:0] mem [(1<<ADDR_WIDTH_A)-1:0];
+	//wire [ADDR_WIDTH_B-1-ADDR_WIDTH_DIFF:0] addr_b_upper = addr_b[ADDR_WIDTH_B-1:ADDR_WIDTH_DIFF]; // [10:2]
+	wire [ADDR_WIDTH_A-1:0] addr_b_upper = addr_b[ADDR_WIDTH_B-1:ADDR_WIDTH_DIFF]; // [10:2]
+//	wire [ADDR_WIDTH_DIFF-1:0] addr_b_lower = addr_b[ADDR_WIDTH_DIFF-1:0]; // [1:0]
+	reg [DATA_WIDTH_A-1:0] mem_pipeline = 0;
+	reg [ADDR_WIDTH_B-1:0] addr_b_middle_pipeline = 0;
+	reg [ADDR_WIDTH_B-1:0] addr_b_lower_pipeline = 0;
+	reg [DATA_WIDTH_B-1:0] dout_b_pipeline = 0;
+	always @(posedge clk_a) begin
+		if (write_en_a) begin
+			mem[addr_a] <= din_a;
+		end
+	end
+	always @(posedge clk_a) begin
+		dout_a <= mem[addr_a];
+	end
+	always @(posedge clk_b) begin
+		// this kind of assignment to a multidimentional entity is disallowed in verilog:
+//		mem_pipeline <= { mem_pipeline[1:0], mem[addr_b_upper] };
+//		addr_b_middle_pipeline <= { addr_b_middle_pipeline[1:0], DATA_WIDTH_B * addr_b[ADDR_WIDTH_DIFF-1:0] + DATA_WIDTH_B - 1 };
+//		addr_b_lower_pipeline  <= { addr_b_lower_pipeline[1:0],  DATA_WIDTH_B * addr_b[ADDR_WIDTH_DIFF-1:0] };
+//		dout_b_pipeline <= { dout_b_pipeline[1:0], mem_pipeline[2][addr_b_middle_pipeline[2]:addr_b_lower_pipeline[2]] };
+//		dout_b_pipeline <= mem_pipeline[addr_b_middle_pipeline:addr_b_lower_pipeline];
+		mem_pipeline <= mem[addr_b_upper];
+		addr_b_middle_pipeline <= DATA_WIDTH_B * addr_b[ADDR_WIDTH_DIFF-1:0] + DATA_WIDTH_B - 1;
+		addr_b_lower_pipeline  <= DATA_WIDTH_B * addr_b[ADDR_WIDTH_DIFF-1:0];
+	end
+	assign dout_b = dout_b_pipeline;
+endmodule
+
+module RAM_inferred_dual_port_nonworking_tb;
+	localparam ADDR_WIDTH_A = 5;
+	localparam ADDR_WIDTH_B = 7;
+	localparam DATA_WIDTH_A = 32;
+	localparam DATA_WIDTH_B = 8;
+	reg write_en_a = 0;
+	reg clk_a = 0;
+	reg clk_b = 0;
+	reg [ADDR_WIDTH_A-1:0] addr_a = 0;
+	reg [ADDR_WIDTH_B-1:0] addr_b = 0;
+	reg [DATA_WIDTH_A-1:0] din_a = 0;
+	wire [DATA_WIDTH_A-1:0] dout_a;
+	wire [DATA_WIDTH_B-1:0] dout_b;
+	RAM_inferred_dual_port #(
+		.ADDR_WIDTH_A(ADDR_WIDTH_A),
+		.ADDR_WIDTH_B(ADDR_WIDTH_B),
+		.DATA_WIDTH_A(DATA_WIDTH_A),
+		.DATA_WIDTH_B(DATA_WIDTH_B)
+	) myram (
+		.write_en_a(write_en_a),
+		.clk_a(clk_a),
+		.clk_b(clk_b),
+		.addr_a(addr_a),
+		.addr_b(addr_b),
+		.din_a(din_a),
+		.dout_a(dout_a),
+		.dout_b(dout_b)
+	);
+	initial begin
+		din_a <= 32'h0123;
+		addr_a <= 5'b00001;
+		addr_b <= 7'b0000010;
+		#100;
+		write_en_a <= 1;
+		#20;
+		write_en_a <= 0;
+		#100;
+		addr_b <= 7'b0000001;
+	end
+	always begin
+		#10;
+		clk_a <= ~clk_a;
+	end
+	always begin
+		#10;
+		clk_b <= ~clk_b;
+	end
+endmodule
+
+module RAM_inferred_dual_port #(
+	parameter ADDR_WIDTH = 9,
+	parameter DATA_WIDTH = 32
+) (
+	input write_en_a, write_en_b, clk_a, clk_b,
+	input [ADDR_WIDTH-1:0] addr_a,
+	input [ADDR_WIDTH-1:0] addr_b,
+	input [DATA_WIDTH-1:0] din_a,
+	input [DATA_WIDTH-1:0] din_b,
+	output reg [DATA_WIDTH-1:0] dout_a = 0,
+	output reg [DATA_WIDTH-1:0] dout_b = 0
+);
+	reg [DATA_WIDTH-1:0] mem [(1<<ADDR_WIDTH)-1:0];
+	always @(posedge clk_a) begin
+		if (write_en_a) begin
+			mem[addr_a] <= din_a;
+		end
+	end
+	always @(posedge clk_b) begin
+		if (write_en_b) begin
+			mem[addr_b] <= din_b;
+		end
+	end
+	always @(posedge clk_a) begin
+		dout_a <= mem[addr_a];
+	end
+	always @(posedge clk_b) begin
+		dout_b <= mem[addr_b];
+	end
+endmodule
+
+module RAM_inferred_dual_port_tb;
+	localparam ADDR_WIDTH = 3;
+	localparam DATA_WIDTH = 8;
+	reg clk_a = 0;
+	reg clk_b = 1;
+	reg write_en_a = 0;
+	reg write_en_b = 0;
+	reg [ADDR_WIDTH-1:0] addr_a = 0;
+	reg [ADDR_WIDTH-1:0] addr_b = 0;
+	reg [DATA_WIDTH-1:0] din_a = 0;
+	reg [DATA_WIDTH-1:0] din_b = 0;
+	wire [DATA_WIDTH-1:0] dout_a;
+	wire [DATA_WIDTH-1:0] dout_b;
+	RAM_inferred_dual_port #(
+		.ADDR_WIDTH(ADDR_WIDTH),
+		.DATA_WIDTH(DATA_WIDTH)
+	) myram (
+		.write_en_a(write_en_a),
+		.write_en_b(write_en_b),
+		.clk_a(clk_a),
+		.clk_b(clk_b),
+		.addr_a(addr_a),
+		.addr_b(addr_b),
+		.din_a(din_a),
+		.din_b(din_b),
+		.dout_a(dout_a),
+		.dout_b(dout_b)
+	);
+	initial begin
+		write_en_a <= 0;
+		write_en_b <= 0;
+		din_a <= 8'h45;
+		din_b <= 8'h67;
+		addr_a <= 4'h1;
+		addr_b <= 4'h2;
+		#100;
+		write_en_a <= 1;
+		#20;
+		write_en_a <= 0;
+		#100;
+		addr_b <= 4'h1;
+		#100;
+		write_en_b <= 1;
+		#20;
+		write_en_b <= 0;
+	end
+	always begin
+		#10;
+		clk_a <= ~clk_a;
+	end
+	always begin
+		#10;
+		clk_b <= ~clk_b;
+	end
+endmodule
+
+module RAM_inferred_dual_port_gearbox #(
+	parameter ADDR_WIDTH_A = 9,
+	parameter DATA_WIDTH_A = 32,
+	parameter GEARBOX_RATIO = 4,
+	parameter LOG2_OF_GEARBOX_RATIO = $clog2(GEARBOX_RATIO),
+	parameter ADDR_WIDTH_B = ADDR_WIDTH_A + LOG2_OF_GEARBOX_RATIO,
+	parameter DATA_WIDTH_B = DATA_WIDTH_A / GEARBOX_RATIO
+) (
+	input write_en_a, clk_a, clk_b,
+	input [ADDR_WIDTH_A-1:0] addr_a,
+	input [ADDR_WIDTH_B-1:0] addr_b,
+	input [DATA_WIDTH_A-1:0] din_a,
+	output [DATA_WIDTH_A-1:0] dout_a,
+	output [DATA_WIDTH_B-1:0] dout_b
+);
+	wire [DATA_WIDTH_A-1:0] dout_b_full;
+	RAM_inferred_dual_port #(
+		.ADDR_WIDTH(ADDR_WIDTH_A),
+		.DATA_WIDTH(DATA_WIDTH_A)
+	) myram (
+		.write_en_a(write_en_a),
+		.write_en_b(1'b0),
+		.clk_a(clk_a),
+		.clk_b(clk_b),
+		.addr_a(addr_a),
+		.addr_b(addr_b[ADDR_WIDTH_B-1:LOG2_OF_GEARBOX_RATIO]),
+		.din_a(din_a),
+		.din_b({DATA_WIDTH_A{1'b0}}),
+		.dout_a(dout_a),
+		.dout_b(dout_b_full)
+	);
+	mux_4to1 #(.WIDTH(DATA_WIDTH_B)) gearbox (
+		.sel(addr_b[LOG2_OF_GEARBOX_RATIO-1:0]),
+		.in0(dout_b_full[31:24]), .in1(dout_b_full[23:16]), .in2(dout_b_full[15:8]), .in3(dout_b_full[7:0]),
+		.out(dout_b)
+	);
+endmodule
+
+module RAM_inferred_dual_port_gearbox_tb;
+	localparam ADDR_WIDTH_A = 5;
+	localparam ADDR_WIDTH_B = 7;
+	localparam DATA_WIDTH_A = 32;
+	localparam DATA_WIDTH_B = 8;
+	reg write_en_a = 0;
+	reg clk_a = 0;
+	reg clk_b = 1;
+	reg [ADDR_WIDTH_A-1:0] addr_a = 0;
+	reg [ADDR_WIDTH_B-1:0] addr_b = 0;
+	reg [DATA_WIDTH_A-1:0] din_a = 0;
+	wire [DATA_WIDTH_A-1:0] dout_a;
+	wire [DATA_WIDTH_B-1:0] dout_b;
+	RAM_inferred_dual_port_gearbox #(
+		.ADDR_WIDTH_A(ADDR_WIDTH_A),
+		.ADDR_WIDTH_B(ADDR_WIDTH_B),
+		.DATA_WIDTH_A(DATA_WIDTH_A),
+		.DATA_WIDTH_B(DATA_WIDTH_B)
+	) myram (
+		.write_en_a(write_en_a),
+		.clk_a(clk_a),
+		.clk_b(clk_b),
+		.addr_a(addr_a),
+		.addr_b(addr_b),
+		.din_a(din_a),
+		.dout_a(dout_a),
+		.dout_b(dout_b)
+	);
+	initial begin
+		din_a <= 32'h12345678;
+		addr_a <= 5'd8;
+		addr_b <= { 5'd7, 2'b00 };
+		#100;
+		write_en_a <= 1;
+		#20;
+		write_en_a <= 0;
+		#40;
+		addr_b <= { 5'd8, 2'd0 };
+		#40;
+		addr_b <= { 5'd8, 2'd1 };
+		#40;
+		addr_b <= { 5'd8, 2'd2 };
+		#40;
+		addr_b <= { 5'd8, 2'd3 };
+	end
+	always begin
+		#10;
+		clk_a <= ~clk_a;
+	end
+	always begin
+		#10;
+		clk_b <= ~clk_b;
+	end
 endmodule
 
 //(* keep_hierarchy = "yes" *)
@@ -283,6 +557,56 @@ module RAM_s6_1k_8bit (
 		.RSTA(reset), .RSTBRST(1'b0) // 1 bit input: reset
 	);
 endmodule
+
+//// https://stackoverflow.com/q/60315588/5728815
+//module dp_async_ram (clk, rst, rd0, rd1, wr0, wr1, in1, in0, out1,out0, addr0, addr1);
+//  parameter DEPTH = 16;
+//  parameter WIDTH = 8;
+//  parameter ADDR = 4;
+//  input clk, rst;
+//  input rd0, rd1;
+//  input wr0, wr1;
+//  input [WIDTH-1:0] in0, in1;
+//  input [ADDR-1:0] addr0, addr1;
+//  output [WIDTH-1:0] out0, out1;
+//  //Define Memory
+//  logic [WIDTH-1:0] mem [0:DEPTH-1];
+//  logic [WIDTH-1:0] data0, data1;
+//// with modification from https://stackoverflow.com/a/60315691/5728815
+//always @ (posedge clk) begin
+//    if (wr0 && ~rd0)
+//        mem[addr0] <= in0;
+//    if (rd0 && ~wr0)
+//        data0 <= mem[addr0];
+//end
+//always @ (posedge clk) begin
+//    if (wr1 && ~rd1)
+//        mem[addr1] <= in1;
+//    if (rd1 && ~wr1)
+//        data1 <= mem[addr1];
+//end
+////Read Logic
+//  assign out0 = (rd0 && (!wr0))? data0: {WIDTH{1'bz}}; //High Impedance Mode here
+//  assign out1 = (rd0 && (!wr0))? data1: {WIDTH{1'bz}};
+//endmodule // dp_async_ram
+
+// altera Recommended HDL Coding Styles
+// Example 12-22: SystemVerilog Mixed-Width RAM with Read Width Smaller than Write Width
+// module mixed_width_ram // 256x32 write and 1024x8 read
+//(
+// input [7:0] waddr,
+// input [31:0] wdata,
+// input we, clk,
+// input [9:0] raddr,
+// output [7:0] q
+//);
+// logic [3:0][7:0] ram[0:255];
+// always_ff@(posedge clk)
+// begin
+// if(we) ram[waddr] <= wdata;
+// q <= ram[raddr / 4][raddr % 4];
+// end
+//endmodule : mixed_width_ram
 
 //// system verilog version (from UG901)
 //// 3-D Ram Inference Example (Simple Dual port)
