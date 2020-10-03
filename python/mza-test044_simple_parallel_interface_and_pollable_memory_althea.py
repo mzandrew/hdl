@@ -2,7 +2,7 @@
 
 # written 2020-06-20 by mza
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-07-06 by mza
+# last updated 2020-10-03 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -106,9 +106,20 @@ if 0:
 
 if 1:
 	althea.setup_half_duplex_bus()
-	althea.write_data_from_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
-	althea.read_data_from_pollable_memory_on_half_duplex_bus(0, 2**14)
-	althea.test_writing_data_to_half_duplex_bus()
+
+if 0:
+	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
+	values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
+	#althea.read_data_from_pollable_memory_on_half_duplex_bus(0, 2**14)
+	#althea.test_writing_data_to_half_duplex_bus()
+
+if 1:
+	values = [ 0 for a in range(2**14) ]
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
+	for i in range(9):
+		time.sleep(0.1)
+		althea.write_csv_values_to_pollable_memory_on_half_duples_bus_and_verify(size, i*RF_buckets, max_count, "bcm.csv", date_string, i)
 
 if 0:
 	#print("asdf")

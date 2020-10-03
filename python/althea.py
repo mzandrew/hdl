@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-07-06 by mza
+# last updated 2020-10-03 by mza
 
 import time
 import time # time.sleep
@@ -488,8 +488,8 @@ def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=T
 	#show(start_address, values)
 	return new_count, new_errors
 
-def write_data_from_pollable_memory_on_half_duplex_bus(start_address, data):
-	print("write_data_from_pollable_memory_on_half_duplex_bus")
+def write_data_to_pollable_memory_on_half_duplex_bus(start_address, data):
+	print("write_data_to_pollable_memory_on_half_duplex_bus")
 	if 0:
 		reset_pulse()
 	start = time.time()
@@ -714,6 +714,11 @@ def test_writing_data_to_half_duplex_bus():
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
 	half_duplex_bus.increment_user_errors(errors)
+
+def write_csv_values_to_pollable_memory_on_half_duples_bus_and_verify(length, offset, max_count, input_filename, date_string, max_for_normalization=6.0):
+	data_list = generate_pulsetrain_list_from_csv_values(length, max_count, input_filename, date_string, max_for_normalization)
+	offset = int(offset/16.0)
+	write_data_to_pollable_memory_on_half_duplex_bus(offset, data_list)
 
 # ---------------------------------------------------------------------------
 
@@ -1102,6 +1107,50 @@ def normalize_csv_data(values, max_for_normalization):
 		values[i] = int(values[i]*normalization)
 	return values
 
+def generate_pulsetrain_list_from_csv_values(length, max_count, input_filename, date_string, max_for_normalization=6.0):
+	max_for_normalization = float(max_for_normalization)
+	length = int(length)
+	data_list = [ 0 for d in range(length) ]
+	if 1:
+		csv_list = read_csv(input_filename, date_string, max_count)
+		csv_list = normalize_csv_data(csv_list, max_for_normalization)
+	else:
+		csv_list = [ 
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+			1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+			1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1  ]
+	# csv_list has an integer entry for each RF_bucket as a time series
+	# data_list has an entry for each group of 32 RF_buckets
+	k = 0
+	value_low = 0
+	for i in range(0, len(csv_list), 32):
+		value = value_low<<32
+		for j in range(32):
+			if csv_list[i+j]:
+				#pulse_width = 2
+				pulse_width = csv_list[i+j]
+				index = 31-j-pulse_width+32 # fill the high part of a 64-bit word
+				value |= (2**pulse_width-1)<<index
+		#print(hex(value, 8))
+		value_low = value & 0xffffffff # save what spilled over into the low 32 bits for next time
+		value_high = value - value_low
+		data_list[k] = value_high>>32
+		k += 1
+	#print(k)
+	#print(len(data_list))
+	if len(data_list)<length:
+		for i in range(len(data_list), length):
+			data_list.append(0)
+#	for i in range(length):
+#		if i<64:
+#			data_list[i] = 0
+#	print(len(data_list))
+	return data_list
+
 class spi_sequencer(spi):
 	def __init__(self, ce, spi_memory_size):
 		#super().__init__(self)
@@ -1109,49 +1158,10 @@ class spi_sequencer(spi):
 
 	def write_csv_values_to_spi_pollable_memory_and_verify(self, length, offset, max_count, input_filename, date_string, max_for_normalization=6.0):
 		offset = int(offset/16.0)
-		max_for_normalization = float(max_for_normalization)
-		length = int(length)
+		data_list = generate_pulsetrain_list_from_csv_values(length, max_count, input_filename, date_string, max_for_normalization=6.0)
+
 		command_list = [ c for c in range(length) ]
 		address_list = [ offset+a for a in range(length) ]
-		data_list = [ 0 for d in range(length) ]
-		if 1:
-			csv_list = read_csv(input_filename, date_string, max_count)
-			csv_list = normalize_csv_data(csv_list, max_for_normalization)
-		else:
-			csv_list = [ 
-				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-				1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-				1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1  ]
-		# csv_list has an integer entry for each RF_bucket as a time series
-		# data_list has an entry for each group of 32 RF_buckets
-		k = 0
-		value_low = 0
-		for i in range(0, len(csv_list), 32):
-			value = value_low<<32
-			for j in range(32):
-				if csv_list[i+j]:
-					#pulse_width = 2
-					pulse_width = csv_list[i+j]
-					index = 31-j-pulse_width+32 # fill the high part of a 64-bit word
-					value |= (2**pulse_width-1)<<index
-			#print(hex(value, 8))
-			value_low = value & 0xffffffff # save what spilled over into the low 32 bits for next time
-			value_high = value - value_low
-			data_list[k] = value_high>>32
-			k += 1
-		#print(k)
-		#print(len(data_list))
-		if len(data_list)<length:
-			for i in range(len(data_list), length):
-				data_list.append(0)
-	#	for i in range(length):
-	#		if i<64:
-	#			data_list[i] = 0
-	#	print(len(data_list))
 		print("uploading csv timeseries to device...")
 		self.write_list_to_pollable_memory_and_then_verify(length, command_list, address_list, data_list)
 
