@@ -451,7 +451,7 @@ module myalthea (
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) althea (
-		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(button),
+		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(~button),
 		.coax(coax),
 		.bus({
 			rpi_gpio21, rpi_gpio20, rpi_gpio19, rpi_gpio18,
