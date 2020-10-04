@@ -18,52 +18,52 @@ timespec "ts_clock50_p" = period "tnm_clock50_p" 20.0 ns high 50%; # 50 MHz
 #timespec "ts_ftsw_p" = period "ftsw_p" 7.8 ns high 50%; # 128.205 MHz
 
 # first column, closest to FPGA on left side of board
-#net a_n loc=p116 | iostandard=lvcmos33; # A- bank0 TR
-#net a_p loc=p117 | iostandard=lvcmos33; # A+ bank0 TR
-#net c_n loc=p131 | iostandard=lvcmos33; # C- bank0 TR
-#net c_p loc=p132 | iostandard=lvcmos33; # C+ bank0 TR
-#net d_n loc=p139 | iostandard=lvcmos33; # D- bank0 TR
-#net d_p loc=p140 | iostandard=lvcmos33; # D+ bank0 TR
-#net f_n loc=p141 | iostandard=lvcmos33; # F- bank0 TL
-#net f_p loc=p142 | iostandard=lvcmos33; # F+ bank0 TL
+net a_n loc=p116 | iostandard=lvcmos33; # A- bank0 TR
+net a_p loc=p117 | iostandard=lvcmos33; # A+ bank0 TR
+net c_n loc=p131 | iostandard=lvcmos33; # C- bank0 TR
+net c_p loc=p132 | iostandard=lvcmos33; # C+ bank0 TR
+net d_n loc=p139 | iostandard=lvcmos33; # D- bank0 TR
+net d_p loc=p140 | iostandard=lvcmos33; # D+ bank0 TR
+net f_n loc=p141 | iostandard=lvcmos33; # F- bank0 TL
+net f_p loc=p142 | iostandard=lvcmos33; # F+ bank0 TL
 
 # middle column, on left side of board
-#net b_n loc=p123 | iostandard=lvcmos33; # B- bank0 TR
-#net b_p loc=p124 | iostandard=lvcmos33; # B+ bank0 TR
-#net e_n loc=p133 | iostandard=lvcmos33; # E- bank0 TL
-#net e_p loc=p134 | iostandard=lvcmos33; # E+ bank0 TL
+net b_n loc=p123 | iostandard=lvcmos33; # B- bank0 TR
+net b_p loc=p124 | iostandard=lvcmos33; # B+ bank0 TR
+net e_n loc=p133 | iostandard=lvcmos33; # E- bank0 TL
+net e_p loc=p134 | iostandard=lvcmos33; # E+ bank0 TL
 
 # third column, on left side of board
-#net z loc=p17  | iostandard=lvcmos33; # Z bank3 TL
-#net y loc=p15  | iostandard=lvcmos33; # Y bank3 TL
-#net x loc=p12  | iostandard=lvcmos33; # X bank3 TL
-#net w loc=p10  | iostandard=lvcmos33; # W bank3 TL
-#net v loc=p8   | iostandard=lvcmos33; # V bank3 TL
-#net u loc=p2   | iostandard=lvcmos33; # U bank3 TL
+net z loc=p17  | iostandard=lvcmos33; # Z bank3 TL
+net y loc=p15  | iostandard=lvcmos33; # Y bank3 TL
+net x loc=p12  | iostandard=lvcmos33; # X bank3 TL
+net w loc=p10  | iostandard=lvcmos33; # W bank3 TL
+net v loc=p8   | iostandard=lvcmos33; # V bank3 TL
+net u loc=p2   | iostandard=lvcmos33; # U bank3 TL
 
 # first column, closest to FPGA on right side of board
-#net m_p loc=p58  | iostandard=lvcmos33; # M+ bank2 BR
-#net m_n loc=p57  | iostandard=lvcmos33; # M- bank2 BR
-#net l_p loc=p48  | iostandard=lvcmos33; # L+ bank2 BR
-#net l_n loc=p47  | iostandard=lvcmos33; # L- bank2 BR
-#net j_p loc=p46  | iostandard=lvcmos33; # J+ bank2 BL
-#net j_n loc=p45  | iostandard=lvcmos33; # J- bank2 BL
-#net g_p loc=p41  | iostandard=lvcmos33; # G+ bank2 BL
-#net g_n loc=p40  | iostandard=lvcmos33; # G- bank2 BL
+net m_p loc=p58  | iostandard=lvcmos33; # M+ bank2 BR
+net m_n loc=p57  | iostandard=lvcmos33; # M- bank2 BR
+net l_p loc=p48  | iostandard=lvcmos33; # L+ bank2 BR
+net l_n loc=p47  | iostandard=lvcmos33; # L- bank2 BR
+net j_p loc=p46  | iostandard=lvcmos33; # J+ bank2 BL
+net j_n loc=p45  | iostandard=lvcmos33; # J- bank2 BL
+net g_p loc=p41  | iostandard=lvcmos33; # G+ bank2 BL
+net g_n loc=p40  | iostandard=lvcmos33; # G- bank2 BL
 
 # middle column, on right side of board
-#net k_p loc=p56  | iostandard=lvcmos33; # K+ bank2 BR
-#net k_n loc=p55  | iostandard=lvcmos33; # K- bank2 BR
-#net h_p loc=p44  | iostandard=lvcmos33; # H+ bank2 BL
-#net h_n loc=p43  | iostandard=lvcmos33; # H- bank2 BL
+net k_p loc=p56  | iostandard=lvcmos33; # K+ bank2 BR
+net k_n loc=p55  | iostandard=lvcmos33; # K- bank2 BR
+net h_p loc=p44  | iostandard=lvcmos33; # H+ bank2 BL
+net h_n loc=p43  | iostandard=lvcmos33; # H- bank2 BL
 
 # third column, on right side of board
-#net n loc=p30  | iostandard=lvcmos33; # N bank3 TL
-#net p loc=p35  | iostandard=lvcmos33; # P bank3 TL
-#net q loc=p33  | iostandard=lvcmos33; # Q bank3 TL
-#net r loc=p27  | iostandard=lvcmos33; # R bank3 TL
-#net s loc=p24  | iostandard=lvcmos33; # S bank3 TL
-#net t loc=p22  | iostandard=lvcmos33; # T bank3 TL
+net n loc=p30  | iostandard=lvcmos33; # N bank3 TL
+net p loc=p35  | iostandard=lvcmos33; # P bank3 TL
+net q loc=p33  | iostandard=lvcmos33; # Q bank3 TL
+net r loc=p27  | iostandard=lvcmos33; # R bank3 TL
+net s loc=p24  | iostandard=lvcmos33; # S bank3 TL
+net t loc=p22  | iostandard=lvcmos33; # T bank3 TL
 
 # raspberry pi 40pin headers, general purpose IO:
 net rpi_gpio2_i2c1_sda  loc=p138 | iostandard=lvcmos33 | drive = 4; # bank0 broadcom i2c peripheral

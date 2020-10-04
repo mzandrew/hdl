@@ -44,8 +44,23 @@ module top #(
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
 	output ack_valid,
+	output [11:0] diff_pair_left,
+	output [11:0] diff_pair_right,
+	output [5:0] single_ended_left,
+	output [5:0] single_ended_right,
 	output [7:0] led
 );
+	genvar i;
+	for (i=0; i<4; i=i+1) begin : diff_pair_array
+		assign diff_pair_left[i] = 0;
+		assign diff_pair_right[i] = 0;
+	end
+	assign diff_pair_left[11:4] = bus[15:8];
+	assign diff_pair_right[11:4] = bus[7:0];
+	for (i=0; i<6; i=i+1) begin : single_ended_array
+		assign single_ended_left[i] = 0;
+		assign single_ended_right[i] = 0;
+	end
 	localparam OTHER_PICKOFF                    = 10;
 	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + 10;
 	localparam ACK_VALID_PIPELINE_PICKOFF       = 30;
@@ -78,7 +93,6 @@ module top #(
 	wire [TRANSACTIONS_PER_ADDRESS_WORD*BUS_WIDTH-1:0] address_word;
 	reg [ADDRESS_DEPTH-1:0] address_word_reg = 0;
 	reg [BUS_WIDTH-1:0] address [TRANSACTIONS_PER_ADDRESS_WORD-1:0];
-	genvar i;
 	for (i=0; i<TRANSACTIONS_PER_ADDRESS_WORD; i=i+1) begin : address_array
 		assign address_word[(i+1)*BUS_WIDTH-1:i*BUS_WIDTH] = address[i];
 	end
@@ -370,7 +384,7 @@ module top #(
 		end
 		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
-	assign coax[1] = 0;
+	assign coax[1] = enable;
 	assign coax[2] = 0;
 	assign coax[3] = sync_out_stream[2]; // scope trigger
 	assign coax[4] = 0;
@@ -419,22 +433,18 @@ module myalthea (
 	input rpi_gpio4_gpclk0, // enable
 	input rpi_gpio5, // read
 	// 16 bit bus:
-	inout rpi_gpio6_gpclk2,
-	inout rpi_gpio7_spi_ce1,
-	inout rpi_gpio8_spi_ce0,
-	inout rpi_gpio9_spi_miso,
-	inout rpi_gpio10_spi_mosi,
-	inout rpi_gpio11_spi_sclk,
-	inout rpi_gpio12,
-	inout rpi_gpio13,
-	inout rpi_gpio14,
-	inout rpi_gpio15,
-	inout rpi_gpio16,
-	inout rpi_gpio17,
-	inout rpi_gpio18,
-	inout rpi_gpio19,
-	inout rpi_gpio20,
-	inout rpi_gpio21,
+	inout rpi_gpio6_gpclk2, rpi_gpio7_spi_ce1, rpi_gpio8_spi_ce0, rpi_gpio9_spi_miso,
+	inout rpi_gpio10_spi_mosi, rpi_gpio11_spi_sclk, rpi_gpio12, rpi_gpio13,
+	inout rpi_gpio14, rpi_gpio15, rpi_gpio16, rpi_gpio17,
+	inout rpi_gpio18, rpi_gpio19, rpi_gpio20, rpi_gpio21,
+	// diff-pair IOs (toupee connectors):
+	a_p, a_n, b_p, b_n, c_p, c_n,
+	d_p, d_n, e_p, e_n, f_p, f_n,
+	g_p, g_n, h_p, h_n, j_p, j_n,
+	k_p, k_n, l_p, l_n, m_p, m_n,
+	// single-ended IOs (toupee connectors):
+	n, p, q, r, s, t,
+	u, v, w, x, y, z,
 	// other IOs:
 	input button, // reset
 	output [7:0] led
@@ -459,6 +469,10 @@ module myalthea (
 			rpi_gpio13, rpi_gpio12, rpi_gpio11_spi_sclk, rpi_gpio10_spi_mosi,
 			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
 		}),
+		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
+		.diff_pair_right({ m_p, m_n, l_p, l_n, j_p, j_n, g_p, g_n, k_p, k_n, h_p, h_n }),
+		.single_ended_left({ z, y, x, w, v, u }),
+		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
 		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio2_i2c1_sda),
 		.led(led)
