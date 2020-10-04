@@ -105,7 +105,7 @@ if 0:
 	time.sleep(0.1)
 
 if 1:
-	althea.setup_half_duplex_bus()
+	althea.setup_half_duplex_bus("test044")
 
 if 0:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
