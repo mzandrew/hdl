@@ -1193,8 +1193,8 @@ class spi_sequencer(spi):
 
 	def write_csv_values_to_spi_pollable_memory_and_verify(self, length, offset, max_count, input_filename, date_string, max_for_normalization=6.0):
 		offset = int(offset/16.0)
-		data_list = generate_pulsetrain_list_from_csv_values(length, max_count, input_filename, date_string, max_for_normalization=6.0)
-
+		length = int(length)
+		data_list = generate_pulsetrain_list_from_csv_values(length, max_count, input_filename, date_string, max_for_normalization)
 		command_list = [ c for c in range(length) ]
 		address_list = [ offset+a for a in range(length) ]
 		print("uploading csv timeseries to device...")
