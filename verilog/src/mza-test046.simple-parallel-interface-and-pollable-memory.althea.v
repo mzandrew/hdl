@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2020-10-03 by mza
+// last updated 2020-10-05 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -386,8 +386,8 @@ module top #(
 	end
 	assign coax[1] = enable;
 	assign coax[2] = 0;
-	assign coax[3] = sync_out_stream[2]; // scope trigger
-	assign coax[4] = 0;
+	assign coax[3] = 0;
+	assign coax[4] = sync_out_stream[2]; // scope trigger
 	assign coax[5] = 0;
 	// ----------------------------------------------------------------------
 	if (0) begin
