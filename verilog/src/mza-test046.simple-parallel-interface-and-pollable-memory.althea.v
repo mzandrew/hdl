@@ -38,7 +38,7 @@ module top #(
 	input clock50_p, clock50_n,
 	input clock10,
 	input reset,
-	output [5:0] coax,
+	inout [5:0] coax,
 	inout [BUS_WIDTH-1:0] bus,
 	input read, // 0=write; 1=read
 	input register_select, // 0=address; 1=data
@@ -369,7 +369,8 @@ module top #(
 	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
 	reg sync_out_raw = 0;
 	reg [3:0] sync_out_stream = 0;
-	reg sync_read_address = 0;
+	//reg sync_read_address = 0;
+	wire sync_read_address = coax[5];
 	always @(posedge word_clock) begin
 		sync_out_raw <= 0;
 		if (reset125) begin
@@ -390,7 +391,7 @@ module top #(
 	assign coax[2] = 0;
 	assign coax[3] = 0;
 	assign coax[4] = sync_out_stream[2]; // scope trigger
-	assign coax[5] = 0;
+//	assign coax[5] = 0;
 	// ----------------------------------------------------------------------
 	if (0) begin
 		assign led[7] = reset;
@@ -428,7 +429,7 @@ endmodule
 
 module myalthea (
 	input clock50_p, clock50_n,
-	output [5:0] coax,
+	inout [5:0] coax,
 	// other IOs:
 	output rpi_gpio2_i2c1_sda, // ack_valid
 	input rpi_gpio3_i2c1_scl, // register_select
