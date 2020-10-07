@@ -352,8 +352,8 @@ module top #(
 		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
 			.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
 			.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(oserdes_word),
-			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
-		assign coax_led = { 1, 1, 1, 1 };
+			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
+		assign coax_led = 4'b1111;
 			//.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out());
 			//.D0_out(coax[0]), .D1_out(), .D2_out(), .D3_out());
 //		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei2 (

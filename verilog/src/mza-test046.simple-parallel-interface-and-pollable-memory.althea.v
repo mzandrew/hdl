@@ -355,8 +355,8 @@ module top #(
 			.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(oserdes_word),
 			//.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
 			//.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out());
-			.D0_out(coax[0]), .D1_out(), .D2_out(), .D3_out());
-		assign coax_led = { 0, 0, 0, 1 };
+			.D3_out(coax[3]), .D2_out(), .D1_out(), .D0_out(coax[0]));
+		assign coax_led = 4'b1001;
 //		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE1("n")) mylei2 (
 //			.clock_in(clock125), .reset(reset125), .word_clock_out(),
 //			.word0_in(oserdes_word), .D0_out(coax[4]),
@@ -389,7 +389,7 @@ module top #(
 	end
 	assign coax[1] = enable;
 	assign coax[2] = 0;
-	assign coax[3] = 0;
+//	assign coax[3] = 0;
 	assign coax[4] = sync_out_stream[2]; // scope trigger
 //	assign coax[5] = 0;
 	// ----------------------------------------------------------------------
