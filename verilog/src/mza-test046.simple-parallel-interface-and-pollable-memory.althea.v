@@ -365,6 +365,13 @@ module top #(
 			.word0_in(oserdes_word), .D0_out(coax[4]),
 			.locked(pll_oserdes_locked_2));
 		assign sync_read_address = 0;
+	end else if (0) begin
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE("n")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[5]), .locked(pll_oserdes_locked_2));
+		assign coax[4] = sync_out_stream[2]; // scope trigger
+		assign sync_read_address = 0;
+	end else if (0) begin
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
+		assign sync_read_address = coax[5];
 	end else begin
 		assign pll_oserdes_locked_2 = 0;
 		assign sync_read_address = coax[5];

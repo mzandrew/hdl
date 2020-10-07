@@ -60,10 +60,10 @@ net h_n loc=p43  | iostandard=lvcmos33; # H- bank2 BL
 # third column, on right side of board
 net n loc=p30  | iostandard=lvcmos33; # N bank3 TL
 net p loc=p35  | iostandard=lvcmos33; # P bank3 TL
-net q loc=p34  | iostandard=lvcmos33; # Q bank3 TL - differs from althea revB
+net q loc=p22  | iostandard=lvcmos33; # Q bank3 TL - differs from althea revB
 net r loc=p27  | iostandard=lvcmos33; # R bank3 TL
 net s loc=p24  | iostandard=lvcmos33; # S bank3 TL
-net t loc=p22  | iostandard=lvcmos33; # T bank3 TL
+net t loc=p50  | iostandard=lvcmos33; # T bank2 ?? - differs from althea revB
 
 # raspberry pi 40pin headers, general purpose IO:
 net rpi_gpio2_i2c1_sda  loc=p138 | iostandard=lvcmos33 | drive = 4; # bank0 broadcom i2c peripheral
@@ -98,7 +98,7 @@ net rpi_gpio21          loc=p79  | iostandard=lvcmos33 | drive = 4; # bank1 - di
 
 # hexadecimal rotary encoder:
 #net rot_1 loc=p100 | iostandard=lvcmos33 | pullup; # bank1 - differs from althea revB
-#net rot_2 loc=p50  | iostandard=lvcmos33 | pullup; # bank2
+#net rot_2 loc=p97  | iostandard=lvcmos33 | pullup; # bank2 - differs from althea revB
 #net rot_4 loc=p67  | iostandard=lvcmos33 | pullup; # bank2
 #net rot_8 loc=p62  | iostandard=lvcmos33 | pullup; # bank2
 
