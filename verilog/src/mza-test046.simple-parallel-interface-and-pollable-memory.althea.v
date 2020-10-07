@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2020-10-05 by mza
+// last updated 2020-10-06 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -48,6 +48,7 @@ module top #(
 	output [11:0] diff_pair_right,
 	output [5:0] single_ended_left,
 	output [5:0] single_ended_right,
+	output [3:0] coax_led,
 	output [7:0] led
 );
 	genvar i;
@@ -355,6 +356,7 @@ module top #(
 			//.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
 			//.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out());
 			.D0_out(coax[0]), .D1_out(), .D2_out(), .D3_out());
+		assign coax_led = { 0, 0, 0, 1 };
 //		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE1("n")) mylei2 (
 //			.clock_in(clock125), .reset(reset125), .word_clock_out(),
 //			.word0_in(oserdes_word), .D0_out(coax[4]),
@@ -447,6 +449,7 @@ module myalthea (
 	u, v, w, x, y, z,
 	// other IOs:
 	input button, // reset
+	output [3:0] coax_led,
 	output [7:0] led
 );
 	localparam BUS_WIDTH = 16;
@@ -475,6 +478,7 @@ module myalthea (
 		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
 		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio2_i2c1_sda),
+		.coax_led(coax_led),
 		.led(led)
 	);
 endmodule

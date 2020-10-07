@@ -116,10 +116,10 @@ net led<6> loc=p11 | iostandard=lvcmos33 | drive = 2;
 net led<7> loc=p9  | iostandard=lvcmos33 | drive = 2;
 
 # 4 more LEDs, one next to each of the first 4 coax connectors:
-#net coax_led<0> loc=p102 | iostandard=lvcmos33; # differs from althea revB
-#net coax_led<1> loc=p98  | iostandard=lvcmos33; # differs from althea revB
-#net coax_led<2> loc=p92  | iostandard=lvcmos33;
-#net coax_led<3> loc=p81  | iostandard=lvcmos33; # differs from althea revB
+net coax_led<0> loc=p102 | iostandard=lvcmos33; # differs from althea revB
+net coax_led<1> loc=p98  | iostandard=lvcmos33; # differs from althea revB
+net coax_led<2> loc=p92  | iostandard=lvcmos33;
+net coax_led<3> loc=p81  | iostandard=lvcmos33; # differs from althea revB
 
 net coax<0> loc=p105 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
 net coax<1> loc=p95  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1 - differs from althea revB
