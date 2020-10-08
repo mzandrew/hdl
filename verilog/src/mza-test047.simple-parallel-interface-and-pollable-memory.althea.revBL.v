@@ -432,6 +432,7 @@ module myalthea (
 	input rpi_gpio3_i2c1_scl, // register_select
 	input rpi_gpio4_gpclk0, // enable
 	input rpi_gpio5, // read
+	input rpi_gpio26, // spare
 	// 16 bit bus:
 	inout rpi_gpio6_gpclk2, rpi_gpio7_spi_ce1, rpi_gpio8_spi_ce0, rpi_gpio9_spi_miso,
 	inout rpi_gpio10_spi_mosi, rpi_gpio11_spi_sclk, rpi_gpio12, rpi_gpio13,

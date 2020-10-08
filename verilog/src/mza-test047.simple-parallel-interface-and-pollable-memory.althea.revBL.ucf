@@ -90,17 +90,17 @@ net rpi_gpio21          loc=p79  | iostandard=lvcmos33 | drive = 4; # bank1 - di
 #net rpi_gpio23                                                   ; # used for jtag (TCK)
 #net rpi_gpio24                                                   ; # used for jtag (TDO)
 #net rpi_gpio25                                                   ; # used for DONE
-#net rpi_gpio26                                                   ; # used for SRST
+net rpi_gpio26          loc=p62  | iostandard=lvcmos33 | drive = 4; # bank2 - differs from althea revB
 #net rpi_gpio27                                                   ; # used for jtag (TDI)
 
 #net "rpi_gpio4_gpclk0" tnm_net = tnm_clock10;
 #timespec "ts_clock10" = period "tnm_clock10" 100.0 ns high 50%; # 10 MHz
 
 # hexadecimal rotary encoder:
-#net rot_1 loc=p100 | iostandard=lvcmos33 | pullup; # bank1 - differs from althea revB
-#net rot_2 loc=p97  | iostandard=lvcmos33 | pullup; # bank2 - differs from althea revB
-#net rot_4 loc=p67  | iostandard=lvcmos33 | pullup; # bank2
-#net rot_8 loc=p62  | iostandard=lvcmos33 | pullup; # bank2
+#net rot_1 loc=p119 | iostandard=lvcmos33 | pullup; # bank0 - differs from althea revB
+#net rot_2 loc=p143 | iostandard=lvcmos33 | pullup; # bank0 - differs from althea revB
+#net rot_4 loc=p121 | iostandard=lvcmos33 | pullup; # bank0 - differs from althea revB
+#net rot_8 loc=p120 | iostandard=lvcmos33 | pullup; # bank0 - differs from althea revB
 
 # momentary pushbutton, normally open:
 net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3
