@@ -109,12 +109,14 @@ if 1:
 
 if 1:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
-	values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
+#	values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
 	values = [ 0 for a in range(2**14) ]
-	values[0] = 0x11223344
-	values[1] = 0x00005566
+	for i in range(125):
+		values[i] = 0xffffffff
+#	values[0] = 0x11223344
+#	values[1] = 0x00005566
 #	values[2] = 0xffff0000
-	values[3] = 0x77008800
+#	values[3] = 0x77008800
 #	values[4] = 0x55555555
 #	values[5] = 0x00005555
 #	values[6] = 0x55550000

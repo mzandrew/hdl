@@ -2,7 +2,7 @@
 
 # written 2020-08-17 by mza
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-10-01 by mza
+# last updated 2020-10-12 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -118,9 +118,9 @@ if 0:
 	althea.test_different_drive_strengths()
 	althea.set_all_gpio_as_inputs()
 
-if 1:
+if 1: # setup spi bus objects
 	spi_ce0 = althea.spi(0, 16) # 16 (32bit) words to control sequencer
-	spi_ce1 = althea.spi_sequencer(1, 4096) # 4096 (32bit) words of sequencer memory
+	spi_ce1 = althea.spi_sequencer(1, 2**12) # 4096 (32bit) words of sequencer memory
 
 if 0:
 	set_ring_oscillator_values(spi_ce0, 10, 5, 12)
@@ -128,7 +128,27 @@ if 0:
 	show_frequency_counter_value(spi_ce0)
 	#sys.exit(0)
 
-if 1:
+if 1: # increasing pulse widths from 32ns to 1.024us
+	#spi_ce1.write_zero_values_to_spi_pollable_memory_and_verify(2**12) # clear memory
+	values = [ 0 for a in range(2**12) ]
+	k = 0
+	for i in range(32):
+		for j in range(i+1):
+			k = i * 125 + j
+			values[k] = 0xffffffff
+	spi_ce1.write_values_to_spi_pollable_memory_and_verify(len(values), values)
+	spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 32*len(values) ]) # show 9 revolutions worth of the sequencer memory
+
+if 0: # 4us pulse, then 1ns pulse
+	#spi_ce1.write_zero_values_to_spi_pollable_memory_and_verify(2**12) # clear memory
+	values = [ 0 for a in range(2**12) ]
+	for i in range(125):
+		values[i] = 0xffffffff
+	values[250] = 0x80000000
+	spi_ce1.write_values_to_spi_pollable_memory_and_verify(len(values), values)
+	spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 32*len(values) ]) # show 9 revolutions worth of the sequencer memory
+
+if 0: # fill it in with the superkekb bcm pattern
 	#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 11*RF_buckets, 12*RF_buckets ]) # show unused part of memory while we're writing into it
 	#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 16 ]) # show entire memory while we're writing into it
 	#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 12.7*RF_buckets ]) # show entire memory while we're writing into it
