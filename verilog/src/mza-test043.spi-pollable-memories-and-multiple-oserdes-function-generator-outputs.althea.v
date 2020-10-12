@@ -1,6 +1,6 @@
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-10-01 by mza
+// last updated 2020-10-12 by mza
 
 `define althea_revB
 `include "lib/spi.v"
@@ -24,9 +24,10 @@ module top (
 	output rpi_spi_miso,
 	input rpi_spi_ce0,
 	input rpi_spi_ce1,
+	input button,
 	output [5:0] coax,
-	output led_0, led_1, led_2, led_3,
-	output led_4, led_5, led_6, led_7
+	output [3:0] coax_led,
+	output [7:0] led
 );
 	reg reset1 = 1;
 	reg reset2_clock125 = 1;
@@ -38,9 +39,9 @@ module top (
 	wire clock125;
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	if (0) begin
-		simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 100->125
+		simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
 	end else begin
-		simpledcm_SP #(.multiply(10), .divide(4), .alt_clockout_divide(2), .period(20.0)) mydcm (.clockin(clock50), .reset(reset1), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked));
+		simpledcm_SP #(.multiply(10), .divide(4), .alt_clockout_divide(2), .period(20.0)) mydcm (.clockin(clock50), .reset(reset1), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 50->125
 	end
 	// ----------------------------------------------------------------------
 	wire word_clock;
@@ -52,7 +53,10 @@ module top (
 	assign clock_spi = word_clock;
 	reg [7:0] reset_counter = 0;
 	always @(posedge clock50) begin
-		if (reset1) begin
+		if (~button) begin
+			reset1 <= 1;
+			reset_counter <= 0;
+		end else if (reset1) begin
 			if (reset_counter[7]) begin
 				reset1 <= 0;
 			end else begin
@@ -150,7 +154,7 @@ module top (
 		end
 		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
-	//assign coax[5] = sync_out_stream[2];
+	assign coax[4] = sync_out_stream[2];
 	if (0) begin
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .word_in(oserdes_word_out), .D_out(coax[0]), .locked(pll_oserdes_locked));
 		assign coax[1] = 0;
@@ -159,6 +163,7 @@ module top (
 		assign coax[4] = 0;
 		assign coax[5] = 0;
 	end else if (0) begin
+		assign coax_led = 4'b0011;
 		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock),
 			.word0_in(oserdes_word_out), .D0_out(coax[0]),
 			.word1_in(oserdes_word_out), .D1_out(coax[1]),
@@ -167,19 +172,21 @@ module top (
 		assign coax[3] = 0;
 		assign coax[4] = 0;
 		assign coax[5] = 0;
-	end else if (0) begin
+	end else if (1) begin
+		assign coax_led = 4'b1111;
 		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
 			.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
 			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out),
 			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]));
-		assign coax[4] = 0;
+		//assign coax[4] = 0;
 		assign coax[5] = 0;
-	end else if (1) begin
+	end else if (0) begin
 		// hex8 won't work because each bufpll only covers a single bank
 //		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (
 //			.clock_in(clock125), .reset(reset2_clock125), .word_clock_out(word_clock), .locked(pll_oserdes_locked),
 //			.word0_in(oserdes_word_out), .word1_in(oserdes_word_out), .word2_in(oserdes_word_out), .word3_in(oserdes_word_out), .word4_in(oserdes_word_out), .word5_in(oserdes_word_out),
 //			.D0_out(coax[0]), .D1_out(coax[1]), .D2_out(coax[2]), .D3_out(coax[3]), .D4_out(coax[4]), .D5_out(coax[5]));
+		assign coax_led = 4'b1111;
 		wire pll_oserdes_locked_1;
 		wire pll_oserdes_locked_2;
 		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
@@ -207,18 +214,16 @@ module top (
 	end
 	// ----------------------------------------------------------------------
 	if (0) begin
-		wire [7:0] leds;
-		assign { led_7, led_6, led_5, led_4, led_3, led_2, led_1, led_0 } = leds;
-		assign leds = oserdes_word_out;
+		assign led = oserdes_word_out;
 	end else begin
-		assign led_7 = reset1;
-		assign led_6 = reset2_clock125;
-		assign led_5 = reset3_word_clock;
-		assign led_4 = ~rpi_spi_ce0;
-		assign led_3 = ~rpi_spi_ce1;
-		assign led_2 = 0;
-		assign led_1 = 1;
-		assign led_0 = 0;
+		assign led[7] = ~pll_oserdes_locked;
+		assign led[6] = 0;//~pll_oserdes_locked_2;
+		assign led[5] = reset1;
+		assign led[4] = reset2_clock125;
+		assign led[3] = reset3_word_clock;
+		assign led[2] = ~rpi_spi_ce0;
+		assign led[1] = ~rpi_spi_ce1;
+		assign led[0] = 0;
 		//assign led_2 = data32_ce0[2];
 		//assign led_1 = data32_ce0[1];
 		//assign led_0 = data32_ce0[0];
@@ -232,15 +237,18 @@ module mza_test043_spi_pollable_memories_and_multiple_oserdes_function_generator
 	input rpi_spi_ce1,
 	input rpi_spi_mosi,
 	output rpi_spi_miso,
+	input button,
 	output [5:0] coax,
-	output led_0, led_1, led_2, led_3, led_4, led_5, led_6, led_7
+	output [3:0] coax_led,
+	output [7:0] led
 );
 	top mytop (
 		.clock50_p(clock50_p), .clock50_n(clock50_n),
 		.rpi_spi_mosi(rpi_spi_mosi), .rpi_spi_miso(rpi_spi_miso), .rpi_spi_sclk(rpi_spi_sclk), .rpi_spi_ce0(rpi_spi_ce0), .rpi_spi_ce1(rpi_spi_ce1),
+		.button(button),
 		.coax(coax),
-		.led_0(led_0), .led_1(led_1), .led_2(led_2), .led_3(led_3),
-		.led_4(led_4), .led_5(led_5), .led_6(led_6), .led_7(led_7)
+		.coax_led(coax_led),
+		.led(led)
 	);
 endmodule
 
