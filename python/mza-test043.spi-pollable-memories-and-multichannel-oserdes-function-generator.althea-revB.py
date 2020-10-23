@@ -2,7 +2,7 @@
 
 # written 2020-08-17 by mza
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-10-12 by mza
+# last updated 2020-10-19 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -128,7 +128,19 @@ if 0:
 	show_frequency_counter_value(spi_ce0)
 	#sys.exit(0)
 
-if 1: # increasing pulse widths from 32ns to 1.024us
+if 1: # increasing pulse widths from 1ns to 32ns
+	#spi_ce1.write_zero_values_to_spi_pollable_memory_and_verify(2**12) # clear memory
+	values = [ 0 for a in range(2**12) ]
+	k = 0
+	value = 0
+	for i in range(32):
+		k = i * 125
+		value += 1<<(31-i)
+		values[k] = value
+	spi_ce1.write_values_to_spi_pollable_memory_and_verify(len(values), values)
+	spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 32*len(values) ]) # show 9 revolutions worth of the sequencer memory
+
+if 0: # increasing pulse widths from 32ns to 1.024us
 	#spi_ce1.write_zero_values_to_spi_pollable_memory_and_verify(2**12) # clear memory
 	values = [ 0 for a in range(2**12) ]
 	k = 0
