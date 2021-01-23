@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2020-05-29 by mza
+// last updated 2021-01-23 by mza
 // this code runs on an althea connected to a RAFFERTY board
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
@@ -42,6 +42,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	IBUFDS trigger_input_instance (.I(remote_revo_in_p), .IB(remote_revo_in_n), .O(rawtrg));
 	reg saw_a_trigger_recently = 0;
 	reg acknowledge_that_we_saw_a_trigger_recently = 0;
+	wire pll_127_127_locked;
 	always @(posedge rawtrg or negedge pll_127_127_locked or posedge acknowledge_that_we_saw_a_trigger_recently) begin
 		if (~pll_127_127_locked | acknowledge_that_we_saw_a_trigger_recently) begin
 			saw_a_trigger_recently <= 0;
@@ -107,7 +108,6 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire rawclock127_180;
 	wire rawclock127_270;
 //	wire raw_clock509a, raw_clock509b;
-	wire pll_127_127_locked;
 	assign led_rfclock = pll_127_127_locked;
 	simplepll_BASE #(.overall_divide(2), .multiply(16), .period(7.86), .compensation("INTERNAL"),
 		.divide0(8), .divide1(8), .divide2(8), .divide3(8), .divide4(2), .divide5(2),

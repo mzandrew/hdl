@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-08-26 by mza
 // this code runs on an althea revA connected to a JoeStrummer board
-// last updated 2020-05-29 by mza
+// last updated 2021-01-23 by mza
 
 `define althea_revA
 
@@ -33,10 +33,11 @@ module mza_test031_clock509_and_revo_generator_althea #(
 		end
 		counter <= counter + 1'b1;
 	end
-	localparam clock_word = 8'b10101010;
+	wire [8:0] clock_word = 8'b10101010;
 	wire [7:0] revo_word;
 	wire oserdes_pll_locked1;
 	wire oserdes_pll_locked2;
+	wire revo;
 	assign led_7 = oserdes_pll_locked1;
 	assign led_6 = oserdes_pll_locked2;
 	assign led_5 = 0;
@@ -48,7 +49,6 @@ module mza_test031_clock509_and_revo_generator_althea #(
 	wire clock509_oddr;
 	wire revo_oddr;
 	wire word_clock2;
-	wire revo;
 	superkekb skb (.clock(word_clock2), .reset(superkekb_reset), .revo(revo), .revo_word(revo_word));
 	wire rawclock127;
 	BUFIO2 #(
