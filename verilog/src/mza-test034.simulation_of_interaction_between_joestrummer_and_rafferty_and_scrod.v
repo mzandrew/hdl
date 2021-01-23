@@ -9,6 +9,10 @@ module joestrummer_and_rafferty_tb;
 	wire joestrummer_lemo;
 	wire joestrummer_led_0, joestrummer_led_1, joestrummer_led_2, joestrummer_led_3, joestrummer_led_4, joestrummer_led_5, joestrummer_led_6, joestrummer_led_7;
 	wire raw_recovered_revo;
+	wire rafferty_clk78_p;
+	wire rafferty_clk78_n;
+	wire rafferty_trg36_p;
+	wire rafferty_trg36_n;
 	assign raw_recovered_revo = rafferty_clk78_p ^ rafferty_trg36_p;
 	reg recovered_revo = 0;
 	mza_test031_clock509_and_revo_generator_althea joestrummer (
@@ -71,10 +75,6 @@ module joestrummer_and_rafferty_tb;
 	reg rafferty_local_clock509_in_p = 0;
 	reg rafferty_local_clock509_in_n = 1;
 	// Outputs
-	wire rafferty_clk78_p;
-	wire rafferty_clk78_n;
-	wire rafferty_trg36_p;
-	wire rafferty_trg36_n;
 	wire rafferty_out1_p;
 	wire rafferty_out1_n;
 	wire rafferty_outa_p;
@@ -138,6 +138,10 @@ module joestrummer_and_rafferty_and_scrod_tb;
 	wire joestrummer_lemo;
 	wire joestrummer_led_0, joestrummer_led_1, joestrummer_led_2, joestrummer_led_3, joestrummer_led_4, joestrummer_led_5, joestrummer_led_6, joestrummer_led_7;
 	wire raw_recovered_revo;
+	wire rafferty_clk78_p;
+	wire rafferty_clk78_n;
+	wire rafferty_trg36_p;
+	wire rafferty_trg36_n;
 	assign raw_recovered_revo = rafferty_clk78_p ^ rafferty_trg36_p;
 	reg recovered_revo = 0;
 	mza_test031_clock509_and_revo_generator_althea joestrummer (
@@ -183,10 +187,6 @@ module joestrummer_and_rafferty_and_scrod_tb;
 	reg rafferty_local_clock509_in_p = 0;
 	reg rafferty_local_clock509_in_n = 1;
 	// Outputs
-	wire rafferty_clk78_p;
-	wire rafferty_clk78_n;
-	wire rafferty_trg36_p;
-	wire rafferty_trg36_n;
 	wire rafferty_out1_p;
 	wire rafferty_out1_n;
 	wire rafferty_outa_p;
