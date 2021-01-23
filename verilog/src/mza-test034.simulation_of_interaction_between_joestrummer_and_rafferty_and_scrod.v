@@ -2,7 +2,7 @@
 // written 2019-09-20 by mza
 // last updated 2021-01-23 by mza
 
-//`include "lib/generic.v"
+`include "lib/generic.v"
 `include "mza-test031.clock509_and_revo_generator.althea.v"
 `include "mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v"
 `include "mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v"
