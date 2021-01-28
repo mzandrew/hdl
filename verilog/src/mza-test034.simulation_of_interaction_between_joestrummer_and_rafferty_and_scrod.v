@@ -3,6 +3,7 @@
 // last updated 2021-01-23 by mza
 
 `include "lib/generic.v"
+`include "lib/dcm.v"
 `include "mza-test031.clock509_and_revo_generator.althea.v"
 `include "mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v"
 `include "mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v"
@@ -160,6 +161,14 @@ module joestrummer_and_rafferty_and_scrod_tb;
 		.led_0(joestrummer_led_0), .led_1(joestrummer_led_1), .led_2(joestrummer_led_2), .led_3(joestrummer_led_3),
 		.led_4(joestrummer_led_4), .led_5(joestrummer_led_5), .led_6(joestrummer_led_6), .led_7(joestrummer_led_7)
 	);
+	reg [24:0] scrod_bunch_marker_a_position = 0;
+	reg [24:0] scrod_bunch_marker_b_position = 1;
+	reg [24:0] scrod_bunch_marker_c_position = 2;
+	reg [24:0] scrod_bunch_marker_d_position = 3;
+	reg rafferty_clock_select = 0;
+	reg scrod_reset = 1;
+	reg scrod_xrm_trigger_enabled = 0;
+	reg [4:0] scrod_trig_prescale_N_log2 = 12;
 	initial begin
 		joestrummer_local_clock509_in_p = 0; joestrummer_local_clock509_in_n = 1;
 		joestrummer_local_clock50_in_p = 0; joestrummer_local_clock50_in_n = 1;
@@ -196,15 +205,14 @@ module joestrummer_and_rafferty_and_scrod_tb;
 	wire rafferty_out1_n;
 	wire rafferty_outa_p;
 	wire rafferty_outa_n;
-	wire rafferty_rsv54_p;
-	wire rafferty_rsv54_n;
+	wire rafferty_rsv54_p = 0;
+	wire rafferty_rsv54_n = 1;
 	wire rafferty_lemo;
-	wire rafferty_ack12_p;
-	wire rafferty_ack12_n;
+	wire rafferty_ack12_p = 0;
+	wire rafferty_ack12_n = 1;
 	wire rafferty_led_revo;
 	wire rafferty_led_rfclock;
 	wire rafferty_driven_high;
-	reg rafferty_clock_select = 0;
 	wire rafferty_led_0;
 	wire rafferty_led_1;
 	wire rafferty_led_2;
@@ -248,27 +256,35 @@ module joestrummer_and_rafferty_and_scrod_tb;
 	always @(negedge rafferty_clk78_p) begin
 		recovered_revo <= raw_recovered_revo;
 	end
-	reg scrod_reset = 1;
-	reg scrod_xrm_trigger_enabled = 0;
-	reg [4:0] scrod_trig_prescale_N_log2 = 12;
-	reg [24:0] scrod_bunch_marker_a_position = 0;
-	reg [24:0] scrod_bunch_marker_b_position = 1;
-	reg [24:0] scrod_bunch_marker_c_position = 2;
-	reg [24:0] scrod_bunch_marker_d_position = 3;
 	wire scrod_xrm_trigger;
 	wire scrod_frame;
 	wire scrod_frame9;
 	XRM_clock_and_revo_receiver_frame9_and_trigger_generator scrod (
 		.remote_clock127_p(rafferty_clk78_p), .remote_clock127_n(rafferty_clk78_n),
 		.remote_revo_p(rafferty_trg36_p), .remote_revo_n(rafferty_trg36_n),
+		.rsv_p(), .rsv_n(),
+		.ack_p(), .ack_n(),
 		.reset(scrod_reset),
 		.xrm_trigger_enabled(scrod_xrm_trigger_enabled), // from config.xrm_trigger_enabled
 		.trig_prescale_N_log2(scrod_trig_prescale_N_log2), // from config.trig_prescale_N_log2
-		.bunch_marker_a_position(scrod_bunch_marker_a_position), // from config.bunch_marker_a
-		.bunch_marker_b_position(scrod_bunch_marker_b_position), // from config.bunch_marker_b
-		.bunch_marker_c_position(scrod_bunch_marker_c_position), // from config.bunch_marker_c
-		.bunch_marker_d_position(scrod_bunch_marker_d_position), // from config.bunch_marker_d
+		.config_bunch_marker_a_position(scrod_bunch_marker_a_position), // from config.bunch_marker_a
+		.config_bunch_marker_b_position(scrod_bunch_marker_b_position), // from config.bunch_marker_b
+		.config_bunch_marker_c_position(scrod_bunch_marker_c_position), // from config.bunch_marker_c
+		.config_bunch_marker_d_position(scrod_bunch_marker_d_position), // from config.bunch_marker_d
+		.config_desired_trigger_quantity_for_bunch_marker_a(32'b0),
+		.config_desired_trigger_quantity_for_bunch_marker_b(32'b0),
+		.config_desired_trigger_quantity_for_bunch_marker_c(32'b0),
+		.config_desired_trigger_quantity_for_bunch_marker_d(32'b0),
+		.config_clear_count_of_triggers_for_bunch_markers(4'b0),
 		.xrm_trigger(scrod_xrm_trigger),
+		.allTrigs(1'b0),
+		.frameCount(),
+		.frame9Count(),
+		.clockout(),
+		.oserdes_bit_clock(1'b0),
+		.oserdes_pulsetrain(),
+		.config_oserdes_word_trig(32'b0),
+		.triggerCount(),
 		.frame(scrod_frame),
 		.frame9(scrod_frame9)
 	);

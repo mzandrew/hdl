@@ -4,6 +4,8 @@
 // last updated 2021-01-23 by mza
 
 `define althea_revA
+`include "lib/superkekb.v"
+`include "lib/serdes_pll.v"
 
 module mza_test031_clock509_and_revo_generator_althea #(
 	parameter PHASE = 45.0
@@ -33,7 +35,7 @@ module mza_test031_clock509_and_revo_generator_althea #(
 		end
 		counter <= counter + 1'b1;
 	end
-	wire [8:0] clock_word = 8'b10101010;
+	wire [7:0] clock_word = 8'b10101010;
 	wire [7:0] revo_word;
 	wire oserdes_pll_locked1;
 	wire oserdes_pll_locked2;

@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
 // based partly off mza-test029
-// last updated 2020-05-19 by mza
+// last updated 2021-01-23 by mza
 
 //	ssynchronizer #(.WIDTH(1)) mysin (.clock1(), .clock2(), .reset1(), .reset2(), .in1(), .out2());
 module ssynchronizer #(
@@ -113,12 +113,12 @@ module edge_to_pulse #(
 endmodule
 
 module edge_to_pulse_tb;
+	parameter WIDTH = 4'd4;
+	parameter DEPTH = 4'd8;
 	reg clock = 0;
 	reg [WIDTH-1:0] in = 0;
 	reg reset = 1;
 	wire [WIDTH-1:0] out;
-	parameter DEPTH = 4'd8;
-	parameter WIDTH = 4'd4;
 	edge_to_pulse #(.DEPTH(DEPTH), .WIDTH(WIDTH)) e2p (.clock(clock), .in(in), .reset(reset), .out(out));
 	initial begin
 		clock <= 0;
@@ -302,7 +302,7 @@ module handshake #(
 		output_trigger_b <= (!last_request_b) && (request_b);
 endmodule
 
-module handshake_tb ();
+module handshake_tb;
 	wire busy;
 	reg clock_a = 0;
 	reg clock_b = 0;
@@ -435,7 +435,7 @@ module button_debounce #(
 	end
 endmodule
 
-module button_debounce_tb ();
+module button_debounce_tb;
 	reg button_raw = 0;
 	reg clock = 0;
 	wire button_just_went_inactive;

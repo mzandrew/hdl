@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-20 by mza
 // based on vhdl version I wrote in late 2018 / early 2019 (from ScrodRevB_b2tt.vhd in UH svn repo)
-// last updated 2019-11-05 by mza
+// last updated 2021-01-23 by mza
 
 module ocyrus7series (
 	input bit_clock,
@@ -264,7 +264,7 @@ module XRM_clock_and_revo_receiver_frame9_and_trigger_generator (
 				end
 				frame9_token <= { frame9_token[0], frame9_token[8:1] };
 			end else begin
-				clock127_counter = clock127_counter + 1;
+				clock127_counter = clock127_counter + 1'b1;
 			end
 		end
 	end

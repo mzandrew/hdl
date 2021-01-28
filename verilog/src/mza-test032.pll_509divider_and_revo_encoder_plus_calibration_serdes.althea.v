@@ -7,6 +7,9 @@
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
 `define althea_revA
+`include "lib/serdes_pll.v"
+`include "lib/dcm.v"
+`include "lib/synchronizer.v"
 
 module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea #(
 	parameter PLL_NOT_LOCKED_COUNTER_MAX = 16384, // simulation only needed ~30, but 512 isn't enough for reality, so picked this

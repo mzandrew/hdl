@@ -232,7 +232,7 @@ module ring_oscillator #(
 	assign clock_out = stage[0];
 endmodule
 
-module ring_oscillator_tb ();
+module ring_oscillator_tb;
 	wire clock;
 	reg enable = 0;
 	reg [3:0] select_coarse = 4'd0;
