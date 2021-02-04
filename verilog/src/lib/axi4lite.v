@@ -1,5 +1,6 @@
 // written 2020-06-03 by mza
-// last updated 2020-06-04 by mza
+// updated 2020-06-04 by mza
+// last updated 2021-02-03 by mza
 
 module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
 	localparam ADDRESS_WIDTH = 4;
@@ -50,8 +51,9 @@ module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
 		.araddr(araddr), .arvalid(arvalid), .arready(arready),
 		.rdata(rdata),   .rvalid(rvalid),   .rready(rready)
 	);
-	task automatic master_read_transaction;
-		input [ADDRESS_WIDTH-1:0] address;
+//	task automatic master_read_transaction;
+//		input [ADDRESS_WIDTH-1:0] address;
+	task automatic master_read_transaction(input [ADDRESS_WIDTH-1:0] address);
 		begin
 			#100;
 			pre_spi_read_address <= address;
@@ -60,9 +62,10 @@ module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
 			pre_spi_read_strobe <= 0;
 		end
 	endtask
-	task automatic master_write_transaction;
-		input [ADDRESS_WIDTH-1:0] address;
-		input [DATA_WIDTH-1:0] data;
+//	task automatic master_write_transaction;
+//		input [ADDRESS_WIDTH-1:0] address;
+//		input [DATA_WIDTH-1:0] data;
+	task automatic master_write_transaction(input [ADDRESS_WIDTH-1:0] address, input [DATA_WIDTH-1:0] data);
 		begin
 			#100;
 			pre_spi_write_address <= address;
@@ -74,14 +77,14 @@ module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
 	endtask
 	initial begin
 		#100; reset <= 0;
-		#100; master_write_transaction(.address(4'h2), .data(32'h12345678));
-		#100; master_write_transaction(.address(4'h5), .data(32'habcdef01));
-		#100; master_write_transaction(.address(4'he), .data(32'h55550000));
-		#100; master_write_transaction(.address(4'hc), .data(32'h00aa00aa));
-		#100; master_read_transaction(.address(4'h2));
-		#100; master_read_transaction(.address(4'hc));
-		#100; master_read_transaction(.address(4'he));
-		#100; master_read_transaction(.address(4'hc));
+		#100; master_write_transaction(4'h2, 32'h12345678);
+		#100; master_write_transaction(4'h5, 32'habcdef01);
+		#100; master_write_transaction(4'he, 32'h55550000);
+		#100; master_write_transaction(4'hc, 32'h00aa00aa);
+		#100; master_read_transaction(4'h2);
+		#100; master_read_transaction(4'hc);
+		#100; master_read_transaction(4'he);
+		#100; master_read_transaction(4'hc);
 	end
 	always @(posedge clock) begin
 		spi_write_address <= pre_spi_write_address;
@@ -488,14 +491,14 @@ module pollable_memory_axi4lite_slave_tb;
 		pre_araddr <= 0;
 		pre_arvalid <= 0;
 		pre_rready <= 1;
-		#100; master_write_transaction(.address(4'h2), .data(32'h12345678));
-		#100; master_write_transaction(.address(4'h5), .data(32'habcdef01));
-		#100; master_write_transaction(.address(4'he), .data(32'h55550000));
-		#100; master_write_transaction(.address(4'hc), .data(32'h00aa00aa));
-		#100; master_read_transaction(.address(4'h2));
-		#100; master_read_transaction(.address(4'hc));
-		#100; master_read_transaction(.address(4'he));
-		#100; master_read_transaction(.address(4'hc));
+		#100; master_write_transaction(4'h2, 32'h12345678);
+		#100; master_write_transaction(4'h5, 32'habcdef01);
+		#100; master_write_transaction(4'he, 32'h55550000);
+		#100; master_write_transaction(4'hc, 32'h00aa00aa);
+		#100; master_read_transaction(4'h2);
+		#100; master_read_transaction(4'hc);
+		#100; master_read_transaction(4'he);
+		#100; master_read_transaction(4'hc);
 	end
 	always @(posedge clock) begin
 		awaddr <= pre_awaddr;

@@ -1,6 +1,7 @@
 // written 2018-07-27 by mza
 // originally from file mza-test008.16-segment-driver.button-debounce-duration-counter.v
-// last updated 2020-05-29 by mza
+// updated 2020-05-29 by mza
+// last updated 2021-02-03 by mza
 
 // see module button_debounce in file synchronizer.v as well
 
@@ -30,7 +31,7 @@ module debounce(
 				end
 			end
 		end else begin
-			counter--;
+			counter <= counter - 1'b1;
 			button_active <= new_status;
 		end
 		old_status <= new_status;

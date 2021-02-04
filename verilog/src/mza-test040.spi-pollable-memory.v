@@ -6,7 +6,8 @@
 
 // written 2020-05-07 by mza
 // based on mza-test039.spi.v and mza-test036.function-generator.althea.v and mza-test017.serializer-ram.v
-// last updated 2020-06-01 by mza
+// updated 2020-06-01 by mza
+// last updated 2021-02-03 by mza
 
 `include "lib/spi.v"
 
@@ -25,8 +26,7 @@
 //`else
 //`endif
 
-module RAM_ice40_2k_32bit #(
-) (
+module RAM_ice40_2k_32bit (
 	input reset,
 	input write_clock,
 	input [10:0] write_address,
@@ -86,8 +86,7 @@ module RAM_ice40_2k_32bit #(
 		.read_clock(read_clock),   .read_address(read_address),   .read_data(read_data[1:0]));
 endmodule
 
-module RAM_ice40_1k_32bit #(
-) (
+module RAM_ice40_1k_32bit (
 	input reset,
 	input write_clock,
 	input [9:0] write_address,

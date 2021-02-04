@@ -1,9 +1,10 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
-// last updated 2019-09-22 by mza
+// updated 2019-09-22 by mza
+// last updated 2021-02-03 by mza
 
 module clocked_1ns_delay #(
-	WIDTH = 1
+	parameter WIDTH = 1
 ) (
 	input [WIDTH-1:0] in,
 	output reg [WIDTH-1:0] out
@@ -22,7 +23,7 @@ module clocked_1ns_delay #(
 endmodule
 
 module clocked_2ns_delay #(
-	WIDTH = 1
+	parameter WIDTH = 1
 ) (
 	input [WIDTH-1:0] in,
 	output reg [WIDTH-1:0] out

@@ -1,6 +1,7 @@
 // written 2018-08-06 by mza
 // based on mza-test013.i2c.v
-// last updated 2018-08-16 by mza
+// updated 2018-08-16 by mza
+// last updated 2021-02-03 by mza
 
 //module i2c_send_single_byte #(parameter number_of_bytes=1, ) (input [6:0] address);
 //input read_not_write, 
@@ -275,7 +276,7 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 				end
 				default : ;
 			endcase
-			bit_counter--;
+			bit_counter <= bit_counter - 1'b1;
 		end else begin
 			busy <= 0;
 			if (start_transfer==1) begin

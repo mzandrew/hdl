@@ -1,4 +1,5 @@
-// last updated 2020-10-02 by mza
+// updated 2020-10-02 by mza
+// last updated 2021-02-03 by mza
 `ifndef RAM8_LIB
 `define RAM8_LIB
 
@@ -380,8 +381,7 @@ endmodule
 //(* BMM_INFO = " " *)
 //(* BMM_INFO = "ADDRESS_SPACE map_name RAMB16 [start:end] END_ADDRESS_MAP;" *)
 
-module RAM_s6_16k_8bit #(
-) (
+module RAM_s6_16k_8bit (
 	input read_clock,
 	input write_clock,
 	input reset,

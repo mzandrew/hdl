@@ -1,7 +1,8 @@
 // written 2018-08-01 by mza
 // use like so:
 // easypll #(.DIVR(0), .DIVF(63), .DIVQ(3), .FILTER_RANGE(1)) my_pll_instance (.clock_input(CLK), .reset_active_low(1), .global_clock_output(fast_clock), .pll_is_locked(pll_is_locked)); // 96 MHz
-// last updated 2020-05-05 by mza
+// updated 2020-05-05 by mza
+// last updated 2021-02-03 by mza
 
 // from arachne-pnr/tests/simple/sb_pll40_CORE.v
 // and from reading SBTICETechnologyLibrary201504.pdf
@@ -38,7 +39,7 @@ module easypll #(
 		.DIVR(DIVR),// 4
 		.DIVF(DIVF), // 7
 		.DIVQ(DIVQ), // 3
-		.FILTER_RANGE(FILTER_RANGE), // 3
+		.FILTER_RANGE(FILTER_RANGE) // 3
 //		.ENABLE_ICEGATE_PORTA(1'b0),
 //		.ENABLE_ICEGATE_PORTB(1'b0),
 //		.TEST_MODE(1'b0)

@@ -1,6 +1,7 @@
 // written 2018-07-26 by mza
 // taken from mza-test007.7-segment-driver.v
-// last updated 2020-06-01 by mza
+// updated 2020-06-01 by mza
+// last updated 2021-02-03 by mza
 
 //	segmented_display_driver #(.NUMBER_OF_SEGMENTS(8), .NUMBER_OF_NYBBLES(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), .dp(dp));
 module segmented_display_driver #(
@@ -122,8 +123,8 @@ module segmented_display_driver #(
 		assign nybble[j] = buffered_data[4*j+3:4*j];
 	end
 	//endgenerate
-	assign sync_c = dot_token[0];
 	reg [NUMBER_OF_SEGMENTS-1:0] dot_token = 0;
+	assign sync_c = dot_token[0];
 	always @(posedge dot_clock) begin
 //		if (NUMBER_OF_SEGMENTS==16) begin
 //			cathode   <= 16'b1111111111111111;
