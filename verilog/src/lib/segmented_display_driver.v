@@ -1,10 +1,11 @@
 // written 2018-07-26 by mza
 // taken from mza-test007.7-segment-driver.v
 // updated 2020-06-01 by mza
-// last updated 2021-02-03 by mza
+// last updated 2021-02-04 by mza
 
 //	segmented_display_driver #(.NUMBER_OF_SEGMENTS(8), .NUMBER_OF_NYBBLES(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), .dp(dp));
 module segmented_display_driver #(
+	parameter SIMULATION = 0,
 	parameter NUMBER_OF_SEGMENTS = 7,
 	parameter NUMBER_OF_NYBBLES = 4,
 	parameter LOG2_OF_NUMBER_OF_SEGMENTS = $clog2(NUMBER_OF_SEGMENTS),
@@ -18,8 +19,8 @@ module segmented_display_driver #(
 	output sync_c,
 	input [NUMBER_OF_NYBBLES-1:0] dp
 );
-	localparam dot_clock_pickoff = 4;
-	localparam nybble_clock_pickoff = dot_clock_pickoff + LOG2_OF_NUMBER_OF_SEGMENTS + 6; // the +6 makes the bug much less noticable
+	localparam dot_clock_pickoff = SIMULATION ? 1 : 4;
+	localparam nybble_clock_pickoff = SIMULATION ? 5 : dot_clock_pickoff + LOG2_OF_NUMBER_OF_SEGMENTS + 6; // the +6 makes the bug much less noticable
 	localparam raw_counter_size = 32;
 	localparam log2_of_reset_duration = dot_clock_pickoff; // otherwise, the dot_token never gets set properly
 	reg reset = 1;
@@ -190,24 +191,75 @@ endmodule // segmented_display_driver
 
 module segmented_display_driver_tb;
 //module testbench;
-	localparam NUMBER_OF_SEGMENTS = 7;
-	localparam NUMBER_OF_NYBBLES = 2;
+	localparam NUMBER_OF_SEGMENTS = 8;
+	localparam NUMBER_OF_NYBBLES = 4;
 	reg clock = 0;
-	reg [7:0] data = 0;
+	reg [NUMBER_OF_NYBBLES*4-1:0] data = 0;
 	wire [NUMBER_OF_SEGMENTS-1:0] cathode;
 	wire [NUMBER_OF_NYBBLES-1:0] anode;
-	wire [NUMBER_OF_NYBBLES-1:0] dp;
-	segmented_display_driver #(.NUMBER_OF_SEGMENTS(NUMBER_OF_SEGMENTS), .NUMBER_OF_NYBBLES(NUMBER_OF_NYBBLES)) my_segmented_display_driver (.clock(clock), .data(data), .cathode(cathode), .anode(anode), .sync_a(), .sync_c(), .dp(dp));
+	reg [NUMBER_OF_NYBBLES-1:0] dp = 0;
+	wire sync_anode;
+	wire sync_cathode;
+	segmented_display_driver #(.SIMULATION(1), .NUMBER_OF_SEGMENTS(NUMBER_OF_SEGMENTS), .NUMBER_OF_NYBBLES(NUMBER_OF_NYBBLES)) my_segmented_display_driver (.clock(clock), .data(data), .cathode(cathode), .anode(anode), .sync_a(sync_anode), .sync_c(sync_cathode), .dp(dp));
+	localparam HALF_PERIOD = 0.5;
+	localparam WHOLE_PERIOD = 2*HALF_PERIOD;
+	//localparam DOT_CLOCK_PERIOD = 16*WHOLE_PERIOD;
+	//localparam NYBBLE_CLOCK_PERIOD = (2**13)*WHOLE_PERIOD;
+	localparam DOT_CLOCK_PERIOD = 8*WHOLE_PERIOD;
+	localparam NYBBLE_CLOCK_PERIOD = (2**5)*WHOLE_PERIOD;
+	integer i;
+	task automatic show;
+		input [8*20:1] string;
+		begin
+			$display("%5s  %t %02x %07b %02b %02b %b %b", string, $time, data, cathode, anode, dp, sync_cathode, sync_anode);
+		end
+	endtask
+//	always @(posedge sync_cathode) begin
+//		show("c");
+//		for (i=0; i<1; i=i+1) begin
+//			#DOT_CLOCK_PERIOD; $display("%t %02x %07b %02b %02b %b %b", $time, data, cathode, anode, dp, sync_cathode, sync_anode);
+//		end
+//		for (i=0; i<2; i=i+1) begin
+//			#DOT_CLOCK_PERIOD; show("");
+//		end
+//	end
+//	always @(posedge sync_anode) begin
+//		show("a");
+//		for (i=0; i<2; i=i+1) begin
+//			#NYBBLE_CLOCK_PERIOD; show("");
+//		end
+//	end
+	task automatic wait_for_sync_anode;
+		begin
+			@(posedge sync_anode);
+		end
+	endtask
 	initial begin
-		#1000;
-		data <= 8'h80;
-		#2000000;
-		data <= 8'h71;
-		#2000000;
-		data <= 8'h94;
+		#100;
+		show("start");
+		data <= 16'h1234;
+		//#700;
+		wait_for_sync_anode();
+		show("");
+		wait_for_sync_anode();
+		show("");
+//		#2000000;
+		//#1000;
+		wait_for_sync_anode();
+		show("");
+		data <= 16'h5678;
+//		#2000000;
+//		data <= 8'h94;
+		//#1000;
+		wait_for_sync_anode();
+		show("");
+		wait_for_sync_anode();
+		wait_for_sync_anode();
+		show("end");
+		$finish;
 	end
 	always begin
-		#10;
+		#HALF_PERIOD;
 		clock = ~clock;
 	end
 endmodule
