@@ -78,7 +78,7 @@ module mytop (
 //	reg uart_transfers_are_allowed;
 //	localparam uart_character_pickoff = 11; // this is already close to the limit for 115200
 	localparam uart_line_pickoff = 22;
-	localparam slow_clock_pickoff = uart_line_pickoff;
+	localparam slow_clock_pickoff = 16;
 //	reg [15:0] uart_line_counter;
 	reg reset = 1;
 	wire uart_resetb;
@@ -101,10 +101,10 @@ module mytop (
 			buffered_bcd2 <= bcd2;
 			//buffered_bcd2 <= 32'h01234567;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
-			result2 <= result;
-		end else if (counter[slow_clock_pickoff:0]==2) begin
 			value2 <= result2[23:0]; // frequency counter mode
 			//value2 <= 24'd13578642;
+		end else if (counter[slow_clock_pickoff:0]==2) begin
+			result2 <= result;
 		end
 //		if (counter[uart_line_pickoff:0]==0) begin // less frequent
 //			if (previous_number_of_pulses!=number_of_pulses) begin
