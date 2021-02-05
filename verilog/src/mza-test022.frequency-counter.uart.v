@@ -2,7 +2,7 @@
 // based on mza-test014.duration-timer.uart.v
 // updated for icestick-frequency-counter revB
 // updated 2020-06-02 by mza
-// last updated 2021-02-04 by mza
+// last updated 2021-02-05 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -20,10 +20,11 @@ module mytop (
 	input RX,
 	output TX
 );
-//	reg [35:0] bcd1;
-	wire [35:0] bcd2;
-//	reg [35:0] buffered_bcd1;
-	reg [35:0] buffered_bcd2 = 0;
+	reg [31:0] counter = 0;
+//	reg [31:0] bcd1;
+	wire [31:0] bcd2;
+//	reg [31:0] buffered_bcd1;
+	reg [31:0] buffered_bcd2 = 0;
 //	reg [23:0] value1;
 	reg [23:0] value2 = 0;
 	wire external_reference_clock;
@@ -37,21 +38,23 @@ module mytop (
 	assign J2[2] = signal_output; // 5,4 pair (RSV)
 	//assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
 	assign external_reference_clock = J1[6]; // clipped sine wave oscillator
-	assign raw_external_clock_to_measure = J1[7]; // trigger_in LEMO
+	//assign raw_external_clock_to_measure = counter[4]; // something internal (in this case, 12 MHz / (i+1))
+	assign raw_external_clock_to_measure = clock; // something internal (in this case, 12 MHz)
+//	assign raw_external_clock_to_measure = J1[7]; // trigger_in LEMO
 //	assign raw_external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
 //	assign reference_clock = external_clock_to_measure; // 127216025 / N (or an unknown frequency)
 	assign reference_clock = external_reference_clock; // 100000280 / N
 	assign J1[0] = signal_output; // trigger_out on PCB
 	wire [31:0] result;
-	localparam N = 100; // N for N_Hz calculations
-	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(25000000), .LOG2_OF_DIVIDE_RATIO(24), .N(N)) fc (.reference_clock(reference_clock), .unknown_clock(raw_external_clock_to_measure), .frequency_of_unknown_clock(result));
+	localparam N = 1; // N for N_Hz calculations
+	wire frequency_counter_sync;
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(25000000), .LOG2_OF_DIVIDE_RATIO(25), .N(N)) fc (.reference_clock(reference_clock), .unknown_clock(raw_external_clock_to_measure), .frequency_of_unknown_clock(result));
 	// for a pair of 4-digit 7-segment(+dp) TCMG1050M displays on a "icestick frequency counter revA" board
 	wire [7:0] segment;
 	assign { J1[4], J1[1], J3[4], J3[5], J1[2], J1[5], J1[3], J3[2] } = segment; // segments g,f,e,d,c,b,a,dp
 	wire [7:0] anode;
 	assign { J2[7], J2[4], J2[5], J2[6], J3[6], J3[7], J3[3], J3[1] } = anode; // anodes 7,6,5,4,3,2,1,0
 	wire [7:0] dp;
-	segmented_display_driver #(.NUMBER_OF_SEGMENTS(8), .NUMBER_OF_NYBBLES(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode(), .dp(dp));
 	if (N==1) begin
 		assign dp = 8'b01000000;
 	end else if (N==10) begin
@@ -59,15 +62,17 @@ module mytop (
 	end else if (N==100) begin
 		assign dp = 8'b00010000;
 	end
+	wire segmented_display_driver_sync;
+	segmented_display_driver #(.NUMBER_OF_SEGMENTS(8), .NUMBER_OF_NYBBLES(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2), .dp(dp), .cathode(segment), .anode(anode), .sync_anode(segmented_display_driver_sync), .sync_cathode());
+	wire hex2bcd_sync;
 	assign LED[5] = 0;
 	assign LED[4] = signal_output;
 	//assign LED[3] = trigger_stream[2];
 	//assign LED[2] = trigger_stream[1];
 	//assign LED[1] = trigger_stream[0];
-	assign LED[3] = 0;
-	assign LED[2] = 0;
+	assign LED[3] = segmented_display_driver_sync;
+	assign LED[2] = hex2bcd_sync;
 	assign LED[1] = 0;
-	reg [31:0] counter = 0;
 //	localparam length_of_line = 6+6+2;
 //	reg [7:0] uart_character_counter;
 //	reg uart_transfers_are_allowed;
@@ -94,10 +99,12 @@ module mytop (
 		end
 		if (counter[slow_clock_pickoff:0]==0) begin
 			buffered_bcd2 <= bcd2;
+			//buffered_bcd2 <= 32'h01234567;
 		end else if (counter[slow_clock_pickoff:0]==1) begin
 			result2 <= result;
 		end else if (counter[slow_clock_pickoff:0]==2) begin
 			value2 <= result2[23:0]; // frequency counter mode
+			//value2 <= 24'd13578642;
 		end
 //		if (counter[uart_line_pickoff:0]==0) begin // less frequent
 //			if (previous_number_of_pulses!=number_of_pulses) begin
@@ -154,7 +161,7 @@ module mytop (
 //		end
 	end
 //	hex2bcd #(.INPUT_SIZE_IN_NYBBLES(6)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1), .sync() );
-	hex2bcd #(.INPUT_SIZE_IN_NYBBLES(6)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2), .sync() );
+	hex2bcd #(.INPUT_SIZE_IN_NYBBLES(6)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2), .sync(hex2bcd_sync) );
 //	assign bcd2 = { 0, value2 };
 //	reg uart_busy;
 //	reg start_uart_transfer;

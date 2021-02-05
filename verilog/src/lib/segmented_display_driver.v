@@ -20,7 +20,7 @@ module segmented_display_driver #(
 	input [NUMBER_OF_NYBBLES-1:0] dp
 );
 	localparam dot_clock_pickoff = SIMULATION ? 1 : 4;
-	localparam nybble_clock_pickoff = SIMULATION ? 6 : dot_clock_pickoff + LOG2_OF_NUMBER_OF_SEGMENTS;
+	localparam nybble_clock_pickoff = SIMULATION ? 6 : dot_clock_pickoff + LOG2_OF_NUMBER_OF_SEGMENTS + 4;
 	localparam raw_counter_size = 32;
 	//localparam log2_of_reset_duration = dot_clock_pickoff; // otherwise, the dot_token never gets set properly
 	localparam log2_of_reset_duration = nybble_clock_pickoff; // otherwise, the dot_token never gets set properly
