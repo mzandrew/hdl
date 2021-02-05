@@ -1,7 +1,7 @@
 // written 2018-06-29 by mza
 // originally from file mza-test003.double-dabble.v
 // updated 2020-05-29 by mza
-// last updated 2021-02-04 by mza
+// last updated 2021-02-05 by mza
 
 // implemented after watching computerphile video https://www.youtube.com/watch?v=eXIfZ1yKFlA
 // 0x0000000f (1) :         15  (2)
@@ -62,6 +62,7 @@ module hex2bcd #(
 	end
 endmodule // hex2bcd
 
+`ifndef SYNTHESIS
 module hex2bcd_tb;
 	wire [23:0] bcd;
 	reg [15:0] data = 0;
@@ -72,6 +73,7 @@ module hex2bcd_tb;
 	task automatic wait_for_sync;
 		begin
 			@(posedge sync);
+//			wait (sync==1);
 		end
 	endtask
 	initial begin
@@ -99,4 +101,5 @@ module hex2bcd_tb;
 		clock = ~clock;
 	end
 endmodule // hex2bcd_tb
+`endif
 
