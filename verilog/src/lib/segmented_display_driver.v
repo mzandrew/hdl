@@ -40,22 +40,19 @@ module segmented_display_driver #(
 	wire [3:0] nybble [NUMBER_OF_NYBBLES-1:0];
 	reg [NUMBER_OF_SEGMENTS-1:0] sequence [NUMBER_OF_NYBBLES-1:0];
 	reg [NUMBER_OF_SEGMENTS-1:0] rawcathode = 0;
-//	reg [NUMBER_OF_NYBBLES-1:0] rawanode = 0;
+	reg [NUMBER_OF_NYBBLES-1:0] rawanode = 0;
 	assign sync_anode = anode[0];
 	reg [NUMBER_OF_SEGMENTS-1:0] current_sequence = 0;
 	integer i = 0;
 	reg [NUMBER_OF_NYBBLES*4-1:0] buffered_data = 0;
 	always @(posedge nybble_clock) begin
-//		anode <= rawanode;
-//		rawanode <= 0;
-		anode <= 0;
+		rawanode <= 0;
 		if (reset) begin
 			for (i=0; i<=NUMBER_OF_NYBBLES-1; i=i+1) begin
 				sequence[i] <= {NUMBER_OF_SEGMENTS{1'b1}};
 			end
 		end else begin
-//			rawanode[nybble_counter] <= 1;
-			anode[nybble_counter] <= 1;
+			rawanode[nybble_counter] <= 1;
 			current_sequence <= sequence[nybble_counter];
 			if (NUMBER_OF_SEGMENTS==16) begin
 				for (i=0; i<=NUMBER_OF_NYBBLES-1; i=i+1) begin
@@ -131,6 +128,7 @@ module segmented_display_driver #(
 	reg [NUMBER_OF_SEGMENTS-1:0] dot_token = 0;
 	assign sync_cathode = dot_token[0];
 	always @(posedge dot_clock) begin
+		anode <= rawanode;
 		cathode <= rawcathode;
 		rawcathode <= {NUMBER_OF_SEGMENTS{1'b1}};
 		if (reset) begin
