@@ -1,7 +1,7 @@
 // written 2018-08-22 by mza
 // based on mza-test014.duration-timer.uart.v
 // updated 2020-06-01 by mza
-// last updated 2021-02-04 by mza
+// last updated 2021-02-05 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -25,7 +25,7 @@ module mytop (
 	assign J3[1] = 1; // dp/colon
 	wire [3:0] anode;
 	assign { J1[0], J1[3], J1[4], J3[4] } = anode;
-	segmented_display_driver #(.NUMBER_OF_SEGMENTS(7), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(clock), .data(buffered_bcd2[15:0]), .dp(), .cathode(segment), .anode(anode), sync_anode(), .sync_cathode());
+	segmented_display_driver #(.NUMBER_OF_SEGMENTS(7), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(clock), .data(buffered_bcd2[15:0]), .dp(), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode());
 //	reg trigger_active = 0;
 	wire trigger_active;
 	reg [2:0] trigger_stream = 0;

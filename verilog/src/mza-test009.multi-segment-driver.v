@@ -1,7 +1,7 @@
 // written 2018-07-31 by mza
 // based on mza-test007.7-segment-driver.v and mza-test003.double-dabble.v
 // updated 2020-06-01 by mza
-// last updated 2021-02-04 by mza
+// last updated 2021-02-05 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -63,7 +63,7 @@ module mytop (
 		wire [7:0] anode;
 		assign { J2[7], J2[4], J2[5], J2[6], J3[6], J3[7], J3[3], J3[1] } = anode; // anodes 7,6,5,4,3,2,1,0
 		//segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(bcd[31:0]), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode(signal_output), .dp(0));
-		segmented_display_driver #(.number_of_segments(8), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(bcd[31:0]), .dp(8'b00010000, .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode(signal_output)));
+		segmented_display_driver #(.number_of_segments(8), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(bcd[31:0]), .dp(8'b00010000), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode(signal_output));
 //		assign J3[0] = 0; // an input, so be careful here
 //		assign J2[3] = 0; // an input, so be careful here
 		assign J2[2] = 0;
