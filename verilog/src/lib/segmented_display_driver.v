@@ -41,6 +41,7 @@ module segmented_display_driver #(
 	reg [NUMBER_OF_SEGMENTS-1:0] sequence [NUMBER_OF_NYBBLES-1:0];
 	reg [NUMBER_OF_SEGMENTS-1:0] rawcathode = 0;
 	reg [NUMBER_OF_NYBBLES-1:0] rawanode = 0;
+	reg [NUMBER_OF_NYBBLES-1:0] rawanode2 = 0;
 	assign sync_anode = anode[0];
 	reg [NUMBER_OF_SEGMENTS-1:0] current_sequence = 0;
 	integer i = 0;
@@ -128,7 +129,8 @@ module segmented_display_driver #(
 	reg [NUMBER_OF_SEGMENTS-1:0] dot_token = 0;
 	assign sync_cathode = dot_token[0];
 	always @(posedge dot_clock) begin
-		anode <= rawanode;
+		anode <= rawanode2;
+		rawanode2 <= rawanode;
 		cathode <= rawcathode;
 		rawcathode <= {NUMBER_OF_SEGMENTS{1'b1}};
 		if (reset) begin
@@ -219,7 +221,7 @@ module segmented_display_driver_tb;
 	endtask
 	initial begin
 		if (1) begin
-			data <= 16'h1234;
+			data <= 16'h1188;
 			wait_for_sync_anode;
 			show("start");
 			wait_for_sync_anode;
@@ -228,7 +230,7 @@ module segmented_display_driver_tb;
 			show("");
 			wait_for_sync_anode;
 			show("");
-			data <= 16'h5678;
+			data <= 16'h0011;
 			wait_for_sync_anode;
 			show("");
 			wait_for_sync_anode;
