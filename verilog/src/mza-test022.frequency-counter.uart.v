@@ -33,7 +33,7 @@ module mytop (
 	wire reference_clock;
 	wire signal_output;
 //	assign signal_output = trigger_active;
-	assign signal_output = 0;
+	assign signal_output = clock;
 	assign J2[1] = signal_output; // 1,2 pair (ACK)
 	assign J2[2] = signal_output; // 5,4 pair (RSV)
 	//assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
