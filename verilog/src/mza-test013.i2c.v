@@ -1,5 +1,6 @@
 // written 2018-08-06 by mza
-// last updated 2020-05-29 by mza
+// updated 2020-05-29 by mza
+// last updated 2021-02-04 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -163,9 +164,9 @@ output TX
 	reg [15:0] value1 = 0;
 	reg [15:0] value2 = 0;
 	reg [7:0] value3 = 0;
-	hex2bcd #(.input_size_in_nybbles(4)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1) );
-	hex2bcd #(.input_size_in_nybbles(4)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
-	hex2bcd #(.input_size_in_nybbles(2)) h2binst3 ( .clock(clock), .reset(~uart_resetb), .hex_in(value3), .bcd_out(bcd3) );
+	hex2bcd #(.INPUT_SIZE_IN_NYBBLES(4)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1), .sync() );
+	hex2bcd #(.INPUT_SIZE_IN_NYBBLES(4)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2), .sync() );
+	hex2bcd #(.INPUT_SIZE_IN_NYBBLES(2)) h2binst3 ( .clock(clock), .reset(~uart_resetb), .hex_in(value3), .bcd_out(bcd3), .sync() );
 //	reg [13:0] previous_humidity;
 //	reg [13:0] previous_temperature;
 //	localparam number_of_samples_to_accumulate = 8;

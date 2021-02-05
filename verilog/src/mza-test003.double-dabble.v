@@ -1,5 +1,6 @@
 // written 2018-06-29 by mza
-// last updated 2020-06-01 by mza
+// updated 2020-06-01 by mza
+// last updated 2021-02-04 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -20,11 +21,11 @@ module top (
 				reset <= 0;
 			end
 		end
-		counter++;
+		counter <= counter + 1'b1;
 	end
 	wire [23:0] bcd;
 	wire [15:0] data = counter[39:24];
-	hex2bcd #(.input_size_in_nybbles(4)) h2binst ( .clock(CLK), .reset(reset), .hex_in(data), .bcd_out(bcd) );
+	hex2bcd #(.INPUT_SIZE_IN_NYBBLES(4)) h2binst ( .clock(CLK), .reset(reset), .hex_in(data), .bcd_out(bcd), .sync() );
 	if (1) begin
 		assign LED5 = bcd[4];
 		assign LED4 = bcd[3];
@@ -54,7 +55,7 @@ module top (
 		assign J1_7 = anode[1]; // connected via resistor to anode0010
 		assign J1_6 = anode[2]; // connected via resistor to anode0100
 		assign J1_3 = anode[3]; // connected via resistor to anode1000 for most significant digit
-		segmented_display_driver #(.NUMBER_OF_SEGMENTS(7), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(CLK), .data(bcd[15:0]), .cathode(segment), .anode(anode));
+		segmented_display_driver #(.NUMBER_OF_SEGMENTS(7), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(CLK), .data(bcd[15:0]), .dp(4'd0), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode());
 	end else begin
 		// for an LTP587HR mounted pin16=pin14 justified on an icestick-test revA ZIF-socket board (IDL_18_027)
 		wire [15:0] segment;
@@ -78,7 +79,7 @@ module top (
 		wire [1:0] anode;
 		assign J2_9  = anode[0]; // res+pot connected to anode
 		assign J1_9  = anode[0]; // res+pot connected to anode
-		segmented_display_driver #(.number_of_segments(16), .number_of_nybbles(2)) my_instance_name (.clock(CLK), .data(bcd[7:0]), .cathode(segment), .anode(anode));
+		segmented_display_driver #(.NUMBER_OF_SEGMENTS(16), .NUMBER_OF_NYBBLES(2)) my_instance_name (.clock(CLK), .data(bcd[7:0]), .dp(2'd0), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode());
 	end
 endmodule // top
 

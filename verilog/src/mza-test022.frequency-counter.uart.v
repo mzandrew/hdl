@@ -1,7 +1,8 @@
 // written 2018-09-27 by mza
 // based on mza-test014.duration-timer.uart.v
 // updated for icestick-frequency-counter revB
-// last updated 2020-06-02 by mza
+// updated 2020-06-02 by mza
+// last updated 2021-02-04 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -50,7 +51,7 @@ module mytop (
 	wire [7:0] anode;
 	assign { J2[7], J2[4], J2[5], J2[6], J3[6], J3[7], J3[3], J3[1] } = anode; // anodes 7,6,5,4,3,2,1,0
 	wire [7:0] dp;
-	segmented_display_driver #(.NUMBER_OF_SEGMENTS(8), .NUMBER_OF_NYBBLES(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), .dp(dp));
+	segmented_display_driver #(.NUMBER_OF_SEGMENTS(8), .NUMBER_OF_NYBBLES(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2[31:0]), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode(), .dp(dp));
 	if (N==1) begin
 		assign dp = 8'b01000000;
 	end else if (N==10) begin
@@ -152,8 +153,8 @@ module mytop (
 //			byte_to_send <= 8'h20;
 //		end
 	end
-//	hex2bcd #(.input_size_in_nybbles(6)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1) );
-	hex2bcd #(.input_size_in_nybbles(6)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2) );
+//	hex2bcd #(.INPUT_SIZE_IN_NYBBLES(6)) h2binst1 ( .clock(clock), .reset(~uart_resetb), .hex_in(value1), .bcd_out(bcd1), .sync() );
+	hex2bcd #(.INPUT_SIZE_IN_NYBBLES(6)) h2binst2 ( .clock(clock), .reset(~uart_resetb), .hex_in(value2), .bcd_out(bcd2), .sync() );
 //	assign bcd2 = { 0, value2 };
 //	reg uart_busy;
 //	reg start_uart_transfer;

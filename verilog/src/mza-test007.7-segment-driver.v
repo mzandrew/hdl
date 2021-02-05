@@ -1,6 +1,7 @@
 // written 2018-07-26 by mza
 // based on mza-test006.7-segment-driver.v
-// last updated 2020-06-01 by mza
+// updated 2020-06-01 by mza
+// last updated 2021-02-04 by mza
 
 `define icestick
 `include "lib/segmented_display_driver.v"
@@ -57,6 +58,6 @@ module top(
 	assign counter_10Hz = alternate_counter[34:19]; // really about 7.629 Hz
 //		counter_1Hz <= alternate_counter[37:22]; // really about 1.048576 Hz
 	assign data = counter_10Hz;
-	segmented_display_driver #(.NUMBER_OF_SEGMENTS(7), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(CLK), .data(data), .cathode(segment), .anode(anode));
+	segmented_display_driver #(.NUMBER_OF_SEGMENTS(7), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(CLK), .data(data), .dp(4'h0), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode());
 endmodule // top
 

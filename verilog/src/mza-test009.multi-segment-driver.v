@@ -1,6 +1,7 @@
 // written 2018-07-31 by mza
 // based on mza-test007.7-segment-driver.v and mza-test003.double-dabble.v
-// last updated 2020-06-01 by mza
+// updated 2020-06-01 by mza
+// last updated 2021-02-04 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -28,9 +29,9 @@ module mytop (
 		assign J1[4] = anode[1]; // connected via resistor to anode0010
 		assign J1[3] = anode[2]; // connected via resistor to anode0100
 		assign J1[0] = anode[3]; // connected via resistor to anode1000 for most significant digit
-		//segmented_display_driver #(.NUMBER_OF_SEGMENTS(7), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(clock), .data(bcd[15:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), dp(0));
-		segmented_display_driver #(.NUMBER_OF_SEGMENTS(8), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(clock), .data(bcd[15:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), .dp(0));
-		hex2bcd #(.input_size_in_nybbles(4)) h2binst ( .clock(clock), .reset(reset), .hex_in(data[15:0]), .bcd_out(bcd[23:0]) );
+		//segmented_display_driver #(.NUMBER_OF_SEGMENTS(7), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(clock), .data(bcd[15:0]), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode(), dp(0));
+		segmented_display_driver #(.NUMBER_OF_SEGMENTS(8), .NUMBER_OF_NYBBLES(4)) my_instance_name (.clock(clock), .data(bcd[15:0]), .dp(4'h0), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode());
+		hex2bcd #(.INPUT_SIZE_IN_NYBBLES(4)) h2binst ( .clock(clock), .reset(reset), .hex_in(data[15:0]), .bcd_out(bcd[23:0]), .sync() );
 		assign J3[7] = 0;
 		assign J3[6] = 0;
 		assign J2[7] = 0;
@@ -50,8 +51,8 @@ module mytop (
 		assign J2[6]  = anode[0]; // res+pot connected to anode
 		assign J1[6]  = anode[0]; // res+pot connected to anode
 		wire [1:0] anode;
-		segmented_display_driver #(.number_of_segments(16), .number_of_nybbles(2)) my_instance_name (.clock(clock), .data(bcd[7:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(), .dp(0));
-		hex2bcd #(.input_size_in_nybbles(4)) h2binst ( .clock(clock), .reset(reset), .hex_in(data), .bcd_out(bcd) );
+		segmented_display_driver #(.number_of_segments(16), .number_of_nybbles(2)) my_instance_name (.clock(clock), .data(bcd[7:0]), .dp(2'h0), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode());
+		hex2bcd #(.input_size_in_nybbles(4)) h2binst ( .clock(clock), .reset(reset), .hex_in(data), .bcd_out(bcd), .sync() );
 	end else begin
 		// for a pair of 4-digit 7-segment(+dp) TCMG1050M displays on a "icestick frequency counter revA" board
 		//wire [6:0] segment;
@@ -61,8 +62,8 @@ module mytop (
 		assign { J1[4], J1[1], J3[4], J3[5], J1[2], J1[5], J1[3], J3[2] } = segment; // segments g,f,e,d,c,b,a,dp
 		wire [7:0] anode;
 		assign { J2[7], J2[4], J2[5], J2[6], J3[6], J3[7], J3[3], J3[1] } = anode; // anodes 7,6,5,4,3,2,1,0
-		//segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(bcd[31:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(signal_output), .dp(0));
-		segmented_display_driver #(.number_of_segments(8), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(bcd[31:0]), .cathode(segment), .anode(anode), .sync_a(), .sync_c(signal_output), .dp(8'b00010000));
+		//segmented_display_driver #(.number_of_segments(7), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(bcd[31:0]), .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode(signal_output), .dp(0));
+		segmented_display_driver #(.number_of_segments(8), .number_of_nybbles(8)) my_segmented_display_driver (.clock(clock), .data(bcd[31:0]), .dp(8'b00010000, .cathode(segment), .anode(anode), .sync_anode(), .sync_cathode(signal_output)));
 //		assign J3[0] = 0; // an input, so be careful here
 //		assign J2[3] = 0; // an input, so be careful here
 		assign J2[2] = 0;
@@ -70,7 +71,7 @@ module mytop (
 //		assign J2[0] = 0; // an input, so be careful here
 		assign J1[7] = 0;
 		assign J1[6] = 0;
-		hex2bcd #(.input_size_in_nybbles(6)) h2binst ( .clock(clock), .reset(reset), .hex_in(data), .bcd_out(bcd) );
+		hex2bcd #(.input_size_in_nybbles(6)) h2binst ( .clock(clock), .reset(reset), .hex_in(data), .bcd_out(bcd), .sync() );
 		wire signal_output;
 		assign J1[0] = signal_output; // trigger_out on PCB
 	end
