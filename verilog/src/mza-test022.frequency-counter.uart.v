@@ -2,7 +2,7 @@
 // based on mza-test014.duration-timer.uart.v
 // updated for icestick-frequency-counter revB
 // updated 2020-06-02 by mza
-// last updated 2021-02-05 by mza
+// last updated 2021-02-06 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -21,12 +21,14 @@ module mytop (
 	output TX
 );
 	reg [31:0] counter = 0;
+	wire [31:0] result;
+	reg [31:0] result2 = 32'h87654321;
+//	reg [23:0] value1;
+	reg [23:0] value2 = 24'd12345678;
 //	reg [31:0] bcd1;
 	wire [31:0] bcd2;
 //	reg [31:0] buffered_bcd1;
-	reg [31:0] buffered_bcd2 = 0;
-//	reg [23:0] value1;
-	reg [23:0] value2 = 0;
+	reg [31:0] buffered_bcd2 = 32'h88888888;
 	wire external_reference_clock;
 	wire raw_external_clock_to_measure;
 	reg external_clock_to_measure = 0;
@@ -45,10 +47,9 @@ module mytop (
 //	assign reference_clock = external_clock_to_measure; // 127216025 / N (or an unknown frequency)
 	assign reference_clock = external_reference_clock; // 100000280 / N
 	assign J1[0] = signal_output; // trigger_out on PCB
-	wire [31:0] result;
 	localparam N = 1; // N for N_Hz calculations
 	wire frequency_counter_sync;
-	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(25000000), .LOG2_OF_DIVIDE_RATIO(25), .N(N)) fc (.reference_clock(reference_clock), .unknown_clock(raw_external_clock_to_measure), .frequency_of_unknown_clock(result));
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(25000000), .LOG2_OF_DIVIDE_RATIO(25), .N(N)) fc (.reference_clock(reference_clock), .unknown_clock(raw_external_clock_to_measure), .frequency_of_unknown_clock(result), .valid(frequency_counter_sync));
 	// for a pair of 4-digit 7-segment(+dp) TCMG1050M displays on a "icestick frequency counter revA" board
 	wire [7:0] segment;
 	assign { J1[4], J1[1], J3[4], J3[5], J1[2], J1[5], J1[3], J3[2] } = segment; // segments g,f,e,d,c,b,a,dp
@@ -67,12 +68,9 @@ module mytop (
 	wire hex2bcd_sync;
 	assign LED[5] = 0;
 	assign LED[4] = signal_output;
-	//assign LED[3] = trigger_stream[2];
-	//assign LED[2] = trigger_stream[1];
-	//assign LED[1] = trigger_stream[0];
 	assign LED[3] = segmented_display_driver_sync;
 	assign LED[2] = hex2bcd_sync;
-	assign LED[1] = 0;
+	assign LED[1] = frequency_counter_sync;
 //	localparam length_of_line = 6+6+2;
 //	reg [7:0] uart_character_counter;
 //	reg uart_transfers_are_allowed;
@@ -85,9 +83,8 @@ module mytop (
 	assign uart_resetb = ~reset;
 //	reg [msb_of_counters:0] previous_number_of_pulses = 0;
 //	reg [msb_of_counters:0] number_of_pulses = 0;
-	reg [31:0] result2 = 0;
 	always @(posedge clock) begin
-		counter <= counter + 1'b1;;
+		counter <= counter + 1'b1;
 		if (reset) begin
 //			uart_line_counter <= 0;
 //			uart_character_counter <= length_of_line - 1;
@@ -95,7 +92,9 @@ module mytop (
 			if (counter[10]) begin
 				reset <= 0;
 			end
-			result2 <= 0;
+			value2 <= 24'd12345678;
+			result2 <= 32'h87654321;
+			buffered_bcd2 <= 32'h88888888;
 		end
 		if (counter[slow_clock_pickoff:0]==0) begin
 			buffered_bcd2 <= bcd2;
