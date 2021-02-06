@@ -55,14 +55,17 @@ module mytop (
 	assign { J1[4], J1[1], J3[4], J3[5], J1[2], J1[5], J1[3], J3[2] } = segment; // segments g,f,e,d,c,b,a,dp
 	wire [7:0] anode;
 	assign { J2[7], J2[4], J2[5], J2[6], J3[6], J3[7], J3[3], J3[1] } = anode; // anodes 7,6,5,4,3,2,1,0
-	wire [7:0] dp;
-	if (N==1) begin
-		assign dp = 8'b01000000;
-	end else if (N==10) begin
-		assign dp = 8'b00100000;
-	end else if (N==100) begin
-		assign dp = 8'b00010000;
-	end
+	wire [7:0] dp = (N==1) ? 8'b01000000 : (N==10) ? 8'b00100000 : 8'b00010000;
+//	reg [7:0] dp = 8'b00000001;
+//	wire [7:0] dp = 8'b01000000;
+//	always @(*) begin
+//		case (N)
+//			      1: dp = 8'b01000000;
+//			     10: dp = 8'b00100000;
+//			    100: dp = 8'b00010000;
+//			default: dp = 8'b00001000;
+//		endcase
+//	end
 	wire segmented_display_driver_sync;
 	segmented_display_driver #(.NUMBER_OF_SEGMENTS(8), .NUMBER_OF_NYBBLES(8)) my_segmented_display_driver (.clock(clock), .data(buffered_bcd2), .dp(dp), .cathode(segment), .anode(anode), .sync_anode(segmented_display_driver_sync), .sync_cathode());
 	wire hex2bcd_sync;
@@ -76,7 +79,7 @@ module mytop (
 //	reg uart_transfers_are_allowed;
 //	localparam uart_character_pickoff = 11; // this is already close to the limit for 115200
 	localparam uart_line_pickoff = 22;
-	localparam slow_clock_pickoff = 16;
+	localparam slow_clock_pickoff = 19; // 12 MHz / 2^n
 //	reg [15:0] uart_line_counter;
 	reg reset = 1;
 	wire uart_resetb;
@@ -99,6 +102,7 @@ module mytop (
 		if (counter[slow_clock_pickoff:0]==0) begin
 			buffered_bcd2 <= bcd2;
 			//buffered_bcd2 <= 32'h01234567;
+			//dp <= { dp[6:0], dp[7] };
 		end else if (counter[slow_clock_pickoff:0]==1) begin
 			value2 <= result2[23:0]; // frequency counter mode
 			//value2 <= 24'd13578642;
