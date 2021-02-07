@@ -2,7 +2,7 @@
 // based on mza-test014.duration-timer.uart.v
 // updated for icestick-frequency-counter revB
 // updated 2020-06-02 by mza
-// last updated 2021-02-06 by mza
+// last updated 2021-02-07 by mza
 
 `define icestick
 `include "lib/hex2bcd.v"
@@ -31,6 +31,7 @@ module mytop (
 	reg [31:0] buffered_bcd2 = 32'h88888888;
 	wire external_reference_clock;
 	wire raw_external_clock_to_measure;
+	wire mirror_of_raw_external_clock_to_measure;
 	reg external_clock_to_measure = 0;
 	wire reference_clock;
 	wire signal_output;
@@ -41,12 +42,15 @@ module mytop (
 	//assign external_reference_clock = J2[0]; // 3,6 pair (TRG)
 	assign external_reference_clock = J1[6]; // clipped sine wave oscillator
 	//assign raw_external_clock_to_measure = counter[4]; // something internal (in this case, 12 MHz / (i+1))
-	assign raw_external_clock_to_measure = clock; // something internal (in this case, 12 MHz)
-//	assign raw_external_clock_to_measure = J1[7]; // trigger_in LEMO
+//	assign raw_external_clock_to_measure = clock; // something internal (in this case, 12 MHz)
+	assign raw_external_clock_to_measure = J1[7]; // trigger_in LEMO
 //	assign raw_external_clock_to_measure = J2[3]; // 7,8 pair (CLK)
 //	assign reference_clock = external_clock_to_measure; // 127216025 / N (or an unknown frequency)
 	assign reference_clock = external_reference_clock; // 100000280 / N
 	assign J1[0] = signal_output; // trigger_out on PCB
+//	assign J3[0] = mirror_of_raw_external_clock_to_measure;
+//	assign J3[0] = clock;
+	assign J3[0] = J1[7];
 	localparam N = 1; // N for N_Hz calculations
 	wire frequency_counter_sync;
 	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(25000000), .LOG2_OF_DIVIDE_RATIO(25), .N(N)) fc (.reference_clock(reference_clock), .unknown_clock(raw_external_clock_to_measure), .frequency_of_unknown_clock(result), .valid(frequency_counter_sync));
@@ -186,8 +190,8 @@ module top (
 	output LED1, LED2, LED3, LED4, LED5,
 	output J1_3, J1_4, J1_5, J1_6, J1_7, J1_8,
 	output       J2_2, J2_3,       J2_7, J2_8, J2_9, J2_10,
-	output       J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
-	input J3_3, J2_4, J2_1, J1_9, J1_10,
+	output J3_3, J3_4, J3_5, J3_6, J3_7, J3_8, J3_9, J3_10,
+	input J2_4, J2_1, J1_9, J1_10,
 	output DCDn, DSRn, CTSn, TX, IR_TX, IR_SD,
 	input DTRn, RTSn, RX, IR_RX
 );
