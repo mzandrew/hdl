@@ -2,7 +2,11 @@
 // based on mza-test014.duration-timer.uart.v
 // and mza-test022.frequency-counter.uart.v
 // updated 2020-05-30 by mza
-// last updated 2021-02-06 by mza
+// last updated 2021-02-09 by mza
+
+`ifndef FREQUENCY_COUNTER_LIB
+`define FREQUENCY_COUNTER_LIB
+`timescale 1ns / 1ps
 
 module frequency_counter #(
 	parameter FREQUENCY_OF_REFERENCE_CLOCK = 10000000,
@@ -53,12 +57,43 @@ module frequency_counter #(
 endmodule
 
 `ifndef SYNTHESIS
+module clock #(
+	parameter FREQUENCY_OF_CLOCK_HZ = 10000000.0,
+	parameter PERIOD_OF_CLOCK_NS = 1000000000.0/FREQUENCY_OF_CLOCK_HZ,
+	parameter HALF_PERIOD_OF_CLOCK_NS = PERIOD_OF_CLOCK_NS / 2.0
+) (
+	output reg clock = 0
+);
+	initial begin
+		$display("creating clock with half period of %f ns", HALF_PERIOD_OF_CLOCK_NS);
+	end
+	always begin
+		#HALF_PERIOD_OF_CLOCK_NS;
+		clock = ~clock;
+	end
+endmodule
+
+`include "lib/generic.v"
+
 module frequency_counter_tb ();
-	reg reference_clock = 0;
-	reg unknown_clock = 0;
+	localparam FREQUENCY_OF_REFERENCE_CLOCK = 25000000;
+	wire reference_clock;
+	clock #(.FREQUENCY_OF_CLOCK_HZ(FREQUENCY_OF_REFERENCE_CLOCK)) ref (.clock(reference_clock));
+	wire unknown_clock1;
+	clock #(.FREQUENCY_OF_CLOCK_HZ( 1111111.0)) c1 (.clock(unknown_clock1));
+	wire unknown_clock2;
+	clock #(.FREQUENCY_OF_CLOCK_HZ(22222222.0)) c2 (.clock(unknown_clock2));
+	wire unknown_clock3;
+	clock #(.FREQUENCY_OF_CLOCK_HZ(  333333.0)) c3 (.clock(unknown_clock3));
+	wire unknown_clock4;
+	clock #(.FREQUENCY_OF_CLOCK_HZ(44444444.0)) c4 (.clock(unknown_clock4));
+	wire unknown_clock;
+	reg [1:0] sel = 2'b00;
+	mux_4to1 #(.WIDTH(1)) m (.in0(unknown_clock1), .in1(unknown_clock2), .in2(unknown_clock3), .in3(unknown_clock4), .sel(sel), .out(unknown_clock));
 	wire [31:0] frequency_of_unknown_clock;
 	wire frequency_counter_sync;
-	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(10000000), .LOG2_OF_DIVIDE_RATIO(5)) fc (.reference_clock(reference_clock), .unknown_clock(unknown_clock), .frequency_of_unknown_clock(frequency_of_unknown_clock), .valid(frequency_counter_sync));
+	localparam LOG2_OF_DIVIDE_RATIO = 24;
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_REFERENCE_CLOCK), .N(1), .LOG2_OF_DIVIDE_RATIO(LOG2_OF_DIVIDE_RATIO)) fc (.reference_clock(reference_clock), .unknown_clock(unknown_clock), .frequency_of_unknown_clock(frequency_of_unknown_clock), .valid(frequency_counter_sync));
 	task automatic wait_for_sync;
 		begin
 			@(posedge frequency_counter_sync);
@@ -66,23 +101,15 @@ module frequency_counter_tb ();
 	endtask
 	initial begin
 		#100;
-		wait_for_sync;
-		$display("%t %9d", $time, frequency_of_unknown_clock);
-		wait_for_sync;
-		$display("%t %9d", $time, frequency_of_unknown_clock);
-		wait_for_sync;
-		$display("%t %9d", $time, frequency_of_unknown_clock);
+		sel = 2'd0; wait_for_sync; $display("%t %9d", $time, frequency_of_unknown_clock); wait_for_sync; $display("%t %9d", $time, frequency_of_unknown_clock);
+		sel = 2'd1; wait_for_sync; $display("%t %9d", $time, frequency_of_unknown_clock); wait_for_sync; $display("%t %9d", $time, frequency_of_unknown_clock);
+		sel = 2'd2; wait_for_sync; $display("%t %9d", $time, frequency_of_unknown_clock); wait_for_sync; $display("%t %9d", $time, frequency_of_unknown_clock);
+		sel = 2'd3; wait_for_sync; $display("%t %9d", $time, frequency_of_unknown_clock); wait_for_sync; $display("%t %9d", $time, frequency_of_unknown_clock);
 		#100;
 		$finish;
 	end
-	always begin
-		#50;
-		reference_clock = ~reference_clock;
-	end
-	always begin
-		#14.135;
-		unknown_clock = ~unknown_clock;
-	end
 endmodule
+`endif
+
 `endif
 

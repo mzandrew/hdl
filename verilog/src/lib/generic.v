@@ -162,6 +162,7 @@ module and_gate #(
 	end else begin
 		assign O = O0;
 	end
+`ifdef XILINX
 	// from Xilinx HDL Libraries Guide, version 14.5 
 	LUT5 #(
 		//.INIT(32'h00000008) // Specify LUT Contents
@@ -174,6 +175,7 @@ module and_gate #(
 		.I3(1'b0), // LUT input
 		.I4(1'b0)  // LUT input
 	);
+`endif
 endmodule
 
 // idea from Ken Chapman's solution here: https://forums.xilinx.com/t5/Other-FPGA-Architecture/How-to-implement-a-ring-oscillator-with-routings-of-FPGA-Where/m-p/768895/highlight/true#M21839
