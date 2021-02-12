@@ -1,6 +1,6 @@
 // written 2020-06-03 by mza
 // updated 2020-06-04 by mza
-// last updated 2021-02-03 by mza
+// last updated 2021-02-12 by mza
 
 module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
 	localparam ADDRESS_WIDTH = 4;
@@ -85,6 +85,7 @@ module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
 		#100; master_read_transaction(4'hc);
 		#100; master_read_transaction(4'he);
 		#100; master_read_transaction(4'hc);
+		#200; $finish;
 	end
 	always @(posedge clock) begin
 		spi_write_address <= pre_spi_write_address;
@@ -428,7 +429,7 @@ module pollable_memory_axi4lite_slave_tb;
 	reg [ADDRESS_WIDTH-1:0] pre_araddr = 0;
 	reg [ADDRESS_WIDTH-1:0] araddr = 0;
 	reg pre_arvalid = 0;
-	reg arvalid = 0;
+	wire arvalid;
 	wire arready;
 	wire [DATA_WIDTH-1:0] rdata;
 //	wire rresp;
@@ -444,7 +445,7 @@ module pollable_memory_axi4lite_slave_tb;
 		.rdata(rdata), .rvalid(rvalid), .rready(rready)
 	);
 	axi4lite_handshake awhandshake (.clock(clock), .reset(reset), .ready(awready), .valid_in(pre_awvalid), .valid_out(awvalid));
-	axi4lite_handshake whandshake (.clock(clock), .reset(reset), .ready(wready), .valid_in(pre_wvalid), .valid_out(wvalid));
+	axi4lite_handshake whandshake  (.clock(clock), .reset(reset), .ready(wready),  .valid_in(pre_wvalid),  .valid_out(wvalid));
 	axi4lite_handshake arhandshake (.clock(clock), .reset(reset), .ready(arready), .valid_in(pre_arvalid), .valid_out(arvalid));
 	task automatic master_read_transaction;
 		input [ADDRESS_WIDTH-1:0] address;
@@ -499,13 +500,13 @@ module pollable_memory_axi4lite_slave_tb;
 		#100; master_read_transaction(4'hc);
 		#100; master_read_transaction(4'he);
 		#100; master_read_transaction(4'hc);
+		#100; $finish;
 	end
 	always @(posedge clock) begin
 		awaddr <= pre_awaddr;
-		wdata <= pre_wdata;
+		wdata  <= pre_wdata;
 		bready <= pre_bready;
 		araddr <= pre_araddr;
-		arvalid <= pre_arvalid;
 		rready <= pre_rready;
 	end
 	always begin
