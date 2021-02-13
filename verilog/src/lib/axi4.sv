@@ -50,10 +50,12 @@ module spi_slave_axi4_master__pollable_memory_axi4_slave__tb;
 	wire axi::burst_t arburst;
 	wire rlast;
 	wire wlast;
-	reg [LEN_WIDTH-1:0] pre_awlen = 1;
-	reg [LEN_WIDTH-1:0] awlen = 1;
-	reg [LEN_WIDTH-1:0] pre_arlen = 1;
-	reg [LEN_WIDTH-1:0] arlen = 1;
+	wire [LEN_WIDTH-1:0] awlen;
+	wire [LEN_WIDTH-1:0] arlen;
+	reg [LEN_WIDTH-1:0] pre_spi_write_burst_length = 1;
+	reg [LEN_WIDTH-1:0] spi_write_burst_length = 1;
+	reg [LEN_WIDTH-1:0] pre_spi_read_burst_length = 1;
+	reg [LEN_WIDTH-1:0] spi_read_burst_length = 1;
 	spi_slave__axi4_master      #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) ssam (.*);
 	pollable_memory__axi4_slave #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) pmas (.*);
 	wire awbeat = awready & awvalid;
@@ -70,7 +72,7 @@ module spi_slave_axi4_master__pollable_memory_axi4_slave__tb;
 		reg [ADDRESS_WIDTH:0] i;
 		begin
 			#100;
-			pre_arlen <= len[LEN_WIDTH-1:0];
+			pre_spi_read_burst_length <= len[LEN_WIDTH-1:0];
 			pre_spi_read_address <= address;
 			pre_spi_read_address_valid <= 1;
 			for (i=0; i<len; i++) begin
@@ -86,7 +88,7 @@ module spi_slave_axi4_master__pollable_memory_axi4_slave__tb;
 		reg [ADDRESS_WIDTH:0] i;
 		begin
 			#100;
-			pre_awlen <= len[LEN_WIDTH-1:0];
+			pre_spi_write_burst_length <= len[LEN_WIDTH-1:0];
 			pre_spi_write_address <= address;
 			pre_spi_write_address_valid <= 1;
 			for (i=0; i<len; i++) begin
@@ -123,11 +125,11 @@ module spi_slave_axi4_master__pollable_memory_axi4_slave__tb;
 		spi_write_address_valid <= pre_spi_write_address_valid;
 		spi_write_data          <= pre_spi_write_data;
 		spi_write_strobe        <= pre_spi_write_strobe;
+		spi_write_burst_length  <= pre_spi_write_burst_length;
 		spi_read_address       <= pre_spi_read_address;
 		spi_read_address_valid <= pre_spi_read_address_valid;
 		spi_read_strobe        <= pre_spi_read_strobe;
-		awlen <= pre_awlen;
-		arlen <= pre_arlen;
+		spi_read_burst_length  <= pre_spi_read_burst_length;
 	end
 	always begin
 		#5;
@@ -145,14 +147,16 @@ module spi_slave__axi4_master #(
 	input reset,
 	// SPI write channel
 	input [ADDRESS_WIDTH-1:0] spi_write_address,
-	input [DATA_WIDTH-1:0] spi_write_data,
 	input spi_write_address_valid,
+	input [DATA_WIDTH-1:0] spi_write_data,
 	input spi_write_strobe,
+	input [LEN_WIDTH-1:0] spi_write_burst_length,
 	// SPI read channel
 	input [ADDRESS_WIDTH-1:0] spi_read_address,
 	input spi_read_address_valid,
 	output reg [DATA_WIDTH-1:0] spi_read_data = 0,
 	input spi_read_strobe,
+	input [LEN_WIDTH-1:0] spi_read_burst_length,
 	// axi4 Write Address channel (AW)
 	output reg [ADDRESS_WIDTH-1:0] awaddr = 0, // Address of the first beat of the burst
 	output reg [LEN_WIDTH-1:0] awlen = 1, // Number of beats inside the burst
@@ -162,7 +166,7 @@ module spi_slave__axi4_master #(
 	input awready, // xREADY handshake signal
 	// axi4 Write Data channel (W)
 	output reg [DATA_WIDTH-1:0] wdata = 0, // Read/Write data
-	output wlast, // Last beat identifier
+	output reg wlast = 0, // Last beat identifier
 	// wstrb, // Byte strobe, to indicate which bytes of the WDATA signal are valid
 	output reg wvalid = 0, // xVALID handshake signal
 	input wready, // xREADY handshake signal
@@ -199,10 +203,14 @@ module spi_slave__axi4_master #(
 	reg [ADDRESS_WIDTH-1:0] local_spi_read_address = 0;
 	reg [DATA_WIDTH-1:0] local_spi_read_data = 0;
 	reg last_write_was_succecssful = 0;
-//	axi4_handshake awhandshake (.clock(clock), .reset(reset), .ready(awready), .valid_in(pre_awvalid), .valid_out(awvalid));
-//	axi4_handshake whandshake (.clock(clock), .reset(reset), .ready(wready), .valid_in(pre_wvalid), .valid_out(wvalid));
-//	axi4_handshake arhandshake (.clock(clock), .reset(reset), .ready(arready), .valid_in(pre_arvalid), .valid_out(arvalid));
+	reg [LEN_WIDTH-1:0] pre_awlen = 1; // Number of beats inside the burst
+	reg [LEN_WIDTH-1:0] pre_arlen = 1; // Number of beats inside the burst
+	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
+	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
+	reg pre_wlast = 0;
+	reg pre_rlast = 0;
 	always @(posedge clock) begin
+		pre_wlast <= 0;
 		if (reset) begin
 			pre_awaddr  <= 0;
 			pre_awvalid <= 0;
@@ -216,6 +224,10 @@ module spi_slave__axi4_master #(
 			rstate <= 0;
 			last_write_was_succecssful <= 0;
 			spi_read_data <= 0;
+			pre_awlen <= 1;
+			pre_arlen <= 1;
+			write_transaction_counter <= 0;
+			read_transaction_counter <= 0;
 		end else begin
 			awvalid <= pre_awvalid;
 			awaddr  <= pre_awaddr;
@@ -223,14 +235,28 @@ module spi_slave__axi4_master #(
 			wdata   <= pre_wdata;
 			araddr  <= pre_araddr;
 			arvalid <= pre_arvalid;
+			awlen   <= pre_awlen;
+			arlen   <= pre_arlen;
+			wlast   <= pre_wlast;
 			// write
 			if (wstate[3:1]==0) begin
 				if (wstate[0]==0) begin
 					if (spi_write_strobe) begin
 						if (spi_write_address_valid) begin
 							local_spi_write_address <= spi_write_address;
+							pre_awlen <= spi_write_burst_length;
+							if (write_transaction_counter==0) begin
+								write_transaction_counter <= spi_write_burst_length - 1'b1;
+//							end else begin
+//								error_count <= error_counter + 1'b1;
+							end
 						end else if (awburst==axi::INCR) begin
 							local_spi_write_address <= local_spi_write_address + 1'b1;
+							if (write_transaction_counter>=1) begin
+								write_transaction_counter <= write_transaction_counter - 1'b1;
+//							end else if (write_transaction_counter==0) begin
+//								error_count <= error_counter + 1'b1;
+							end
 						end
 						local_spi_write_data <= spi_write_data;
 						wstate[0] <= 1;
@@ -240,6 +266,9 @@ module spi_slave__axi4_master #(
 					pre_awvalid <= 1;
 					pre_wdata <= local_spi_write_data;
 					pre_wvalid <= 1;
+					if (write_transaction_counter==0) begin
+						pre_wlast <= 1;
+					end
 					bready <= 1;
 					wstate[3:1] <= 3'b111;
 				end
@@ -254,6 +283,7 @@ module spi_slave__axi4_master #(
 				if (wstate[2]) begin
 					if (wready) begin
 						pre_wvalid <= 0;
+						pre_wlast <= 0;
 						wstate[2] <= 0;
 					end
 				end
@@ -271,8 +301,19 @@ module spi_slave__axi4_master #(
 					if (spi_read_strobe) begin
 						if (spi_read_address_valid) begin
 							local_spi_read_address <= spi_read_address;
+							pre_arlen <= spi_read_burst_length;
+							if (read_transaction_counter==0) begin
+								read_transaction_counter <= spi_read_burst_length - 1'b1;
+//							end else begin
+//								error_count <= error_counter + 1'b1;
+							end
 						end else if (arburst==axi::INCR) begin
 							local_spi_read_address <= local_spi_read_address + 1'b1;
+							if (read_transaction_counter>=1) begin
+								read_transaction_counter <= read_transaction_counter - 1'b1;
+//							end else if (read_transaction_counter==0) begin
+//								error_count <= error_counter + 1'b1;
+							end
 						end
 						rstate[0] <= 1;
 					end
@@ -337,7 +378,7 @@ module pollable_memory__axi4_slave #(
 	// axi4 Read Data channel (R)
 	output reg [DATA_WIDTH-1:0] rdata = 0, // Read/Write data
 //	output reg rresp = 0, // Read response, to specify the status of the current RDATA signal
-	output rlast, // Last beat identifier
+	output reg rlast = 0, // Last beat identifier
 	output reg rvalid = 0, // xVALID handshake signal
 	input rready // xREADY handshake signal
 );
@@ -353,6 +394,10 @@ module pollable_memory__axi4_slave #(
 //	reg pre_rresp  = 0;
 	reg pre_rvalid = 0;
 	reg [DATA_WIDTH-1:0] mem [2**ADDRESS_WIDTH-1:0];
+	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
+	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
+	reg pre_wlast = 0;
+	reg pre_rlast = 0;
 	always @(posedge clock) begin
 //		pre_bresp   <= 0;
 //		pre_bvalid  <= 0;
@@ -374,6 +419,10 @@ module pollable_memory__axi4_slave #(
 			pre_rdata   <= 0;
 //			pre_rresp   <= 0;
 			pre_rvalid  <= 0;
+			write_transaction_counter <= 0;
+			read_transaction_counter <= 0;
+			pre_wlast <= 0;
+			pre_rlast <= 0;
 		end else begin
 			bresp   <= pre_bresp;
 			bvalid  <= pre_bvalid;
@@ -381,18 +430,27 @@ module pollable_memory__axi4_slave #(
 			rdata   <= pre_rdata;
 //			rresp   <= pre_rresp;
 			rvalid  <= pre_rvalid;
+			rlast   <= pre_rlast;
 			// write
 			if (wstate[2]==0) begin
 				if (wstate[1:0]==2'b11) begin
 					mem[local_awaddr] <= local_wdata;
 					pre_bresp <= 1;
 					pre_bvalid <= 1;
+					if (write_transaction_counter==0) begin
+						pre_wlast <= 1;
+					end
 					wstate[2] <= 1;
 				end
 				if (awvalid) begin
 					local_awaddr <= awaddr;
 					awready <= 0;
 					wstate[0] <= 1;
+					if (write_transaction_counter==0) begin
+						write_transaction_counter <= awlen - 1'b1;
+					end else if (write_transaction_counter>=1) begin
+						write_transaction_counter <= write_transaction_counter - 1'b1;
+					end
 				end
 				if (wvalid) begin
 					local_wdata <= wdata;
@@ -404,6 +462,7 @@ module pollable_memory__axi4_slave #(
 				if (bready) begin
 					pre_bresp <= 0;
 					pre_bvalid <= 0;
+					pre_wlast <= 0;
 					awready <= 1;
 					wready <= 1;
 					wstate[2] <= 0;
@@ -416,16 +475,25 @@ module pollable_memory__axi4_slave #(
 						local_araddr <= araddr;
 						arready <= 0;
 						rstate[0] <= 1;
+						if (read_transaction_counter==0) begin
+							read_transaction_counter <= arlen - 1'b1;
+						end else if (read_transaction_counter>=1) begin
+							read_transaction_counter <= read_transaction_counter - 1'b1;
+						end
 					end
 				end else begin
 					pre_rdata <= mem[local_araddr];
 					pre_rvalid <= 1;
+					if (read_transaction_counter==0) begin
+						pre_rlast <= 1;
+					end
 					rstate[1] <= 1;
 				end
 			end else begin
 				rstate[0] <= 0;
 				if (rready) begin
 					pre_rvalid <= 0;
+					pre_rlast <= 0;
 //					pre_rresp <= ;
 					arready <= 1;
 					rstate[1] <= 0;
@@ -434,7 +502,6 @@ module pollable_memory__axi4_slave #(
 		end
 	end
 endmodule
-
 
 module axi4_handshake (
 	input clock,
