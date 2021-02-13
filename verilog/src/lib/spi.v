@@ -132,6 +132,10 @@ module SPI_slave_simple8_tb;
 endmodule
 
 // originally from https://www.fpga4fun.com/SPI2.html
+// notes:
+// raw pipelines should be 1 deeper (also the pickoffs)
+// address16 and data32 and transaction_valid should probably have an extra level of buffering
+// command8 should be interpreted and allow an addressless (autoincrement) mode
 module SPI_slave_command8_address16_data32 (
 	input clock,
 	input SCK, SSEL, MOSI,
@@ -174,10 +178,12 @@ module SPI_slave_command8_address16_data32 (
 			if (bitcnt==8) begin
 				if (bytecnt==0) begin
 					command8 <= byte_data_received;
+				// if (command8[3] and bytecnt==1)
 				end else if (bytecnt==1) begin
 					address16[15:8] <= byte_data_received;
 				end else if (bytecnt==2) begin
 					address16[7:0] <= byte_data_received;
+					// address_valid <= 1;
 				end else if (bytecnt==3) begin
 					data32[31:24] <= byte_data_received;
 				end else if (bytecnt==4) begin
