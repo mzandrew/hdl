@@ -1,8 +1,8 @@
-// written 2020-06-03 by mza
-// updated 2020-06-04 by mza
+// written 2021-02-12 by mza
+// based off axi4lite.v
 // last updated 2021-02-12 by mza
 
-module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
+module spi_slave_axi4_master__pollable_memory_axi4list_slave__tb;
 	localparam ADDRESS_WIDTH = 4;
 	localparam DATA_WIDTH = 32;
 	reg clock = 0;
@@ -33,7 +33,7 @@ module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
 	wire [DATA_WIDTH-1:0] rdata;
 	wire rvalid;
 	wire rready;
-	spi_slave__axi4lite_master #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) ssam (
+	spi_slave__axi4_master #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) ssam (
 		.clock(clock), .reset(reset),
 		.spi_write_address(spi_write_address), .spi_write_data(spi_write_data), .spi_write_strobe(spi_write_strobe),
 		.spi_read_address(spi_read_address),   .spi_read_data(spi_read_data),   .spi_read_strobe(spi_read_strobe),
@@ -43,7 +43,7 @@ module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
 		.araddr(araddr), .arvalid(arvalid), .arready(arready),
 		.rdata(rdata),   .rvalid(rvalid),   .rready(rready)
 	);
-	pollable_memory__axi4lite_slave #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) pmas (
+	pollable_memory__axi4_slave #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) pmas (
 		.clock(clock), .reset(reset),
 		.awaddr(awaddr), .awvalid(awvalid), .awready(awready),
 		.wdata(wdata),   .wvalid(wvalid),   .wready(wready),
@@ -100,8 +100,8 @@ module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
 	end
 endmodule
 
-module spi_slave__axi4lite_master #(
-//module axi4lite_master #(
+module spi_slave__axi4_master #(
+//module axi4_master #(
 	parameter ADDRESS_WIDTH = 4,
 	parameter DATA_WIDTH = 32
 ) (
@@ -115,27 +115,27 @@ module spi_slave__axi4lite_master #(
 	input [ADDRESS_WIDTH-1:0] spi_read_address,
 	output reg [DATA_WIDTH-1:0] spi_read_data = 0,
 	input spi_read_strobe,
-	// axi4lite Write Address channel (AW)
+	// axi4 Write Address channel (AW)
 	output reg [ADDRESS_WIDTH-1:0] awaddr = 0, // Address of the first beat of the burst
 	// awprot
 	output reg awvalid = 0, // xVALID handshake signal
 	input awready, // xREADY handshake signal
-	// axi4lite Write Data channel (W)
+	// axi4 Write Data channel (W)
 	output reg [DATA_WIDTH-1:0] wdata = 0, // Read/Write data
 	//output wlast, // Last beat identifier
 	// wstrb, // Byte strobe, to indicate which bytes of the WDATA signal are valid
 	output reg wvalid = 0, // xVALID handshake signal
 	input wready, // xREADY handshake signal
-	// axi4lite Write Response channel (B)
+	// axi4 Write Response channel (B)
 	input bresp, // Write response, to specify the status of the burst
 	input bvalid, // xVALID handshake signal
 	output reg bready = 0, // xREADY handshake signal
-	// axi4lite Read Address channel (AR)
+	// axi4 Read Address channel (AR)
 	output reg [ADDRESS_WIDTH-1:0] araddr = 0, // Address of the first beat of the burst
 	// arprot, // Protection type: privilege, security level and data/instruction access
 	output reg arvalid = 0, // xVALID handshake signal
 	input arready, // xREADY handshake signal
-	// axi4lite Read Data channel (R)
+	// axi4 Read Data channel (R)
 	input [DATA_WIDTH-1:0] rdata, // Read/Write data
 //	input reg rresp, // Read response, to specify the status of the current RDATA signal
 	//input rlast, // Last beat identifier
@@ -155,9 +155,9 @@ module spi_slave__axi4lite_master #(
 	reg [ADDRESS_WIDTH-1:0] local_spi_read_address;
 	reg [DATA_WIDTH-1:0] local_spi_read_data;
 	reg last_write_was_succecssful = 0;
-//	axi4lite_handshake awhandshake (.clock(clock), .reset(reset), .ready(awready), .valid_in(pre_awvalid), .valid_out(awvalid));
-//	axi4lite_handshake whandshake (.clock(clock), .reset(reset), .ready(wready), .valid_in(pre_wvalid), .valid_out(wvalid));
-//	axi4lite_handshake arhandshake (.clock(clock), .reset(reset), .ready(arready), .valid_in(pre_arvalid), .valid_out(arvalid));
+//	axi4_handshake awhandshake (.clock(clock), .reset(reset), .ready(awready), .valid_in(pre_awvalid), .valid_out(awvalid));
+//	axi4_handshake whandshake (.clock(clock), .reset(reset), .ready(wready), .valid_in(pre_wvalid), .valid_out(wvalid));
+//	axi4_handshake arhandshake (.clock(clock), .reset(reset), .ready(arready), .valid_in(pre_arvalid), .valid_out(arvalid));
 	always @(posedge clock) begin
 		if (reset) begin
 			pre_awaddr  <= 0;
@@ -251,33 +251,33 @@ module spi_slave__axi4lite_master #(
 endmodule
 
 // definitions from https://en.wikipedia.org/wiki/Advanced_eXtensible_Interface
-module pollable_memory__axi4lite_slave #(
+module pollable_memory__axi4_slave #(
 	parameter ADDRESS_WIDTH = 4,
 	parameter DATA_WIDTH = 32
 ) (
 	input clock,
 	input reset,
-	// axi4lite Write Address channel (AW)
+	// axi4 Write Address channel (AW)
 	input [ADDRESS_WIDTH-1:0] awaddr, // Address of the first beat of the burst
 	// awprot
 	input awvalid, // xVALID handshake signal
 	output reg awready = 0, // xREADY handshake signal
-	// axi4lite Write Data channel (W)
+	// axi4 Write Data channel (W)
 	input [DATA_WIDTH-1:0] wdata, // Read/Write data
 	//input wlast, // Last beat identifier
 	// wstrb, // Byte strobe, to indicate which bytes of the WDATA signal are valid
 	input wvalid, // xVALID handshake signal
 	output reg wready = 0, // xREADY handshake signal
-	// axi4lite Write Response channel (B)
+	// axi4 Write Response channel (B)
 	output reg bresp = 0, // Write response, to specify the status of the burst
 	output reg bvalid = 0, // xVALID handshake signal
 	input bready, // xREADY handshake signal
-	// axi4lite Read Address channel (AR)
+	// axi4 Read Address channel (AR)
 	input [ADDRESS_WIDTH-1:0] araddr, // Address of the first beat of the burst
 	// arprot, // Protection type: privilege, security level and data/instruction access
 	input arvalid, // xVALID handshake signal
 	output reg arready = 0, // xREADY handshake signal
-	// axi4lite Read Data channel (R)
+	// axi4 Read Data channel (R)
 	output reg [DATA_WIDTH-1:0] rdata = 0, // Read/Write data
 //	output reg rresp = 0, // Read response, to specify the status of the current RDATA signal
 	//output rlast, // Last beat identifier
@@ -379,7 +379,7 @@ module pollable_memory__axi4lite_slave #(
 endmodule
 
 
-module axi4lite_handshake (
+module axi4_handshake (
 	input clock,
 	input reset,
 	input ready,
@@ -407,7 +407,7 @@ module axi4lite_handshake (
 	end
 endmodule
 
-module pollable_memory_axi4lite_slave_tb;
+module pollable_memory_axi4_slave_tb;
 	localparam ADDRESS_WIDTH = 4;
 	localparam DATA_WIDTH = 32;
 	reg clock = 0;
@@ -436,7 +436,7 @@ module pollable_memory_axi4lite_slave_tb;
 	wire rvalid;
 	reg pre_rready = 1;
 	reg rready = 1;
-	pollable_memory__axi4lite_slave #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) pmas (
+	pollable_memory__axi4_slave #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) pmas (
 		.clock(clock), .reset(reset),
 		.awaddr(awaddr), .awvalid(awvalid), .awready(awready),
 		.wdata(wdata), .wvalid(wvalid), .wready(wready),
@@ -444,9 +444,9 @@ module pollable_memory_axi4lite_slave_tb;
 		.araddr(araddr), .arvalid(arvalid), .arready(arready),
 		.rdata(rdata), .rvalid(rvalid), .rready(rready)
 	);
-	axi4lite_handshake awhandshake (.clock(clock), .reset(reset), .ready(awready), .valid_in(pre_awvalid), .valid_out(awvalid));
-	axi4lite_handshake whandshake  (.clock(clock), .reset(reset), .ready(wready),  .valid_in(pre_wvalid),  .valid_out(wvalid));
-	axi4lite_handshake arhandshake (.clock(clock), .reset(reset), .ready(arready), .valid_in(pre_arvalid), .valid_out(arvalid));
+	axi4_handshake awhandshake (.clock(clock), .reset(reset), .ready(awready), .valid_in(pre_awvalid), .valid_out(awvalid));
+	axi4_handshake whandshake  (.clock(clock), .reset(reset), .ready(wready),  .valid_in(pre_wvalid),  .valid_out(wvalid));
+	axi4_handshake arhandshake (.clock(clock), .reset(reset), .ready(arready), .valid_in(pre_arvalid), .valid_out(arvalid));
 	task automatic master_read_transaction;
 		input [ADDRESS_WIDTH-1:0] address;
 		begin
