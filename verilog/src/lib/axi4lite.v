@@ -1,8 +1,8 @@
 // written 2020-06-03 by mza
 // updated 2020-06-04 by mza
-// last updated 2021-02-12 by mza
+// last updated 2021-02-13 by mza
 
-module spi_slave_axi4lite_master__pollable_memory_axi4list_slave__tb;
+module spi_slave_axi4lite_master__pollable_memory_axi4lite_slave__tb;
 	localparam ADDRESS_WIDTH = 4;
 	localparam DATA_WIDTH = 32;
 	reg clock = 0;
@@ -150,10 +150,10 @@ module spi_slave__axi4lite_master #(
 	reg pre_arvalid = 0;
 	reg [2:0] rstate = 0;
 	reg [3:0] wstate = 0;
-	reg [ADDRESS_WIDTH-1:0] local_spi_write_address;
-	reg [DATA_WIDTH-1:0] local_spi_write_data;
-	reg [ADDRESS_WIDTH-1:0] local_spi_read_address;
-	reg [DATA_WIDTH-1:0] local_spi_read_data;
+	reg [ADDRESS_WIDTH-1:0] local_spi_write_address = 0;
+	reg [DATA_WIDTH-1:0] local_spi_write_data = 0;
+	reg [ADDRESS_WIDTH-1:0] local_spi_read_address = 0;
+	reg [DATA_WIDTH-1:0] local_spi_read_data = 0;
 	reg last_write_was_succecssful = 0;
 //	axi4lite_handshake awhandshake (.clock(clock), .reset(reset), .ready(awready), .valid_in(pre_awvalid), .valid_out(awvalid));
 //	axi4lite_handshake whandshake (.clock(clock), .reset(reset), .ready(wready), .valid_in(pre_wvalid), .valid_out(wvalid));
@@ -188,9 +188,9 @@ module spi_slave__axi4lite_master #(
 						wstate[0] <= 1;
 					end
 				end else begin
-					pre_awaddr <= spi_write_address;
+					pre_awaddr <= local_spi_write_address;
 					pre_awvalid <= 1;
-					pre_wdata <= spi_write_data;
+					pre_wdata <= local_spi_write_data;
 					pre_wvalid <= 1;
 					bready <= 1;
 					wstate[3:1] <= 3'b111;
