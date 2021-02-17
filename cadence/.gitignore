@@ -15,4 +15,21 @@ irun.history
 *.rpt
 fv
 genus_invs_des
+*.tstamp
+*.svwf
+*.rpt.old
+*.db
+*.fp
+*.fp.spr
+*.g
+*.gds
+*.sdc
+*.v
+*.db
+*.ccf
+*.tcl
+*.map
+lef
+lib
+vlog
 
