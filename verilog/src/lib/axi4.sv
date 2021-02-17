@@ -1,6 +1,6 @@
 // written 2021-02-12 by mza
 // based off axi4lite.v
-// last updated 2021-02-13 by mza
+// last updated 2021-02-16 by mza
 
 // notes:
 // axi::burst_t WRAP mode is unsupported
@@ -341,6 +341,22 @@ module spi_slave__axi4_master #(
 			end
 		end
 	end
+	reg [7:0] error_count = 0;
+	initial begin
+		#0; // this is crucial for some reason
+		if (awburst==axi::WRAP) begin
+			$display("ERROR: %s is not supported as the axi::burst_t for awburst", awburst.name);
+			error_count++;
+		end
+		if (arburst==axi::WRAP) begin
+			$display("ERROR: %s is not supported as the axi::burst_t for arburst", arburst.name);
+			error_count++;
+		end
+		if (error_count) begin
+			#1;
+			$finish;
+		end
+	end
 endmodule
 
 // definitions from https://en.wikipedia.org/wiki/Advanced_eXtensible_Interface
@@ -501,6 +517,23 @@ module pollable_memory__axi4_slave #(
 			end
 		end
 	end
+	reg [7:0] error_count = 0;
+	initial begin
+		#0; // this is crucial for some reason
+		error_count = 0;
+		if (awburst==axi::WRAP) begin
+			$display("ERROR: %s is not supported as the axi::burst_t for awburst", awburst.name);
+			error_count++;
+		end
+		if (arburst==axi::WRAP) begin
+			$display("ERROR: %s is not supported as the axi::burst_t for arburst", arburst.name);
+			error_count++;
+		end
+		if (error_count) begin
+			#1;
+			$finish;
+		end
+	end
 endmodule
 
 module axi4_handshake (
@@ -528,114 +561,6 @@ module axi4_handshake (
 				end
 			end
 		end
-	end
-endmodule
-
-module pollable_memory_axi4_slave_tb;
-	localparam ADDRESS_WIDTH = 4;
-	localparam DATA_WIDTH = 32;
-	reg clock = 0;
-	reg reset = 1;
-	reg [ADDRESS_WIDTH-1:0] pre_awaddr = 0;
-	reg [ADDRESS_WIDTH-1:0] awaddr = 0;
-	reg pre_awvalid = 0;
-	wire awvalid;
-	wire awready;
-	reg [DATA_WIDTH-1:0] pre_wdata = 0;
-	reg [DATA_WIDTH-1:0] wdata = 0;
-	reg pre_wvalid = 0;
-	wire wvalid;
-	wire wready;
-	wire bresp;
-	wire bvalid;
-	reg pre_bready = 1;
-	reg bready = 1;
-	reg [ADDRESS_WIDTH-1:0] pre_araddr = 0;
-	reg [ADDRESS_WIDTH-1:0] araddr = 0;
-	reg pre_arvalid = 0;
-	wire arvalid;
-	wire arready;
-	wire [DATA_WIDTH-1:0] rdata;
-//	wire rresp;
-	wire rvalid;
-	reg pre_rready = 1;
-	reg rready = 1;
-	pollable_memory__axi4_slave #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) pmas (
-		.clock(clock), .reset(reset),
-		.awaddr(awaddr), .awvalid(awvalid), .awready(awready),
-		.wdata(wdata), .wvalid(wvalid), .wready(wready),
-		.bresp(bresp), .bvalid(bvalid), .bready(bready),
-		.araddr(araddr), .arvalid(arvalid), .arready(arready),
-		.rdata(rdata), .rvalid(rvalid), .rready(rready)
-	);
-	axi4_handshake awhandshake (.clock(clock), .reset(reset), .ready(awready), .valid_in(pre_awvalid), .valid_out(awvalid));
-	axi4_handshake whandshake  (.clock(clock), .reset(reset), .ready(wready),  .valid_in(pre_wvalid),  .valid_out(wvalid));
-	axi4_handshake arhandshake (.clock(clock), .reset(reset), .ready(arready), .valid_in(pre_arvalid), .valid_out(arvalid));
-	task automatic master_read_transaction;
-		input [ADDRESS_WIDTH-1:0] address;
-		begin
-			#100;
-			pre_araddr <= address;
-			pre_arvalid <= 1;
-			#10;
-			pre_arvalid <= 0;
-		end
-	endtask
-	task automatic master_write_transaction;
-		input [ADDRESS_WIDTH-1:0] address;
-		input [DATA_WIDTH-1:0] data;
-		begin
-			#100;
-			pre_awaddr <= address;
-			pre_awvalid <= 1;
-			#10;
-			pre_awvalid <= 0;
-			#100;
-			pre_wdata <= data;
-			pre_wvalid <= 1;
-			#10;
-			pre_wvalid <= 0;
-//			#30;
-//			if (bvalid) begin
-	//			if (bresp) begin
-	//			end
-//				pre_bready <= 0;
-//			end
-			#100;
-			pre_bready <= 1;
-		end
-	endtask
-	initial begin
-		#100;
-		reset <= 0;
-		pre_awaddr <= 0;
-		pre_awvalid <= 0;
-		pre_wdata <= 0;
-		pre_wvalid <= 0;
-		pre_bready <= 1;
-		pre_araddr <= 0;
-		pre_arvalid <= 0;
-		pre_rready <= 1;
-		#100; master_write_transaction(4'h2, 32'h12345678);
-		#100; master_write_transaction(4'h5, 32'habcdef01);
-		#100; master_write_transaction(4'he, 32'h55550000);
-		#100; master_write_transaction(4'hc, 32'h00aa00aa);
-		#100; master_read_transaction(4'h2);
-		#100; master_read_transaction(4'hc);
-		#100; master_read_transaction(4'he);
-		#100; master_read_transaction(4'hc);
-		#100; $finish;
-	end
-	always @(posedge clock) begin
-		awaddr <= pre_awaddr;
-		wdata  <= pre_wdata;
-		bready <= pre_bready;
-		araddr <= pre_araddr;
-		rready <= pre_rready;
-	end
-	always begin
-		#5;
-		clock <= ~clock;
 	end
 endmodule
 
