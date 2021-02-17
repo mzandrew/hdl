@@ -1,6 +1,9 @@
 // written 2021-02-12 by mza
 // based off axi4lite.v
-// last updated 2021-02-16 by mza
+// last updated 2021-02-17 by mza
+
+`include "lib/DebugInfoWarningError.sv"
+import DebugInfoWarningError::*;
 
 // notes:
 // axi::burst_t WRAP mode is unsupported
@@ -189,7 +192,11 @@ module spi_slave__axi4_master #(
 	output reg rready = 0 // xREADY handshake signal);
 );
 	assign awburst = axi::INCR;
+//	assign awburst = axi::FIXED;
 	assign arburst = axi::INCR;
+//	assign arburst = axi::FIXED;
+//	assign awburst = axi::WRAP; // should fail
+//	assign arburst = 3'b101; // should fail
 	reg [ADDRESS_WIDTH-1:0] pre_awaddr = 0;
 	reg pre_awvalid = 0;
 	reg [DATA_WIDTH-1:0] pre_wdata = 0;
@@ -341,20 +348,13 @@ module spi_slave__axi4_master #(
 			end
 		end
 	end
-	reg [7:0] error_count = 0;
 	initial begin
 		#0; // this is crucial for some reason
-		if (awburst==axi::WRAP) begin
-			$display("ERROR: %s is not supported as the axi::burst_t for awburst", awburst.name);
-			error_count++;
+		if (^awburst===1'bx || awburst!=axi::FIXED && awburst!=axi::INCR) begin
+			`error("%b (%s) is not supported as the axi::burst_t for awburst", awburst, awburst.name);
 		end
-		if (arburst==axi::WRAP) begin
-			$display("ERROR: %s is not supported as the axi::burst_t for arburst", arburst.name);
-			error_count++;
-		end
-		if (error_count) begin
-			#1;
-			$finish;
+		if (^arburst===1'bx || arburst!=axi::FIXED && arburst!=axi::INCR) begin
+			`error("%b (%s) is not supported as the axi::burst_t for arburst", arburst, arburst.name);
 		end
 	end
 endmodule
@@ -517,21 +517,13 @@ module pollable_memory__axi4_slave #(
 			end
 		end
 	end
-	reg [7:0] error_count = 0;
 	initial begin
 		#0; // this is crucial for some reason
-		error_count = 0;
-		if (awburst==axi::WRAP) begin
-			$display("ERROR: %s is not supported as the axi::burst_t for awburst", awburst.name);
-			error_count++;
+		if (^awburst===1'bx || awburst!=axi::FIXED && awburst!=axi::INCR) begin
+			`error("%b (%s) is not supported as the axi::burst_t for awburst", awburst, awburst.name);
 		end
-		if (arburst==axi::WRAP) begin
-			$display("ERROR: %s is not supported as the axi::burst_t for arburst", arburst.name);
-			error_count++;
-		end
-		if (error_count) begin
-			#1;
-			$finish;
+		if (^arburst===1'bx || arburst!=axi::FIXED && arburst!=axi::INCR) begin
+			`error("%b (%s) is not supported as the axi::burst_t for arburst", arburst, arburst.name);
 		end
 	end
 endmodule
