@@ -193,9 +193,9 @@ module spi_slave__axi4_master #(
 );
 	assign awburst = axi::INCR;
 //	assign awburst = axi::FIXED;
+//	assign awburst = axi::WRAP; // should fail
 	assign arburst = axi::INCR;
 //	assign arburst = axi::FIXED;
-//	assign awburst = axi::WRAP; // should fail
 //	assign arburst = 3'b101; // should fail
 	reg [ADDRESS_WIDTH-1:0] pre_awaddr = 0;
 	reg pre_awvalid = 0;
@@ -216,8 +216,8 @@ module spi_slave__axi4_master #(
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
 	reg pre_wlast = 0;
 	reg pre_rlast = 0;
+	reg [31:0] error_count = 0;
 	always @(posedge clock) begin
-		pre_wlast <= 0;
 		if (reset) begin
 			pre_awaddr  <= 0;
 			pre_awvalid <= 0;
@@ -254,15 +254,15 @@ module spi_slave__axi4_master #(
 							pre_awlen <= spi_write_burst_length;
 							if (write_transaction_counter==0) begin
 								write_transaction_counter <= spi_write_burst_length - 1'b1;
-//							end else begin
-//								error_count <= error_counter + 1'b1;
+							end else begin
+								error_count <= error_count + 1'b1;
 							end
 						end else if (awburst==axi::INCR) begin
 							local_spi_write_address <= local_spi_write_address + 1'b1;
 							if (write_transaction_counter>=1) begin
 								write_transaction_counter <= write_transaction_counter - 1'b1;
-//							end else if (write_transaction_counter==0) begin
-//								error_count <= error_counter + 1'b1;
+							end else if (write_transaction_counter==0) begin
+								error_count <= error_count + 1'b1;
 							end
 						end
 						local_spi_write_data <= spi_write_data;
@@ -311,15 +311,15 @@ module spi_slave__axi4_master #(
 							pre_arlen <= spi_read_burst_length;
 							if (read_transaction_counter==0) begin
 								read_transaction_counter <= spi_read_burst_length - 1'b1;
-//							end else begin
-//								error_count <= error_counter + 1'b1;
+							end else begin
+								error_count <= error_count + 1'b1;
 							end
 						end else if (arburst==axi::INCR) begin
 							local_spi_read_address <= local_spi_read_address + 1'b1;
 							if (read_transaction_counter>=1) begin
 								read_transaction_counter <= read_transaction_counter - 1'b1;
-//							end else if (read_transaction_counter==0) begin
-//								error_count <= error_counter + 1'b1;
+							end else if (read_transaction_counter==0) begin
+								error_count <= error_count + 1'b1;
 							end
 						end
 						rstate[0] <= 1;
@@ -415,12 +415,6 @@ module pollable_memory__axi4_slave #(
 	reg pre_wlast = 0;
 	reg pre_rlast = 0;
 	always @(posedge clock) begin
-//		pre_bresp   <= 0;
-//		pre_bvalid  <= 0;
-//		pre_arready <= 0;
-//		pre_rdata   <= 0;
-//		pre_rresp   <= 0;
-//		pre_rvalid  <= 0;
 		if (reset) begin
 			wstate <= 0;
 			local_awaddr <= 0;
