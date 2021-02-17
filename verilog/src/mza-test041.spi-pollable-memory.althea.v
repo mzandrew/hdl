@@ -81,9 +81,9 @@ module top (
 	assign read_data32_3210[23:16] = read_data32_0123[15:8];
 	assign read_data32_3210[31:24] = read_data32_0123[7:0];
 	wire transaction_valid;
-	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock_spi),
+	SPI_peripheral_command8_address16_data32 spi_c8_a16_d32 (.clock(clock_spi),
 		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce1),
-		.transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32_3210), .data32_to_master(read_data32_3210));
+		.transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32_3210), .data32_to_controller(read_data32_3210));
 `ifdef USE_INFERRED_RAM_16
 	wire [3:0] address4 = address16[3:0];
 	RAM_inferred #(.addr_width(4), .data_width(32)) myram (.reset(reset3),

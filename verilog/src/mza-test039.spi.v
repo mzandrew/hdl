@@ -34,26 +34,26 @@ module top (
 			end
 		end
 	end
-	wire [7:0] data_from_master;
-	wire [7:0] data_to_master;
+	wire [7:0] data_from_controller;
+	wire [7:0] data_to_controller;
 	wire data_valid;
 	wire [7:0] command8;
 	wire [15:0] address16;
 	wire [31:0] data32;
 	wire transaction_valid;
-	SPI_slave_simple8 spi_s8 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce0), .data_to_master(data_to_master), .data_from_master(data_from_master), .data_valid(data_valid));
-	SPI_slave_command8_address16_data32 spi_c8_a16_d32 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(), .SSEL(rpi_spi_ce1), .transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32));
-	reg [7:0] previous_data_from_master = 0;
+	SPI_peripheral_simple8 spi_s8 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(rpi_spi_miso), .SSEL(rpi_spi_ce0), .data_to_controller(data_to_controller), .data_from_controller(data_from_controller), .data_valid(data_valid));
+	SPI_peripheral_command8_address16_data32 spi_c8_a16_d32 (.clock(clock100), .SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(), .SSEL(rpi_spi_ce1), .transaction_valid(transaction_valid), .command8(command8), .address16(address16), .data32(data32));
+	reg [7:0] previous_data_from_controller = 0;
 	always @(posedge clock100) begin
 		if (data_valid) begin
-			previous_data_from_master <= data_from_master;
+			previous_data_from_controller <= data_from_controller;
 		end
 	end
-	assign data_to_master = previous_data_from_master;
+	assign data_to_controller = previous_data_from_controller;
 //	assign led1 = reset;
 //	assign led2 = ~rpi_spi_ce0;
 	wire [2:0] leds = { led1, led2, led3 };
-	//assign leds = data_from_master[2:0];
+	//assign leds = data_from_controller[2:0];
 	assign leds = data32[2:0];
 	assign pmod4_5 = rpi_spi_sclk;
 	assign pmod4_6 = rpi_spi_mosi;

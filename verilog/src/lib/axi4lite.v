@@ -2,7 +2,7 @@
 // updated 2020-06-04 by mza
 // last updated 2021-02-13 by mza
 
-module spi_slave_axi4lite_master__pollable_memory_axi4lite_slave__tb;
+module spi_peripheral_axi4lite_controller__pollable_memory_axi4lite_peripheral__tb;
 	localparam ADDRESS_WIDTH = 4;
 	localparam DATA_WIDTH = 32;
 	reg clock = 0;
@@ -33,7 +33,7 @@ module spi_slave_axi4lite_master__pollable_memory_axi4lite_slave__tb;
 	wire [DATA_WIDTH-1:0] rdata;
 	wire rvalid;
 	wire rready;
-	spi_slave__axi4lite_master #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) ssam (
+	spi_peripheral__axi4lite_controller #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) spac (
 		.clock(clock), .reset(reset),
 		.spi_write_address(spi_write_address), .spi_write_data(spi_write_data), .spi_write_strobe(spi_write_strobe),
 		.spi_read_address(spi_read_address),   .spi_read_data(spi_read_data),   .spi_read_strobe(spi_read_strobe),
@@ -43,7 +43,7 @@ module spi_slave_axi4lite_master__pollable_memory_axi4lite_slave__tb;
 		.araddr(araddr), .arvalid(arvalid), .arready(arready),
 		.rdata(rdata),   .rvalid(rvalid),   .rready(rready)
 	);
-	pollable_memory__axi4lite_slave #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) pmas (
+	pollable_memory__axi4lite_peripheral #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) pmap (
 		.clock(clock), .reset(reset),
 		.awaddr(awaddr), .awvalid(awvalid), .awready(awready),
 		.wdata(wdata),   .wvalid(wvalid),   .wready(wready),
@@ -51,9 +51,9 @@ module spi_slave_axi4lite_master__pollable_memory_axi4lite_slave__tb;
 		.araddr(araddr), .arvalid(arvalid), .arready(arready),
 		.rdata(rdata),   .rvalid(rvalid),   .rready(rready)
 	);
-//	task automatic master_read_transaction;
+//	task automatic controller_read_transaction;
 //		input [ADDRESS_WIDTH-1:0] address;
-	task automatic master_read_transaction(input [ADDRESS_WIDTH-1:0] address);
+	task automatic controller_read_transaction(input [ADDRESS_WIDTH-1:0] address);
 		begin
 			#100;
 			pre_spi_read_address <= address;
@@ -62,10 +62,10 @@ module spi_slave_axi4lite_master__pollable_memory_axi4lite_slave__tb;
 			pre_spi_read_strobe <= 0;
 		end
 	endtask
-//	task automatic master_write_transaction;
+//	task automatic controller_write_transaction;
 //		input [ADDRESS_WIDTH-1:0] address;
 //		input [DATA_WIDTH-1:0] data;
-	task automatic master_write_transaction(input [ADDRESS_WIDTH-1:0] address, input [DATA_WIDTH-1:0] data);
+	task automatic controller_write_transaction(input [ADDRESS_WIDTH-1:0] address, input [DATA_WIDTH-1:0] data);
 		begin
 			#100;
 			pre_spi_write_address <= address;
@@ -77,14 +77,14 @@ module spi_slave_axi4lite_master__pollable_memory_axi4lite_slave__tb;
 	endtask
 	initial begin
 		#100; reset <= 0;
-		#100; master_write_transaction(4'h2, 32'h12345678);
-		#100; master_write_transaction(4'h3, 32'habcdef01);
-		#100; master_write_transaction(4'hc, 32'h55550000);
-		#100; master_write_transaction(4'hd, 32'h00aa00aa);
-		#100; master_read_transaction(4'h2);
-		#100; master_read_transaction(4'h3);
-		#100; master_read_transaction(4'hc);
-		#100; master_read_transaction(4'hd);
+		#100; controller_write_transaction(4'h2, 32'h12345678);
+		#100; controller_write_transaction(4'h3, 32'habcdef01);
+		#100; controller_write_transaction(4'hc, 32'h55550000);
+		#100; controller_write_transaction(4'hd, 32'h00aa00aa);
+		#100; controller_read_transaction(4'h2);
+		#100; controller_read_transaction(4'h3);
+		#100; controller_read_transaction(4'hc);
+		#100; controller_read_transaction(4'hd);
 		#200; $finish;
 	end
 	always @(posedge clock) begin
@@ -100,8 +100,8 @@ module spi_slave_axi4lite_master__pollable_memory_axi4lite_slave__tb;
 	end
 endmodule
 
-module spi_slave__axi4lite_master #(
-//module axi4lite_master #(
+module spi_peripheral__axi4lite_controller #(
+//module axi4lite_controller #(
 	parameter ADDRESS_WIDTH = 4,
 	parameter DATA_WIDTH = 32
 ) (
@@ -251,7 +251,7 @@ module spi_slave__axi4lite_master #(
 endmodule
 
 // definitions from https://en.wikipedia.org/wiki/Advanced_eXtensible_Interface
-module pollable_memory__axi4lite_slave #(
+module pollable_memory__axi4lite_peripheral #(
 	parameter ADDRESS_WIDTH = 4,
 	parameter DATA_WIDTH = 32
 ) (
@@ -407,7 +407,7 @@ module axi4lite_handshake (
 	end
 endmodule
 
-module pollable_memory_axi4lite_slave_tb;
+module pollable_memory_axi4lite_peripheral_tb;
 	localparam ADDRESS_WIDTH = 4;
 	localparam DATA_WIDTH = 32;
 	reg clock = 0;
@@ -436,7 +436,7 @@ module pollable_memory_axi4lite_slave_tb;
 	wire rvalid;
 	reg pre_rready = 1;
 	reg rready = 1;
-	pollable_memory__axi4lite_slave #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) pmas (
+	pollable_memory__axi4lite_peripheral #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) pmap (
 		.clock(clock), .reset(reset),
 		.awaddr(awaddr), .awvalid(awvalid), .awready(awready),
 		.wdata(wdata), .wvalid(wvalid), .wready(wready),
@@ -447,7 +447,7 @@ module pollable_memory_axi4lite_slave_tb;
 	axi4lite_handshake awhandshake (.clock(clock), .reset(reset), .ready(awready), .valid_in(pre_awvalid), .valid_out(awvalid));
 	axi4lite_handshake whandshake  (.clock(clock), .reset(reset), .ready(wready),  .valid_in(pre_wvalid),  .valid_out(wvalid));
 	axi4lite_handshake arhandshake (.clock(clock), .reset(reset), .ready(arready), .valid_in(pre_arvalid), .valid_out(arvalid));
-	task automatic master_read_transaction;
+	task automatic controller_read_transaction;
 		input [ADDRESS_WIDTH-1:0] address;
 		begin
 			#100;
@@ -457,7 +457,7 @@ module pollable_memory_axi4lite_slave_tb;
 			pre_arvalid <= 0;
 		end
 	endtask
-	task automatic master_write_transaction;
+	task automatic controller_write_transaction;
 		input [ADDRESS_WIDTH-1:0] address;
 		input [DATA_WIDTH-1:0] data;
 		begin
@@ -492,14 +492,14 @@ module pollable_memory_axi4lite_slave_tb;
 		pre_araddr <= 0;
 		pre_arvalid <= 0;
 		pre_rready <= 1;
-		#100; master_write_transaction(4'h2, 32'h12345678);
-		#100; master_write_transaction(4'h5, 32'habcdef01);
-		#100; master_write_transaction(4'he, 32'h55550000);
-		#100; master_write_transaction(4'hc, 32'h00aa00aa);
-		#100; master_read_transaction(4'h2);
-		#100; master_read_transaction(4'hc);
-		#100; master_read_transaction(4'he);
-		#100; master_read_transaction(4'hc);
+		#100; controller_write_transaction(4'h2, 32'h12345678);
+		#100; controller_write_transaction(4'h5, 32'habcdef01);
+		#100; controller_write_transaction(4'he, 32'h55550000);
+		#100; controller_write_transaction(4'hc, 32'h00aa00aa);
+		#100; controller_read_transaction(4'h2);
+		#100; controller_read_transaction(4'hc);
+		#100; controller_read_transaction(4'he);
+		#100; controller_read_transaction(4'hc);
 		#100; $finish;
 	end
 	always @(posedge clock) begin

@@ -300,7 +300,7 @@ module top #(
 		end
 	end
 	assign ack_valid = ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF];
-	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
+	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are peripheral
 	assign bus = 'bz;
 	RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset50),
 		.wclk(clock), .waddr(address_word_reg), .din(write_data_word), .write_en(write_strobe),
@@ -331,10 +331,10 @@ module top #(
 endmodule
 
 module top_tb;
-	localparam HALF_PERIOD_OF_MASTER = 1;
-	localparam HALF_PERIOD_OF_SLAVE = 10;
-	localparam NUMBER_OF_PERIODS_OF_MASTER_IN_A_DELAY = 1;
-	localparam NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK = 2000;
+	localparam HALF_PERIOD_OF_CONTROLLER = 1;
+	localparam HALF_PERIOD_OF_PERIPHERAL = 10;
+	localparam NUMBER_OF_PERIODS_OF_CONTROLLER_IN_A_DELAY = 1;
+	localparam NUMBER_OF_PERIODS_OF_CONTROLLER_WHILE_WAITING_FOR_ACK = 2000;
 	reg clock = 0;
 	localparam BUS_WIDTH = 8;
 	localparam ADDRESS_DEPTH = 14;
@@ -355,33 +355,33 @@ module top_tb;
 	wire [BUS_WIDTH-1:0] bus;
 	reg pre_enable = 0;
 	reg enable = 0;
-	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are master
+	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are controller
 	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(reset),
 		.lemo(lemo), .other0(other0), .other1(other1),
 		.bus(bus), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
 		.leds(leds)
 	);
-	task automatic slave_clock_delay;
+	task automatic peripheral_clock_delay;
 		input integer number_of_cycles;
 		integer j;
 		begin
 			for (j=0; j<2*number_of_cycles; j=j+1) begin : delay_thing_s
-				#HALF_PERIOD_OF_SLAVE;
+				#HALF_PERIOD_OF_PERIPHERAL;
 			end
 		end
 	endtask
-	task automatic master_clock_delay;
+	task automatic controller_clock_delay;
 		input integer number_of_cycles;
 		integer j;
 		begin
 			for (j=0; j<2*number_of_cycles; j=j+1) begin : delay_thing_m
-				#HALF_PERIOD_OF_MASTER;
+				#HALF_PERIOD_OF_CONTROLLER;
 			end
 		end
 	endtask
 	task automatic delay;
-		master_clock_delay(NUMBER_OF_PERIODS_OF_MASTER_IN_A_DELAY);
+		controller_clock_delay(NUMBER_OF_PERIODS_OF_CONTROLLER_IN_A_DELAY);
 	endtask
 	task automatic pulse_enable;
 		integer i;
@@ -390,15 +390,15 @@ module top_tb;
 			i = 0;
 			//delay();
 			pre_enable <= 1;
-			for (j=0; j<2*NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK; j=j+1) begin : delay_thing_1
+			for (j=0; j<2*NUMBER_OF_PERIODS_OF_CONTROLLER_WHILE_WAITING_FOR_ACK; j=j+1) begin : delay_thing_1
 				if (ack_valid) begin
 					i = i + 1;
-					j = 2*NUMBER_OF_PERIODS_OF_MASTER_WHILE_WAITING_FOR_ACK - 100;
+					j = 2*NUMBER_OF_PERIODS_OF_CONTROLLER_WHILE_WAITING_FOR_ACK - 100;
 				end
 				if (64<i) begin
 					pre_enable <= 0;
 				end
-				#HALF_PERIOD_OF_MASTER;
+				#HALF_PERIOD_OF_CONTROLLER;
 			end
 			if (pre_enable==1) begin
 				//$display(“pre_enable is still 1”);
@@ -406,22 +406,22 @@ module top_tb;
 			end
 		end
 	endtask
-	task automatic a16_d32_master_write_transaction;
+	task automatic a16_d32_controller_write_transaction;
 		input [15:0] address16;
 		input [31:0] data32;
 		begin
-			master_set_address16(address16);
-			master_write_data32(data32);
+			controller_set_address16(address16);
+			controller_write_data32(data32);
 		end
 	endtask
-	task automatic a16_master_read_transaction;
+	task automatic a16_controller_read_transaction;
 		input [15:0] address16;
 		integer j;
 		begin
-			master_set_address16(address16);
+			controller_set_address16(address16);
 		end
 	endtask
-	task automatic master_set_address16;
+	task automatic controller_set_address16;
 		input [15:0] address16;
 		integer j;
 		begin
@@ -437,7 +437,7 @@ module top_tb;
 			pulse_enable();
 		end
 	endtask
-	task automatic master_write_data32;
+	task automatic controller_write_data32;
 		input [31:0] data32;
 		integer j;
 		begin
@@ -461,7 +461,7 @@ module top_tb;
 			pulse_enable();
 		end
 	endtask
-	task automatic master_read_data32;
+	task automatic controller_read_data32;
 		integer j;
 		begin
 			delay();
@@ -483,84 +483,84 @@ module top_tb;
 		// test the interface
 		if (ADDRESS_AUTOINCREMENT_MODE) begin
 			// write some data to some addresses
-			master_clock_delay(64);
-			slave_clock_delay(64);
-			master_set_address16(16'h_2b4c);
-			master_write_data32(32'h_3123_1507);
-			master_write_data32(32'h_3123_1508);
-			master_write_data32(32'h_3123_1509);
-			master_write_data32(32'h_3123_150a);
+			controller_clock_delay(64);
+			peripheral_clock_delay(64);
+			controller_set_address16(16'h_2b4c);
+			controller_write_data32(32'h_3123_1507);
+			controller_write_data32(32'h_3123_1508);
+			controller_write_data32(32'h_3123_1509);
+			controller_write_data32(32'h_3123_150a);
 			// read back from those addresses
-			master_clock_delay(64);
-			slave_clock_delay(64);
-			master_set_address16(16'h_2b4c);
-			master_read_data32();
-			master_read_data32();
-			master_read_data32();
-			master_read_data32();
+			controller_clock_delay(64);
+			peripheral_clock_delay(64);
+			controller_set_address16(16'h_2b4c);
+			controller_read_data32();
+			controller_read_data32();
+			controller_read_data32();
+			controller_read_data32();
 		end else begin
 			// write some data to some addresses
-			master_clock_delay(64);
-			slave_clock_delay(64);
-			a16_d32_master_write_transaction(.address16(16'h2b4c), .data32(32'h3123_1507));
-			master_read_data32();
-			a16_d32_master_write_transaction(.address16(16'h2b4d), .data32(32'h3123_1508));
-			master_read_data32();
-			a16_d32_master_write_transaction(.address16(16'h2b4e), .data32(32'h3123_1509));
-			master_read_data32();
-			a16_d32_master_write_transaction(.address16(16'h2b4f), .data32(32'h3123_150a));
-			master_read_data32();
+			controller_clock_delay(64);
+			peripheral_clock_delay(64);
+			a16_d32_controller_write_transaction(.address16(16'h2b4c), .data32(32'h3123_1507));
+			controller_read_data32();
+			a16_d32_controller_write_transaction(.address16(16'h2b4d), .data32(32'h3123_1508));
+			controller_read_data32();
+			a16_d32_controller_write_transaction(.address16(16'h2b4e), .data32(32'h3123_1509));
+			controller_read_data32();
+			a16_d32_controller_write_transaction(.address16(16'h2b4f), .data32(32'h3123_150a));
+			controller_read_data32();
 			// read back from those addresses
-			master_clock_delay(64);
-			slave_clock_delay(64);
-			a16_master_read_transaction(.address16(16'h2b4c));
-			a16_master_read_transaction(.address16(16'h2b4d));
-			a16_master_read_transaction(.address16(16'h2b4e));
-			a16_master_read_transaction(.address16(16'h2b4f));
+			controller_clock_delay(64);
+			peripheral_clock_delay(64);
+			a16_controller_read_transaction(.address16(16'h2b4c));
+			a16_controller_read_transaction(.address16(16'h2b4d));
+			a16_controller_read_transaction(.address16(16'h2b4e));
+			a16_controller_read_transaction(.address16(16'h2b4f));
 		end
 		// write the two checksum words to the memory
-		//master_clock_delay(64);
-		//slave_clock_delay(64);
-		//a16_d32_master_write_transaction(.address16(16'h1234), .data32(32'h3123_1507));
-		//master_read_data32();
-		//a16_d32_master_write_transaction(.address16(16'h3412), .data32(32'h0000_1507));
-		//master_read_data32();
+		//controller_clock_delay(64);
+		//peripheral_clock_delay(64);
+		//a16_d32_controller_write_transaction(.address16(16'h1234), .data32(32'h3123_1507));
+		//controller_read_data32();
+		//a16_d32_controller_write_transaction(.address16(16'h3412), .data32(32'h0000_1507));
+		//controller_read_data32();
 		//pre_register_select <= 0;
 		// now mess things up
 		// inject read error:
-		master_clock_delay(64);
-		slave_clock_delay(64);
+		controller_clock_delay(64);
+		peripheral_clock_delay(64);
 		pre_register_select <= 1;
 		pre_read <= 1;
 		pre_bus <= 8'h33;
 		pulse_enable();
-		master_set_address16(16'h1b4f);
-		master_read_data32();
+		controller_set_address16(16'h1b4f);
+		controller_read_data32();
 		// inject write error:
-		master_clock_delay(64);
-		slave_clock_delay(64);
+		controller_clock_delay(64);
+		peripheral_clock_delay(64);
 		pre_register_select <= 1;
 		pre_read <= 0;
 		pre_bus <= 8'h66;
 		pulse_enable();
-		master_set_address16(16'h4f1b);
-		master_write_data32(32'h3123_2d78);
+		controller_set_address16(16'h4f1b);
+		controller_write_data32(32'h3123_2d78);
 		// inject address error:
-		master_clock_delay(64);
-		slave_clock_delay(64);
+		controller_clock_delay(64);
+		peripheral_clock_delay(64);
 		pre_register_select <= 0; // register_select=0 is address
 		pre_read <= 0;
 		pre_bus <= 8'h99;
 		pulse_enable();
-		master_set_address16(16'h1b4f);
-		master_read_data32();
+		controller_set_address16(16'h1b4f);
+		controller_read_data32();
 		// clear all signals
 		pre_register_select <= 0;
 		pre_read <= 0;
 		pre_enable <= 0;
 		// inject global reset
-		master_clock_delay(64);
-		slave_clock_delay(64);
+		controller_clock_delay(64);
+		peripheral_clock_delay(64);
 		#300; reset <= 1; #300; reset <= 0;
 		#300;
 	end
@@ -570,12 +570,12 @@ module top_tb;
 		enable <= #1 pre_enable;
 	end
 	always begin
-		#HALF_PERIOD_OF_SLAVE;
+		#HALF_PERIOD_OF_PERIPHERAL;
 		clock50_p <= #1.5 ~clock50_p;
 		clock50_n <= #2.5 ~clock50_n;
 	end
 	always begin
-		#HALF_PERIOD_OF_MASTER;
+		#HALF_PERIOD_OF_CONTROLLER;
 		clock <= #0.625 ~clock;
 	end
 endmodule

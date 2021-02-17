@@ -13,7 +13,7 @@ package axi;
 endpackage
 //import axi::*;
 
-module spi_slave_axi4_master__pollable_memory_axi4_slave__tb;
+module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	localparam ADDRESS_WIDTH = 4;
 	localparam DATA_WIDTH = 32;
 	localparam LEN_WIDTH = 5;
@@ -59,8 +59,8 @@ module spi_slave_axi4_master__pollable_memory_axi4_slave__tb;
 	reg [LEN_WIDTH-1:0] spi_write_burst_length = 1;
 	reg [LEN_WIDTH-1:0] pre_spi_read_burst_length = 1;
 	reg [LEN_WIDTH-1:0] spi_read_burst_length = 1;
-	spi_slave__axi4_master      #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) ssam (.*);
-	pollable_memory__axi4_slave #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) pmas (.*);
+	spi_peripheral__axi4_controller      #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) spac (.*);
+	pollable_memory__axi4_peripheral #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) pmap (.*);
 	wire awbeat = awready & awvalid;
 	wire arbeat = arready & arvalid;
 	wire  wbeat =  wready &  wvalid;
@@ -71,7 +71,7 @@ module spi_slave_axi4_master__pollable_memory_axi4_slave__tb;
 	always @(posedge  wbeat) begin $display("%t,  wbeat %08x", $time, wdata); end
 	always @(posedge  rbeat) begin $display("%t,  rbeat %08x", $time, rdata); end
 	always @(posedge  bbeat) begin $display("%t,  bbeat", $time); end
-	task automatic master_read_transaction(input [ADDRESS_WIDTH-1:0] address, input [LEN_WIDTH:0] len);
+	task automatic controller_read_transaction(input [ADDRESS_WIDTH-1:0] address, input [LEN_WIDTH:0] len);
 		reg [ADDRESS_WIDTH:0] i;
 		begin
 			#100;
@@ -87,7 +87,7 @@ module spi_slave_axi4_master__pollable_memory_axi4_slave__tb;
 			end
 		end
 	endtask
-	task automatic master_write_transaction(input [ADDRESS_WIDTH-1:0] address, input [LEN_WIDTH:0] len, input [DATA_WIDTH-1:0] data []);
+	task automatic controller_write_transaction(input [ADDRESS_WIDTH-1:0] address, input [LEN_WIDTH:0] len, input [DATA_WIDTH-1:0] data []);
 		reg [ADDRESS_WIDTH:0] i;
 		begin
 			#100;
@@ -112,15 +112,15 @@ module spi_slave_axi4_master__pollable_memory_axi4_slave__tb;
 		for (i=i; i<2**LEN_WIDTH; i++) begin
 			data[i] = i;
 		end
-		#100; data[0] = 32'h12345678; master_write_transaction(4'h0, 19, data);
-		#100; data[0] = 32'habcdef01; master_write_transaction(4'h1, 1, data);
-		#100; data[0] = 32'h55550000; data[1] = 32'h44bb44bb; master_write_transaction(4'hc, 2, data);
-		#100; data[0] = 32'h00aa00aa; master_write_transaction(4'hd, 1, data);
-		#100; master_read_transaction(4'h0, 2);
-		#100; master_read_transaction(4'h1, 1);
-		#100; master_read_transaction(4'hc, 2);
-		#100; master_read_transaction(4'hd, 1);
-		#100; master_read_transaction(4'h0, 20);
+		#100; data[0] = 32'h12345678; controller_write_transaction(4'h0, 19, data);
+		#100; data[0] = 32'habcdef01; controller_write_transaction(4'h1, 1, data);
+		#100; data[0] = 32'h55550000; data[1] = 32'h44bb44bb; controller_write_transaction(4'hc, 2, data);
+		#100; data[0] = 32'h00aa00aa; controller_write_transaction(4'hd, 1, data);
+		#100; controller_read_transaction(4'h0, 2);
+		#100; controller_read_transaction(4'h1, 1);
+		#100; controller_read_transaction(4'hc, 2);
+		#100; controller_read_transaction(4'hd, 1);
+		#100; controller_read_transaction(4'h0, 20);
 		#200; $finish;
 	end
 	always @(posedge clock) begin
@@ -140,8 +140,8 @@ module spi_slave_axi4_master__pollable_memory_axi4_slave__tb;
 	end
 endmodule
 
-module spi_slave__axi4_master #(
-//module axi4_master #(
+module spi_peripheral__axi4_controller #(
+//module axi4_controller #(
 	parameter ADDRESS_WIDTH = 4,
 	parameter DATA_WIDTH = 32,
 	parameter LEN_WIDTH = 5
@@ -360,7 +360,7 @@ module spi_slave__axi4_master #(
 endmodule
 
 // definitions from https://en.wikipedia.org/wiki/Advanced_eXtensible_Interface
-module pollable_memory__axi4_slave #(
+module pollable_memory__axi4_peripheral #(
 	parameter ADDRESS_WIDTH = 4,
 	parameter DATA_WIDTH = 32,
 	parameter LEN_WIDTH = 5

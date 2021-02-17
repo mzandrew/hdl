@@ -311,7 +311,7 @@ module top #(
 		end
 	end
 	assign ack_valid = ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF];
-	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are slave
+	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are peripheral
 	assign bus = {BUS_WIDTH{1'bz}};
 	// ----------------------------------------------------------------------
 	wire word_clock;

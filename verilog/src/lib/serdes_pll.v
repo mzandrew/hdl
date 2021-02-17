@@ -4,19 +4,19 @@
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
-//   component mytop/mylei/mylei0/osirus_master_D of type OLOGIC for the following
+//   component mytop/mylei/mylei0/osirus_m*****_D of type OLOGIC for the following
 //   reason.
 //   The reason for this issue:
 //   Some of the logic associated with this structure is locked. This should cause
 //   the rest of the logic to be locked.A problem was found at site OLOGIC_X11Y2
-//   where we must place OLOGIC mytop/mylei/mylei0/osirus_slave_D in order to
+//   where we must place OLOGIC mytop/mylei/mylei0/osirus_secondary_D in order to
 //   satisfy the relative placement requirements of this logic.  OLOGIC
-//   mytop/mylei/mylei1/osirus_master_D appears to already be placed there which
+//   mytop/mylei/mylei1/osirus_primary_D appears to already be placed there which
 //   makes this design unplaceable.  The following components are part of this
 //   structure:
-//      OLOGIC   mytop/mylei/mylei0/osirus_master_D
-//      OLOGIC   mytop/mylei/mylei0/osirus_slave_D
-// means that you have an p/n (master/slave) output connected to a oserdes n/p (slave/master) primitive, so change it to an oserdes p/n (maser/slave) primitive, like so:
+//      OLOGIC   mytop/mylei/mylei0/osirus_primary_D
+//      OLOGIC   mytop/mylei/mylei0/osirus_secondary_D
+// means that you have an p/n (primary/secondary) output connected to a oserdes n/p (secondary/primary) primitive, so change it to an oserdes p/n (primary/secondary) primitive, like so:
 // either set .PINTYPE("n") or .PINTYPE("p") as appropriate
 
 module iserdes_single4 #(
@@ -38,7 +38,7 @@ module iserdes_single4 #(
 		.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
 		.DATA_WIDTH(WIDTH), // Parallel data width selection (2-8)
 		.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
-		.SERDES_MODE("NONE") // "NONE", "MASTER" or "SLAVE"
+		.SERDES_MODE("NONE") // "NONE", "M*****" or "S****"
 	) ISERDES2_inst (
 		.CFB0(), // 1-bit output: Clock feed-through route output
 		.CFB1(), // 1-bit output: Clock feed-through route output
@@ -50,7 +50,7 @@ module iserdes_single4 #(
 		.Q3(word_out[2]),
 		.Q2(word_out[1]),
 		.Q1(word_out[0]),
-		.SHIFTOUT(), // 1-bit output: Cascade output signal for master/slave I/O
+		.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
 		.VALID(), // 1-bit output: Output status of the phase detector
 		.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
 		.CE0(1'b1), // 1-bit input: Clock enable input
@@ -60,7 +60,7 @@ module iserdes_single4 #(
 		.D(data_in), // 1-bit input: Input data
 		.IOCE(ioce), // 1-bit input: Data strobe input
 		.RST(reset), // 1-bit input: Asynchronous reset input
-		.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for master/slave I/O
+		.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
 	);
 //	wire pll_is_locked;
 //	wire buffered_pll_is_locked_and_strobe_is_aligned;
@@ -78,7 +78,7 @@ endmodule
 
 //	ocyrus_single8_inner #(.BIT_RATIO(8)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
 module ocyrus_single8_inner #(
-	parameter PINTYPE = "p", // "p" (master) or "n" (slave)
+	parameter PINTYPE = "p", // "p" (primary) or "n" (secondary)
 	parameter BIT_RATIO=8 // how many fast_clock cycles per word_clock
 ) (
 	input word_clock,
@@ -95,7 +95,7 @@ module ocyrus_single8_inner #(
 	if (PINTYPE=="p") begin
 		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-		         osirus_master_D
+		         osirus_primary_D
 		         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
 		         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
@@ -104,7 +104,7 @@ module ocyrus_single8_inner #(
 		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-		         osirus_slave_D
+		         osirus_secondary_D
 		         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
 		         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
@@ -114,7 +114,7 @@ module ocyrus_single8_inner #(
 	end else begin
 		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-		         osirus_master_D
+		         osirus_primary_D
 		         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
 		         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
@@ -123,7 +123,7 @@ module ocyrus_single8_inner #(
 		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-		         osirus_slave_D
+		         osirus_secondary_D
 		         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
 		         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
@@ -447,7 +447,7 @@ module odelay_fixed #(
 		.IDELAY_TYPE("FIXED"), // "FIXED", "DEFAULT", "VARIABLE_FROM_ZERO", "VARIABLE_FROM_HALF_MAX" or "DIFF_PHASE_DETECTOR"
 		.IDELAY_VALUE(), // Amount of taps for fixed input delay (0-255)
 		.ODELAY_VALUE(AMOUNT), // Amount of taps for fixed output delay (0-255)
-		.SERDES_MODE("NONE"), // "NONE", "MASTER" or "SLAVE" (idelay only according to ug381)
+		.SERDES_MODE("NONE"), // "NONE", "M*****" or "S****" (idelay only according to ug381)
 		.SIM_TAPDELAY_VALUE(75) // Per tap delay used for simulation in ps
 	) beck (
 		.CLK(1'b0), // 1-bit input: Clock input
@@ -472,7 +472,7 @@ endmodule
 // spartan6 errata (EN148) says not to go above a delay tap value of 6 when used in ODELAY mode to get full performance (1080 MHz)
 // otherwise, limit the data rate to 800 MHz for the commercial grade -3 part
 module idelay #(
-	parameter MODE = "MASTER" // "NONE", "MASTER" or "SLAVE"
+	parameter MODE = "MASTER" // "NONE", "M*****" or "S****"
 ) (
 	// "The output delay path is only available in a fixed delay"
 	input clock,
@@ -495,7 +495,7 @@ module idelay #(
 		.IDELAY_TYPE("VARIABLE_FROM_ZERO"), // "FIXED", "DEFAULT", "VARIABLE_FROM_ZERO", "VARIABLE_FROM_HALF_MAX" or "DIFF_PHASE_DETECTOR"
 		.IDELAY_VALUE(0), // Amount of taps for fixed input delay (0-255)
 		.ODELAY_VALUE(0), // Amount of taps for fixed output delay (0-255)
-		.SERDES_MODE(MODE), // "NONE", "MASTER" or "SLAVE" (idelay only according to ug381)
+		.SERDES_MODE(MODE), // "NONE", "M*****" or "S****" (idelay only according to ug381)
 		.SIM_TAPDELAY_VALUE(75) // Per tap delay used for simulation in ps
 	) stp (
 		.CLK(clock), // 1-bit input: Clock input

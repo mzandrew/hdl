@@ -54,7 +54,7 @@ module mza_test020_serdes_pll (
 	// want MSB of word to come out first
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master
+	         osirus_primary
 	         (.OQ(ttl_trig_output), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
 	         .IOCE(IOCE), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
@@ -63,7 +63,7 @@ module mza_test020_serdes_pll (
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave
+	         osirus_secondary
 	         (.OQ(), .TQ(), .CLK0(IOCLK0), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
 	         .IOCE(IOCE), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),

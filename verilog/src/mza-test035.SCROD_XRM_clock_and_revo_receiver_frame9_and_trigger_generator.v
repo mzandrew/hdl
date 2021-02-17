@@ -24,7 +24,7 @@ module ocyrus7series (
 		.DATA_WIDTH(8), // Parallel data width (2-8,10,14)
 		.INIT_OQ(1'b0), // Initial value of OQ output (1'b0,1'b1)
 		.INIT_TQ(1'b0), // Initial value of TQ output (1'b0,1'b1)
-		.SERDES_MODE("MASTER"), // MASTER, SLAVE
+		.SERDES_MODE("MASTER"), // M*****, S****
 		.SRVAL_OQ(1'b0), // OQ output value when SR is used (1'b0,1'b1)
 		.SRVAL_TQ(1'b0), // TQ output value when SR is used (1'b0,1'b1)
 		.TBYTE_CTL("FALSE"), // Enable tristate byte operation (FALSE, TRUE)

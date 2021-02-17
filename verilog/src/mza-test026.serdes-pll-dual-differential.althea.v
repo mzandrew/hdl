@@ -62,7 +62,7 @@ module mza_test026_serdes_pll_dual_differential_althea (
 	// want MSB of word to come out first
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master_T
+	         osirus_primary_T
 	         (.OQ(lvds_trig_output_T), .TQ(), .CLK0(ioclk_T), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
 	         .IOCE(ioce_T), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
@@ -71,7 +71,7 @@ module mza_test026_serdes_pll_dual_differential_althea (
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave_T
+	         osirus_secondary_T
 	         (.OQ(), .TQ(), .CLK0(ioclk_T), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
 	         .IOCE(ioce_T), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
@@ -80,7 +80,7 @@ module mza_test026_serdes_pll_dual_differential_althea (
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_master_R
+	         osirus_primary_R
 	         (.OQ(lvds_trig_output_R), .TQ(), .CLK0(ioclk_R), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
 	         .IOCE(ioce_R), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
@@ -89,7 +89,7 @@ module mza_test026_serdes_pll_dual_differential_althea (
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-	         osirus_slave_R
+	         osirus_secondary_R
 	         (.OQ(), .TQ(), .CLK0(ioclk_R), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
 	         .IOCE(ioce_R), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),

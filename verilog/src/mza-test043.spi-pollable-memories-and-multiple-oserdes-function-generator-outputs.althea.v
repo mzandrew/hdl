@@ -95,9 +95,9 @@ module top (
 	wire [31:0] data32_ce0;
 	wire [31:0] read_data32_ce0;
 	wire transaction_valid_ce0;
-	SPI_slave_command8_address16_data32 spi_ce0 (.clock(clock_spi),
+	SPI_peripheral_command8_address16_data32 spi_ce0 (.clock(clock_spi),
 		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(miso_ce0), .SSEL(rpi_spi_ce0),
-		.transaction_valid(transaction_valid_ce0), .command8(command8_ce0), .address16(address16_ce0), .data32(data32_ce0), .data32_to_master(read_data32_ce0));
+		.transaction_valid(transaction_valid_ce0), .command8(command8_ce0), .address16(address16_ce0), .data32(data32_ce0), .data32_to_controller(read_data32_ce0));
 	wire [3:0] address4_ce0 = address16_ce0[3:0];
 	RAM_inferred_with_register_outputs #(.addr_width(4), .data_width(32)) myram (.reset(reset3_word_clock),
 		.wclk(clock_ram), .waddr(address4_ce0), .din(data32_ce0), .write_en(transaction_valid_ce0),
@@ -119,9 +119,9 @@ module top (
 	assign read_data32_3210[23:16] = read_data32_0123[15:8];
 	assign read_data32_3210[31:24] = read_data32_0123[7:0];
 	wire transaction_valid_ce1;
-	SPI_slave_command8_address16_data32 spi_ce1 (.clock(clock_spi),
+	SPI_peripheral_command8_address16_data32 spi_ce1 (.clock(clock_spi),
 		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(miso_ce1), .SSEL(rpi_spi_ce1),
-		.transaction_valid(transaction_valid_ce1), .command8(command8), .address16(address16), .data32(data32_3210), .data32_to_master(read_data32_3210));
+		.transaction_valid(transaction_valid_ce1), .command8(command8), .address16(address16), .data32(data32_3210), .data32_to_controller(read_data32_3210));
 `ifdef USE_BRAM_512
 	wire [8:0] address9 = address16[8:0];
 	wire [10:0] read_address11 = read_address[10:0];
