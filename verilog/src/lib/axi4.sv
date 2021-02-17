@@ -350,10 +350,10 @@ module spi_slave__axi4_master #(
 	end
 	initial begin
 		#0; // this is crucial for some reason
-		if (^awburst===1'bx || awburst!=axi::FIXED && awburst!=axi::INCR) begin
+		assert (^awburst!==1'bx && awburst==axi::FIXED || awburst==axi::INCR) else begin
 			`error("%b (%s) is not supported as the axi::burst_t for awburst", awburst, awburst.name);
 		end
-		if (^arburst===1'bx || arburst!=axi::FIXED && arburst!=axi::INCR) begin
+		assert (^arburst!==1'bx && arburst==axi::FIXED || arburst==axi::INCR) else begin
 			`error("%b (%s) is not supported as the axi::burst_t for arburst", arburst, arburst.name);
 		end
 	end
@@ -519,10 +519,10 @@ module pollable_memory__axi4_slave #(
 	end
 	initial begin
 		#0; // this is crucial for some reason
-		if (^awburst===1'bx || awburst!=axi::FIXED && awburst!=axi::INCR) begin
+		assert (^awburst!==1'bx && awburst==axi::FIXED || awburst==axi::INCR) else begin
 			`error("%b (%s) is not supported as the axi::burst_t for awburst", awburst, awburst.name);
 		end
-		if (^arburst===1'bx || arburst!=axi::FIXED && arburst!=axi::INCR) begin
+		assert (^arburst!==1'bx && arburst==axi::FIXED || arburst==axi::INCR) else begin
 			`error("%b (%s) is not supported as the axi::burst_t for arburst", arburst, arburst.name);
 		end
 	end
