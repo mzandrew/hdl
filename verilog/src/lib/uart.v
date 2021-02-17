@@ -1,7 +1,7 @@
 // from https://github.com/jamesbowman/swapforth/blob/master/j1a/icestorm/uart.v
 // last updated 2020-05-29 by mza
 
-`default_nettype none
+//`default_nettype none
 `define CLKFREQ   12000000    // frequency of incoming signal 'clk'
 `define BAUD      115200
 

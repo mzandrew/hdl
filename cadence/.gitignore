@@ -5,11 +5,14 @@ waves.shm
 xcelium.d
 xrun.history
 xrun.key
-xrun.log
+*.log*
+*.cmd*
 *.log
 cov_work
 imc.*
 INCA_libs
 irun.history
-
+*.rpt
+fv
+genus_invs_des
 
