@@ -22,6 +22,7 @@ interface axi4 #(
 	input clock,
 	input reset
 );
+	// definitions from https://en.wikipedia.org/wiki/Advanced_eXtensible_Interface
 	// axi4 Write Address channel (AW)
 	logic [ADDRESS_WIDTH-1:0] awaddr; // Address of the first beat of the burst
 	logic [LEN_WIDTH-1:0] awlen; // Number of beats inside the burst
@@ -214,7 +215,7 @@ module spi_peripheral__axi4_controller #(
 	reg [LEN_WIDTH-1:0] pre_arlen = 1; // Number of beats inside the burst
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
-	reg pre_rlast = 0; // our own personal copy
+	reg our_rlast = 0; // our own personal copy
 	reg [31:0] error_count = 0;
 	always @(posedge axi.clock) begin
 		if (axi.reset) begin
@@ -238,6 +239,7 @@ module spi_peripheral__axi4_controller #(
 			spi_read_data <= 0;
 			write_transaction_counter <= 0;
 			read_transaction_counter <= 0;
+			our_rlast <= 0;
 		end else begin
 			axi.araddr  <= pre_araddr;
 			axi.arvalid <= pre_arvalid;
@@ -353,7 +355,6 @@ module spi_peripheral__axi4_controller #(
 	end
 endmodule
 
-// definitions from https://en.wikipedia.org/wiki/Advanced_eXtensible_Interface
 module pollable_memory__axi4_peripheral #(
 	parameter ADDRESS_WIDTH = 4,
 	parameter DATA_WIDTH = 32,
@@ -366,32 +367,21 @@ module pollable_memory__axi4_peripheral #(
 	reg [DATA_WIDTH-1:0] local_wdata = 0;
 	reg [1:0] rstate = 0;
 	reg [ADDRESS_WIDTH-1:0] local_araddr = 0;
-	reg pre_arready = 0;
-	reg [DATA_WIDTH-1:0] pre_rdata = 0;
-//	reg pre_rresp  = 0;
-	reg pre_rvalid = 0;
 	reg [DATA_WIDTH-1:0] mem [2**ADDRESS_WIDTH-1:0];
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
-	reg pre_wlast = 0; // our own personal copy
-	reg pre_rlast = 0;
+	reg our_wlast = 0; // our own personal copy
 	always @(posedge axi.clock) begin
 		if (axi.reset) begin
 			axi.bresp   <= 0;
 			axi.bvalid  <= 0;
 			axi.arready <= 1;
 			axi.rdata   <= 0;
-//			axi.rresp   <= 0;
 			axi.rvalid  <= 0;
 			axi.rlast   <= 0;
 			axi.awready <= 1;
 			axi.wready  <= 1;
-			pre_wlast   <= 0;
-			pre_arready <= 1;
-			pre_rdata   <= 0;
-//			pre_rresp   <= 0;
-			pre_rvalid  <= 0;
-			pre_rlast   <= 0;
+			our_wlast   <= 0;
 			local_awaddr <= 0;
 			local_wdata <= 0;
 			local_araddr <= 0;
@@ -400,11 +390,6 @@ module pollable_memory__axi4_peripheral #(
 			wstate <= 0;
 			rstate <= 0;
 		end else begin
-			axi.arready <= pre_arready;
-			axi.rdata   <= pre_rdata;
-//			axi.rresp   <= pre_rresp;
-			axi.rvalid  <= pre_rvalid;
-			axi.rlast   <= pre_rlast;
 			// write
 			if (wstate[2]==0) begin
 				if (wstate[1:0]==2'b11) begin
@@ -412,7 +397,7 @@ module pollable_memory__axi4_peripheral #(
 					axi.bresp <= 1;
 					axi.bvalid <= 1;
 					if (write_transaction_counter==0) begin
-						pre_wlast <= 1;
+						our_wlast <= 1;
 					end
 					wstate[2] <= 1;
 				end
@@ -436,7 +421,7 @@ module pollable_memory__axi4_peripheral #(
 				if (axi.bready) begin
 					axi.bresp <= 0;
 					axi.bvalid <= 0;
-					pre_wlast <= 0;
+					our_wlast <= 0;
 					axi.awready <= 1;
 					axi.wready <= 1;
 					wstate[2] <= 0;
@@ -456,19 +441,18 @@ module pollable_memory__axi4_peripheral #(
 						end
 					end
 				end else begin
-					pre_rdata <= mem[local_araddr];
-					pre_rvalid <= 1;
+					axi.rdata <= mem[local_araddr];
+					axi.rvalid <= 1;
 					if (read_transaction_counter==0) begin
-						pre_rlast <= 1;
+						axi.rlast <= 1;
 					end
 					rstate[1] <= 1;
 				end
 			end else begin
 				rstate[0] <= 0;
 				if (axi.rready) begin
-					pre_rvalid <= 0;
-					pre_rlast <= 0;
-//					pre_rresp <= ;
+					axi.rvalid <= 0;
+					axi.rlast <= 0;
 					axi.arready <= 1;
 					rstate[1] <= 0;
 				end
