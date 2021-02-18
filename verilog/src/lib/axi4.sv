@@ -13,6 +13,48 @@ package axi;
 endpackage
 //import axi::*;
 
+interface axi4 #(
+	parameter ADDRESS_WIDTH = 4,
+	parameter DATA_WIDTH = 32,
+	parameter LEN_WIDTH = 5
+) (
+	input clock,
+	input reset
+);
+	// axi4 Write Address channel (AW)
+	logic [ADDRESS_WIDTH-1:0] awaddr; // Address of the first beat of the burst
+	logic [LEN_WIDTH-1:0] awlen; // Number of beats inside the burst
+	axi::burst_t awburst; // Type of the burst
+	// awprot;
+	logic awvalid; // xVALID handshake signal
+	logic awready; // xREADY handshake signal
+	// axi4 Write Data channel (W)
+	logic [DATA_WIDTH-1:0] wdata; // Read/Write data
+	logic wlast; // Last beat identifier
+	// wstrb; // Byte strobe, to indicate which bytes of the WDATA signal are valid
+	logic wvalid; // xVALID handshake signal
+	logic wready; // xREADY handshake signal
+	// axi4 Write Response channel (B)
+	logic bresp; // Write response, to specify the status of the burst
+	logic bvalid; // xVALID handshake signal
+	logic bready; // xREADY handshake signal
+	// axi4 Read Address channel (AR)
+	logic [ADDRESS_WIDTH-1:0] araddr; // Address of the first beat of the burst
+	logic [LEN_WIDTH-1:0] arlen; // Number of beats inside the burst
+	axi::burst_t arburst; // Type of the burst
+	// arprot; // Protection type: privilege, security level and data/instruction access
+	logic arvalid; // xVALID handshake signal
+	logic arready; // xREADY handshake signal
+	// axi4 Read Data channel (R)
+	logic [DATA_WIDTH-1:0] rdata; // Read/Write data
+	//input reg rresp; // Read response, to specify the status of the current RDATA signal
+	logic rlast; // Last beat identifier
+	logic rvalid; // xVALID handshake signal
+	logic rready; // xREADY handshake signal
+	modport controller (input clock, reset, output awaddr, awlen, awburst, awvalid, wdata, wlast, wvalid, bready, araddr, arlen, arburst, arvalid, rready,  input awready, wready, bresp, bvalid, arready, rdata, rlast, rvalid);
+	modport peripheral (input clock, reset,  input awaddr, awlen, awburst, awvalid, wdata, wlast, wvalid, bready, araddr, arlen, arburst, arvalid, rready, output awready, wready, bresp, bvalid, arready, rdata, rlast, rvalid);
+endinterface
+
 module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	localparam ADDRESS_WIDTH = 4;
 	localparam DATA_WIDTH = 32;
@@ -34,42 +76,22 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	wire [DATA_WIDTH-1:0] spi_read_data;
 	reg pre_spi_read_strobe = 0;
 	reg spi_read_strobe = 0;
-	wire [ADDRESS_WIDTH-1:0] awaddr;
-	wire awvalid;
-	wire awready;
-	wire [DATA_WIDTH-1:0] wdata;
-	wire wvalid;
-	wire wready;
-	wire bresp;
-	wire bvalid;
-	wire bready;
-	wire [ADDRESS_WIDTH-1:0] araddr;
-	wire arvalid;
-	wire arready;
-	wire [DATA_WIDTH-1:0] rdata;
-	wire rvalid;
-	wire rready;
-	wire axi::burst_t awburst;
-	wire axi::burst_t arburst;
-	wire rlast;
-	wire wlast;
-	wire [LEN_WIDTH-1:0] awlen;
-	wire [LEN_WIDTH-1:0] arlen;
+	axi4 axi(clock, reset);
 	reg [LEN_WIDTH-1:0] pre_spi_write_burst_length = 1;
 	reg [LEN_WIDTH-1:0] spi_write_burst_length = 1;
 	reg [LEN_WIDTH-1:0] pre_spi_read_burst_length = 1;
 	reg [LEN_WIDTH-1:0] spi_read_burst_length = 1;
-	spi_peripheral__axi4_controller      #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) spac (.*);
+	spi_peripheral__axi4_controller  #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) spac (.*);
 	pollable_memory__axi4_peripheral #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) pmap (.*);
-	wire awbeat = awready & awvalid;
-	wire arbeat = arready & arvalid;
-	wire  wbeat =  wready &  wvalid;
-	wire  rbeat =  rready &  rvalid;
-	wire  bbeat =  bready &  bvalid;
+	wire awbeat = axi.awready & axi.awvalid;
+	wire arbeat = axi.arready & axi.arvalid;
+	wire  wbeat =  axi.wready &  axi.wvalid;
+	wire  rbeat =  axi.rready &  axi.rvalid;
+	wire  bbeat =  axi.bready &  axi.bvalid;
 	always @(posedge awbeat) begin $display("%t, awbeat %08x", $time, spi_write_address); end
 	always @(posedge arbeat) begin $display("%t, arbeat %08x", $time, spi_read_address); end
-	always @(posedge  wbeat) begin $display("%t,  wbeat %08x", $time, wdata); end
-	always @(posedge  rbeat) begin $display("%t,  rbeat %08x", $time, rdata); end
+	always @(posedge  wbeat) begin $display("%t,  wbeat %08x", $time, axi.wdata); end
+	always @(posedge  rbeat) begin $display("%t,  rbeat %08x", $time, axi.rdata); end
 	always @(posedge  bbeat) begin $display("%t,  bbeat", $time); end
 	task automatic controller_read_transaction(input [ADDRESS_WIDTH-1:0] address, input [LEN_WIDTH:0] len);
 		reg [ADDRESS_WIDTH:0] i;
@@ -124,15 +146,27 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 		#200; $finish;
 	end
 	always @(posedge clock) begin
-		spi_write_address       <= pre_spi_write_address;
-		spi_write_address_valid <= pre_spi_write_address_valid;
-		spi_write_data          <= pre_spi_write_data;
-		spi_write_strobe        <= pre_spi_write_strobe;
-		spi_write_burst_length  <= pre_spi_write_burst_length;
-		spi_read_address       <= pre_spi_read_address;
-		spi_read_address_valid <= pre_spi_read_address_valid;
-		spi_read_strobe        <= pre_spi_read_strobe;
-		spi_read_burst_length  <= pre_spi_read_burst_length;
+		if (reset) begin
+			spi_write_address       <= 0;
+			spi_write_address_valid <= 0;
+			spi_write_data          <= 0;
+			spi_write_strobe        <= 0;
+			spi_write_burst_length  <= 1;
+			spi_read_address       <= 0;
+			spi_read_address_valid <= 0;
+			spi_read_strobe        <= 0;
+			spi_read_burst_length  <= 1;
+		end else begin
+			spi_write_address       <= pre_spi_write_address;
+			spi_write_address_valid <= pre_spi_write_address_valid;
+			spi_write_data          <= pre_spi_write_data;
+			spi_write_strobe        <= pre_spi_write_strobe;
+			spi_write_burst_length  <= pre_spi_write_burst_length;
+			spi_read_address       <= pre_spi_read_address;
+			spi_read_address_valid <= pre_spi_read_address_valid;
+			spi_read_strobe        <= pre_spi_read_strobe;
+			spi_read_burst_length  <= pre_spi_read_burst_length;
+		end
 	end
 	always begin
 		#5;
@@ -141,13 +175,12 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 endmodule
 
 module spi_peripheral__axi4_controller #(
-//module axi4_controller #(
 	parameter ADDRESS_WIDTH = 4,
 	parameter DATA_WIDTH = 32,
 	parameter LEN_WIDTH = 5
 ) (
-	input clock,
-	input reset,
+//	input clock,
+//	input reset,
 	// SPI write channel
 	input [ADDRESS_WIDTH-1:0] spi_write_address,
 	input spi_write_address_valid,
@@ -160,43 +193,14 @@ module spi_peripheral__axi4_controller #(
 	output reg [DATA_WIDTH-1:0] spi_read_data = 0,
 	input spi_read_strobe,
 	input [LEN_WIDTH-1:0] spi_read_burst_length,
-	// axi4 Write Address channel (AW)
-	output reg [ADDRESS_WIDTH-1:0] awaddr = 0, // Address of the first beat of the burst
-	output reg [LEN_WIDTH-1:0] awlen = 1, // Number of beats inside the burst
-	output axi::burst_t awburst, // Type of the burst
-	// awprot
-	output reg awvalid = 0, // xVALID handshake signal
-	input awready, // xREADY handshake signal
-	// axi4 Write Data channel (W)
-	output reg [DATA_WIDTH-1:0] wdata = 0, // Read/Write data
-	output reg wlast = 0, // Last beat identifier
-	// wstrb, // Byte strobe, to indicate which bytes of the WDATA signal are valid
-	output reg wvalid = 0, // xVALID handshake signal
-	input wready, // xREADY handshake signal
-	// axi4 Write Response channel (B)
-	input bresp, // Write response, to specify the status of the burst
-	input bvalid, // xVALID handshake signal
-	output reg bready = 0, // xREADY handshake signal
-	// axi4 Read Address channel (AR)
-	output reg [ADDRESS_WIDTH-1:0] araddr = 0, // Address of the first beat of the burst
-	output reg [LEN_WIDTH-1:0] arlen = 1, // Number of beats inside the burst
-	output axi::burst_t arburst, // Type of the burst
-	// arprot, // Protection type: privilege, security level and data/instruction access
-	output reg arvalid = 0, // xVALID handshake signal
-	input arready, // xREADY handshake signal
-	// axi4 Read Data channel (R)
-	input [DATA_WIDTH-1:0] rdata, // Read/Write data
-//	input reg rresp, // Read response, to specify the status of the current RDATA signal
-	input rlast, // Last beat identifier
-	input rvalid, // xVALID handshake signal
-	output reg rready = 0 // xREADY handshake signal);
+	axi4.controller axi
 );
-	assign awburst = axi::INCR;
-//	assign awburst = axi::FIXED;
-//	assign awburst = axi::WRAP; // should fail
-	assign arburst = axi::INCR;
-//	assign arburst = axi::FIXED;
-//	assign arburst = 3'b101; // should fail
+	assign axi.awburst = axi::INCR;
+//	assign axi.awburst = axi::FIXED;
+//	assign axi.awburst = axi::WRAP; // should fail
+	assign axi.arburst = axi::INCR;
+//	assign axi.arburst = axi::FIXED;
+//	assign axi.arburst = 3'b101; // should fail
 	reg [ADDRESS_WIDTH-1:0] pre_awaddr = 0;
 	reg pre_awvalid = 0;
 	reg [DATA_WIDTH-1:0] pre_wdata = 0;
@@ -217,34 +221,44 @@ module spi_peripheral__axi4_controller #(
 	reg pre_wlast = 0;
 	reg pre_rlast = 0;
 	reg [31:0] error_count = 0;
-	always @(posedge clock) begin
-		if (reset) begin
+	always @(posedge axi.clock) begin
+		if (axi.reset) begin
+			axi.awaddr  <= 0;
+			axi.awvalid <= 0;
+			axi.wdata   <= 0;
+			axi.wvalid  <= 0;
+			axi.awlen   <= 1;
+			axi.araddr  <= 0;
+			axi.arvalid <= 0;
+			axi.arlen   <= 1;
+			axi.wlast   <= 0;
 			pre_awaddr  <= 0;
 			pre_awvalid <= 0;
 			pre_wdata   <= 0;
 			pre_wvalid  <= 0;
-			bready  <= 0;
+			pre_awlen   <= 1;
+			axi.bready  <= 1;
 			pre_araddr  <= 0;
 			pre_arvalid <= 0;
-			rready  <= 0;
+			pre_arlen   <= 1;
+			pre_wlast   <= 0;
+			axi.rready  <= 0;
 			wstate <= 0;
 			rstate <= 0;
 			last_write_was_succecssful <= 0;
 			spi_read_data <= 0;
-			pre_awlen <= 1;
-			pre_arlen <= 1;
 			write_transaction_counter <= 0;
 			read_transaction_counter <= 0;
 		end else begin
-			awvalid <= pre_awvalid;
-			awaddr  <= pre_awaddr;
-			wvalid  <= pre_wvalid;
-			wdata   <= pre_wdata;
-			araddr  <= pre_araddr;
-			arvalid <= pre_arvalid;
-			awlen   <= pre_awlen;
-			arlen   <= pre_arlen;
-			wlast   <= pre_wlast;
+			axi.awaddr  <= pre_awaddr;
+			axi.awvalid <= pre_awvalid;
+			axi.wdata   <= pre_wdata;
+			axi.wvalid  <= pre_wvalid;
+			axi.awlen   <= pre_awlen;
+			axi.araddr  <= pre_araddr;
+			axi.arvalid <= pre_arvalid;
+			axi.arlen   <= pre_arlen;
+			axi.wlast   <= pre_wlast;
 			// write
 			if (wstate[3:1]==0) begin
 				if (wstate[0]==0) begin
@@ -257,7 +271,7 @@ module spi_peripheral__axi4_controller #(
 							end else begin
 								error_count <= error_count + 1'b1;
 							end
-						end else if (awburst==axi::INCR) begin
+						end else if (axi.awburst==axi::INCR) begin
 							local_spi_write_address <= local_spi_write_address + 1'b1;
 							if (write_transaction_counter>=1) begin
 								write_transaction_counter <= write_transaction_counter - 1'b1;
@@ -276,28 +290,28 @@ module spi_peripheral__axi4_controller #(
 					if (write_transaction_counter==0) begin
 						pre_wlast <= 1;
 					end
-					bready <= 1;
+					axi.bready <= 1;
 					wstate[3:1] <= 3'b111;
 				end
 			end else begin
 				wstate[0] <= 0;
 				if (wstate[1]) begin
-					if (awready) begin
+					if (axi.awready) begin
 						pre_awvalid <= 0;
 						wstate[1] <= 0;
 					end
 				end
 				if (wstate[2]) begin
-					if (wready) begin
+					if (axi.wready) begin
 						pre_wvalid <= 0;
 						pre_wlast <= 0;
 						wstate[2] <= 0;
 					end
 				end
 				if (wstate[3]) begin
-					if (bvalid) begin
-						last_write_was_succecssful <= bresp;
-						bready <= 0;
+					if (axi.bvalid) begin
+						last_write_was_succecssful <= axi.bresp;
+						axi.bready <= 0;
 						wstate[3] <= 0;
 					end
 				end
@@ -314,7 +328,7 @@ module spi_peripheral__axi4_controller #(
 							end else begin
 								error_count <= error_count + 1'b1;
 							end
-						end else if (arburst==axi::INCR) begin
+						end else if (axi.arburst==axi::INCR) begin
 							local_spi_read_address <= local_spi_read_address + 1'b1;
 							if (read_transaction_counter>=1) begin
 								read_transaction_counter <= read_transaction_counter - 1'b1;
@@ -327,21 +341,21 @@ module spi_peripheral__axi4_controller #(
 				end else begin
 					pre_araddr <= local_spi_read_address;
 					pre_arvalid <= 1;
-					rready <= 1;
+					axi.rready <= 1;
 					rstate[2:1] <= 2'b11;
 				end
 			end else begin
 				rstate[0] <= 0;
 				if (rstate[1]) begin
-					if (arready) begin
+					if (axi.arready) begin
 						pre_arvalid <= 0;
 						rstate[1] <= 0;
 					end
 				end
 				if (rstate[2]) begin
-					if (rvalid) begin
-						spi_read_data <= rdata;
-						rready <= 0;
+					if (axi.rvalid) begin
+						spi_read_data <= axi.rdata;
+						axi.rready <= 0;
 						rstate[2] <= 0;
 					end
 				end
@@ -350,11 +364,11 @@ module spi_peripheral__axi4_controller #(
 	end
 	initial begin
 		#0; // this is crucial for some reason
-		assert (^awburst!==1'bx && awburst==axi::FIXED || awburst==axi::INCR) else begin
-			`error("%b (%s) is not supported as the axi::burst_t for awburst", awburst, awburst.name);
+		assert (^axi.awburst!==1'bx && axi.awburst==axi::FIXED || axi.awburst==axi::INCR) else begin
+			`error("%b (%s) is not supported as the axi::burst_t for awburst", axi.awburst, axi.awburst.name);
 		end
-		assert (^arburst!==1'bx && arburst==axi::FIXED || arburst==axi::INCR) else begin
-			`error("%b (%s) is not supported as the axi::burst_t for arburst", arburst, arburst.name);
+		assert (^axi.arburst!==1'bx && axi.arburst==axi::FIXED || axi.arburst==axi::INCR) else begin
+			`error("%b (%s) is not supported as the axi::burst_t for arburst", axi.arburst, axi.arburst.name);
 		end
 	end
 endmodule
@@ -365,38 +379,7 @@ module pollable_memory__axi4_peripheral #(
 	parameter DATA_WIDTH = 32,
 	parameter LEN_WIDTH = 5
 ) (
-	input clock,
-	input reset,
-	// axi4 Write Address channel (AW)
-	input [ADDRESS_WIDTH-1:0] awaddr, // Address of the first beat of the burst
-	input [LEN_WIDTH-1:0] awlen, // Number of beats inside the burst
-	input axi::burst_t awburst, // Type of the burst
-	// awprot
-	input awvalid, // xVALID handshake signal
-	output reg awready = 0, // xREADY handshake signal
-	// axi4 Write Data channel (W)
-	input [DATA_WIDTH-1:0] wdata, // Read/Write data
-	input wlast, // Last beat identifier
-	// wstrb, // Byte strobe, to indicate which bytes of the WDATA signal are valid
-	input wvalid, // xVALID handshake signal
-	output reg wready = 0, // xREADY handshake signal
-	// axi4 Write Response channel (B)
-	output reg bresp = 0, // Write response, to specify the status of the burst
-	output reg bvalid = 0, // xVALID handshake signal
-	input bready, // xREADY handshake signal
-	// axi4 Read Address channel (AR)
-	input [ADDRESS_WIDTH-1:0] araddr, // Address of the first beat of the burst
-	input [LEN_WIDTH-1:0] arlen, // Number of beats inside the burst
-	input axi::burst_t arburst, // Type of the burst
-	// arprot, // Protection type: privilege, security level and data/instruction access
-	input arvalid, // xVALID handshake signal
-	output reg arready = 0, // xREADY handshake signal
-	// axi4 Read Data channel (R)
-	output reg [DATA_WIDTH-1:0] rdata = 0, // Read/Write data
-//	output reg rresp = 0, // Read response, to specify the status of the current RDATA signal
-	output reg rlast = 0, // Last beat identifier
-	output reg rvalid = 0, // xVALID handshake signal
-	input rready // xREADY handshake signal
+	axi4.peripheral axi
 );
 	reg [2:0] wstate = 0;
 	reg [ADDRESS_WIDTH-1:0] local_awaddr = 0;
@@ -414,33 +397,39 @@ module pollable_memory__axi4_peripheral #(
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
 	reg pre_wlast = 0;
 	reg pre_rlast = 0;
-	always @(posedge clock) begin
-		if (reset) begin
-			wstate <= 0;
-			local_awaddr <= 0;
-			awready <= 1;
-			local_wdata <= 0;
-			wready <= 1;
-			local_araddr <= 0;
-			arready <= 1;
+	always @(posedge axi.clock) begin
+		if (axi.reset) begin
+			axi.bresp   <= 0;
+			axi.bvalid  <= 0;
+			axi.arready <= 1;
+			axi.rdata   <= 0;
+//			axi.rresp   <= 0;
+			axi.rvalid  <= 0;
+			axi.rlast   <= 0;
+			axi.awready <= 1;
+			axi.wready  <= 1;
+			pre_wlast   <= 0;
 			pre_bresp   <= 0;
 			pre_bvalid  <= 0;
 			pre_arready <= 1;
 			pre_rdata   <= 0;
 //			pre_rresp   <= 0;
 			pre_rvalid  <= 0;
+			pre_rlast   <= 0;
+			local_awaddr <= 0;
+			local_wdata <= 0;
+			local_araddr <= 0;
 			write_transaction_counter <= 0;
 			read_transaction_counter <= 0;
-			pre_wlast <= 0;
-			pre_rlast <= 0;
+			wstate <= 0;
 		end else begin
-			bresp   <= pre_bresp;
-			bvalid  <= pre_bvalid;
-			arready <= pre_arready;
-			rdata   <= pre_rdata;
-//			rresp   <= pre_rresp;
-			rvalid  <= pre_rvalid;
-			rlast   <= pre_rlast;
+			axi.bresp   <= pre_bresp;
+			axi.bvalid  <= pre_bvalid;
+			axi.arready <= pre_arready;
+			axi.rdata   <= pre_rdata;
+//			axi.rresp   <= pre_rresp;
+			axi.rvalid  <= pre_rvalid;
+			axi.rlast   <= pre_rlast;
 			// write
 			if (wstate[2]==0) begin
 				if (wstate[1:0]==2'b11) begin
@@ -452,41 +441,41 @@ module pollable_memory__axi4_peripheral #(
 					end
 					wstate[2] <= 1;
 				end
-				if (awvalid) begin
-					local_awaddr <= awaddr;
-					awready <= 0;
+				if (axi.awvalid) begin
+					local_awaddr <= axi.awaddr;
+					axi.awready <= 0;
 					wstate[0] <= 1;
 					if (write_transaction_counter==0) begin
-						write_transaction_counter <= awlen - 1'b1;
+						write_transaction_counter <= axi.awlen - 1'b1;
 					end else if (write_transaction_counter>=1) begin
 						write_transaction_counter <= write_transaction_counter - 1'b1;
 					end
 				end
-				if (wvalid) begin
-					local_wdata <= wdata;
-					wready <= 0;
+				if (axi.wvalid) begin
+					local_wdata <= axi.wdata;
+					axi.wready <= 0;
 					wstate[1] <= 1;
 				end
 			end else begin
 				wstate[1:0] <= 0;
-				if (bready) begin
+				if (axi.bready) begin
 					pre_bresp <= 0;
 					pre_bvalid <= 0;
 					pre_wlast <= 0;
-					awready <= 1;
-					wready <= 1;
+					axi.awready <= 1;
+					axi.wready <= 1;
 					wstate[2] <= 0;
 				end
 			end
 			// read
 			if (rstate[1]==0) begin
 				if (rstate[0]==0) begin
-					if (arvalid) begin
-						local_araddr <= araddr;
-						arready <= 0;
+					if (axi.arvalid) begin
+						local_araddr <= axi.araddr;
+						axi.arready <= 0;
 						rstate[0] <= 1;
 						if (read_transaction_counter==0) begin
-							read_transaction_counter <= arlen - 1'b1;
+							read_transaction_counter <= axi.arlen - 1'b1;
 						end else if (read_transaction_counter>=1) begin
 							read_transaction_counter <= read_transaction_counter - 1'b1;
 						end
@@ -501,11 +490,11 @@ module pollable_memory__axi4_peripheral #(
 				end
 			end else begin
 				rstate[0] <= 0;
-				if (rready) begin
+				if (axi.rready) begin
 					pre_rvalid <= 0;
 					pre_rlast <= 0;
 //					pre_rresp <= ;
-					arready <= 1;
+					axi.arready <= 1;
 					rstate[1] <= 0;
 				end
 			end
@@ -513,11 +502,11 @@ module pollable_memory__axi4_peripheral #(
 	end
 	initial begin
 		#0; // this is crucial for some reason
-		assert (^awburst!==1'bx && awburst==axi::FIXED || awburst==axi::INCR) else begin
-			`error("%b (%s) is not supported as the axi::burst_t for awburst", awburst, awburst.name);
+		assert (^axi.awburst!==1'bx && axi.awburst==axi::FIXED || axi.awburst==axi::INCR) else begin
+			`error("%b (%s) is not supported as the axi::burst_t for awburst", axi.awburst, axi.awburst.name);
 		end
-		assert (^arburst!==1'bx && arburst==axi::FIXED || arburst==axi::INCR) else begin
-			`error("%b (%s) is not supported as the axi::burst_t for arburst", arburst, arburst.name);
+		assert (^axi.arburst!==1'bx && axi.arburst==axi::FIXED || axi.arburst==axi::INCR) else begin
+			`error("%b (%s) is not supported as the axi::burst_t for arburst", axi.arburst, axi.arburst.name);
 		end
 	end
 endmodule
