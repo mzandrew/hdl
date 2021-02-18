@@ -390,6 +390,8 @@ module pollable_memory__axi4_peripheral #(
 					axi.bvalid <= 1;
 					if (write_transaction_counter==0) begin
 						our_wlast <= 1;
+					end else begin
+						write_transaction_counter <= write_transaction_counter - 1'b1;
 					end
 					wstate[2] <= 1;
 				end
@@ -397,11 +399,7 @@ module pollable_memory__axi4_peripheral #(
 					local_awaddr <= axi.awaddr;
 					axi.awready <= 0;
 					wstate[0] <= 1;
-					if (write_transaction_counter==0) begin
-						write_transaction_counter <= axi.awlen - 1'b1;
-					end else if (write_transaction_counter>=1) begin
-						write_transaction_counter <= write_transaction_counter - 1'b1;
-					end
+					write_transaction_counter <= axi.awlen - 1'b1;
 				end
 				if (axi.wvalid) begin
 					local_wdata <= axi.wdata;
@@ -426,17 +424,15 @@ module pollable_memory__axi4_peripheral #(
 						local_araddr <= axi.araddr;
 						axi.arready <= 0;
 						rstate[0] <= 1;
-						if (read_transaction_counter==0) begin
-							read_transaction_counter <= axi.arlen - 1'b1;
-						end else if (read_transaction_counter>=1) begin
-							read_transaction_counter <= read_transaction_counter - 1'b1;
-						end
+						read_transaction_counter <= axi.arlen - 1'b1;
 					end
 				end else begin
 					axi.rdata <= mem[local_araddr];
 					axi.rvalid <= 1;
 					if (read_transaction_counter==0) begin
 						axi.rlast <= 1;
+					end else begin
+						read_transaction_counter <= read_transaction_counter - 1'b1;
 					end
 					rstate[1] <= 1;
 				end
