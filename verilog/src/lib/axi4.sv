@@ -205,10 +205,8 @@ module spi_peripheral__axi4_controller #(
 	assign axi.arburst = axi::INCR;
 //	assign axi.arburst = axi::FIXED;
 //	assign axi.arburst = 3'b101; // should fail
-	reg [2:0] rstate = 0;
+	reg [1:0] rstate = 0;
 	reg [2:0] wstate = 0;
-	reg [ADDRESS_WIDTH-1:0] local_spi_read_address = 0;
-	reg [DATA_WIDTH-1:0] local_spi_read_data = 0;
 	reg last_write_was_succecssful = 0;
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
@@ -290,46 +288,48 @@ module spi_peripheral__axi4_controller #(
 				end
 			end
 			// read
-			if (rstate[2:1]==0) begin
-				if (rstate[0]==0) begin
-					if (spi_read_strobe) begin
-						if (spi_read_address_valid) begin
-							local_spi_read_address <= spi_read_address;
-							axi.arlen <= spi_read_burst_length;
-							if (read_transaction_counter==0) begin
-								read_transaction_counter <= spi_read_burst_length - 1'b1;
-							end else begin
-								error_count <= error_count + 1'b1;
-							end
-						end else if (axi.arburst==axi::INCR) begin
-							local_spi_read_address <= local_spi_read_address + 1'b1;
-							if (read_transaction_counter>=1) begin
-								read_transaction_counter <= read_transaction_counter - 1'b1;
-							end else if (read_transaction_counter==0) begin
-								error_count <= error_count + 1'b1;
-							end
+			if (rstate==0) begin
+				if (spi_read_strobe) begin
+					if (spi_read_address_valid) begin
+						axi.araddr <= spi_read_address;
+						axi.arlen <= spi_read_burst_length;
+						if (spi_read_burst_length==1) begin
+							our_rlast <= 1;
 						end
-						rstate[0] <= 1;
+						if (read_transaction_counter!=0) begin
+							error_count <= error_count + 1'b1; // previous run was not complete
+						end
+						read_transaction_counter <= spi_read_burst_length - 1'b1;
+					end else begin
+						if (read_transaction_counter>0) begin
+							read_transaction_counter <= read_transaction_counter - 1'b1;
+							if (read_transaction_counter==1) begin
+								our_rlast <= 1;
+							end
+						end else begin // read_transaction_counter==0
+							error_count <= error_count + 1'b1; // asking for more than the indicated run length
+						end
+						if (axi.arburst==axi::INCR) begin
+							axi.araddr <= axi.araddr + 1'b1;
+						end
 					end
-				end else begin
-					axi.araddr <= local_spi_read_address;
 					axi.arvalid <= 1;
 					axi.rready <= 1;
-					rstate[2:1] <= 2'b11;
+					rstate <= 2'b11;
 				end
 			end else begin
-				rstate[0] <= 0;
-				if (rstate[1]) begin
+				if (rstate[0]) begin
 					if (axi.arready) begin
 						axi.arvalid <= 0;
-						rstate[1] <= 0;
+						rstate[0] <= 0;
 					end
 				end
-				if (rstate[2]) begin
+				if (rstate[1]) begin
 					if (axi.rvalid) begin
 						spi_read_data <= axi.rdata;
 						axi.rready <= 0;
-						rstate[2] <= 0;
+						our_rlast <= 0;
+						rstate[1] <= 0;
 					end
 				end
 			end
@@ -344,6 +344,7 @@ module spi_peripheral__axi4_controller #(
 			`error("%b (%s) is not supported as the axi::burst_t for arburst", axi.arburst, axi.arburst.name);
 		end
 	end
+	wire rlast_mismatch = axi.rlast ^ our_rlast;
 endmodule
 
 module pollable_memory__axi4_peripheral #(
@@ -459,6 +460,7 @@ module pollable_memory__axi4_peripheral #(
 			`error("%b (%s) is not supported as the axi::burst_t for arburst", axi.arburst, axi.arburst.name);
 		end
 	end
+	wire wlast_mismatch = axi.wlast ^ our_wlast;
 endmodule
 
 module axi4_handshake (
