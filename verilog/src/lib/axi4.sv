@@ -203,10 +203,6 @@ module spi_peripheral__axi4_controller #(
 	assign axi.arburst = axi::INCR;
 //	assign axi.arburst = axi::FIXED;
 //	assign axi.arburst = 3'b101; // should fail
-	reg [ADDRESS_WIDTH-1:0] pre_awaddr = 0;
-	reg pre_awvalid = 0;
-	reg [DATA_WIDTH-1:0] pre_wdata = 0;
-	reg pre_wvalid  = 0;
 	reg [ADDRESS_WIDTH-1:0] pre_araddr = 0;
 	reg pre_arvalid = 0;
 	reg [2:0] rstate = 0;
@@ -218,7 +214,6 @@ module spi_peripheral__axi4_controller #(
 	reg [LEN_WIDTH-1:0] pre_arlen = 1; // Number of beats inside the burst
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
-	reg pre_wlast = 0;
 	reg pre_rlast = 0;
 	reg [31:0] error_count = 0;
 	always @(posedge axi.clock) begin
@@ -232,16 +227,11 @@ module spi_peripheral__axi4_controller #(
 			axi.arvalid <= 0;
 			axi.arlen   <= 1;
 			axi.wlast   <= 0;
-			pre_awaddr  <= 0;
-			pre_awvalid <= 0;
-			pre_wdata   <= 0;
-			pre_wvalid  <= 0;
 			pre_awlen   <= 1;
 			axi.bready  <= 1;
 			pre_araddr  <= 0;
 			pre_arvalid <= 0;
 			pre_arlen   <= 1;
-			pre_wlast   <= 0;
 			axi.rready  <= 0;
 			wstate <= 0;
 			rstate <= 0;
@@ -250,20 +240,15 @@ module spi_peripheral__axi4_controller #(
 			write_transaction_counter <= 0;
 			read_transaction_counter <= 0;
 		end else begin
-			axi.awaddr  <= pre_awaddr;
-			axi.awvalid <= pre_awvalid;
-			axi.wdata   <= pre_wdata;
-			axi.wvalid  <= pre_wvalid;
 			axi.awlen   <= pre_awlen;
 			axi.araddr  <= pre_araddr;
 			axi.arvalid <= pre_arvalid;
 			axi.arlen   <= pre_arlen;
-			axi.wlast   <= pre_wlast;
 			// write
 			if (wstate==0) begin
 				if (spi_write_strobe) begin
 					if (spi_write_address_valid) begin
-						pre_awaddr <= spi_write_address;
+						axi.awaddr <= spi_write_address;
 						pre_awlen <= spi_write_burst_length;
 						if (write_transaction_counter==0) begin
 							write_transaction_counter <= spi_write_burst_length - 1'b1;
@@ -271,18 +256,18 @@ module spi_peripheral__axi4_controller #(
 							error_count <= error_count + 1'b1;
 						end
 					end else if (axi.awburst==axi::INCR) begin
-						pre_awaddr <= pre_awaddr + 1'b1;
+						axi.awaddr <= axi.awaddr + 1'b1;
 						if (write_transaction_counter>=1) begin
 							write_transaction_counter <= write_transaction_counter - 1'b1;
 						end else if (write_transaction_counter==0) begin
 							error_count <= error_count + 1'b1;
 						end
 					end
-					pre_awvalid <= 1;
-					pre_wdata <= spi_write_data;
-					pre_wvalid <= 1;
+					axi.awvalid <= 1;
+					axi.wdata <= spi_write_data;
+					axi.wvalid <= 1;
 					if (write_transaction_counter==0) begin
-						pre_wlast <= 1;
+						axi.wlast <= 1;
 					end
 					axi.bready <= 1;
 					wstate <= 3'b111;
@@ -290,14 +275,14 @@ module spi_peripheral__axi4_controller #(
 			end else begin
 				if (wstate[0]) begin
 					if (axi.awready) begin
-						pre_awvalid <= 0;
+						axi.awvalid <= 0;
 						wstate[0] <= 0;
 					end
 				end
 				if (wstate[1]) begin
 					if (axi.wready) begin
-						pre_wvalid <= 0;
-						pre_wlast <= 0;
+						axi.wvalid <= 0;
+						axi.wlast <= 0;
 						wstate[1] <= 0;
 					end
 				end
