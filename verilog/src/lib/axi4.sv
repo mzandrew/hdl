@@ -210,9 +210,7 @@ module spi_peripheral__axi4_controller #(
 	reg [ADDRESS_WIDTH-1:0] pre_araddr = 0;
 	reg pre_arvalid = 0;
 	reg [2:0] rstate = 0;
-	reg [3:0] wstate = 0;
-	reg [ADDRESS_WIDTH-1:0] local_spi_write_address = 0;
-	reg [DATA_WIDTH-1:0] local_spi_write_data = 0;
+	reg [2:0] wstate = 0;
 	reg [ADDRESS_WIDTH-1:0] local_spi_read_address = 0;
 	reg [DATA_WIDTH-1:0] local_spi_read_data = 0;
 	reg last_write_was_succecssful = 0;
@@ -262,59 +260,52 @@ module spi_peripheral__axi4_controller #(
 			axi.arlen   <= pre_arlen;
 			axi.wlast   <= pre_wlast;
 			// write
-			if (wstate[3:1]==0) begin
-				if (wstate[0]==0) begin
-					if (spi_write_strobe) begin
-						if (spi_write_address_valid) begin
-							local_spi_write_address <= spi_write_address;
-							pre_awlen <= spi_write_burst_length;
-							if (write_transaction_counter==0) begin
-								write_transaction_counter <= spi_write_burst_length - 1'b1;
-							end else begin
-								error_count <= error_count + 1'b1;
-							end
-						end else if (axi.awburst==axi::INCR) begin
-							local_spi_write_address <= local_spi_write_address + 1'b1;
-							if (write_transaction_counter>=1) begin
-								write_transaction_counter <= write_transaction_counter - 1'b1;
-							end else if (write_transaction_counter==0) begin
-								error_count <= error_count + 1'b1;
-							end
+			if (wstate==0) begin
+				if (spi_write_strobe) begin
+					if (spi_write_address_valid) begin
+						pre_awaddr <= spi_write_address;
+						pre_awlen <= spi_write_burst_length;
+						if (write_transaction_counter==0) begin
+							write_transaction_counter <= spi_write_burst_length - 1'b1;
+						end else begin
+							error_count <= error_count + 1'b1;
 						end
-						local_spi_write_data <= spi_write_data;
-						wstate[0] <= 1;
+					end else if (axi.awburst==axi::INCR) begin
+						pre_awaddr <= pre_awaddr + 1'b1;
+						if (write_transaction_counter>=1) begin
+							write_transaction_counter <= write_transaction_counter - 1'b1;
+						end else if (write_transaction_counter==0) begin
+							error_count <= error_count + 1'b1;
+						end
 					end
-				end else begin
-					pre_awaddr <= local_spi_write_address;
 					pre_awvalid <= 1;
-					pre_wdata <= local_spi_write_data;
+					pre_wdata <= spi_write_data;
 					pre_wvalid <= 1;
 					if (write_transaction_counter==0) begin
 						pre_wlast <= 1;
 					end
 					axi.bready <= 1;
-					wstate[3:1] <= 3'b111;
+					wstate <= 3'b111;
 				end
 			end else begin
-				wstate[0] <= 0;
-				if (wstate[1]) begin
+				if (wstate[0]) begin
 					if (axi.awready) begin
 						pre_awvalid <= 0;
+						wstate[0] <= 0;
+					end
+				end
+				if (wstate[1]) begin
+					if (axi.wready) begin
+						pre_wvalid <= 0;
+						pre_wlast <= 0;
 						wstate[1] <= 0;
 					end
 				end
 				if (wstate[2]) begin
-					if (axi.wready) begin
-						pre_wvalid <= 0;
-						pre_wlast <= 0;
-						wstate[2] <= 0;
-					end
-				end
-				if (wstate[3]) begin
 					if (axi.bvalid) begin
 						last_write_was_succecssful <= axi.bresp;
 						axi.bready <= 0;
-						wstate[3] <= 0;
+						wstate[2] <= 0;
 					end
 				end
 			end
