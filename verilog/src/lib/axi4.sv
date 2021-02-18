@@ -205,14 +205,11 @@ module spi_peripheral__axi4_controller #(
 	assign axi.arburst = axi::INCR;
 //	assign axi.arburst = axi::FIXED;
 //	assign axi.arburst = 3'b101; // should fail
-	reg [ADDRESS_WIDTH-1:0] pre_araddr = 0;
-	reg pre_arvalid = 0;
 	reg [2:0] rstate = 0;
 	reg [2:0] wstate = 0;
 	reg [ADDRESS_WIDTH-1:0] local_spi_read_address = 0;
 	reg [DATA_WIDTH-1:0] local_spi_read_data = 0;
 	reg last_write_was_succecssful = 0;
-	reg [LEN_WIDTH-1:0] pre_arlen = 1; // Number of beats inside the burst
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
 	reg our_rlast = 0; // our own personal copy
@@ -229,9 +226,6 @@ module spi_peripheral__axi4_controller #(
 			axi.arlen   <= 1;
 			axi.wlast   <= 0;
 			axi.bready  <= 1;
-			pre_araddr  <= 0;
-			pre_arvalid <= 0;
-			pre_arlen   <= 1;
 			axi.rready  <= 0;
 			wstate <= 0;
 			rstate <= 0;
@@ -241,9 +235,6 @@ module spi_peripheral__axi4_controller #(
 			read_transaction_counter <= 0;
 			our_rlast <= 0;
 		end else begin
-			axi.araddr  <= pre_araddr;
-			axi.arvalid <= pre_arvalid;
-			axi.arlen   <= pre_arlen;
 			// write
 			if (wstate==0) begin
 				if (spi_write_strobe) begin
@@ -304,7 +295,7 @@ module spi_peripheral__axi4_controller #(
 					if (spi_read_strobe) begin
 						if (spi_read_address_valid) begin
 							local_spi_read_address <= spi_read_address;
-							pre_arlen <= spi_read_burst_length;
+							axi.arlen <= spi_read_burst_length;
 							if (read_transaction_counter==0) begin
 								read_transaction_counter <= spi_read_burst_length - 1'b1;
 							end else begin
@@ -321,8 +312,8 @@ module spi_peripheral__axi4_controller #(
 						rstate[0] <= 1;
 					end
 				end else begin
-					pre_araddr <= local_spi_read_address;
-					pre_arvalid <= 1;
+					axi.araddr <= local_spi_read_address;
+					axi.arvalid <= 1;
 					axi.rready <= 1;
 					rstate[2:1] <= 2'b11;
 				end
@@ -330,7 +321,7 @@ module spi_peripheral__axi4_controller #(
 				rstate[0] <= 0;
 				if (rstate[1]) begin
 					if (axi.arready) begin
-						pre_arvalid <= 0;
+						axi.arvalid <= 0;
 						rstate[1] <= 0;
 					end
 				end
