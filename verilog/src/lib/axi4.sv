@@ -2,6 +2,7 @@
 // based off axi4lite.v
 // last updated 2021-02-17 by mza
 
+`include "lib/generic.v"
 `include "lib/DebugInfoWarningError.sv"
 import DebugInfoWarningError::*;
 
@@ -59,7 +60,12 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	localparam ADDRESS_WIDTH = 4;
 	localparam DATA_WIDTH = 32;
 	localparam LEN_WIDTH = 5;
-	reg clock = 0;
+	localparam FREQUENCY_OF_CLOCK_HZ = 10000000;
+	localparam PERIOD_OF_CLOCK_NS = 1000000000.0/FREQUENCY_OF_CLOCK_HZ; // WHOLE_PERIOD
+	localparam DELAY_BETWEEN_TRANSACTIONS = 10*PERIOD_OF_CLOCK_NS;
+	localparam DELAY_BETWEEN_BEATS = 10*PERIOD_OF_CLOCK_NS;
+	wire clock;
+	clock #(.FREQUENCY_OF_CLOCK_HZ(FREQUENCY_OF_CLOCK_HZ)) clockmod (.clock(clock));
 	reg reset = 1;
 	reg [ADDRESS_WIDTH-1:0] pre_spi_write_address = 0;
 	reg [ADDRESS_WIDTH-1:0] spi_write_address = 0;
@@ -96,33 +102,33 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	task automatic controller_read_transaction(input [ADDRESS_WIDTH-1:0] address, input [LEN_WIDTH:0] len);
 		reg [ADDRESS_WIDTH:0] i;
 		begin
-			#100;
+			#DELAY_BETWEEN_TRANSACTIONS;
 			pre_spi_read_burst_length <= len[LEN_WIDTH-1:0];
 			pre_spi_read_address <= address;
 			pre_spi_read_address_valid <= 1;
 			for (i=0; i<len; i++) begin
 				pre_spi_read_strobe <= 1;
-				#10;
+				#PERIOD_OF_CLOCK_NS;
 				pre_spi_read_strobe <= 0;
 				pre_spi_read_address_valid <= 0;
-				#100;
+				#DELAY_BETWEEN_BEATS;
 			end
 		end
 	endtask
 	task automatic controller_write_transaction(input [ADDRESS_WIDTH-1:0] address, input [LEN_WIDTH:0] len, input [DATA_WIDTH-1:0] data []);
 		reg [ADDRESS_WIDTH:0] i;
 		begin
-			#100;
+			#DELAY_BETWEEN_TRANSACTIONS;
 			pre_spi_write_burst_length <= len[LEN_WIDTH-1:0];
 			pre_spi_write_address <= address;
 			pre_spi_write_address_valid <= 1;
 			for (i=0; i<len; i++) begin
 				pre_spi_write_data <= data[i];
 				pre_spi_write_strobe <= 1;
-				#10;
+				#PERIOD_OF_CLOCK_NS;
 				pre_spi_write_strobe <= 0;
 				pre_spi_write_address_valid <= 0;
-				#100;
+				#DELAY_BETWEEN_BEATS;
 			end
 		end
 	endtask
@@ -134,15 +140,15 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 		for (i=i; i<2**LEN_WIDTH; i++) begin
 			data[i] = i;
 		end
-		#100; data[0] = 32'h12345678; controller_write_transaction(4'h0, 19, data);
-		#100; data[0] = 32'habcdef01; controller_write_transaction(4'h1, 1, data);
-		#100; data[0] = 32'h55550000; data[1] = 32'h44bb44bb; controller_write_transaction(4'hc, 2, data);
-		#100; data[0] = 32'h00aa00aa; controller_write_transaction(4'hd, 1, data);
-		#100; controller_read_transaction(4'h0, 2);
-		#100; controller_read_transaction(4'h1, 1);
-		#100; controller_read_transaction(4'hc, 2);
-		#100; controller_read_transaction(4'hd, 1);
-		#100; controller_read_transaction(4'h0, 20);
+		data[0] = 32'h12345678; controller_write_transaction(4'h0, 19, data);
+		data[0] = 32'habcdef01; controller_write_transaction(4'h1, 1, data);
+		data[0] = 32'h55550000; data[1] = 32'h44bb44bb; controller_write_transaction(4'hc, 2, data);
+		data[0] = 32'h00aa00aa; controller_write_transaction(4'hd, 1, data);
+		controller_read_transaction(4'h0, 2);
+		controller_read_transaction(4'h1, 1);
+		controller_read_transaction(4'hc, 2);
+		controller_read_transaction(4'hd, 1);
+		controller_read_transaction(4'h0, 20);
 		#200; $finish;
 	end
 	always @(posedge clock) begin
@@ -167,10 +173,6 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 			spi_read_strobe        <= pre_spi_read_strobe;
 			spi_read_burst_length  <= pre_spi_read_burst_length;
 		end
-	end
-	always begin
-		#5;
-		clock <= ~clock;
 	end
 endmodule
 
