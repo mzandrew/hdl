@@ -57,21 +57,6 @@ module frequency_counter #(
 endmodule
 
 `ifndef SYNTHESIS
-module clock #(
-	parameter FREQUENCY_OF_CLOCK_HZ = 10000000.0,
-	parameter PERIOD_OF_CLOCK_NS = 1000000000.0/FREQUENCY_OF_CLOCK_HZ,
-	parameter HALF_PERIOD_OF_CLOCK_NS = PERIOD_OF_CLOCK_NS / 2.0
-) (
-	output reg clock = 0
-);
-	initial begin
-		$display("creating clock with half period of %f ns", HALF_PERIOD_OF_CLOCK_NS);
-	end
-	always begin
-		#HALF_PERIOD_OF_CLOCK_NS;
-		clock = ~clock;
-	end
-endmodule
 
 `include "lib/generic.v"
 
