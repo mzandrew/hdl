@@ -358,7 +358,6 @@ module pollable_memory__axi4_peripheral #(
 	reg [ADDRESS_WIDTH-1:0] local_awaddr = 0;
 	reg [DATA_WIDTH-1:0] local_wdata = 0;
 	reg [1:0] rstate = 0;
-	reg [ADDRESS_WIDTH-1:0] local_araddr = 0;
 	reg [DATA_WIDTH-1:0] mem [2**ADDRESS_WIDTH-1:0];
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
@@ -376,7 +375,6 @@ module pollable_memory__axi4_peripheral #(
 			our_wlast   <= 0;
 			local_awaddr <= 0;
 			local_wdata <= 0;
-			local_araddr <= 0;
 			write_transaction_counter <= 0;
 			read_transaction_counter <= 0;
 			wstate <= 0;
@@ -418,31 +416,33 @@ module pollable_memory__axi4_peripheral #(
 				end
 			end
 			// read
-			if (rstate[1]==0) begin
-				if (rstate[0]==0) begin
-					if (axi.arvalid) begin
-						local_araddr <= axi.araddr;
-						axi.arready <= 0;
-						rstate[0] <= 1;
-						read_transaction_counter <= axi.arlen - 1'b1;
-					end
-				end else begin
-					axi.rdata <= mem[local_araddr];
+			if (rstate==0) begin
+				if (axi.arvalid) begin
+					axi.arready <= 0;
+					axi.rdata <= mem[axi.araddr];
 					axi.rvalid <= 1;
+					// when axi.arlen=4; read_transaction_counter = {0, 3, 2, 1}
+					// when axi.arlen=1; read_transaction_counter = {0}
+					// when axi.arlen=2; read_transaction_counter = {0, 1}
 					if (read_transaction_counter==0) begin
-						axi.rlast <= 1;
+						if (axi.arlen==1) begin
+							axi.rlast <= 1;
+						end
+						read_transaction_counter <= axi.arlen - 1'b1;
 					end else begin
+						if (read_transaction_counter==1) begin
+							axi.rlast <= 1;
+						end
 						read_transaction_counter <= read_transaction_counter - 1'b1;
 					end
-					rstate[1] <= 1;
+					rstate[0] <= 1;
 				end
 			end else begin
-				rstate[0] <= 0;
 				if (axi.rready) begin
 					axi.rvalid <= 0;
 					axi.rlast <= 0;
 					axi.arready <= 1;
-					rstate[1] <= 0;
+					rstate[0] <= 0;
 				end
 			end
 		end
