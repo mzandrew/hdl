@@ -25,7 +25,7 @@ interface axi4 #(
 	// definitions from https://en.wikipedia.org/wiki/Advanced_eXtensible_Interface
 	// axi4 Write Address channel (AW)
 	logic [ADDRESS_WIDTH-1:0] awaddr; // Address of the first beat of the burst
-	logic [LEN_WIDTH-1:0] awlen; // Number of beats inside the burst
+	logic [LEN_WIDTH-1:0] awlen; // Number of beats inside the burst - 1
 	axi::burst_t awburst; // Type of the burst
 	// awprot;
 	logic awvalid; // xVALID handshake signal
@@ -42,7 +42,7 @@ interface axi4 #(
 	logic bready; // xREADY handshake signal
 	// axi4 Read Address channel (AR)
 	logic [ADDRESS_WIDTH-1:0] araddr; // Address of the first beat of the burst
-	logic [LEN_WIDTH-1:0] arlen; // Number of beats inside the burst
+	logic [LEN_WIDTH-1:0] arlen; // Number of beats inside the burst - 1
 	axi::burst_t arburst; // Type of the burst
 	// arprot; // Protection type: privilege, security level and data/instruction access
 	logic arvalid; // xVALID handshake signal
@@ -63,9 +63,9 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	localparam LEN_WIDTH = 5;
 	localparam FREQUENCY_OF_CLOCK_HZ = 10000000;
 	localparam PERIOD_OF_CLOCK_NS = 1000000000.0/FREQUENCY_OF_CLOCK_HZ; // WHOLE_PERIOD
-	localparam DELAY_BETWEEN_TRANSACTIONS = 10*PERIOD_OF_CLOCK_NS;
-	localparam DELAY_BETWEEN_BEATS = 10*PERIOD_OF_CLOCK_NS;
-	localparam LONG_DELAY = 20*PERIOD_OF_CLOCK_NS;
+	localparam DELAY_BETWEEN_TRANSACTIONS = 4*PERIOD_OF_CLOCK_NS;
+	localparam DELAY_BETWEEN_BEATS = 2*PERIOD_OF_CLOCK_NS; // can't go below 2 or it fails
+	localparam LONG_DELAY = 8*PERIOD_OF_CLOCK_NS;
 	wire clock;
 	clock #(.FREQUENCY_OF_CLOCK_HZ(FREQUENCY_OF_CLOCK_HZ)) clockmod (.clock(clock));
 	reg reset = 1;
@@ -218,10 +218,10 @@ module spi_peripheral__axi4_controller #(
 			axi.awvalid <= 0;
 			axi.wdata   <= 0;
 			axi.wvalid  <= 0;
-			axi.awlen   <= 1;
+			axi.awlen   <= 0;
 			axi.araddr  <= 0;
 			axi.arvalid <= 0;
-			axi.arlen   <= 1;
+			axi.arlen   <= 0;
 			axi.wlast   <= 0;
 			axi.bready  <= 0;
 			axi.rready  <= 0;
@@ -238,7 +238,7 @@ module spi_peripheral__axi4_controller #(
 				if (spi_write_strobe) begin
 					if (spi_write_address_valid) begin
 						axi.awaddr <= spi_write_address;
-						axi.awlen <= spi_write_burst_length;
+						axi.awlen <= spi_write_burst_length - 1'b1;
 						if (spi_write_burst_length==1) begin
 							axi.wlast <= 1;
 							axi.bready <= 1;
@@ -295,7 +295,7 @@ module spi_peripheral__axi4_controller #(
 				if (spi_read_strobe) begin
 					if (spi_read_address_valid) begin
 						axi.araddr <= spi_read_address;
-						axi.arlen <= spi_read_burst_length;
+						axi.arlen <= spi_read_burst_length - 1'b1;
 						if (spi_read_burst_length==1) begin
 							our_rlast <= 1;
 						end
@@ -410,14 +410,14 @@ module pollable_memory__axi4_peripheral #(
 					local_awaddr <= axi.awaddr;
 					axi.awready <= 0;
 					wstate[0] <= 1;
-					if (axi.awlen==1) begin
+					if (axi.awlen==0) begin
 //						our_wlast <= 1;
 						if (axi.wlast==0) begin
 							error_count <= error_count + 1'b1; // disagreement on whether this was the last transaction of the run
 						end
 					end
 					if (write_transaction_counter==0) begin
-						write_transaction_counter <= axi.awlen;
+						write_transaction_counter <= axi.awlen + 1'b1;
 					end
 				end
 				if (axi.wvalid) begin
@@ -449,14 +449,14 @@ module pollable_memory__axi4_peripheral #(
 					axi.arready <= 0;
 					axi.rdata <= mem[axi.araddr];
 					axi.rvalid <= 1;
-					// when axi.arlen=1; read_transaction_counter = {0}
-					// when axi.arlen=2; read_transaction_counter = {0, 1}
-					// when axi.arlen=4; read_transaction_counter = {0, 3, 2, 1}
+					// when axi.arlen=0; read_transaction_counter = {0}
+					// when axi.arlen=1; read_transaction_counter = {0, 1}
+					// when axi.arlen=3; read_transaction_counter = {0, 3, 2, 1}
 					if (read_transaction_counter==0) begin
-						if (axi.arlen==1) begin
+						if (axi.arlen==0) begin
 							axi.rlast <= 1;
 						end
-						read_transaction_counter <= axi.arlen - 1'b1;
+						read_transaction_counter <= axi.arlen;
 					end else begin
 						if (read_transaction_counter==1) begin
 							axi.rlast <= 1;
