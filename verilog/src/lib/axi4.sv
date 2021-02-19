@@ -210,7 +210,6 @@ module spi_peripheral__axi4_controller #(
 	reg last_write_was_succecssful = 0;
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
-//	reg pre_rlast = 0; // our own personal copy
 	reg our_rlast = 0; // our own personal copy
 	reg [31:0] error_count = 0;
 	always @(posedge axi.clock) begin
@@ -232,7 +231,6 @@ module spi_peripheral__axi4_controller #(
 			spi_read_data <= 0;
 			write_transaction_counter <= 0;
 			read_transaction_counter <= 0;
-//			pre_rlast <= 0;
 			our_rlast <= 0;
 		end else begin
 			// write
@@ -320,7 +318,6 @@ module spi_peripheral__axi4_controller #(
 					rstate <= 2'b11;
 				end
 			end else begin
-//				our_rlast <= pre_rlast;
 				if (rstate[0]) begin
 					if (axi.arready) begin
 						axi.arvalid <= 0;
@@ -332,7 +329,6 @@ module spi_peripheral__axi4_controller #(
 						spi_read_data <= axi.rdata;
 						axi.rready <= 0;
 						our_rlast <= 0;
-//						pre_rlast <= 0;
 						rstate[1] <= 0;
 					end
 				end
@@ -461,7 +457,8 @@ module pollable_memory__axi4_peripheral #(
 			`error("%b (%s) is not supported as the axi::burst_t for arburst", axi.arburst, axi.arburst.name);
 		end
 	end
-	wire wlast_mismatch = axi.wlast ^ our_wlast;
+	wire wbeat = axi.wready & axi.wvalid;
+	wire wlast_mismatch = (axi.wlast ^ our_wlast) & wbeat;
 endmodule
 
 module axi4_handshake (
