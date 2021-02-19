@@ -393,8 +393,10 @@ module pollable_memory__axi4_peripheral #(
 					if (write_transaction_counter==1) begin
 						if (their_wlast==0) begin
 							error_count <= error_count + 1'b1; // disagreement on whether this was the last transaction of the run
+							axi.bresp <= 0;
+						end else begin
+							axi.bresp <= 1;
 						end
-						axi.bresp <= 1;
 						axi.bvalid <= 1;
 						wstate[3] <= 1;
 					end
