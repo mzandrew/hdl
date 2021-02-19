@@ -1,6 +1,6 @@
 // written 2021-02-12 by mza
 // based off axi4lite.v
-// last updated 2021-02-18 by mza
+// last updated 2021-02-19 by mza
 
 `include "lib/generic.v"
 `include "lib/DebugInfoWarningError.sv"
@@ -223,7 +223,7 @@ module spi_peripheral__axi4_controller #(
 			axi.arvalid <= 0;
 			axi.arlen   <= 1;
 			axi.wlast   <= 0;
-			axi.bready  <= 1;
+			axi.bready  <= 0;
 			axi.rready  <= 0;
 			wstate <= 0;
 			rstate <= 0;
@@ -241,6 +241,8 @@ module spi_peripheral__axi4_controller #(
 						axi.awlen <= spi_write_burst_length;
 						if (spi_write_burst_length==1) begin
 							axi.wlast <= 1;
+							axi.bready <= 1;
+							wstate[2] <= 1;
 						end
 						if (write_transaction_counter!=0) begin
 							error_count <= error_count + 1'b1; // previous run was not complete
@@ -248,10 +250,12 @@ module spi_peripheral__axi4_controller #(
 						write_transaction_counter <= spi_write_burst_length - 1'b1;
 					end else begin
 						if (write_transaction_counter>0) begin
-							write_transaction_counter <= write_transaction_counter - 1'b1;
 							if (write_transaction_counter==1) begin
 								axi.wlast <= 1;
+								axi.bready <= 1;
+								wstate[2] <= 1;
 							end
+							write_transaction_counter <= write_transaction_counter - 1'b1;
 						end else begin // write_transaction_counter==0
 							error_count <= error_count + 1'b1; // asking for more than the indicated run length
 						end
@@ -262,8 +266,7 @@ module spi_peripheral__axi4_controller #(
 					axi.awvalid <= 1;
 					axi.wdata <= spi_write_data;
 					axi.wvalid <= 1;
-					axi.bready <= 1;
-					wstate <= 3'b111;
+					wstate[1:0] <= 2'b11;
 				end
 			end else begin
 				if (wstate[0]) begin
@@ -355,14 +358,16 @@ module pollable_memory__axi4_peripheral #(
 ) (
 	axi4.peripheral axi
 );
-	reg [2:0] wstate = 0;
+	reg [3:0] wstate = 0;
 	reg [ADDRESS_WIDTH-1:0] local_awaddr = 0;
 	reg [DATA_WIDTH-1:0] local_wdata = 0;
 	reg [1:0] rstate = 0;
 	reg [DATA_WIDTH-1:0] mem [2**ADDRESS_WIDTH-1:0];
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
-	reg our_wlast = 0; // our own personal copy
+//	reg our_wlast = 0; // our own personal copy
+	reg their_wlast = 0; // our own personal delayed copy
+	reg [31:0] error_count = 0;
 	always @(posedge axi.clock) begin
 		if (axi.reset) begin
 			axi.bresp   <= 0;
@@ -373,7 +378,8 @@ module pollable_memory__axi4_peripheral #(
 			axi.rlast   <= 0;
 			axi.awready <= 1;
 			axi.wready  <= 1;
-			our_wlast   <= 0;
+//			our_wlast   <= 0;
+			their_wlast <= 0;
 			local_awaddr <= 0;
 			local_wdata <= 0;
 			write_transaction_counter <= 0;
@@ -382,38 +388,59 @@ module pollable_memory__axi4_peripheral #(
 			rstate <= 0;
 		end else begin
 			// write
-			if (wstate[2]==0) begin
+			if (wstate[3:2]==0) begin
 				if (wstate[1:0]==2'b11) begin
 					mem[local_awaddr] <= local_wdata;
-					axi.bresp <= 1;
-					axi.bvalid <= 1;
-					if (write_transaction_counter==0) begin
-						our_wlast <= 1;
-					end else begin
-						write_transaction_counter <= write_transaction_counter - 1'b1;
+					// when axi.awlen=1; write_transaction_counter = {1}
+					// when axi.awlen=2; write_transaction_counter = {2, 1}
+					// when axi.awlen=4; write_transaction_counter = {4, 3, 2, 1}
+					if (write_transaction_counter==1) begin
+//						our_wlast <= 1;
+						if (their_wlast==0) begin
+							error_count <= error_count + 1'b1; // disagreement on whether this was the last transaction of the run
+						end
+						axi.bresp <= 1;
+						axi.bvalid <= 1;
+						wstate[3] <= 1;
 					end
+					write_transaction_counter <= write_transaction_counter - 1'b1;
 					wstate[2] <= 1;
 				end
 				if (axi.awvalid) begin
 					local_awaddr <= axi.awaddr;
 					axi.awready <= 0;
 					wstate[0] <= 1;
-					write_transaction_counter <= axi.awlen - 1'b1;
+					if (axi.awlen==1) begin
+//						our_wlast <= 1;
+						if (axi.wlast==0) begin
+							error_count <= error_count + 1'b1; // disagreement on whether this was the last transaction of the run
+						end
+					end
+					if (write_transaction_counter==0) begin
+						write_transaction_counter <= axi.awlen;
+					end
 				end
 				if (axi.wvalid) begin
+					their_wlast <= axi.wlast;
 					local_wdata <= axi.wdata;
 					axi.wready <= 0;
 					wstate[1] <= 1;
 				end
 			end else begin
 				wstate[1:0] <= 0;
-				if (axi.bready) begin
-					axi.bresp <= 0;
-					axi.bvalid <= 0;
-					our_wlast <= 0;
+				if (wstate[2]) begin
 					axi.awready <= 1;
 					axi.wready <= 1;
 					wstate[2] <= 0;
+				end
+				if (wstate[3]) begin
+					if (axi.bready) begin
+						axi.bresp <= 0;
+						axi.bvalid <= 0;
+//						our_wlast <= 0;
+						their_wlast <= 0;
+						wstate[3] <= 0;
+					end
 				end
 			end
 			// read
@@ -422,9 +449,9 @@ module pollable_memory__axi4_peripheral #(
 					axi.arready <= 0;
 					axi.rdata <= mem[axi.araddr];
 					axi.rvalid <= 1;
-					// when axi.arlen=4; read_transaction_counter = {0, 3, 2, 1}
 					// when axi.arlen=1; read_transaction_counter = {0}
 					// when axi.arlen=2; read_transaction_counter = {0, 1}
+					// when axi.arlen=4; read_transaction_counter = {0, 3, 2, 1}
 					if (read_transaction_counter==0) begin
 						if (axi.arlen==1) begin
 							axi.rlast <= 1;
@@ -457,8 +484,8 @@ module pollable_memory__axi4_peripheral #(
 			`error("%b (%s) is not supported as the axi::burst_t for arburst", axi.arburst, axi.arburst.name);
 		end
 	end
-	wire wbeat = axi.wready & axi.wvalid;
-	wire wlast_mismatch = (axi.wlast ^ our_wlast) & wbeat;
+//	wire wbeat = axi.wready & axi.wvalid;
+//	wire wlast_mismatch = (axi.wlast ^ our_wlast) & wbeat;
 endmodule
 
 module axi4_handshake (
