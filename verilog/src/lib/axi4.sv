@@ -183,8 +183,6 @@ module spi_peripheral__axi4_controller #(
 	parameter DATA_WIDTH = 32,
 	parameter LEN_WIDTH = 5
 ) (
-//	input clock,
-//	input reset,
 	// SPI write channel
 	input [ADDRESS_WIDTH-1:0] spi_write_address,
 	input spi_write_address_valid,
@@ -365,7 +363,6 @@ module pollable_memory__axi4_peripheral #(
 	reg [DATA_WIDTH-1:0] mem [2**ADDRESS_WIDTH-1:0];
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
-//	reg our_wlast = 0; // our own personal copy
 	reg their_wlast = 0; // our own personal delayed copy
 	reg [31:0] error_count = 0;
 	always @(posedge axi.clock) begin
@@ -378,7 +375,6 @@ module pollable_memory__axi4_peripheral #(
 			axi.rlast   <= 0;
 			axi.awready <= 1;
 			axi.wready  <= 1;
-//			our_wlast   <= 0;
 			their_wlast <= 0;
 			local_awaddr <= 0;
 			local_wdata <= 0;
@@ -391,11 +387,10 @@ module pollable_memory__axi4_peripheral #(
 			if (wstate[3:2]==0) begin
 				if (wstate[1:0]==2'b11) begin
 					mem[local_awaddr] <= local_wdata;
-					// when axi.awlen=1; write_transaction_counter = {1}
-					// when axi.awlen=2; write_transaction_counter = {2, 1}
-					// when axi.awlen=4; write_transaction_counter = {4, 3, 2, 1}
+					// when axi.awlen=0; write_transaction_counter = {1}
+					// when axi.awlen=1; write_transaction_counter = {2, 1}
+					// when axi.awlen=3; write_transaction_counter = {4, 3, 2, 1}
 					if (write_transaction_counter==1) begin
-//						our_wlast <= 1;
 						if (their_wlast==0) begin
 							error_count <= error_count + 1'b1; // disagreement on whether this was the last transaction of the run
 						end
@@ -411,7 +406,6 @@ module pollable_memory__axi4_peripheral #(
 					axi.awready <= 0;
 					wstate[0] <= 1;
 					if (axi.awlen==0) begin
-//						our_wlast <= 1;
 						if (axi.wlast==0) begin
 							error_count <= error_count + 1'b1; // disagreement on whether this was the last transaction of the run
 						end
@@ -437,7 +431,6 @@ module pollable_memory__axi4_peripheral #(
 					if (axi.bready) begin
 						axi.bresp <= 0;
 						axi.bvalid <= 0;
-//						our_wlast <= 0;
 						their_wlast <= 0;
 						wstate[3] <= 0;
 					end
@@ -485,7 +478,6 @@ module pollable_memory__axi4_peripheral #(
 		end
 	end
 //	wire wbeat = axi.wready & axi.wvalid;
-//	wire wlast_mismatch = (axi.wlast ^ our_wlast) & wbeat;
 endmodule
 
 module axi4_handshake (
