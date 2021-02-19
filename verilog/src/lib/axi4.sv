@@ -210,7 +210,7 @@ module spi_peripheral__axi4_controller #(
 	reg last_write_was_succecssful = 0;
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
-	reg pre_rlast = 0; // our own personal copy
+//	reg pre_rlast = 0; // our own personal copy
 	reg our_rlast = 0; // our own personal copy
 	reg [31:0] error_count = 0;
 	always @(posedge axi.clock) begin
@@ -232,7 +232,7 @@ module spi_peripheral__axi4_controller #(
 			spi_read_data <= 0;
 			write_transaction_counter <= 0;
 			read_transaction_counter <= 0;
-			pre_rlast <= 0;
+//			pre_rlast <= 0;
 			our_rlast <= 0;
 		end else begin
 			// write
@@ -296,7 +296,7 @@ module spi_peripheral__axi4_controller #(
 						axi.araddr <= spi_read_address;
 						axi.arlen <= spi_read_burst_length;
 						if (spi_read_burst_length==1) begin
-							pre_rlast <= 1;
+							our_rlast <= 1;
 						end
 						if (read_transaction_counter!=0) begin
 							error_count <= error_count + 1'b1; // previous run was not complete
@@ -306,7 +306,7 @@ module spi_peripheral__axi4_controller #(
 						if (read_transaction_counter>0) begin
 							read_transaction_counter <= read_transaction_counter - 1'b1;
 							if (read_transaction_counter==1) begin
-								pre_rlast <= 1;
+								our_rlast <= 1;
 							end
 						end else begin // read_transaction_counter==0
 							error_count <= error_count + 1'b1; // asking for more than the indicated run length
@@ -320,7 +320,7 @@ module spi_peripheral__axi4_controller #(
 					rstate <= 2'b11;
 				end
 			end else begin
-				our_rlast <= pre_rlast;
+//				our_rlast <= pre_rlast;
 				if (rstate[0]) begin
 					if (axi.arready) begin
 						axi.arvalid <= 0;
@@ -332,7 +332,7 @@ module spi_peripheral__axi4_controller #(
 						spi_read_data <= axi.rdata;
 						axi.rready <= 0;
 						our_rlast <= 0;
-						pre_rlast <= 0;
+//						pre_rlast <= 0;
 						rstate[1] <= 0;
 					end
 				end
@@ -348,7 +348,8 @@ module spi_peripheral__axi4_controller #(
 			`error("%b (%s) is not supported as the axi::burst_t for arburst", axi.arburst, axi.arburst.name);
 		end
 	end
-	wire rlast_mismatch = axi.rlast ^ our_rlast;
+	wire rbeat = axi.rready & axi.rvalid;
+	wire rlast_mismatch = (axi.rlast ^ our_rlast) & rbeat;
 endmodule
 
 module pollable_memory__axi4_peripheral #(
