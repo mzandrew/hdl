@@ -135,12 +135,13 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 			pre_spi_write_burst_length <= len[LEN_WIDTH-1:0];
 			pre_spi_write_address <= address;
 			pre_spi_write_address_valid <= 1;
+			#PERIOD_OF_CLOCK_NS;
+			pre_spi_write_address_valid <= 0;
 			for (i=0; i<len; i++) begin
 				pre_spi_write_data <= data[i];
 				pre_spi_write_data_valid <= 1;
 				#PERIOD_OF_CLOCK_NS;
 //				pre_spi_write_data_valid <= 0;
-				pre_spi_write_address_valid <= 0;
 //				#DELAY_BETWEEN_WRITE_BEATS;
 			end
 			pre_spi_write_data_valid <= 0;
@@ -155,9 +156,9 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 			data[i] = i;
 		end
 		data[0] = 32'h12345678; controller_write_transaction(4'h0, 19, data);
-		data[0] = 32'habcdef01; controller_write_transaction(4'h1, 1, data);
-		data[0] = 32'h55550000; data[1] = 32'h44bb44bb; controller_write_transaction(4'hc, 2, data);
-		data[0] = 32'h00aa00aa; controller_write_transaction(4'hd, 1, data);
+		data[0] = 32'habcdef01; data[1] = 32'h00aa00aa; controller_write_transaction(4'h1, 1, data);
+		data[0] = 32'h55550000; data[1] = 32'h44bb44bb; controller_write_transaction(4'hb, 2, data);
+		data[0] = 32'hcc00cc00; data[1] = 32'hdd00dd00; data[2] = 32'hee00ee00; data[3] = 32'hff00ff00; controller_write_transaction(4'hc, 4, data);
 		controller_read_transaction(4'h0, 2);
 		controller_read_transaction(4'h1, 1);
 		controller_read_transaction(4'hc, 2);
@@ -262,9 +263,9 @@ module spi_peripheral__axi4_controller #(
 							axi.awvalid <= 1;
 							cw_state <= axi::WAITING_FOR_AWREADY;
 						end
-						if (spi_write_data_valid) begin
-							axi.wdata <= spi_write_data;
-						end
+//						if (spi_write_data_valid) begin
+//							axi.wdata <= spi_write_data;
+//						end
 					end
 				axi::WAITING_FOR_AWREADY: begin
 						axi.awvalid <= 1;
