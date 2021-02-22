@@ -319,7 +319,11 @@ module spi_peripheral__axi4_controller #(
 							axi.awlen <= spi_write_burst_length - 1'b1;
 							internal_copy_of_awlen <= spi_write_burst_length - 1'b1;
 							axi.awvalid <= 1;
-							cw_state <= axi::WAITING_FOR_AWREADY;
+							if (axi.awready) begin
+								cw_state <= axi::WAITING_FOR_WREADY;
+							end else begin
+								cw_state <= axi::WAITING_FOR_AWREADY;
+							end
 						end
 					end
 				axi::WAITING_FOR_AWREADY: begin
@@ -366,7 +370,7 @@ module spi_peripheral__axi4_controller #(
 						axi.awvalid <= 0;
 						axi.wvalid <= 0;
 						axi.wlast <= 0;
-						axi.bready <= 0;
+						axi.bready <= 1;
 						if (axi.bvalid) begin
 							axi.bready <= 0;
 							cw_state <= axi::IDLE;
