@@ -46,7 +46,7 @@ typedef signed long s32;
 #include <fcntl.h> // open
 #include <sys/mman.h> // mmap
 #include <stdbool.h>
-#include <Python.h>
+#include <Python.h> // sudo apt install -y python3-distutil python3-dev
 #include <bcm_host.h> // bcm_host_get_peripheral_address -I/opt/vc/include -L/opt/vc/lib -lbcm_host
 #include "DebugInfoWarningError.h"
 

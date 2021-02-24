@@ -1,0 +1,3 @@
+sudo apt install -y python3-spidev python3-distutil python3-dev
+make
+

@@ -11,7 +11,7 @@ import os # os.path.isfile
 import re # re.search
 #import RPi.GPIO as GPIO
 #import pigpio # the daemon causes conflicts the way we were using it
-import spidev
+import spidev # sudo apt install -y python3-spidev
 from generic import * # hex, eng
 import fastgpio # fastgpio.bus fastgpio.clock
 
@@ -465,6 +465,8 @@ def setup_half_duplex_bus(string):
 	if string=="test044":
 		setup_half_duplex_bus_test044()
 	elif string=="test046":
+		setup_half_duplex_bus_test046()
+	elif string=="test047":
 		setup_half_duplex_bus_test046()
 	else:
 		print("must select which firmware project to interface with")
