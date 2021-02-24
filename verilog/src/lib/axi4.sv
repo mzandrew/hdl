@@ -77,7 +77,7 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	localparam LEN_WIDTH = 5;
 	localparam FREQUENCY_OF_CLOCK_HZ = 10000000;
 	localparam PERIOD_OF_CLOCK_NS = 1000000000.0/FREQUENCY_OF_CLOCK_HZ; // WHOLE_PERIOD
-	localparam DELAY_BETWEEN_TRANSACTIONS = 16*PERIOD_OF_CLOCK_NS;
+	localparam DELAY_BETWEEN_TRANSACTIONS = 4*PERIOD_OF_CLOCK_NS;
 	localparam DELAY_BETWEEN_WRITE_BEATS = 1*PERIOD_OF_CLOCK_NS;
 	localparam DELAY_BETWEEN_READ_BEATS = 1*PERIOD_OF_CLOCK_NS;
 	localparam LONG_DELAY = 8*PERIOD_OF_CLOCK_NS;
@@ -124,6 +124,7 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 			pre_spi_read_address_valid <= 1;
 			#PERIOD_OF_CLOCK_NS;
 			pre_spi_read_address_valid <= 0;
+//			#PERIOD_OF_CLOCK_NS;
 			for (i=0; i<len; i++) begin
 				#PERIOD_OF_CLOCK_NS;
 				if (i==2) begin
@@ -142,7 +143,7 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 			pre_spi_write_address_valid <= 1;
 			#PERIOD_OF_CLOCK_NS;
 			pre_spi_write_address_valid <= 0;
-			#PERIOD_OF_CLOCK_NS;
+//			#PERIOD_OF_CLOCK_NS;
 			for (i=0; i<len; i++) begin
 				pre_spi_write_data <= data[i];
 				pre_spi_write_data_valid <= 1;
@@ -160,7 +161,7 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 			pre_spi_write_address_valid <= 1;
 			#PERIOD_OF_CLOCK_NS;
 			pre_spi_write_address_valid <= 0;
-			#PERIOD_OF_CLOCK_NS;
+//			#PERIOD_OF_CLOCK_NS;
 			for (i=0; i<len; i++) begin
 				pre_spi_write_data <= data[i];
 				pre_spi_write_data_valid <= 1;
@@ -185,7 +186,7 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	initial begin
 		#DELAY_BETWEEN_TRANSACTIONS; reset <= 0;
 		data = new[2**LEN_WIDTH];
-		for (i=i; i<2**LEN_WIDTH; i++) begin
+		for (i=0; i<2**LEN_WIDTH; i++) begin
 			data[i] = i;
 		end
 //		data[0] = 32'h12345678; controller_write_transaction(4'h0, 19, data);
@@ -197,23 +198,26 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 //		controller_read_transaction(4'hc, 2);
 //		controller_read_transaction(4'hd, 1);
 //		controller_read_transaction(4'h0, 20);
-		for (i=i; i<2**LEN_WIDTH; i++) begin
+		for (i=0; i<2**LEN_WIDTH; i++) begin
 			data[i] = i;
 		end
-		controller_write_transaction(4'h1, 1, data);
+		controller_write_transaction(4'h0, 1, data);
 		controller_read_transaction(4'h0, 1);
-		controller_write_transaction(4'hb, 2, data);
+		controller_write_transaction(4'h0, 2, data);
 		controller_read_transaction(4'h0, 2);
-		controller_write_transaction(4'hc, 4, data);
+		controller_write_transaction(4'h0, 4, data);
 		controller_read_transaction(4'h0, 4);
 		controller_write_transaction(4'h0, 16, data);
 		controller_read_transaction(4'h0, 16);
 		#LONG_DELAY;
-		controller_write_transaction_with_handshaking(4'h1, 1, data);
+		for (i=0; i<2**LEN_WIDTH; i++) begin
+			data[i] = 2**LEN_WIDTH - i;
+		end
+		controller_write_transaction_with_handshaking(4'h0, 1, data);
 		controller_read_transaction(4'h0, 1);
-		controller_write_transaction_with_handshaking(4'hb, 2, data);
+		controller_write_transaction_with_handshaking(4'h0, 2, data);
 		controller_read_transaction(4'h0, 2);
-		controller_write_transaction_with_handshaking(4'hc, 4, data);
+		controller_write_transaction_with_handshaking(4'h0, 4, data);
 		controller_read_transaction(4'h0, 4);
 		controller_write_transaction_with_handshaking(4'h0, 16, data);
 		controller_read_transaction(4'h0, 16);
@@ -319,6 +323,11 @@ module spi_peripheral__axi4_controller #(
 							axi.awlen <= spi_write_burst_length - 1'b1;
 							internal_copy_of_awlen <= spi_write_burst_length - 1'b1;
 							axi.awvalid <= 1;
+							if (spi_write_burst_length==1) begin
+								axi.wlast <= 1;
+							end else begin
+								axi.wlast <= 0;
+							end
 							if (axi.awready) begin
 								cw_state <= axi::WAITING_FOR_WREADY;
 							end else begin
@@ -335,20 +344,22 @@ module spi_peripheral__axi4_controller #(
 							axi.awvalid <= 0;
 							if (spi_write_data_valid) begin // maybe this should be outside the awready test?
 								axi.wdata <= spi_write_data;
-							end
-							axi.wvalid <= 1; // maybe this should be inside the above if clause?
-							if (internal_copy_of_awlen==0) begin
-								axi.wlast <= 1;
+								axi.wvalid <= 1;
+								if (internal_copy_of_awlen==0) begin
+									axi.wlast <= 1;
+//								end else begin
+//									axi.wlast <= 0;
+								end
 							end
 							cw_state <= axi::WAITING_FOR_WREADY;
 						end
 					end
 				axi::WAITING_FOR_WREADY: begin
 						axi.awvalid <= 0;
-						if (spi_write_data_valid) begin
+//						if (spi_write_data_valid) begin
 							axi.wdata <= spi_write_data;
-						end
-						axi.wvalid <= 1;
+							axi.wvalid <= 1'b1;
+//						end
 						if (internal_copy_of_awlen==1) begin // will be ==0 by the end of this timestep if wready is active
 							axi.wlast <= 1;
 //						end else begin
@@ -467,7 +478,7 @@ module pollable_memory__axi4_peripheral #(
 	reg [ADDRESS_WIDTH-1:0] local_awaddr = 0;
 	reg [DATA_WIDTH-1:0] local_wdata = 0;
 	reg [1:0] rstate = 0;
-	reg [DATA_WIDTH-1:0] mem [2**ADDRESS_WIDTH-1:0];
+	logic [DATA_WIDTH-1:0] mem [2**ADDRESS_WIDTH-1:0];
 	reg [LEN_WIDTH-1:0] write_transaction_counter = 0;
 	reg [LEN_WIDTH-1:0] read_transaction_counter = 0;
 //	reg their_wlast = 0; // our own personal delayed copy
