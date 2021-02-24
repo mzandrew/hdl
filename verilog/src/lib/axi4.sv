@@ -71,8 +71,8 @@ interface axi4 #(
 	modport peripheral (input clock, reset,  input awaddr, awlen, awburst, awvalid, wdata, wlast, wvalid, bready, araddr, arlen, arburst, arvalid, rready, output awready, wready, bresp, bvalid, arready, rdata, rlast, rvalid);
 endinterface
 
-// xrun -incdir ../verilog/src/ ../verilog/src/lib/axi4.sv -access +rwc -gui -top spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb
-module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
+// xrun -incdir ../verilog/src/ ../verilog/src/lib/axi4.sv -access +rwc -gui -top parallel_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb
+module parallel_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	localparam ADDRESS_WIDTH = 4;
 	localparam DATA_WIDTH = 32;
 	localparam LEN_WIDTH = 5;
@@ -85,30 +85,30 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	wire clock;
 	clock #(.FREQUENCY_OF_CLOCK_HZ(FREQUENCY_OF_CLOCK_HZ)) clockmod (.clock(clock));
 	reg reset = 1;
-	reg [ADDRESS_WIDTH-1:0] pre_spi_write_address = 0;
-	reg [ADDRESS_WIDTH-1:0] spi_write_address = 0;
-	reg pre_spi_write_address_valid = 0;
-	reg spi_write_address_valid = 0;
-	reg [DATA_WIDTH-1:0] pre_spi_write_data = 0;
-	reg [DATA_WIDTH-1:0] spi_write_data = 0;
-	reg [ADDRESS_WIDTH-1:0] pre_spi_read_address = 0;
-	reg [ADDRESS_WIDTH-1:0] spi_read_address = 0;
-	reg pre_spi_read_address_valid = 0;
-	reg spi_read_address_valid = 0;
-	wire [DATA_WIDTH-1:0] spi_read_data;
+	reg [ADDRESS_WIDTH-1:0] pre_parallel_write_address = 0;
+	reg [ADDRESS_WIDTH-1:0] parallel_write_address = 0;
+	reg pre_parallel_write_address_valid = 0;
+	reg parallel_write_address_valid = 0;
+	reg [DATA_WIDTH-1:0] pre_parallel_write_data = 0;
+	reg [DATA_WIDTH-1:0] parallel_write_data = 0;
+	reg [ADDRESS_WIDTH-1:0] pre_parallel_read_address = 0;
+	reg [ADDRESS_WIDTH-1:0] parallel_read_address = 0;
+	reg pre_parallel_read_address_valid = 0;
+	reg parallel_read_address_valid = 0;
+	wire [DATA_WIDTH-1:0] parallel_read_data;
 	axi4 axi(clock, reset);
-	reg pre_spi_write_data_valid = 0;
-	reg spi_write_data_valid = 0;
-	wire spi_read_data_valid;
-	spi_peripheral__axi4_controller  #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) spac (.*);
+	reg pre_parallel_write_data_valid = 0;
+	reg parallel_write_data_valid = 0;
+	wire parallel_read_data_valid;
+	parallel_peripheral__axi4_controller  #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) spac (.*);
 	pollable_memory__axi4_peripheral #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) pmap (.*);
 	wire awbeat = axi.awready & axi.awvalid;
 	wire arbeat = axi.arready & axi.arvalid;
 	wire  wbeat =  axi.wready &  axi.wvalid;
 	wire  rbeat =  axi.rready &  axi.rvalid;
 	wire  bbeat =  axi.bready &  axi.bvalid;
-	always @(posedge awbeat) begin $display("%t, awbeat %08x", $time, spi_write_address); end
-	always @(posedge arbeat) begin $display("%t, arbeat %08x", $time, spi_read_address); end
+	always @(posedge awbeat) begin $display("%t, awbeat %08x", $time, parallel_write_address); end
+	always @(posedge arbeat) begin $display("%t, arbeat %08x", $time, parallel_read_address); end
 	always @(posedge  wbeat) begin $display("%t,  wbeat %08x", $time, axi.wdata); end
 	always @(posedge  rbeat) begin $display("%t,  rbeat %08x", $time, axi.rdata); end
 	always @(posedge  bbeat) begin $display("%t,  bbeat", $time); end
@@ -116,24 +116,24 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 		reg [ADDRESS_WIDTH:0] i;
 		begin
 			#DELAY_BETWEEN_TRANSACTIONS;
-			pre_spi_read_address <= address;
-			pre_spi_read_address_valid <= 1;
+			pre_parallel_read_address <= address;
+			pre_parallel_read_address_valid <= 1;
 			#PERIOD_OF_CLOCK_NS;
-			pre_spi_read_address_valid <= 0;
+			pre_parallel_read_address_valid <= 0;
 		end
 	endtask
 	task automatic controller_write_transaction(input [ADDRESS_WIDTH-1:0] address, input [DATA_WIDTH-1:0] data []);
 		reg [ADDRESS_WIDTH:0] i;
 		begin
 			#DELAY_BETWEEN_TRANSACTIONS;
-			pre_spi_write_address <= address;
-			pre_spi_write_address_valid <= 1;
+			pre_parallel_write_address <= address;
+			pre_parallel_write_address_valid <= 1;
 			#PERIOD_OF_CLOCK_NS;
-			pre_spi_write_address_valid <= 0;
-			pre_spi_write_data <= data[0];
-			pre_spi_write_data_valid <= 1;
+			pre_parallel_write_address_valid <= 0;
+			pre_parallel_write_data <= data[0];
+			pre_parallel_write_data_valid <= 1;
 			#PERIOD_OF_CLOCK_NS;
-			pre_spi_write_data_valid <= 0;
+			pre_parallel_write_data_valid <= 0;
 		end
 	endtask
 	reg [DATA_WIDTH-1:0] data [];
@@ -156,37 +156,37 @@ module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	always @(posedge clock) begin
 		#DELAY;
 		if (reset) begin
-			spi_write_address       <= 0;
-			spi_write_address_valid <= 0;
-			spi_write_data          <= 0;
-			spi_write_data_valid    <= 0;
-			spi_read_address       <= 0;
-			spi_read_address_valid <= 0;
+			parallel_write_address       <= 0;
+			parallel_write_address_valid <= 0;
+			parallel_write_data          <= 0;
+			parallel_write_data_valid    <= 0;
+			parallel_read_address       <= 0;
+			parallel_read_address_valid <= 0;
 		end else begin
-			spi_write_address       <= pre_spi_write_address;
-			spi_write_address_valid <= pre_spi_write_address_valid;
-			spi_write_data          <= pre_spi_write_data;
-			spi_write_data_valid    <= pre_spi_write_data_valid;
-			spi_read_address       <= pre_spi_read_address;
-			spi_read_address_valid <= pre_spi_read_address_valid;
+			parallel_write_address       <= pre_parallel_write_address;
+			parallel_write_address_valid <= pre_parallel_write_address_valid;
+			parallel_write_data          <= pre_parallel_write_data;
+			parallel_write_data_valid    <= pre_parallel_write_data_valid;
+			parallel_read_address       <= pre_parallel_read_address;
+			parallel_read_address_valid <= pre_parallel_read_address_valid;
 		end
 	end
 endmodule
 
-module spi_peripheral__axi4_controller #(
+module parallel_peripheral__axi4_controller #(
 	parameter ADDRESS_WIDTH = 4,
 	parameter DATA_WIDTH = 32
 ) (
-	// SPI write channel
-	input [ADDRESS_WIDTH-1:0] spi_write_address,
-	input spi_write_address_valid,
-	input [DATA_WIDTH-1:0] spi_write_data,
-	input spi_write_data_valid,
-	// SPI read channel
-	input [ADDRESS_WIDTH-1:0] spi_read_address,
-	input spi_read_address_valid,
-	output reg [DATA_WIDTH-1:0] spi_read_data = 0,
-	output reg spi_read_data_valid = 0,
+	// parallel write channel
+	input [ADDRESS_WIDTH-1:0] parallel_write_address,
+	input parallel_write_address_valid,
+	input [DATA_WIDTH-1:0] parallel_write_data,
+	input parallel_write_data_valid,
+	// parallel read channel
+	input [ADDRESS_WIDTH-1:0] parallel_read_address,
+	input parallel_read_address_valid,
+	output reg [DATA_WIDTH-1:0] parallel_read_data = 0,
+	output reg parallel_read_data_valid = 0,
 	axi4.controller axi
 );
 //	assign axi.awburst = axi::INCR;
@@ -220,7 +220,7 @@ module spi_peripheral__axi4_controller #(
 			wstate <= 0;
 			rstate <= 0;
 			last_write_was_succecssful <= 0;
-			spi_read_data <= 0;
+			parallel_read_data <= 0;
 			our_rlast <= 0;
 			cw_state <= axi::IDLE;
 			cr_state <= axi::IDLE;
@@ -232,8 +232,8 @@ module spi_peripheral__axi4_controller #(
 						axi.wvalid <= 0;
 						axi.wlast <= 0;
 						axi.bready <= 0;
-						if (spi_write_address_valid) begin
-							axi.awaddr <= spi_write_address;
+						if (parallel_write_address_valid) begin
+							axi.awaddr <= parallel_write_address;
 							axi.awvalid <= 1;
 							axi.wlast <= 1;
 							if (axi.awready) begin
@@ -250,8 +250,8 @@ module spi_peripheral__axi4_controller #(
 						axi.bready <= 0;
 						if (axi.awready) begin
 							axi.awvalid <= 0;
-							if (spi_write_data_valid) begin // maybe this should be outside the awready test?
-								axi.wdata <= spi_write_data;
+							if (parallel_write_data_valid) begin // maybe this should be outside the awready test?
+								axi.wdata <= parallel_write_data;
 								axi.wvalid <= 1;
 								axi.wlast <= 1;
 							end
@@ -260,8 +260,8 @@ module spi_peripheral__axi4_controller #(
 					end
 				axi::WAITING_FOR_WREADY: begin
 						axi.awvalid <= 0;
-						if (spi_write_data_valid) begin
-							axi.wdata <= spi_write_data;
+						if (parallel_write_data_valid) begin
+							axi.wdata <= parallel_write_data;
 							axi.wvalid <= 1'b1;
 						end
 						axi.wlast <= 1;
@@ -294,9 +294,9 @@ module spi_peripheral__axi4_controller #(
 						axi.arvalid <= 0;
 						axi.rready <= 0;
 						our_rlast <= 0;
-						spi_read_data_valid <= 0;
-						if (spi_read_address_valid) begin
-							axi.araddr <= spi_read_address;
+						parallel_read_data_valid <= 0;
+						if (parallel_read_address_valid) begin
+							axi.araddr <= parallel_read_address;
 							axi.arvalid <= 1;
 							cr_state <= axi::WAITING_FOR_ARREADY;
 						end
@@ -305,7 +305,7 @@ module spi_peripheral__axi4_controller #(
 						axi.arvalid <= 1;
 						axi.rready <= 0;
 						our_rlast <= 0;
-						spi_read_data_valid <= 0;
+						parallel_read_data_valid <= 0;
 						if (axi.arready) begin
 							axi.arvalid <= 0;
 							axi.rready <= 1;
@@ -317,10 +317,10 @@ module spi_peripheral__axi4_controller #(
 						axi.arvalid <= 0;
 						axi.rready <= 1;
 						our_rlast <= 1;
-						spi_read_data_valid <= 0;
+						parallel_read_data_valid <= 0;
 						if (axi.rvalid) begin
-							spi_read_data <= axi.rdata;
-							spi_read_data_valid <= 1;
+							parallel_read_data <= axi.rdata;
+							parallel_read_data_valid <= 1;
 							axi.arvalid <= 0;
 							axi.rready <= 0;
 							our_rlast <= 0;
