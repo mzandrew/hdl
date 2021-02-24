@@ -71,6 +71,283 @@ interface axi4 #(
 	modport peripheral (input clock, reset,  input awaddr, awlen, awburst, awvalid, wdata, wlast, wvalid, bready, araddr, arlen, arburst, arvalid, rready, output awready, wready, bresp, bvalid, arready, rdata, rlast, rvalid);
 endinterface
 
+// xrun -incdir ../verilog/src/ ../verilog/src/lib/axi4.sv -access +rwc -gui -top spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb
+module spi_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
+	localparam ADDRESS_WIDTH = 4;
+	localparam DATA_WIDTH = 32;
+	localparam LEN_WIDTH = 5;
+	localparam FREQUENCY_OF_CLOCK_HZ = 10000000;
+	localparam PERIOD_OF_CLOCK_NS = 1000000000.0/FREQUENCY_OF_CLOCK_HZ; // WHOLE_PERIOD
+	localparam DELAY_BETWEEN_TRANSACTIONS = 4*PERIOD_OF_CLOCK_NS;
+	localparam DELAY_BETWEEN_WRITE_BEATS = 1*PERIOD_OF_CLOCK_NS;
+	localparam DELAY_BETWEEN_READ_BEATS = 1*PERIOD_OF_CLOCK_NS;
+	localparam LONG_DELAY = 8*PERIOD_OF_CLOCK_NS;
+	wire clock;
+	clock #(.FREQUENCY_OF_CLOCK_HZ(FREQUENCY_OF_CLOCK_HZ)) clockmod (.clock(clock));
+	reg reset = 1;
+	reg [ADDRESS_WIDTH-1:0] pre_spi_write_address = 0;
+	reg [ADDRESS_WIDTH-1:0] spi_write_address = 0;
+	reg pre_spi_write_address_valid = 0;
+	reg spi_write_address_valid = 0;
+	reg [DATA_WIDTH-1:0] pre_spi_write_data = 0;
+	reg [DATA_WIDTH-1:0] spi_write_data = 0;
+	reg [ADDRESS_WIDTH-1:0] pre_spi_read_address = 0;
+	reg [ADDRESS_WIDTH-1:0] spi_read_address = 0;
+	reg pre_spi_read_address_valid = 0;
+	reg spi_read_address_valid = 0;
+	wire [DATA_WIDTH-1:0] spi_read_data;
+	axi4 axi(clock, reset);
+	reg pre_spi_write_data_valid = 0;
+	reg spi_write_data_valid = 0;
+	wire spi_read_data_valid;
+	spi_peripheral__axi4_controller  #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH)) spac (.*);
+	pollable_memory__axi4_peripheral #(.ADDRESS_WIDTH(ADDRESS_WIDTH), .DATA_WIDTH(DATA_WIDTH), .LEN_WIDTH(LEN_WIDTH)) pmap (.*);
+	wire awbeat = axi.awready & axi.awvalid;
+	wire arbeat = axi.arready & axi.arvalid;
+	wire  wbeat =  axi.wready &  axi.wvalid;
+	wire  rbeat =  axi.rready &  axi.rvalid;
+	wire  bbeat =  axi.bready &  axi.bvalid;
+	always @(posedge awbeat) begin $display("%t, awbeat %08x", $time, spi_write_address); end
+	always @(posedge arbeat) begin $display("%t, arbeat %08x", $time, spi_read_address); end
+	always @(posedge  wbeat) begin $display("%t,  wbeat %08x", $time, axi.wdata); end
+	always @(posedge  rbeat) begin $display("%t,  rbeat %08x", $time, axi.rdata); end
+	always @(posedge  bbeat) begin $display("%t,  bbeat", $time); end
+	task automatic controller_read_transaction(input [ADDRESS_WIDTH-1:0] address);
+		reg [ADDRESS_WIDTH:0] i;
+		begin
+			#DELAY_BETWEEN_TRANSACTIONS;
+			pre_spi_read_address <= address;
+			pre_spi_read_address_valid <= 1;
+			#PERIOD_OF_CLOCK_NS;
+			pre_spi_read_address_valid <= 0;
+		end
+	endtask
+	task automatic controller_write_transaction(input [ADDRESS_WIDTH-1:0] address, input [DATA_WIDTH-1:0] data []);
+		reg [ADDRESS_WIDTH:0] i;
+		begin
+			#DELAY_BETWEEN_TRANSACTIONS;
+			pre_spi_write_address <= address;
+			pre_spi_write_address_valid <= 1;
+			#PERIOD_OF_CLOCK_NS;
+			pre_spi_write_address_valid <= 0;
+			pre_spi_write_data <= data[0];
+			pre_spi_write_data_valid <= 1;
+			#PERIOD_OF_CLOCK_NS;
+			pre_spi_write_data_valid <= 0;
+		end
+	endtask
+	reg [DATA_WIDTH-1:0] data [];
+	reg [31:0] i = 0;
+	initial begin
+		#DELAY_BETWEEN_TRANSACTIONS; reset <= 0;
+		data = new[1];
+		data[0] = 32'd0; controller_write_transaction(4'h0, data); controller_read_transaction(4'h0);
+		data[0] = 32'd1; controller_write_transaction(4'h1, data); controller_read_transaction(4'h1);
+		data[0] = 32'd2; controller_write_transaction(4'h2, data); controller_read_transaction(4'h2);
+		data[0] = 32'd3; controller_write_transaction(4'h3, data); controller_read_transaction(4'h3);
+		#LONG_DELAY;
+		data[0] = 32'd8; controller_write_transaction(4'h7, data); controller_read_transaction(4'h7);
+		data[0] = 32'd7; controller_write_transaction(4'h6, data); controller_read_transaction(4'h6);
+		data[0] = 32'd6; controller_write_transaction(4'h5, data); controller_read_transaction(4'h5);
+		data[0] = 32'd5; controller_write_transaction(4'h4, data); controller_read_transaction(4'h4);
+		#LONG_DELAY; $finish;
+	end
+	localparam DELAY = 0;
+	always @(posedge clock) begin
+		#DELAY;
+		if (reset) begin
+			spi_write_address       <= 0;
+			spi_write_address_valid <= 0;
+			spi_write_data          <= 0;
+			spi_write_data_valid    <= 0;
+			spi_read_address       <= 0;
+			spi_read_address_valid <= 0;
+		end else begin
+			spi_write_address       <= pre_spi_write_address;
+			spi_write_address_valid <= pre_spi_write_address_valid;
+			spi_write_data          <= pre_spi_write_data;
+			spi_write_data_valid    <= pre_spi_write_data_valid;
+			spi_read_address       <= pre_spi_read_address;
+			spi_read_address_valid <= pre_spi_read_address_valid;
+		end
+	end
+endmodule
+
+module spi_peripheral__axi4_controller #(
+	parameter ADDRESS_WIDTH = 4,
+	parameter DATA_WIDTH = 32
+) (
+	// SPI write channel
+	input [ADDRESS_WIDTH-1:0] spi_write_address,
+	input spi_write_address_valid,
+	input [DATA_WIDTH-1:0] spi_write_data,
+	input spi_write_data_valid,
+	// SPI read channel
+	input [ADDRESS_WIDTH-1:0] spi_read_address,
+	input spi_read_address_valid,
+	output reg [DATA_WIDTH-1:0] spi_read_data = 0,
+	output reg spi_read_data_valid = 0,
+	axi4.controller axi
+);
+//	assign axi.awburst = axi::INCR;
+	assign axi.awburst = axi::FIXED;
+//	assign axi.awburst = axi::WRAP; // should fail
+//	assign axi.arburst = axi::INCR;
+	assign axi.arburst = axi::FIXED;
+//	assign axi.arburst = 3'b101; // should fail
+	assign axi.awlen = 0;
+	assign axi.arlen = 0;
+	reg [1:0] rstate = 0;
+	reg [2:0] wstate = 0;
+	reg last_write_was_succecssful = 0;
+	reg our_rlast = 0; // our own personal copy
+	axi::state_t cw_state;
+	axi::state_t cr_state;
+	reg [31:0] error_count = 0;
+	localparam DELAY = 0;
+	always @(posedge axi.clock) begin
+		#DELAY;
+		if (axi.reset) begin
+			axi.awaddr  <= 0;
+			axi.awvalid <= 0;
+			axi.wdata   <= 0;
+			axi.wvalid  <= 0;
+			axi.araddr  <= 0;
+			axi.arvalid <= 0;
+			axi.wlast   <= 0;
+			axi.bready  <= 0;
+			axi.rready  <= 0;
+			wstate <= 0;
+			rstate <= 0;
+			last_write_was_succecssful <= 0;
+			spi_read_data <= 0;
+			our_rlast <= 0;
+			cw_state <= axi::IDLE;
+			cr_state <= axi::IDLE;
+		end else begin
+			// write
+			case (cw_state)
+				axi::IDLE: begin
+						axi.awvalid <= 0;
+						axi.wvalid <= 0;
+						axi.wlast <= 0;
+						axi.bready <= 0;
+						if (spi_write_address_valid) begin
+							axi.awaddr <= spi_write_address;
+							axi.awvalid <= 1;
+							axi.wlast <= 1;
+							if (axi.awready) begin
+								cw_state <= axi::WAITING_FOR_WREADY;
+							end else begin
+								cw_state <= axi::WAITING_FOR_AWREADY;
+							end
+						end
+					end
+				axi::WAITING_FOR_AWREADY: begin
+						axi.awvalid <= 1;
+						axi.wvalid <= 0;
+						axi.wlast <= 0;
+						axi.bready <= 0;
+						if (axi.awready) begin
+							axi.awvalid <= 0;
+							if (spi_write_data_valid) begin // maybe this should be outside the awready test?
+								axi.wdata <= spi_write_data;
+								axi.wvalid <= 1;
+								axi.wlast <= 1;
+							end
+							cw_state <= axi::WAITING_FOR_WREADY;
+						end
+					end
+				axi::WAITING_FOR_WREADY: begin
+						axi.awvalid <= 0;
+						if (spi_write_data_valid) begin
+							axi.wdata <= spi_write_data;
+							axi.wvalid <= 1'b1;
+						end
+						axi.wlast <= 1;
+						axi.bready <= 0;
+						if (axi.wready) begin
+							axi.wvalid <= 0;
+							axi.wlast <= 0;
+							axi.bready <= 1;
+							cw_state <= axi::WAITING_FOR_BVALID;
+						end
+					end
+				axi::WAITING_FOR_BVALID: begin
+						axi.awvalid <= 0;
+						axi.wvalid <= 0;
+						axi.wlast <= 0;
+						axi.bready <= 1;
+						if (axi.bvalid) begin
+							axi.bready <= 0;
+							cw_state <= axi::IDLE;
+						end
+					end
+				default: begin
+						error_count <= error_count + 1'b1;
+						cw_state <= axi::IDLE;
+				end
+			endcase
+			// read
+			case (cr_state)
+				axi::IDLE: begin
+						axi.arvalid <= 0;
+						axi.rready <= 0;
+						our_rlast <= 0;
+						spi_read_data_valid <= 0;
+						if (spi_read_address_valid) begin
+							axi.araddr <= spi_read_address;
+							axi.arvalid <= 1;
+							cr_state <= axi::WAITING_FOR_ARREADY;
+						end
+					end
+				axi::WAITING_FOR_ARREADY: begin
+						axi.arvalid <= 1;
+						axi.rready <= 0;
+						our_rlast <= 0;
+						spi_read_data_valid <= 0;
+						if (axi.arready) begin
+							axi.arvalid <= 0;
+							axi.rready <= 1;
+							our_rlast <= 1;
+							cr_state <= axi::WAITING_FOR_RVALID;
+						end
+					end
+				axi::WAITING_FOR_RVALID: begin
+						axi.arvalid <= 0;
+						axi.rready <= 1;
+						our_rlast <= 1;
+						spi_read_data_valid <= 0;
+						if (axi.rvalid) begin
+							spi_read_data <= axi.rdata;
+							spi_read_data_valid <= 1;
+							axi.arvalid <= 0;
+							axi.rready <= 0;
+							our_rlast <= 0;
+							cr_state <= axi::IDLE;
+//							end
+						end
+					end
+				default: begin
+						error_count <= error_count + 1'b1;
+						cr_state <= axi::IDLE;
+				end
+			endcase
+		end
+	end
+	initial begin
+		#0; // this is crucial for some reason
+		assert (^axi.awburst!==1'bx && axi.awburst==axi::FIXED || axi.awburst==axi::INCR) else begin
+			`error("%b (%s) is not supported as the axi::burst_t for awburst", axi.awburst, axi.awburst.name);
+		end
+		assert (^axi.arburst!==1'bx && axi.arburst==axi::FIXED || axi.arburst==axi::INCR) else begin
+			`error("%b (%s) is not supported as the axi::burst_t for arburst", axi.arburst, axi.arburst.name);
+		end
+	end
+	wire rbeat = axi.rready & axi.rvalid;
+	wire rlast_mismatch = (axi.rlast ^ our_rlast) & rbeat;
+endmodule
+
 // xrun -incdir ../verilog/src/ ../verilog/src/lib/axi4.sv -access +rwc -gui -top axi4_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb
 module axi4_peripheral_axi4_controller__pollable_memory_axi4_peripheral__tb;
 	localparam ADDRESS_WIDTH = 4;
