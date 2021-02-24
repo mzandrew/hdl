@@ -363,7 +363,7 @@ module top #(
 			.locked(pll_oserdes_locked_2));
 		assign sync_read_address = 0;
 	end else begin
-		assign pll_oserdes_locked_2 = 0;
+		assign pll_oserdes_locked_2 = 1;
 		assign sync_read_address = coax[5];
 		assign coax[4] = sync_out_stream[2]; // scope trigger
 	end
