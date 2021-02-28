@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-10-03 by mza
+# last updated 2021-02-25 by mza
 
 import time
 import time # time.sleep
@@ -568,6 +568,112 @@ def read_data_from_pollable_memory_on_half_duplex_bus(start_address, NUM):
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
 	print("")
+
+def test_writing_data_to_half_duplex_bus2():
+	MEMSIZE = 2**14
+	print("writing data in half-duplex bus mode...")
+	data = []
+	NUM = transfers_per_data_word
+	start_address = 0
+	number_of_times_to_repeat = 1
+	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	if 0: # pseudorandom start_address and length
+		start_address = random.randint(0, MEMSIZE)
+		NUM = random.randint(1, MEMSIZE - start_address)
+	else:
+		#start_address = 0x1000
+		#start_address = 1600
+		#NUM = 4500000
+		NUM = 20*MEMSIZE
+		#NUM = 6*MEMSIZE
+		#NUM = MEMSIZE
+		#NUM = MEMSIZE - start_address
+		#NUM = 8192
+		#NUM = 4096
+		#NUM = 2048
+		#NUM = 1024
+		#NUM = 300
+		#NUM = 256
+		#NUM = 64
+		#NUM = 32
+		#NUM = 16
+		#NUM = 4
+	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	MEMSIZE_partial = MEMSIZE - start_address
+	end_address = start_address + MEMSIZE_partial
+	if NUM>MEMSIZE_partial:
+		number_of_times_to_repeat = NUM//MEMSIZE_partial
+		NUM = MEMSIZE_partial
+	#print("MEMSIZE_partial: " + str(MEMSIZE_partial))
+	#print("NUM: " + str(NUM))
+	#print("number_of_times_to_repeat: " + str(number_of_times_to_repeat))
+	if 1: # pseudorandom numbers from all zeroes to all ones
+		ALL_ONES = 2**bits_word - 1
+		data = [ random.randint(0,ALL_ONES) for d in range(NUM) ]
+	elif 0: # fill in ones for only a bus_width-sized part of the word
+		part = NUM//transfers_per_data_word
+		data = []
+		ALL_ONES = 2**bus_width-1
+		for i in range(transfers_per_data_word):
+			data += [ ALL_ONES<<(i*bus_width)for d in range(part) ]
+	elif 0: # fill up only a bus_width-sized part of the word with pseudorandom data
+		part = NUM//transfers_per_data_word
+		data = []
+		ALL_ONES = 2**bus_width-1
+		for i in range(transfers_per_data_word):
+			data += [ random.randint(0,ALL_ONES)<<(i*bus_width) for d in range(part) ]
+	elif 0: # address = data
+		data = [ start_address + d for d in range(NUM) ]
+	elif 0: # address = data
+		data = [ start_address + d for d in range(MEMSIZE_partial) ]
+	else: # address = data
+		start_address = 0
+		data = [ d for d in range(MEMSIZE) ]
+	#print("running...")
+	if 0:
+		show(start_address, data)
+	count = 0
+	errors = 0
+	write_total = 0.0
+	read_total = 0.0
+	for i in range(number_of_times_to_repeat):
+		new_errors = 0
+		start = time.time()
+		# use above list and write it without verification
+		new_count = half_duplex_bus.write(start_address, data, False)
+		count += new_count
+		end = time.time()
+		diff = end - start
+		write_total += diff
+		start = time.time()
+		readback = half_duplex_bus.read(start_address, len(data))
+		end = time.time()
+		diff = end - start
+		read_total += diff
+		if len(data) != len(readback):
+			new_errors += 1
+		for j in range(len(readback)):
+			if data[j]!=readback[j]:
+				new_errors += 1
+				if 14==j:
+					print("%08x:%08x" % (data[j], readback[j]))
+		errors += new_errors
+		print("%d errors" % new_errors)
+	#data[len(data)-1] = 0x31231507
+	print_messages()
+	half_duplex_bus.close()
+	write_per_sec = count / write_total
+	read_per_sec  = count / read_total
+	print("")
+	print("%.6f"%write_total + " seconds for writing")
+	print("%.6f"%read_total + " seconds for reading")
+	write_per_sec *= bits_word
+	read_per_sec *= bits_word
+	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
+	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
+	print("%.3f"%(write_per_sec/8.0e6) + " MB per second (writing)") # 14.596 MB per second on an rpi2
+	print("%.3f"%(read_per_sec/8.0e6) + " MB per second (reading)") # 14.596 MB per second on an rpi2
+	half_duplex_bus.increment_user_errors(errors)
 
 def test_writing_data_to_half_duplex_bus():
 	MEMSIZE = 2**14
