@@ -107,9 +107,9 @@ if 0:
 if 1:
 	althea.setup_half_duplex_bus("test046")
 
-if 1:
+if 0:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
-	#values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
+	values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
 #	values = [ 0 for a in range(2**14) ]
 #	for i in range(125):
 #		values[i] = 0xffffffff
@@ -121,9 +121,20 @@ if 1:
 #	values[5] = 0x00005555
 #	values[6] = 0x55550000
 #	values[7] = 0x55005500
-	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
 	#althea.read_data_from_pollable_memory_on_half_duplex_bus(0, 2**14)
 	#althea.test_writing_data_to_half_duplex_bus()
+
+if 0:
+	#max_address_plus_one = 2**14
+	max_address_plus_one = 8
+	values = [ 0 for a in range(max_address_plus_one) ]
+	for i in range(max_address_plus_one):
+		#values[i] = 0x01234567
+		values[i] = 0x076543210
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
+
+if 1:
 	althea.test_writing_data_to_half_duplex_bus2()
 
 if 0:

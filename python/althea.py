@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2021-02-25 by mza
+# last updated 2021-02-28 by mza
 
 import time
 import time # time.sleep
@@ -47,7 +47,9 @@ althea_gpio = althea_revB_gpios()
 #bus_width = show_longest_run(rle_gpio)
 #bus_start = show_start_of_longest_run(rle_gpio)
 bus_start = 2 # *index* 2, *not* gpio2
-bus_width = 8
+#bus_width = 8
+bus_width = 16
+# NOTE: get rid of the squishiness of this section; "revA+hack", "revB", "revBL" as options to a function that setup_test046 calls with "revB" as argument, etc
 
 # ---------------------------------------------------------------------------
 
@@ -417,6 +419,7 @@ def setup_half_duplex_bus_test044():
 	global bits_bus
 	bits_bus = len(gpio_bus)
 	#print("this bus is " + str(bits_bus) + " bits wide")
+	# NOTE:  change bus_start and bus_width at top of this file to match these!!!
 	global transfers_per_data_word
 	transfers_per_data_word = 4
 	global bits_word
@@ -441,7 +444,8 @@ def setup_half_duplex_bus_test046():
 	print(str(gpio_bus))
 	global bits_bus
 	bits_bus = len(gpio_bus)
-	print("this bus is " + str(bits_bus) + " bits wide")
+	#print("this bus is " + str(bits_bus) + " bits wide")
+	# NOTE:  change bus_start and bus_width at top of this file to match these!!!
 	#sys.exit(1)
 	global transfers_per_data_word
 	transfers_per_data_word = 2

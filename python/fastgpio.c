@@ -489,7 +489,7 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	if (!success) { return -1; }
 	if (bus_width<1 || 31<bus_width) { return -1; }
 	self->bus_width = bus_width;
-	//printf("\nbus_width: %08lx", self->bus_width);
+	printf("\nbus_width: %08lx", self->bus_width);
 	if (31<bus_offset) { return -1; }
 	self->bus_offset = bus_offset;
 	//printf("\nbus_offset: %08lx", self->bus_offset);
