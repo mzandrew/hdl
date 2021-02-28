@@ -1,5 +1,5 @@
 // updated 2020-10-02 by mza
-// last updated 2021-02-03 by mza
+// last updated 2021-02-26 by mza
 `ifndef RAM8_LIB
 `define RAM8_LIB
 
@@ -284,6 +284,31 @@ module RAM_inferred_dual_port_tb;
 	end
 endmodule
 
+module RAM_inferred_dual_port_no_writes_on_port_b #(
+	parameter ADDR_WIDTH = 9,
+	parameter DATA_WIDTH = 32
+) (
+	input write_en_a, clk_a, clk_b,
+	input [ADDR_WIDTH-1:0] addr_a,
+	input [ADDR_WIDTH-1:0] addr_b,
+	input [DATA_WIDTH-1:0] din_a,
+	output reg [DATA_WIDTH-1:0] dout_a = 0,
+	output reg [DATA_WIDTH-1:0] dout_b = 0
+);
+	reg [DATA_WIDTH-1:0] mem [(1<<ADDR_WIDTH)-1:0];
+	always @(posedge clk_a) begin
+		if (write_en_a) begin
+			mem[addr_a] <= din_a;
+		end
+	end
+	always @(posedge clk_a) begin
+		dout_a <= mem[addr_a];
+	end
+	always @(posedge clk_b) begin
+		dout_b <= mem[addr_b];
+	end
+endmodule
+
 module RAM_inferred_dual_port_gearbox #(
 	parameter ADDR_WIDTH_A = 9,
 	parameter DATA_WIDTH_A = 32,
@@ -300,26 +325,34 @@ module RAM_inferred_dual_port_gearbox #(
 	output [DATA_WIDTH_B-1:0] dout_b
 );
 	wire [DATA_WIDTH_A-1:0] dout_b_full;
-	RAM_inferred_dual_port #(
+	RAM_inferred_dual_port_no_writes_on_port_b #(
 		.ADDR_WIDTH(ADDR_WIDTH_A),
 		.DATA_WIDTH(DATA_WIDTH_A)
 	) myram (
 		.write_en_a(write_en_a),
-		.write_en_b(1'b0),
+//		.write_en_b(1'b0),
 		.clk_a(clk_a),
 		.clk_b(clk_b),
 		.addr_a(addr_a),
 		.addr_b(addr_b[ADDR_WIDTH_B-1:LOG2_OF_GEARBOX_RATIO]),
 		.din_a(din_a),
-		.din_b({DATA_WIDTH_A{1'b0}}),
+//		.din_b({DATA_WIDTH_A{1'b0}}),
 		.dout_a(dout_a),
 		.dout_b(dout_b_full)
 	);
-	mux_4to1 #(.WIDTH(DATA_WIDTH_B)) gearbox (
-		.sel(addr_b[LOG2_OF_GEARBOX_RATIO-1:0]),
-		.in0(dout_b_full[31:24]), .in1(dout_b_full[23:16]), .in2(dout_b_full[15:8]), .in3(dout_b_full[7:0]),
-		.out(dout_b)
-	);
+	if (GEARBOX_RATIO==4) begin
+		mux_4to1 #(.WIDTH(DATA_WIDTH_B)) gearbox (
+			.sel(addr_b[LOG2_OF_GEARBOX_RATIO-1:0]),
+			.in0(dout_b_full[31:24]), .in1(dout_b_full[23:16]), .in2(dout_b_full[15:8]), .in3(dout_b_full[7:0]),
+			.out(dout_b)
+		);
+	end else begin
+		mux_2to1 #(.WIDTH(DATA_WIDTH_B)) gearbox (
+			.sel(addr_b[LOG2_OF_GEARBOX_RATIO-1:0]),
+			.in0(dout_b_full[15:8]), .in1(dout_b_full[7:0]),
+			.out(dout_b)
+		);
+	end
 endmodule
 
 module RAM_inferred_dual_port_gearbox_tb;
@@ -782,6 +815,77 @@ module RAM_s6_512_32bit #(
 	);
 endmodule
 
+//	RAM_s6_16k_32bit_8bit mem (.reset(),
+//		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
+//		.clock_b(), .address_b(), .data_out_b());
+module RAM_s6_16k_32bit_8bit (
+	input reset,
+	input clock_a,
+	input [13:0] address_a,
+	input [31:0] data_in_a,
+	input write_enable_a,
+	output [31:0] data_out_a,
+	input clock_b,
+	input [15:0] address_b,
+	output [7:0] data_out_b
+);
+	wire [31:0] data_out_a_array [31:0];
+	wire [7:0] data_out_b_array [31:0];
+	wire [31:0] write_enable_a_array;
+	genvar i;
+	for (i=0; i<32; i=i+1) begin : mem_array
+		RAM_s6_512_32bit_8bit mem (.reset(reset),
+			.clock_a(clock_a), .address_a(address_a[8:0]), .data_in_a(data_in_a), .write_enable_a(write_enable_a_array[i]), .data_out_a(data_out_a_array[i]),
+			.clock_b(clock_b), .address_b(address_b[10:0]), .data_out_b(data_out_b_array[i]));
+	end
+	reg [4:0] buffered_sel_a_0 = 0;
+	reg [4:0] buffered_sel_b_0 = 0;
+	wire [31:0] buffered_data_out_a_0;
+	wire [7:0] buffered_data_out_b_0;
+	reg [31:0] buffered_data_out_a_1 = 0;
+	reg [7:0] buffered_data_out_b_1 = 0;
+	always @(posedge clock_a) begin
+		buffered_sel_a_0 <= address_a[13:9];
+		buffered_data_out_a_1 <= buffered_data_out_a_0;
+	end
+	always @(posedge clock_b) begin
+		buffered_sel_b_0 <= address_b[15:11];
+		buffered_data_out_b_1 <= buffered_data_out_b_0;
+	end
+	assign data_out_a = buffered_data_out_a_1;
+	assign data_out_b = buffered_data_out_b_1;
+	mux_32to1 #(.WIDTH(32)) db_a (
+		.in00(data_out_a_array[00]), .in01(data_out_a_array[01]), .in02(data_out_a_array[02]), .in03(data_out_a_array[03]),
+		.in04(data_out_a_array[04]), .in05(data_out_a_array[05]), .in06(data_out_a_array[06]), .in07(data_out_a_array[07]),
+		.in08(data_out_a_array[08]), .in09(data_out_a_array[09]), .in10(data_out_a_array[10]), .in11(data_out_a_array[11]),
+		.in12(data_out_a_array[12]), .in13(data_out_a_array[13]), .in14(data_out_a_array[14]), .in15(data_out_a_array[15]),
+		.in16(data_out_a_array[16]), .in17(data_out_a_array[17]), .in18(data_out_a_array[18]), .in19(data_out_a_array[19]),
+		.in20(data_out_a_array[20]), .in21(data_out_a_array[21]), .in22(data_out_a_array[22]), .in23(data_out_a_array[23]),
+		.in24(data_out_a_array[24]), .in25(data_out_a_array[25]), .in26(data_out_a_array[26]), .in27(data_out_a_array[27]),
+		.in28(data_out_a_array[28]), .in29(data_out_a_array[29]), .in30(data_out_a_array[30]), .in31(data_out_a_array[31]),
+		.sel(buffered_sel_a_0), .out(buffered_data_out_a_0));
+	mux_32to1 #(.WIDTH(8)) db_b (
+		.in00(data_out_b_array[00]), .in01(data_out_b_array[01]), .in02(data_out_b_array[02]), .in03(data_out_b_array[03]),
+		.in04(data_out_b_array[04]), .in05(data_out_b_array[05]), .in06(data_out_b_array[06]), .in07(data_out_b_array[07]),
+		.in08(data_out_b_array[08]), .in09(data_out_b_array[09]), .in10(data_out_b_array[10]), .in11(data_out_b_array[11]),
+		.in12(data_out_b_array[12]), .in13(data_out_b_array[13]), .in14(data_out_b_array[14]), .in15(data_out_b_array[15]),
+		.in16(data_out_b_array[16]), .in17(data_out_b_array[17]), .in18(data_out_b_array[18]), .in19(data_out_b_array[19]),
+		.in20(data_out_b_array[20]), .in21(data_out_b_array[21]), .in22(data_out_b_array[22]), .in23(data_out_b_array[23]),
+		.in24(data_out_b_array[24]), .in25(data_out_b_array[25]), .in26(data_out_b_array[26]), .in27(data_out_b_array[27]),
+		.in28(data_out_b_array[28]), .in29(data_out_b_array[29]), .in30(data_out_b_array[30]), .in31(data_out_b_array[31]),
+		.sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
+	demux_1to32 we (
+		.out00(write_enable_a_array[00]), .out01(write_enable_a_array[01]), .out02(write_enable_a_array[02]), .out03(write_enable_a_array[03]),
+		.out04(write_enable_a_array[04]), .out05(write_enable_a_array[05]), .out06(write_enable_a_array[06]), .out07(write_enable_a_array[07]),
+		.out08(write_enable_a_array[08]), .out09(write_enable_a_array[09]), .out10(write_enable_a_array[10]), .out11(write_enable_a_array[11]),
+		.out12(write_enable_a_array[12]), .out13(write_enable_a_array[13]), .out14(write_enable_a_array[14]), .out15(write_enable_a_array[15]),
+		.out16(write_enable_a_array[16]), .out17(write_enable_a_array[17]), .out18(write_enable_a_array[18]), .out19(write_enable_a_array[19]),
+		.out20(write_enable_a_array[20]), .out21(write_enable_a_array[21]), .out22(write_enable_a_array[22]), .out23(write_enable_a_array[23]),
+		.out24(write_enable_a_array[24]), .out25(write_enable_a_array[25]), .out26(write_enable_a_array[26]), .out27(write_enable_a_array[27]),
+		.out28(write_enable_a_array[28]), .out29(write_enable_a_array[29]), .out30(write_enable_a_array[30]), .out31(write_enable_a_array[31]),
+		.in(write_enable_a), .sel(address_a[13:9]));
+endmodule
+
 //	RAM_s6_4k_32bit_8bit mem (.reset(),
 //		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
 //		.clock_b(), .address_b(), .data_out_b());
@@ -832,6 +936,59 @@ module RAM_s6_4k_32bit_8bit (
 		.sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
 	demux_1to8 we (
 		.in(write_enable_a), .sel(address_a[11:9]),
+		.out0(write_enable_a_array[0]), .out1(write_enable_a_array[1]), .out2(write_enable_a_array[2]), .out3(write_enable_a_array[3]),
+		.out4(write_enable_a_array[4]), .out5(write_enable_a_array[5]), .out6(write_enable_a_array[6]), .out7(write_enable_a_array[7]));
+endmodule
+
+//	RAM_s6_8k_16bit_8bit mem (.reset(),
+//		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
+//		.clock_b(), .address_b(), .data_out_b());
+module RAM_s6_8k_16bit_8bit (
+	input reset,
+	input clock_a,
+	input [12:0] address_a,
+	input [15:0] data_in_a,
+	input write_enable_a,
+	output [15:0] data_out_a,
+	input clock_b,
+	input [13:0] address_b,
+	output [7:0] data_out_b
+);
+	wire [15:0] data_out_a_array [7:0];
+	wire [7:0] data_out_b_array [7:0];
+	wire [7:0] write_enable_a_array;
+	genvar i;
+	for (i=0; i<8; i=i+1) begin : mem_array
+		RAM_s6_1k_16bit_8bit mem (.reset(reset),
+			.clock_a(clock_a), .address_a(address_a[9:0]), .data_in_a(data_in_a), .write_enable_a(write_enable_a_array[i]), .data_out_a(data_out_a_array[i]),
+			.clock_b(clock_b), .address_b(address_b[10:0]), .data_out_b(data_out_b_array[i]));
+	end
+	reg [2:0] buffered_sel_a_0 = 0;
+	reg [2:0] buffered_sel_b_0 = 0;
+	wire [15:0] buffered_data_out_a_0;
+	wire [7:0] buffered_data_out_b_0;
+	reg [15:0] buffered_data_out_a_1 = 0;
+	reg [7:0] buffered_data_out_b_1 = 0;
+	always @(posedge clock_a) begin
+		buffered_sel_a_0 <= address_a[11:9];
+		buffered_data_out_a_1 <= buffered_data_out_a_0;
+	end
+	always @(posedge clock_b) begin
+		buffered_sel_b_0 <= address_b[13:11];
+		buffered_data_out_b_1 <= buffered_data_out_b_0;
+	end
+	assign data_out_a = buffered_data_out_a_1;
+	assign data_out_b = buffered_data_out_b_1;
+	mux_8to1 #(.WIDTH(16)) db_a (
+		.in0(data_out_a_array[0]), .in1(data_out_a_array[1]), .in2(data_out_a_array[2]), .in3(data_out_a_array[3]),
+		.in4(data_out_a_array[4]), .in5(data_out_a_array[5]), .in6(data_out_a_array[6]), .in7(data_out_a_array[7]),
+		.sel(buffered_sel_a_0), .out(buffered_data_out_a_0));
+	mux_8to1 #(.WIDTH(8)) db_b (
+		.in0(data_out_b_array[0]), .in1(data_out_b_array[1]), .in2(data_out_b_array[2]), .in3(data_out_b_array[3]),
+		.in4(data_out_b_array[4]), .in5(data_out_b_array[5]), .in6(data_out_b_array[6]), .in7(data_out_b_array[7]),
+		.sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
+	demux_1to8 we (
+		.in(write_enable_a), .sel(address_a[12:10]),
 		.out0(write_enable_a_array[0]), .out1(write_enable_a_array[1]), .out2(write_enable_a_array[2]), .out3(write_enable_a_array[3]),
 		.out4(write_enable_a_array[4]), .out5(write_enable_a_array[5]), .out6(write_enable_a_array[6]), .out7(write_enable_a_array[7]));
 endmodule
@@ -908,6 +1065,96 @@ module RAM_s6_512_32bit_8bit #(
 		.WEA(write_enable_4), // 4-bit input: Port A byte-wide write enable input
 		// Port A Data: 32-bit (each) input: Port A data
 		.DIA(data_in_a), // 32-bit input: A port data input
+		.DIPA(4'h0), // 4-bit input: A port parity input
+		// Port B Address/Control Signals: 14-bit (each) input: Port B address and control signals
+		.ADDRB(address_b_14), // 14-bit input: B port address input
+		.CLKB(clock_b), // 1-bit input: B port clock input
+		.ENB(1'b1), // 1-bit input: B port enable input
+		.REGCEB(1'b0), // 1-bit input: B port register clock enable input
+		.RSTB(1'b0), // 1-bit input: B port register set/reset input
+		.WEB(4'h0), // 4-bit input: Port B byte-wide write enable input
+		// Port B Data: 32-bit (each) input: Port B data
+		.DIB(32'd0), // 32-bit input: B port data input
+		.DIPB(4'h0) // 4-bit input: B port parity input
+	);
+endmodule
+
+//RAM_s6_1k_16bit_8bit mem (.reset(),
+//	.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
+//	.clock_b(), .address_b(), .data_out_b());
+// RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
+module RAM_s6_1k_16bit_8bit #(
+	parameter INIT_FILENAME = "NONE"
+) (
+	input reset,
+	input clock_a,
+	input [9:0] address_a,
+	input [15:0] data_in_a,
+	input write_enable_a,
+	output [15:0] data_out_a,
+	input clock_b,
+	input [10:0] address_b,
+	output [7:0] data_out_b
+);
+	wire [13:0] address_a_14;
+	assign address_a_14 = { address_a, 4'b0000 };
+	wire [13:0] address_b_14;
+	assign address_b_14 = { address_b, 3'b000 };
+	wire [3:0] write_enable_4;
+	assign write_enable_4 = { write_enable_a, write_enable_a, write_enable_a, write_enable_a };
+	wire [31:0] data_in_a_32;
+	assign data_in_a_32 = { 16'd0, data_in_a };
+	wire [31:0] data_out_a_32;
+	assign data_out_a = data_out_a_32[15:0];
+	wire [31:0] data_out_b_32;
+	assign data_out_b = data_out_b_32[7:0];
+	RAMB16BWER #(
+		// DATA_WIDTH_A/DATA_WIDTH_B: 0, 1, 2, 4, 9, 18, or 36
+		.DATA_WIDTH_A(18),
+		.DATA_WIDTH_B(9),
+		// DOA_REG/DOB_REG: Optional output register (0 or 1)
+		.DOA_REG(0),
+		.DOB_REG(0),
+		// EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+		.EN_RSTRAM_A("TRUE"),
+		.EN_RSTRAM_B("TRUE"),
+		// INIT_A/INIT_B: Initial values on output port
+//		.INIT_A(36’h000000000),
+//		.INIT_B(36’h000000000),
+		// INIT_FILE: Optional file used to specify initial RAM contents
+		//.INIT_FILE("NONE"),
+		.INIT_FILE(INIT_FILENAME),
+		// RSTTYPE: "SYNC" or "ASYNC"
+		.RSTTYPE("SYNC"),
+		// RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR"
+		.RST_PRIORITY_A("CE"),
+		.RST_PRIORITY_B("CE"),
+		// SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE"
+		.SIM_COLLISION_CHECK("ALL"),
+		// SIM_DEVICE: Must be set to "SPARTAN6" for proper simulation behavior
+		.SIM_DEVICE("SPARTAN6"),
+		// SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+//		.SRVAL_A(36’h000000000),
+//		.SRVAL_B(36’h000000000),
+		// WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE"
+		.WRITE_MODE_A("WRITE_FIRST"),
+		.WRITE_MODE_B("WRITE_FIRST")
+	) RAMB16BWER_inst (
+		// Port A Data: 32-bit (each) output: Port A data
+		.DOA(data_out_a_32), // 32-bit output: A port data output
+		.DOPA(), // 4-bit output: A port parity output
+		// Port B Data: 32-bit (each) output: Port B data
+		.DOB(data_out_b_32), // 32-bit output: B port data output
+		.DOPB(), // 4-bit output: B port parity output
+		// Port A Address/Control Signals: 14-bit (each) input: Port A address and control signals
+		.ADDRA(address_a_14), // 14-bit input: A port address input
+		.CLKA(clock_a), // 1-bit input: A port clock input
+		.ENA(1'b1), // 1-bit input: A port enable input
+		.REGCEA(1'b0), // 1-bit input: A port register clock enable input
+		.RSTA(reset), // 1-bit input: A port register set/reset input
+		.WEA(write_enable_4), // 4-bit input: Port A byte-wide write enable input
+		// Port A Data: 32-bit (each) input: Port A data
+		.DIA(data_in_a_32), // 32-bit input: A port data input
 		.DIPA(4'h0), // 4-bit input: A port parity input
 		// Port B Address/Control Signals: 14-bit (each) input: Port B address and control signals
 		.ADDRB(address_b_14), // 14-bit input: B port address input
