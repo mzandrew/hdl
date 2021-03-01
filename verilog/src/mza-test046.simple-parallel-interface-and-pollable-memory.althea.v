@@ -70,11 +70,9 @@ module top #(
 	localparam GAP = 0;
 	localparam OTHER_PICKOFF                    = 2;
 	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + GAP;
-	localparam ACK_VALID_PIPELINE_PICKOFF       = OTHER_PICKOFF;
 	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
 	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
 	localparam BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF;
-	reg [ACK_VALID_PIPELINE_PICKOFF:0] ack_valid_pipeline = 0;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
 	reg [READ_PIPELINE_PICKOFF:0] read_pipeline = 0;
 	reg [ENABLE_PIPELINE_PICKOFF:0] enable_pipeline = 0;
@@ -300,7 +298,6 @@ module top #(
 					end
 				end
 			end
-			ack_valid_pipeline       <= {             ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF-1:0], pre_ack_valid };
 			register_select_pipeline <= { register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF-1:0], register_select };
 			read_pipeline            <= {                       read_pipeline[READ_PIPELINE_PICKOFF-1:0], read };
 			enable_pipeline          <= {                   enable_pipeline[ENABLE_PIPELINE_PICKOFF-1:0], enable };
@@ -316,7 +313,7 @@ module top #(
 			end
 		end
 	end
-	assign ack_valid = ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF];
+	assign ack_valid = pre_ack_valid;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are peripheral
 	// ----------------------------------------------------------------------
 	wire word_clock;
