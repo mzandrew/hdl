@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-02-26 by mza
+// last updated 2021-02-28 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -53,11 +53,16 @@ module top #(
 );
 	genvar i;
 	for (i=0; i<4; i=i+1) begin : diff_pair_array
-		assign diff_pair_left[i] = 0;
-		assign diff_pair_right[i] = 0;
+		assign diff_pair_left[i]  = 0; // b_n, b_p, e_n, e_p
+//		assign diff_pair_right[i] = 0; // h_n, h_p, k_n, k_p
 	end
-	assign diff_pair_left[11:4] = bus[15:8];
-	assign diff_pair_right[11:4] = bus[7:0];
+	reg pre_ack_valid = 0;
+	assign diff_pair_right[3] = pre_ack_valid;   // h_n
+	assign diff_pair_right[2] = enable;          // h_p
+	assign diff_pair_right[1] = register_select; // k_n
+	assign diff_pair_right[0] = read;            // k_p
+	assign diff_pair_left[11:4] = bus[15:8]; // a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p
+	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
 	for (i=0; i<6; i=i+1) begin : single_ended_array
 		assign single_ended_left[i] = 0;
 		assign single_ended_right[i] = 0;
@@ -117,7 +122,6 @@ module top #(
 	reg [31:0] write_errors = 0;
 	reg [31:0] address_errors = 0;
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
-	reg pre_ack_valid = 0;
 	localparam COUNTER50_BIT_PICKOFF = 4;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
 	always @(posedge clock50) begin
@@ -295,7 +299,7 @@ module top #(
 					end
 				end
 			end
-			ack_valid_pipeline <= { ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF-1:0], pre_ack_valid };
+			ack_valid_pipeline       <= {             ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF-1:0], pre_ack_valid };
 			register_select_pipeline <= { register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF-1:0], register_select };
 			read_pipeline            <= {                       read_pipeline[READ_PIPELINE_PICKOFF-1:0], read };
 			enable_pipeline          <= {                   enable_pipeline[ENABLE_PIPELINE_PICKOFF-1:0], enable };
@@ -313,7 +317,6 @@ module top #(
 	end
 	assign ack_valid = ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF];
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are peripheral
-//	assign bus = {BUS_WIDTH{1'bz}};
 	// ----------------------------------------------------------------------
 	wire word_clock;
 	wire [BUS_WIDTH_OSERDES-1:0] oserdes_word;
@@ -791,7 +794,7 @@ module myalthea (
 			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
 		}),
 		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
-		.diff_pair_right({ m_p, m_n, l_p, l_n, j_p, j_n, g_p, g_n, k_p, k_n, h_p, h_n }),
+		.diff_pair_right({ g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p, h_n, h_p, k_n, k_p }),
 		.single_ended_left({ z, y, x, w, v, u }),
 		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
