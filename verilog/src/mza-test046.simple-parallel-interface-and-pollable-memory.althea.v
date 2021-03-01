@@ -67,10 +67,10 @@ module top #(
 		assign single_ended_left[i] = 0;
 		assign single_ended_right[i] = 0;
 	end
-	localparam GAP = 1;
-	localparam OTHER_PICKOFF                    = GAP;
+	localparam GAP = 0;
+	localparam OTHER_PICKOFF                    = 2;
 	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + GAP;
-	localparam ACK_VALID_PIPELINE_PICKOFF       = ENABLE_PIPELINE_PICKOFF + GAP;
+	localparam ACK_VALID_PIPELINE_PICKOFF       = OTHER_PICKOFF;
 	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
 	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
 	localparam BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF;
