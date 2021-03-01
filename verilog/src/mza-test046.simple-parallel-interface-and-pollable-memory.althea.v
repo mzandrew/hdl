@@ -57,19 +57,20 @@ module top #(
 //		assign diff_pair_right[i] = 0; // h_n, h_p, k_n, k_p
 	end
 	reg pre_ack_valid = 0;
+	assign diff_pair_right[0] = read;            // k_p
+	assign diff_pair_right[1] = register_select; // k_n
 	assign diff_pair_right[3] = pre_ack_valid;   // h_n
 	assign diff_pair_right[2] = enable;          // h_p
-	assign diff_pair_right[1] = register_select; // k_n
-	assign diff_pair_right[0] = read;            // k_p
 	assign diff_pair_left[11:4] = bus[15:8]; // a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p
 	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
 	for (i=0; i<6; i=i+1) begin : single_ended_array
 		assign single_ended_left[i] = 0;
 		assign single_ended_right[i] = 0;
 	end
-	localparam OTHER_PICKOFF                    = 10;
-	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + 10;
-	localparam ACK_VALID_PIPELINE_PICKOFF       = ENABLE_PIPELINE_PICKOFF + 10;
+	localparam GAP = 1;
+	localparam OTHER_PICKOFF                    = GAP;
+	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + GAP;
+	localparam ACK_VALID_PIPELINE_PICKOFF       = ENABLE_PIPELINE_PICKOFF + GAP;
 	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
 	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
 	localparam BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF;
