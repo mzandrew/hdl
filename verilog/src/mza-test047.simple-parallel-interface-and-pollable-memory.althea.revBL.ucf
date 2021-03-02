@@ -1,13 +1,13 @@
 # written 2020-10-05 by mza
 # based off of mza-test046.simple-parallel-interface-and-pollable-memory.althea.ucf
 # for an althea revBL
-# last updated 2020-10-05 by mza
+# last updated 2021-03-01 by mza
 
-# 50 MHz local oscillator:
-net clock50_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK50+
-net clock50_n loc=p126 | iostandard=lvds_33 | diff_term=true; # CLOCK50-
-net "clock50_p" tnm_net = tnm_clock50_p;
-timespec "ts_clock50_p" = period "tnm_clock50_p" 20.0 ns high 50%; # 50 MHz
+# 100 MHz local oscillator:
+net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
+net clock100_n loc=p126 | iostandard=lvds_33 | diff_term=true; # CLOCK100-
+net "clock100_p" tnm_net = tnm_clock100_p;
+timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
 
 #net "_p" tnm_net = tnm_remote_clock_p;
 #timespec "ts_remote_clock_p" = period "tnm_remote_clock_p" 1.965 ns high 50%; # 508.9 MHz

@@ -1,6 +1,6 @@
 // written 2020-10-05 by mza
 // based on mza-test046.simple-parallel-interface-and-pollable-memory.althea.revB.v
-// last updated 2020-10-07 by mza
+// last updated 2021-03-01 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
@@ -32,9 +32,10 @@ module top #(
 	parameter ADDRESS_DEPTH_OSERDES = ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
+	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 4 : 10,
 	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 4 : 10
 ) (
-	input clock50_p, clock50_n,
+	input clock100_p, clock100_n,
 	input clock10,
 	input reset,
 	inout [5:0] coax,
@@ -51,23 +52,33 @@ module top #(
 	output [7:0] led
 );
 	genvar i;
-	for (i=0; i<4; i=i+1) begin : diff_pair_array
-		assign diff_pair_left[i] = 0;
-		assign diff_pair_right[i] = 0;
-	end
-	assign diff_pair_left[11:4] = bus[15:8];
-	assign diff_pair_right[11:4] = bus[7:0];
+//	for (i=0; i<4; i=i+1) begin : diff_pair_array
+//		assign diff_pair_left[i]  = 0; // b_n, b_p, e_n, e_p
+//		assign diff_pair_right[i] = 0; // h_n, h_p, k_n, k_p
+//	end
+	assign diff_pair_left[3] = 0;            // e_n
+	assign diff_pair_left[2] = 0;            // e_p
+	assign diff_pair_left[1] = 0;            // b_p
+	assign diff_pair_left[0] = write_strobe; // b_n
+	reg pre_ack_valid = 0;
+	assign diff_pair_right[0] = read;            // k_p
+	assign diff_pair_right[1] = register_select; // k_n
+	assign diff_pair_right[3] = pre_ack_valid;   // h_n
+	assign diff_pair_right[2] = enable;          // h_p
+	assign diff_pair_left[11:4] = bus[15:8]; // a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p
+	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
 	for (i=0; i<6; i=i+1) begin : single_ended_array
 		assign single_ended_left[i] = 0;
 		assign single_ended_right[i] = 0;
 	end
-	localparam OTHER_PICKOFF                    = 10;
-	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + 10;
-	localparam ACK_VALID_PIPELINE_PICKOFF       = 30;
-	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
+	localparam ANTI_META = 2;
+	localparam GAP = 1;
+	localparam EXTRA_PICKOFF = 0;
+	localparam OTHER_PICKOFF                    = ANTI_META                 + EXTRA_PICKOFF;
+	localparam ENABLE_PIPELINE_PICKOFF          =             OTHER_PICKOFF                 + GAP;
+	localparam REGISTER_SELECT_PIPELINE_PICKOFF = ANTI_META + OTHER_PICKOFF + EXTRA_PICKOFF;
 	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
 	localparam BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF;
-	reg [ACK_VALID_PIPELINE_PICKOFF:0] ack_valid_pipeline = 0;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
 	reg [READ_PIPELINE_PICKOFF:0] read_pipeline = 0;
 	reg [ENABLE_PIPELINE_PICKOFF:0] enable_pipeline = 0;
@@ -76,16 +87,16 @@ module top #(
 	// ----------------------------------------------------------------------
 	reg [3:0] reset_counter = 0; // this counts how many times the reset input gets pulsed
 	localparam RESET_PIPELINE_PICKOFF = 5;
-	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline50 = 0;
+	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline100 = 0;
 	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline125 = 0;
-	reg reset50 = 1;
-	wire clock50;
-	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
+	reg reset100 = 1;
+	wire clock100;
+	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	reg reset125 = 1;
 	wire rawclock125;
 	wire clock125;
 	wire pll_locked;
-	simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm_125 (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
+	simpledcm_CLKGEN #(.multiply(5), .divide(4), .period(10.0)) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 100->125
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
 	// ----------------------------------------------------------------------
@@ -116,34 +127,32 @@ module top #(
 	reg [31:0] write_errors = 0;
 	reg [31:0] address_errors = 0;
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
-	reg pre_ack_valid = 0;
-	localparam COUNTER50_BIT_PICKOFF = 4;
-	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
-	always @(posedge clock50) begin
-		if (reset_pipeline50[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
-			reset_counter <= reset_counter + 1'b1;
-		end else if (reset_pipeline50[RESET_PIPELINE_PICKOFF]) begin
-			counter50 <= 0;
-			reset50 <= 1;
-		end else if (reset50) begin
-			if (counter50[COUNTER50_BIT_PICKOFF]) begin
-				reset50 <= 0;
+	reg [COUNTER100_BIT_PICKOFF:0] counter100 = 0;
+	always @(posedge clock100) begin
+		if (reset_pipeline100[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
+			reset_counter <= reset_counter + 1'b1; // this counts how many times the reset input gets pulsed
+		end else if (reset_pipeline100[RESET_PIPELINE_PICKOFF]) begin
+			counter100 <= 0;
+			reset100 <= 1;
+		end else if (reset100) begin
+			if (counter100[COUNTER100_BIT_PICKOFF]) begin
+				reset100 <= 0;
 			end
-			counter50 <= counter50 + 1'b1;
+			counter100 <= counter100 + 1'b1;
 		end
-		reset_pipeline50 <= { reset_pipeline50[RESET_PIPELINE_PICKOFF-1:0], reset };
+		reset_pipeline100 <= { reset_pipeline100[RESET_PIPELINE_PICKOFF-1:0], reset };
 	end
-	reg [2:0] reset50_pipeline125 = 0;
+	reg [2:0] reset100_pipeline125 = 0;
 	reg [COUNTER125_BIT_PICKOFF:0] counter125 = 0;
 	localparam PLL_LOCKED_PIPELINE125_PICKOFF = 2;
 	reg [PLL_LOCKED_PIPELINE125_PICKOFF:0] pll_locked_pipeline125 = 0;
 	integer j;
 	always @(posedge clock125) begin
 		if (~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF]) begin
-			reset50_pipeline125 <= 0;
+			reset100_pipeline125 <= 0;
 			reset_pipeline125 <= 0;
 		end else begin
-			reset50_pipeline125 <= { reset50_pipeline125[1:0], reset50 };
+			reset100_pipeline125 <= { reset100_pipeline125[1:0], reset100 };
 			reset_pipeline125 <= { reset_pipeline125[RESET_PIPELINE_PICKOFF-1:0], reset };
 		end
 		pll_locked_pipeline125 <= { pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF-1:0], pll_locked };
@@ -151,7 +160,7 @@ module top #(
 	always @(posedge clock) begin
 		pre_ack_valid <= 0;
 		write_strobe <= 0;
-		if (reset_pipeline125[RESET_PIPELINE_PICKOFF] || reset50_pipeline125[2] || ~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF]) begin
+		if (reset_pipeline125[RESET_PIPELINE_PICKOFF] || reset100_pipeline125[2] || ~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF]) begin
 			counter125 <= 0;
 			reset125 <= 1;
 		end else if (reset125) begin
@@ -294,7 +303,6 @@ module top #(
 					end
 				end
 			end
-			ack_valid_pipeline <= { ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF-1:0], pre_ack_valid };
 			register_select_pipeline <= { register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF-1:0], register_select };
 			read_pipeline            <= {                       read_pipeline[READ_PIPELINE_PICKOFF-1:0], read };
 			enable_pipeline          <= {                   enable_pipeline[ENABLE_PIPELINE_PICKOFF-1:0], enable };
@@ -303,16 +311,15 @@ module top #(
 	end
 	for (i=1; i<BUS_PIPELINE_PICKOFF+1; i=i+1) begin : bus_pipeline_thing
 		always @(posedge clock) begin
-			if (reset50) begin
+			if (reset125) begin
 				bus_pipeline[i] <= 0;
 			end else begin
 				bus_pipeline[i] <= bus_pipeline[i-1];
 			end
 		end
 	end
-	assign ack_valid = ack_valid_pipeline[ACK_VALID_PIPELINE_PICKOFF];
+	assign ack_valid = pre_ack_valid;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are peripheral
-	assign bus = {BUS_WIDTH{1'bz}};
 	// ----------------------------------------------------------------------
 	wire word_clock;
 	wire [BUS_WIDTH_OSERDES-1:0] oserdes_word;
@@ -324,14 +331,15 @@ module top #(
 			.wclk(clock), .waddr(address_word_reg), .din(write_data_word), .write_en(write_strobe),
 			.rclk(clock), .raddr(address_word_reg), .dout(read_data_word));
 		assign oserdes_word = 8'b11100100;
-	end else if (1) begin
+	end else if (0) begin
 		RAM_inferred_dual_port_gearbox #(
+			.GEARBOX_RATIO(4),
 			.ADDR_WIDTH_A(ADDRESS_DEPTH), .ADDR_WIDTH_B(ADDRESS_DEPTH_OSERDES),
 			.DATA_WIDTH_A(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .DATA_WIDTH_B(BUS_WIDTH_OSERDES)
 		) myram (
 			.clk_a(clock), .addr_a(address_word_reg), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
 			.clk_b(word_clock), .addr_b(read_address), .dout_b(oserdes_word));
-	end else if (1) begin
+	end else if (0) begin
 		RAM_inferred_dual #(
 			.addr_width_a(ADDRESS_DEPTH), .addr_width_b(ADDRESS_DEPTH_OSERDES),
 			.data_width_a(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .data_width_b(BUS_WIDTH_OSERDES)
@@ -341,7 +349,7 @@ module top #(
 			.clk_b(word_clock), .addr_b(read_address), .dout_b());
 		assign oserdes_word = 8'b11100000;
 	end else begin
-		RAM_s6_4k_32bit_8bit mem (.reset(reset125),
+		RAM_s6_16k_32bit_8bit mem (.reset(reset125),
 			.clock_a(clock), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b(oserdes_word));
 	end
@@ -354,7 +362,8 @@ module top #(
 		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
 		.word3_in(oserdes_word), .word2_in(oserdes_word), .word1_in(oserdes_word), .word0_in(oserdes_word),
 		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
-	assign coax_led = 4'b1111;
+	//assign coax_led = 4'b1111;
+	assign coax_led = reset_counter;
 	if (0) begin
 		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei2 (
 			.clock_in(clock125), .reset(reset125), .word_clock_out(),
@@ -365,8 +374,9 @@ module top #(
 	end else begin
 		assign pll_oserdes_locked_2 = 1;
 		assign sync_read_address = coax[5];
-		assign coax[4] = sync_out_stream[2]; // scope trigger
+//		assign coax[4] = sync_out_stream[2]; // scope trigger
 	end
+	assign coax[4] = enable; // scope trigger
 	wire [31:0] start_read_address = 32'd0; // in 2-bit words
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
 	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
@@ -391,7 +401,7 @@ module top #(
 	// ----------------------------------------------------------------------
 	if (0) begin
 		assign led[7] = reset;
-		assign led[6] = reset50;
+		assign led[6] = reset100;
 		assign led[5] = reset125;
 		assign led[4] = ~pll_locked;
 		assign led[3] = ~pll_oserdes_locked_1;
@@ -422,10 +432,15 @@ module top #(
 		//assign led = write_data[1];
 		//assign led = write_data[0];
 	end
+	initial begin
+		#100;
+		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_DATA_WIDTH);
+		$display("%d, %d, %d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
+	end
 endmodule
 
 module myalthea (
-	input clock50_p, clock50_n,
+	input clock100_p, clock100_n,
 	inout [5:0] coax,
 	// other IOs:
 	output rpi_gpio2_i2c1_sda, // ack_valid
@@ -463,7 +478,7 @@ module myalthea (
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) althea (
-		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(~button),
+		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10), .reset(~button),
 		.coax(coax),
 		.bus({
 			rpi_gpio21, rpi_gpio20, rpi_gpio19, rpi_gpio18,
@@ -472,7 +487,7 @@ module myalthea (
 			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
 		}),
 		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
-		.diff_pair_right({ m_p, m_n, l_p, l_n, j_p, j_n, g_p, g_n, k_p, k_n, h_p, h_n }),
+		.diff_pair_right({ g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p, h_n, h_p, k_n, k_p }),
 		.single_ended_left({ z, y, x, w, v, u }),
 		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
