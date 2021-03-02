@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-02-28 by mza
+// last updated 2021-03-01 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -33,6 +33,7 @@ module top #(
 	parameter ADDRESS_DEPTH_OSERDES = ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
+	parameter COUNTER50_BIT_PICKOFF = TESTBENCH ? 4 : 10,
 	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 4 : 10
 ) (
 	input clock50_p, clock50_n,
@@ -52,10 +53,14 @@ module top #(
 	output [7:0] led
 );
 	genvar i;
-	for (i=0; i<4; i=i+1) begin : diff_pair_array
-		assign diff_pair_left[i]  = 0; // b_n, b_p, e_n, e_p
+//	for (i=0; i<4; i=i+1) begin : diff_pair_array
+//		assign diff_pair_left[i]  = 0; // b_n, b_p, e_n, e_p
 //		assign diff_pair_right[i] = 0; // h_n, h_p, k_n, k_p
-	end
+//	end
+	assign diff_pair_left[3] = 0;            // e_n
+	assign diff_pair_left[2] = 0;            // e_p
+	assign diff_pair_left[1] = 0;            // b_p
+	assign diff_pair_left[0] = write_strobe; // b_n
 	reg pre_ack_valid = 0;
 	assign diff_pair_right[0] = read;            // k_p
 	assign diff_pair_right[1] = register_select; // k_n
@@ -67,10 +72,12 @@ module top #(
 		assign single_ended_left[i] = 0;
 		assign single_ended_right[i] = 0;
 	end
-	localparam GAP = 0;
-	localparam OTHER_PICKOFF                    = 2;
-	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + GAP;
-	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
+	localparam ANTI_META = 2;
+	localparam GAP = 1;
+	localparam EXTRA_PICKOFF = 0;
+	localparam OTHER_PICKOFF                    = ANTI_META                 + EXTRA_PICKOFF;
+	localparam ENABLE_PIPELINE_PICKOFF          =             OTHER_PICKOFF                 + GAP;
+	localparam REGISTER_SELECT_PIPELINE_PICKOFF = ANTI_META + OTHER_PICKOFF + EXTRA_PICKOFF;
 	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
 	localparam BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
@@ -121,11 +128,10 @@ module top #(
 	reg [31:0] write_errors = 0;
 	reg [31:0] address_errors = 0;
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
-	localparam COUNTER50_BIT_PICKOFF = 4;
 	reg [COUNTER50_BIT_PICKOFF:0] counter50 = 0;
 	always @(posedge clock50) begin
 		if (reset_pipeline50[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
-			reset_counter <= reset_counter + 1'b1;
+			reset_counter <= reset_counter + 1'b1; // this counts how many times the reset input gets pulsed
 		end else if (reset_pipeline50[RESET_PIPELINE_PICKOFF]) begin
 			counter50 <= 0;
 			reset50 <= 1;
@@ -384,8 +390,9 @@ module top #(
 	end else begin
 		assign pll_oserdes_locked_2 = 1;
 		assign sync_read_address = coax[5];
-		assign coax[4] = sync_out_stream[2]; // scope trigger
+//		assign coax[4] = sync_out_stream[2]; // scope trigger
 	end
+	assign coax[4] = enable; // scope trigger
 	wire [31:0] start_read_address = 32'd0; // in 2-bit words
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
 	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
@@ -753,6 +760,7 @@ module myalthea (
 	input rpi_gpio3_i2c1_scl, // register_select
 	input rpi_gpio4_gpclk0, // enable
 	input rpi_gpio5, // read
+	input rpi_gpio26, // spare
 	// 16 bit bus:
 	inout rpi_gpio6_gpclk2, rpi_gpio7_spi_ce1, rpi_gpio8_spi_ce0, rpi_gpio9_spi_miso,
 	inout rpi_gpio10_spi_mosi, rpi_gpio11_spi_sclk, rpi_gpio12, rpi_gpio13,
