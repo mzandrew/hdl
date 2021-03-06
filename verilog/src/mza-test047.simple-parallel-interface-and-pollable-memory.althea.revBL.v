@@ -32,8 +32,8 @@ module top #(
 	parameter ADDRESS_DEPTH_OSERDES = ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
-	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 4 : 10,
-	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 4 : 10
+	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 4 : 23,
+	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 4 : 23
 ) (
 	input clock100_p, clock100_n,
 	input clock10,
@@ -56,10 +56,10 @@ module top #(
 //		assign diff_pair_left[i]  = 0; // b_n, b_p, e_n, e_p
 //		assign diff_pair_right[i] = 0; // h_n, h_p, k_n, k_p
 //	end
-	assign diff_pair_left[3] = 0;            // e_n
-	assign diff_pair_left[2] = 0;            // e_p
-	assign diff_pair_left[1] = 0;            // b_p
-	assign diff_pair_left[0] = write_strobe; // b_n
+	assign diff_pair_left[3] = 0;                    // e_n
+	assign diff_pair_left[2] = pll_oserdes_locked_1; // e_p
+	assign diff_pair_left[1] = pll_locked;           // b_p
+	assign diff_pair_left[0] = write_strobe;         // b_n
 	reg pre_ack_valid = 0;
 	assign diff_pair_right[0] = read;            // k_p
 	assign diff_pair_right[1] = register_select; // k_n
@@ -96,7 +96,8 @@ module top #(
 	wire rawclock125;
 	wire clock125;
 	wire pll_locked;
-	simpledcm_CLKGEN #(.multiply(5), .divide(4), .period(10.0)) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 100->125
+	//simpledcm_CLKGEN #(.multiply(5), .divide(4), .period(10.0)) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 100->125
+	simpledcm_SP #(.multiply(10), .divide(4), .period(10.0), .CLKIN_DIVIDE_BY_2("True")) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 100->125
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
 	// ----------------------------------------------------------------------
@@ -369,6 +370,7 @@ module top #(
 			.clock_in(clock125), .reset(reset125), .word_clock_out(),
 			.word1_in(oserdes_word), .D1_out(coax[5]),
 			.word0_in(oserdes_word), .D0_out(coax[4]),
+			.bit_clock(),
 			.locked(pll_oserdes_locked_2));
 		assign sync_read_address = 0;
 	end else begin

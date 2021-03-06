@@ -1,6 +1,6 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2020-05-27 by mza
+// last updated 2021-03-01 by mza
 
 `ifndef DCM_LIB
 `define DCM_LIB
@@ -203,7 +203,11 @@ endmodule
 // multiply: 2-32
 // divide: 1-32
 module simpledcm_SP #(
-	parameter alt_clockout_divide=2.0, multiply=4, divide=1, period=10.0
+	parameter alt_clockout_divide=2.0,
+	parameter multiply=4,
+	parameter divide=1,
+	parameter period=10.0,
+	parameter CLKIN_DIVIDE_BY_2 = "FALSE"
 ) (
 	input clockin,
 	input reset,
@@ -221,7 +225,7 @@ module simpledcm_SP #(
 		// 7.0,7.5,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0 or 16.0
 		.CLKFX_DIVIDE(divide), // Can be any integer from 1 to 32
 		.CLKFX_MULTIPLY(multiply), // Can be any integer from 2 to 32
-		.CLKIN_DIVIDE_BY_2("FALSE"), // TRUE/FALSE to enable CLKIN divide by two feature
+		.CLKIN_DIVIDE_BY_2(CLKIN_DIVIDE_BY_2), // TRUE/FALSE to enable CLKIN divide by two feature
 		.CLKIN_PERIOD(period), // Specify period of input clock
 		.CLKOUT_PHASE_SHIFT("NONE"), // Specify phase shift of NONE, FIXED or VARIABLE
 		.CLK_FEEDBACK("1X"), // Specify clock feedback of NONE, 1X or 2X
