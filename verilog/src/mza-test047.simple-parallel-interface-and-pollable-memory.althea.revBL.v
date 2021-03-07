@@ -138,17 +138,17 @@ module top #(
 //			counter100 <= 0;
 //			reset100 <= 1;
 //		end else if (reset100) begin
-		if (reset) begin
-			counter100 <= 0;
-			reset100 <= 1;
-		end else begin
+//		if (reset) begin
+//			counter100 <= 0;
+//			reset100 <= 1;
+//		end else begin
 			if (reset100) begin
 				if (counter100[COUNTER100_BIT_PICKOFF]) begin
 					reset100 <= 0;
 				end
 				counter100 <= counter100 + 1'b1;
 			end
-		end
+//		end
 		reset_pipeline100 <= { reset_pipeline100[RESET_PIPELINE_PICKOFF-1:0], reset };
 	end
 	reg [2:0] reset100_pipeline125 = 0;
