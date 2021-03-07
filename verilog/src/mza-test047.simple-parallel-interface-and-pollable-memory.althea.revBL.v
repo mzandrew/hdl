@@ -1,6 +1,6 @@
 // written 2020-10-05 by mza
 // based on mza-test046.simple-parallel-interface-and-pollable-memory.althea.revB.v
-// last updated 2021-03-01 by mza
+// last updated 2021-03-05 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
@@ -32,8 +32,8 @@ module top #(
 	parameter ADDRESS_DEPTH_OSERDES = ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
-	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 4 : 23,
-	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 4 : 23
+	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
+	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
 	input clock100_p, clock100_n,
 	input clock10,
@@ -56,6 +56,10 @@ module top #(
 //		assign diff_pair_left[i]  = 0; // b_n, b_p, e_n, e_p
 //		assign diff_pair_right[i] = 0; // h_n, h_p, k_n, k_p
 //	end
+	wire pll_locked;
+	wire pll_oserdes_locked_1;
+	wire pll_oserdes_locked_2;
+	reg write_strobe = 0;
 	assign diff_pair_left[3] = 0;                    // e_n
 	assign diff_pair_left[2] = pll_oserdes_locked_1; // e_p
 	assign diff_pair_left[1] = pll_locked;           // b_p
@@ -95,9 +99,8 @@ module top #(
 	reg reset125 = 1;
 	wire rawclock125;
 	wire clock125;
-	wire pll_locked;
-	//simpledcm_CLKGEN #(.multiply(5), .divide(4), .period(10.0)) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 100->125
-	simpledcm_SP #(.multiply(10), .divide(4), .period(10.0), .CLKIN_DIVIDE_BY_2("True")) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 100->125
+	simpledcm_CLKGEN #(.multiply(5), .divide(4), .period(10.0)) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 100->125
+	//simpledcm_SP #(.multiply(10), .divide(4), .period(10.0), .CLKIN_DIVIDE_BY_2("TRUE")) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 100->125
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
 	// ----------------------------------------------------------------------
@@ -110,7 +113,6 @@ module top #(
 	end
 	reg [LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD-1:0] aword = TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 	reg [1:0] wstate = 0;
-	reg write_strobe = 0;
 	wire [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] write_data_word;
 	reg [BUS_WIDTH-1:0] write_data [TRANSACTIONS_PER_DATA_WORD-1:0];
 	for (i=0; i<TRANSACTIONS_PER_DATA_WORD; i=i+1) begin : write_data_array
@@ -130,16 +132,22 @@ module top #(
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
 	reg [COUNTER100_BIT_PICKOFF:0] counter100 = 0;
 	always @(posedge clock100) begin
-		if (reset_pipeline100[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
-			reset_counter <= reset_counter + 1'b1; // this counts how many times the reset input gets pulsed
-		end else if (reset_pipeline100[RESET_PIPELINE_PICKOFF]) begin
+//		if (reset_pipeline100[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
+//			reset_counter <= reset_counter + 1'b1; // this counts how many times the reset input gets pulsed
+//		end else if (reset_pipeline100[RESET_PIPELINE_PICKOFF]) begin
+//			counter100 <= 0;
+//			reset100 <= 1;
+//		end else if (reset100) begin
+		if (reset) begin
 			counter100 <= 0;
 			reset100 <= 1;
-		end else if (reset100) begin
-			if (counter100[COUNTER100_BIT_PICKOFF]) begin
-				reset100 <= 0;
+		end else begin
+			if (reset100) begin
+				if (counter100[COUNTER100_BIT_PICKOFF]) begin
+					reset100 <= 0;
+				end
+				counter100 <= counter100 + 1'b1;
 			end
-			counter100 <= counter100 + 1'b1;
 		end
 		reset_pipeline100 <= { reset_pipeline100[RESET_PIPELINE_PICKOFF-1:0], reset };
 	end
@@ -356,8 +364,6 @@ module top #(
 	end
 //	wire pll_oserdes_locked;
 //		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
-	wire pll_oserdes_locked_1;
-	wire pll_oserdes_locked_2;
 	wire sync_read_address;
 	ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
 		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
@@ -411,14 +417,16 @@ module top #(
 		assign led[1] = 0;
 		assign led[0] = 0;
 	end else if (1) begin
-		assign led[7] = ~pll_locked;
-		assign led[6] = ~pll_oserdes_locked_1;
-		assign led[5] = ~pll_oserdes_locked_2;
+		assign led[7] = reset100;
+		assign led[6] = ~pll_locked;
+		assign led[5] = reset125;
+		assign led[4] = ~pll_oserdes_locked_1;
 		//assign led[5] = checksum;
 		//assign led[5] = |all_errors;
 		//assign led[5] = |read_errors;
-		assign led[4] = ack_valid;
-		assign led[3] = write_strobe;
+//		assign led[3] = write_strobe;
+		assign led[3] = reset;
+		//assign led[3] = ack_valid;
 		assign led[2] = read;
 		assign led[1] = enable;
 		assign led[0] = register_select;
@@ -438,6 +446,306 @@ module top #(
 		#100;
 		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_DATA_WIDTH);
 		$display("%d, %d, %d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
+	end
+endmodule
+
+module top_tb;
+	localparam HALF_PERIOD_OF_CONTROLLER = 1;
+	localparam HALF_PERIOD_OF_PERIPHERAL = 10;
+	localparam NUMBER_OF_PERIODS_OF_CONTROLLER_IN_A_DELAY = 1;
+	localparam NUMBER_OF_PERIODS_OF_CONTROLLER_WHILE_WAITING_FOR_ACK = 2000;
+	reg clock = 0;
+	localparam BUS_WIDTH = 16;
+	localparam ADDRESS_DEPTH = 14;
+	localparam TRANSACTIONS_PER_DATA_WORD = 2;
+	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
+	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
+	reg clock100_p = 0;
+	reg clock100_n = 1;
+	reg clock10 = 0;
+	reg reset = 0;
+	wire [5:0] coax;
+	wire [3:0] coax_led;
+	wire [7:0] led;
+	reg pre_register_select = 0;
+	reg register_select = 0;
+	reg pre_read = 0;
+	reg read = 0;
+	reg [BUS_WIDTH-1:0] pre_bus = 0;
+	wire [BUS_WIDTH-1:0] bus;
+	reg [BUS_WIDTH-1:0] eye_center = 0;
+	reg pre_enable = 0;
+	reg enable = 0;
+	wire a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p;
+	wire m_p, m_n, l_p, l_n, j_p, j_n, g_p, g_n, k_p, k_n, h_p, h_n;
+	wire z, y, x, w, v, u;
+	wire n, p, q, r, s, t;
+	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] wdata = 0;
+	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] rdata = 0;
+	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are controller
+	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
+		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10), .reset(reset),
+		.coax(coax),
+		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
+		.diff_pair_right({ m_p, m_n, l_p, l_n, j_p, j_n, g_p, g_n, k_p, k_n, h_p, h_n }),
+		.single_ended_left({ z, y, x, w, v, u }),
+		.single_ended_right({ n, p, q, r, s, t }),
+		.bus(bus), .register_select(register_select), .read(read), .enable(enable), .ack_valid(ack_valid),
+		.led(led), .coax_led(coax_led)
+	);
+	task automatic peripheral_clock_delay;
+		input integer number_of_cycles;
+		integer j;
+		begin
+			for (j=0; j<2*number_of_cycles; j=j+1) begin : delay_thing_s
+				#HALF_PERIOD_OF_PERIPHERAL;
+			end
+		end
+	endtask
+	task automatic controller_clock_delay;
+		input integer number_of_cycles;
+		integer j;
+		begin
+			for (j=0; j<2*number_of_cycles; j=j+1) begin : delay_thing_m
+				#HALF_PERIOD_OF_CONTROLLER;
+			end
+		end
+	endtask
+	task automatic delay;
+		controller_clock_delay(NUMBER_OF_PERIODS_OF_CONTROLLER_IN_A_DELAY);
+	endtask
+	task automatic pulse_enable;
+		integer i;
+		integer j;
+		begin
+			i = 0;
+			//delay();
+			//eye_center <= 0;
+			pre_enable <= 1;
+			for (j=0; j<2*NUMBER_OF_PERIODS_OF_CONTROLLER_WHILE_WAITING_FOR_ACK; j=j+1) begin : delay_thing_1
+				if (ack_valid) begin
+					//if (0==i) begin
+					//	$display("ack_valid seen after %d half-periods", j); // 421, 423, 427
+					//end
+					if (2==i) begin
+						eye_center <= bus;
+						//$display("%t bus=%08x", $time, bus);
+					end
+					i = i + 1;
+					j = 2*NUMBER_OF_PERIODS_OF_CONTROLLER_WHILE_WAITING_FOR_ACK - 100;
+				end
+				if (64<i) begin
+					pre_enable <= 0;
+				end
+				#HALF_PERIOD_OF_CONTROLLER;
+			end
+			//$display("ending i: %d", i); // 480
+			if (pre_enable==1) begin
+				//$display(“pre_enable is still 1”);
+				$finish;
+			end
+		end
+	endtask
+	task automatic a16_d32_controller_write_transaction;
+		input [15:0] address16;
+		input [31:0] data32;
+		begin
+			controller_set_address16(address16);
+			controller_write_data32(data32);
+		end
+	endtask
+	task automatic a16_controller_read_transaction;
+		input [15:0] address16;
+		integer j;
+		begin
+			controller_set_address16(address16);
+		end
+	endtask
+	task automatic controller_set_address16;
+		input [15:0] address16;
+		integer j;
+		begin
+			delay();
+			// set each part of address
+			pre_read <= 0;
+			pre_register_select <= 0; // register_select=0 is address
+//			if (1<TRANSACTIONS_PER_ADDRESS_WORD) begin : set_address_multiple
+//				pre_bus <= address16[2*BUS_WIDTH-1:BUS_WIDTH];
+//				pulse_enable();
+//			end
+			pre_bus <= address16[BUS_WIDTH-1:0];
+			pulse_enable();
+			delay();
+			$display("%t address: %04x", $time, address16);
+		end
+	endtask
+	task automatic controller_write_data32;
+		input [31:0] data32;
+		integer j;
+		begin
+			//wdata <= 0;
+			delay();
+			//wdata <= data32;
+			// write each part of data
+			pre_read <= 0;
+			pre_register_select <= 1; // register_select=1 is data
+			if (3<TRANSACTIONS_PER_DATA_WORD) begin
+				pre_bus <= data32[4*BUS_WIDTH-1:3*BUS_WIDTH];
+				pulse_enable();
+				wdata[4*BUS_WIDTH-1:3*BUS_WIDTH] <= eye_center;
+			end
+			if (2<TRANSACTIONS_PER_DATA_WORD) begin
+				pre_bus <= data32[3*BUS_WIDTH-1:2*BUS_WIDTH];
+				pulse_enable();
+				wdata[3*BUS_WIDTH-1:2*BUS_WIDTH] <= eye_center;
+			end
+			if (1<TRANSACTIONS_PER_DATA_WORD) begin
+				pre_bus <= data32[2*BUS_WIDTH-1:BUS_WIDTH];
+				pulse_enable();
+				wdata[2*BUS_WIDTH-1:BUS_WIDTH] <= eye_center;
+			end
+			pre_bus <= data32[BUS_WIDTH-1:0];
+			pulse_enable();
+			wdata[BUS_WIDTH-1:0] <= eye_center;
+			delay();
+			$display("%t wdata: %08x", $time, wdata);
+		end
+	endtask
+	task automatic controller_read_data32;
+		integer j;
+		begin
+			//rdata <= 0;
+			delay();
+			// read each part of data
+			pre_read <= 1;
+			pre_register_select <= 1; // register_select=1 is data
+			for (j=TRANSACTIONS_PER_DATA_WORD-1; j>=0; j=j-1) begin : read_data_multiple_2
+				pulse_enable();
+				if (3==j) begin
+					rdata[4*BUS_WIDTH-1:3*BUS_WIDTH] <= eye_center;
+					//$display("%d %08x %08x", j, eye_center, rdata);
+				end else if (2==j) begin
+					rdata[3*BUS_WIDTH-1:2*BUS_WIDTH] <= eye_center;
+					//$display("%d %08x %08x", j, eye_center, rdata);
+				end else if (1==j) begin
+					rdata[2*BUS_WIDTH-1:BUS_WIDTH] <= eye_center;
+					//$display("%d %08x %08x", j, eye_center, rdata);
+				end else begin
+					rdata[BUS_WIDTH-1:0] <= eye_center;
+					//$display("%d %08x %08x", j, eye_center, rdata);
+				end
+			end
+			delay();
+			//pre_read <= 0;
+			$display("%t rdata: %08x", $time, rdata);
+		end
+	endtask
+	initial begin
+		// inject global reset
+		#300; reset <= 1; #300; reset <= 0;
+		#512; // wait for reset100
+		#512; // wait for reset125
+		//#300; reset <= 1; #300; reset <= 0;
+		//#512; // wait for reset100
+		//#512; // wait for reset125
+		// test the interface
+		if (ADDRESS_AUTOINCREMENT_MODE) begin
+			// write some data to some addresses
+			controller_clock_delay(64);
+			peripheral_clock_delay(64);
+			controller_set_address16(16'h_2b4c);
+			controller_write_data32(32'h_3123_1507);
+			controller_write_data32(32'h_3123_1508);
+			controller_write_data32(32'h_3123_1509);
+			controller_write_data32(32'h_3123_150a);
+			// read back from those addresses
+			controller_clock_delay(64);
+			peripheral_clock_delay(64);
+			controller_set_address16(16'h_2b4c);
+			controller_read_data32();
+			controller_read_data32();
+			controller_read_data32();
+			controller_read_data32();
+		end else begin
+			// write some data to some addresses
+			controller_clock_delay(64);
+			peripheral_clock_delay(64);
+			a16_d32_controller_write_transaction(.address16(16'h2b4c), .data32(32'h3123_1507));
+			controller_read_data32();
+			a16_d32_controller_write_transaction(.address16(16'h2b4d), .data32(32'h3123_1508));
+			controller_read_data32();
+			a16_d32_controller_write_transaction(.address16(16'h2b4e), .data32(32'h3123_1509));
+			controller_read_data32();
+			a16_d32_controller_write_transaction(.address16(16'h2b4f), .data32(32'h3123_150a));
+			controller_read_data32();
+			// read back from those addresses
+			controller_clock_delay(64);
+			peripheral_clock_delay(64);
+			a16_controller_read_transaction(.address16(16'h2b4c));
+			a16_controller_read_transaction(.address16(16'h2b4d));
+			a16_controller_read_transaction(.address16(16'h2b4e));
+			a16_controller_read_transaction(.address16(16'h2b4f));
+		end
+		// write the two checksum words to the memory
+		//controller_clock_delay(64);
+		//peripheral_clock_delay(64);
+		//a16_d32_controller_write_transaction(.address16(16'h1234), .data32(32'h3123_1507));
+		//controller_read_data32();
+		//a16_d32_controller_write_transaction(.address16(16'h3412), .data32(32'h0000_1507));
+		//controller_read_data32();
+		//pre_register_select <= 0;
+		// now mess things up
+		// inject read error:
+		controller_clock_delay(64);
+		peripheral_clock_delay(64);
+		pre_register_select <= 1;
+		pre_read <= 1;
+		pre_bus <= 8'h33;
+		pulse_enable();
+		controller_set_address16(16'h1b4f);
+		controller_read_data32();
+		// inject write error:
+		controller_clock_delay(64);
+		peripheral_clock_delay(64);
+		pre_register_select <= 1;
+		pre_read <= 0;
+		pre_bus <= 8'h66;
+		pulse_enable();
+		controller_set_address16(16'h4f1b);
+		controller_write_data32(32'h3123_2d78);
+		// inject address error:
+		controller_clock_delay(64);
+		peripheral_clock_delay(64);
+		pre_register_select <= 0; // register_select=0 is address
+		pre_read <= 0;
+		pre_bus <= 8'h99;
+		pulse_enable();
+		controller_set_address16(16'h1b4f);
+		controller_read_data32();
+		// clear all signals
+		pre_register_select <= 0;
+		pre_read <= 0;
+		pre_enable <= 0;
+		// inject global reset
+		controller_clock_delay(64);
+		peripheral_clock_delay(64);
+		#300; reset <= 1; #300; reset <= 0;
+		#300;
+		//$finish;
+	end
+	always @(posedge clock) begin
+		register_select <= #1 pre_register_select;
+		read <= #1 pre_read;
+		enable <= #1 pre_enable;
+	end
+	always begin
+		#HALF_PERIOD_OF_PERIPHERAL;
+		clock100_p <= #1.5 ~clock100_p;
+		clock100_n <= #2.5 ~clock100_n;
+	end
+	always begin
+		#HALF_PERIOD_OF_CONTROLLER;
+		clock <= #0.625 ~clock;
 	end
 endmodule
 
