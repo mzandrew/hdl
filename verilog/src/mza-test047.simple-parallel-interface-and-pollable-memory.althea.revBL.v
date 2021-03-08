@@ -76,11 +76,11 @@ module top #(
 		assign single_ended_right[i] = 0;
 	end
 	localparam ANTI_META = 2;
-	localparam GAP = 1;
+	localparam GAP = 0;
 	localparam EXTRA_PICKOFF = 0;
 	localparam OTHER_PICKOFF                    = ANTI_META                 + EXTRA_PICKOFF;
 	localparam ENABLE_PIPELINE_PICKOFF          =             OTHER_PICKOFF                 + GAP;
-	localparam REGISTER_SELECT_PIPELINE_PICKOFF = ANTI_META + OTHER_PICKOFF + EXTRA_PICKOFF;
+	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
 	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
 	localparam BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
