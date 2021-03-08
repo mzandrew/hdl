@@ -1,6 +1,6 @@
 // written 2020-10-05 by mza
 // based on mza-test046.simple-parallel-interface-and-pollable-memory.althea.revB.v
-// last updated 2021-03-05 by mza
+// last updated 2021-03-07 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
@@ -95,6 +95,9 @@ module top #(
 	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline125 = 0;
 	reg reset100 = 1;
 	wire clock100;
+//	wire clock100b;
+//	IBUFGDS_DIFF_OUT ibgdsdo (.I(clock100_p), .IB(clock100_n), .O(clock100), .OB(clock100b));
+//	ODDR2 drmario (.C0(clock100), .C1(clock100b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(coax[5]));
 	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	reg reset125 = 1;
 	wire rawclock125;
@@ -132,23 +135,23 @@ module top #(
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
 	reg [COUNTER100_BIT_PICKOFF:0] counter100 = 0;
 	always @(posedge clock100) begin
-//		if (reset_pipeline100[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
-//			reset_counter <= reset_counter + 1'b1; // this counts how many times the reset input gets pulsed
-//		end else if (reset_pipeline100[RESET_PIPELINE_PICKOFF]) begin
-//			counter100 <= 0;
-//			reset100 <= 1;
+		if (reset_pipeline100[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
+			reset_counter <= reset_counter + 1'b1; // this counts how many times the reset input gets pulsed
+		end else if (reset_pipeline100[RESET_PIPELINE_PICKOFF]) begin
+			counter100 <= 0;
+			reset100 <= 1;
 //		end else if (reset100) begin
 //		if (reset) begin
 //			counter100 <= 0;
 //			reset100 <= 1;
-//		end else begin
+		end else begin
 			if (reset100) begin
 				if (counter100[COUNTER100_BIT_PICKOFF]) begin
 					reset100 <= 0;
 				end
 				counter100 <= counter100 + 1'b1;
 			end
-//		end
+		end
 		reset_pipeline100 <= { reset_pipeline100[RESET_PIPELINE_PICKOFF-1:0], reset };
 	end
 	reg [2:0] reset100_pipeline125 = 0;
@@ -381,10 +384,11 @@ module top #(
 		assign sync_read_address = 0;
 	end else begin
 		assign pll_oserdes_locked_2 = 1;
-		assign sync_read_address = coax[5];
+		//assign sync_read_address = coax[5];
 //		assign coax[4] = sync_out_stream[2]; // scope trigger
 	end
 	assign coax[4] = enable; // scope trigger
+	assign coax[5] = write_strobe;
 	wire [31:0] start_read_address = 32'd0; // in 2-bit words
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
 	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
@@ -416,6 +420,8 @@ module top #(
 		assign led[2] = ~pll_oserdes_locked_2;
 		assign led[1] = 0;
 		assign led[0] = 0;
+	end else if (0) begin
+		assign led = counter100[23:16];
 	end else if (1) begin
 		assign led[7] = reset100;
 		assign led[6] = ~pll_locked;
@@ -425,8 +431,8 @@ module top #(
 		//assign led[5] = |all_errors;
 		//assign led[5] = |read_errors;
 //		assign led[3] = write_strobe;
-		assign led[3] = reset;
-		//assign led[3] = ack_valid;
+//		assign led[3] = reset;
+		assign led[3] = ack_valid;
 		assign led[2] = read;
 		assign led[1] = enable;
 		assign led[0] = register_select;
@@ -783,6 +789,7 @@ module myalthea (
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 	wire clock10 = 0;
 	top #(
+		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
