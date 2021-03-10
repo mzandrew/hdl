@@ -613,7 +613,8 @@ def test_writing_data_to_half_duplex_bus2():
 	#print("number_of_times_to_repeat: " + str(number_of_times_to_repeat))
 	if 1: # pseudorandom numbers from all zeroes to all ones
 		ALL_ONES = 2**bits_word - 1
-		data = [ random.randint(0,ALL_ONES) for d in range(NUM) ]
+		data.append([ random.randint(0,ALL_ONES) for d in range(NUM) ])
+		data.append([ random.randint(0,ALL_ONES) for d in range(NUM) ])
 	elif 0: # fill in ones for only a bus_width-sized part of the word
 		part = NUM//transfers_per_data_word
 		data = []
@@ -641,28 +642,29 @@ def test_writing_data_to_half_duplex_bus2():
 	write_total = 0.0
 	read_total = 0.0
 	for i in range(number_of_times_to_repeat):
+		k = i % 2
 		new_errors = 0
 		start = time.time()
 		# use above list and write it without verification
-		new_count = half_duplex_bus.write(start_address, data, False)
+		new_count = half_duplex_bus.write(start_address, data[k], False)
 		count += new_count
 		end = time.time()
 		diff = end - start
 		write_total += diff
 		start = time.time()
-		readback = half_duplex_bus.read(start_address, len(data))
+		readback = half_duplex_bus.read(start_address, len(data[k]))
 		end = time.time()
 		diff = end - start
 		read_total += diff
-		if len(data) != len(readback):
+		if len(data[k]) != len(readback):
 			new_errors += 1
 		for j in range(len(readback)):
-			if data[j]!=readback[j]:
+			if data[k][j]!=readback[j]:
 				new_errors += 1
 				if 14==j:
-					print("%08x:%08x" % (data[j], readback[j]))
+					print("%08x:%08x" % (data[k][j], readback[j]))
 		errors += new_errors
-		print("%d errors" % new_errors)
+		#print("%d errors" % new_errors)
 	#data[len(data)-1] = 0x31231507
 	print_messages()
 	half_duplex_bus.close()
