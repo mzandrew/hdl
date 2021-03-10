@@ -134,10 +134,10 @@ if 0:
 		values[i] = 0x076543210
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
 
-if 1:
+if 0:
 	althea.test_writing_data_to_half_duplex_bus2()
 
-if 0:
+if 1:
 	values = [ 0 for a in range(2**14) ]
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
 	for i in range(9):
