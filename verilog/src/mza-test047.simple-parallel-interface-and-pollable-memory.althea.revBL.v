@@ -1,6 +1,6 @@
 // written 2020-10-05 by mza
 // based on mza-test046.simple-parallel-interface-and-pollable-memory.althea.revB.v
-// last updated 2021-03-07 by mza
+// last updated 2021-03-09 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
@@ -365,8 +365,6 @@ module top #(
 			.clock_a(clock), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b(oserdes_word));
 	end
-//	wire pll_oserdes_locked;
-//		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
 	wire sync_read_address;
 	ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
 		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
@@ -374,21 +372,26 @@ module top #(
 		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
 	//assign coax_led = 4'b1111;
 	assign coax_led = reset_counter;
-	if (0) begin
+	if (0) begin // to test the rpi interface to the read/write pollable memory
+		assign coax[4] = enable; // scope trigger
+		assign coax[5] = write_strobe;
+		assign pll_oserdes_locked_2 = 1;
+	end else if (0) begin // to put the oserdes outputs on coax[4] and coax[5]
 		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei2 (
 			.clock_in(clock125), .reset(reset125), .word_clock_out(),
 			.word1_in(oserdes_word), .D1_out(coax[5]),
 			.word0_in(oserdes_word), .D0_out(coax[4]),
-			.bit_clock(),
+			.bit_clock(), .bit_strobe(),
 			.locked(pll_oserdes_locked_2));
 		assign sync_read_address = 0;
-	end else begin
+//	wire pll_oserdes_locked;
+//		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
+//	end else if (0) begin
+	end else begin // to synchronize the coax outputs and to trigger the scope on that synchronization
+		assign coax[4] = sync_out_stream[2]; // scope trigger
+		assign sync_read_address = coax[5]; // an input to synchronize to an external event
 		assign pll_oserdes_locked_2 = 1;
-		//assign sync_read_address = coax[5];
-//		assign coax[4] = sync_out_stream[2]; // scope trigger
 	end
-	assign coax[4] = enable; // scope trigger
-	assign coax[5] = write_strobe;
 	wire [31:0] start_read_address = 32'd0; // in 2-bit words
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
 	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
