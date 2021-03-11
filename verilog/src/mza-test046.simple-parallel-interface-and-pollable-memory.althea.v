@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-03-01 by mza
+// last updated 2021-03-10 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -33,8 +33,8 @@ module top #(
 	parameter ADDRESS_DEPTH_OSERDES = ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
-	parameter COUNTER50_BIT_PICKOFF = TESTBENCH ? 4 : 10,
-	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 4 : 10
+	parameter COUNTER50_BIT_PICKOFF = TESTBENCH ? 5 : 23,
+	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
 	input clock50_p, clock50_n,
 	input clock10,
@@ -57,10 +57,14 @@ module top #(
 //		assign diff_pair_left[i]  = 0; // b_n, b_p, e_n, e_p
 //		assign diff_pair_right[i] = 0; // h_n, h_p, k_n, k_p
 //	end
-	assign diff_pair_left[3] = 0;            // e_n
-	assign diff_pair_left[2] = 0;            // e_p
-	assign diff_pair_left[1] = 0;            // b_p
-	assign diff_pair_left[0] = write_strobe; // b_n
+	wire pll_locked;
+	wire pll_oserdes_locked_1;
+	wire pll_oserdes_locked_2;
+	reg write_strobe = 0;
+	assign diff_pair_left[3] = 0;                    // e_n
+	assign diff_pair_left[2] = pll_oserdes_locked_1; // e_p
+	assign diff_pair_left[1] = pll_locked;           // b_p
+	assign diff_pair_left[0] = write_strobe;         // b_n
 	reg pre_ack_valid = 0;
 	assign diff_pair_right[0] = read;            // k_p
 	assign diff_pair_right[1] = register_select; // k_n
@@ -73,11 +77,11 @@ module top #(
 		assign single_ended_right[i] = 0;
 	end
 	localparam ANTI_META = 2;
-	localparam GAP = 1;
+	localparam GAP = 0;
 	localparam EXTRA_PICKOFF = 0;
 	localparam OTHER_PICKOFF                    = ANTI_META                 + EXTRA_PICKOFF;
 	localparam ENABLE_PIPELINE_PICKOFF          =             OTHER_PICKOFF                 + GAP;
-	localparam REGISTER_SELECT_PIPELINE_PICKOFF = ANTI_META + OTHER_PICKOFF + EXTRA_PICKOFF;
+	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
 	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
 	localparam BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF;
 	reg [REGISTER_SELECT_PIPELINE_PICKOFF:0] register_select_pipeline = 0;
@@ -96,7 +100,6 @@ module top #(
 	reg reset125 = 1;
 	wire rawclock125;
 	wire clock125;
-	wire pll_locked;
 	simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm_125 (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
@@ -110,7 +113,6 @@ module top #(
 	end
 	reg [LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD-1:0] aword = TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 	reg [1:0] wstate = 0;
-	reg write_strobe = 0;
 	wire [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] write_data_word;
 	reg [BUS_WIDTH-1:0] write_data [TRANSACTIONS_PER_DATA_WORD-1:0];
 	for (i=0; i<TRANSACTIONS_PER_DATA_WORD; i=i+1) begin : write_data_array
@@ -363,23 +365,29 @@ module top #(
 	end
 //	wire pll_oserdes_locked;
 //		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
-	wire pll_oserdes_locked_1;
-	wire pll_oserdes_locked_2;
 	wire sync_read_address;
 	ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
 		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
 		.word3_in(oserdes_word), .word2_in(oserdes_word), .word1_in(oserdes_word), .word0_in(oserdes_word),
 		.D3_out(coax[3]), .D2_out(), .D1_out(), .D0_out(coax[0]));
-	assign coax_led = 4'b1001;
 	assign coax[1] = enable;
 	assign coax[2] = 0;
-	if (0) begin
-		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE1("n")) mylei2 (
+	assign coax_led = 4'b1001;
+	//assign coax_led = reset_counter;
+	if (0) begin // to test the rpi interface to the read/write pollable memory
+		assign coax[4] = enable; // scope trigger
+		assign coax[5] = write_strobe;
+		assign pll_oserdes_locked_2 = 1;
+	end else if (0) begin // to put the oserdes outputs on coax[4] and coax[5]
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei2 (
 			.clock_in(clock125), .reset(reset125), .word_clock_out(),
 			.word1_in(oserdes_word), .D1_out(coax[5]),
 			.word0_in(oserdes_word), .D0_out(coax[4]),
+			.bit_clock(), .bit_strobe(),
 			.locked(pll_oserdes_locked_2));
 		assign sync_read_address = 0;
+//	wire pll_oserdes_locked;
+//		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
 	end else if (0) begin
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE("n")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[5]), .locked(pll_oserdes_locked_2));
 		assign coax[4] = sync_out_stream[2]; // scope trigger
@@ -387,12 +395,11 @@ module top #(
 	end else if (0) begin
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
 		assign sync_read_address = coax[5];
-	end else begin
+	end else begin // to synchronize the coax outputs and to trigger the scope on that synchronization
+		assign coax[4] = sync_out_stream[2]; // scope trigger
+		assign sync_read_address = coax[5]; // an input to synchronize to an external event
 		assign pll_oserdes_locked_2 = 1;
-		assign sync_read_address = coax[5];
-//		assign coax[4] = sync_out_stream[2]; // scope trigger
 	end
-	assign coax[4] = enable; // scope trigger
 	wire [31:0] start_read_address = 32'd0; // in 2-bit words
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
 	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
@@ -424,15 +431,19 @@ module top #(
 		assign led[2] = ~pll_oserdes_locked_2;
 		assign led[1] = 0;
 		assign led[0] = 0;
+	end else if (0) begin
+		assign led = counter50[23:16];
 	end else if (1) begin
-		assign led[7] = ~pll_locked;
-		assign led[6] = ~pll_oserdes_locked_1;
-		assign led[5] = ~pll_oserdes_locked_2;
+		assign led[7] = reset50;
+		assign led[6] = ~pll_locked;
+		assign led[5] = reset125;
+		assign led[4] = ~pll_oserdes_locked_1;
 		//assign led[5] = checksum;
 		//assign led[5] = |all_errors;
 		//assign led[5] = |read_errors;
-		assign led[4] = ack_valid;
-		assign led[3] = write_strobe;
+//		assign led[3] = write_strobe;
+//		assign led[3] = reset;
+		assign led[3] = ack_valid;
 		assign led[2] = read;
 		assign led[1] = enable;
 		assign led[0] = register_select;
@@ -786,6 +797,7 @@ module myalthea (
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 	wire clock10 = 0;
 	top #(
+		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
