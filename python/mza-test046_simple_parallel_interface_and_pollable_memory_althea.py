@@ -2,7 +2,7 @@
 
 # written 2020-06-20 by mza
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2021-02-25 by mza
+# last updated 2021-03-16 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -104,8 +104,11 @@ if 0:
 	althea.reset_pulse()
 	time.sleep(0.1)
 
-if 1:
+if 0:
 	althea.setup_half_duplex_bus("test046")
+
+if 1:
+	althea.setup_half_duplex_bus("test049")
 
 if 0:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
