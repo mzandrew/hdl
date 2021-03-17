@@ -1,23 +1,13 @@
 // written 2020-10-05 by mza
 // based on mza-test046.simple-parallel-interface-and-pollable-memory.althea.revB.v
-// last updated 2021-03-16 by mza
+// last updated 2021-03-17 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
 `include "lib/RAM8.v"
 `include "lib/dcm.v"
-//`include "lib/spi.v"
 `include "lib/serdes_pll.v"
-//`include "lib/reset.v"
-//`include "lib/frequency_counter.v"
-//`include "lib/axi4lite.v"
-//`include "lib/segmented_display_driver.v"
-//`include "lib/synchronizer.v"
 `include "lib/half_duplex_rpi_bus.v"
-
-//`define USE_INFERRED_RAM_16
-//`define USE_BRAM_512
-//`define USE_BRAM_4K
 
 module top #(
 	parameter BUS_WIDTH = 16,
@@ -26,7 +16,6 @@ module top #(
 	parameter LOG2_OF_TRANSACTIONS_PER_DATA_WORD = $clog2(TRANSACTIONS_PER_DATA_WORD),
 	parameter BUS_WIDTH_OSERDES = 8,
 	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
-	parameter LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD = $clog2(TRANSACTIONS_PER_ADDRESS_WORD),
 	parameter ADDRESS_DEPTH = 14,
 	parameter OSERDES_DATA_WIDTH = 8,
 	parameter LOG2_OF_OSERDES_DATA_WIDTH = $clog2(OSERDES_DATA_WIDTH),
@@ -53,10 +42,6 @@ module top #(
 	output [7:0] led
 );
 	genvar i;
-//	for (i=0; i<4; i=i+1) begin : diff_pair_array
-//		assign diff_pair_left[i]  = 0; // b_n, b_p, e_n, e_p
-//		assign diff_pair_right[i] = 0; // h_n, h_p, k_n, k_p
-//	end
 	wire pll_locked;
 	wire pll_oserdes_locked_1;
 	wire pll_oserdes_locked_2;
@@ -66,7 +51,7 @@ module top #(
 	assign diff_pair_left[0] = write_strobe;         // b_n
 	assign diff_pair_right[0] = read;            // k_p
 	assign diff_pair_right[1] = register_select; // k_n
-	assign diff_pair_right[3] = ack_valid;   // h_n
+	assign diff_pair_right[3] = ack_valid;       // h_n
 	assign diff_pair_right[2] = enable;          // h_p
 	assign diff_pair_left[11:4] = bus[15:8]; // a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p
 	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
@@ -74,7 +59,6 @@ module top #(
 		assign single_ended_left[i] = 0;
 		assign single_ended_right[i] = 0;
 	end
-//	reg checksum = 0;
 	// ----------------------------------------------------------------------
 	reg [3:0] reset_counter = 0; // this counts how many times the reset input gets pulsed
 	localparam RESET_PIPELINE_PICKOFF = 5;
@@ -83,9 +67,6 @@ module top #(
 	reg reset100 = 1;
 	wire reset_half_duplex_rpi_bus = reset_pipeline125[RESET_PIPELINE_PICKOFF] || reset100_pipeline125[2] || ~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF];
 	wire clock100;
-//	wire clock100b;
-//	IBUFGDS_DIFF_OUT ibgdsdo (.I(clock100_p), .IB(clock100_n), .O(clock100), .OB(clock100b));
-//	ODDR2 drmario (.C0(clock100), .C1(clock100b), .CE(1'b1), .D0(1'b0), .D1(1'b1), .R(1'b0), .S(1'b0), .Q(coax[5]));
 	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	wire rawclock125;
 	wire clock125;
@@ -101,10 +82,6 @@ module top #(
 		end else if (reset_pipeline100[RESET_PIPELINE_PICKOFF]) begin
 			counter100 <= 0;
 			reset100 <= 1;
-//		end else if (reset100) begin
-//		if (reset) begin
-//			counter100 <= 0;
-//			reset100 <= 1;
 		end else begin
 			if (reset100) begin
 				if (counter100[COUNTER100_BIT_PICKOFF]) begin
@@ -168,8 +145,6 @@ module top #(
 	wire word_clock;
 	wire [BUS_WIDTH_OSERDES-1:0] oserdes_word;
 	reg [ADDRESS_DEPTH_OSERDES-1:0] read_address = 0; // in 8-bit words
-//	wire [13:0] read_address14 = read_address[13:0]; // in 8-bit words
-//	wire [11:0] address12 = address_word_narrow[11:0]; // in 32-bit words
 	if (0) begin
 		RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset125),
 			.wclk(clock), .waddr(address_word_narrow), .din(write_data_word), .write_en(write_strobe),
@@ -252,42 +227,15 @@ module top #(
 		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
 	// ----------------------------------------------------------------------
-	if (0) begin
-		assign led[7] = reset;
-		assign led[6] = reset100;
-		assign led[5] = reset125;
-		assign led[4] = ~pll_locked;
-		assign led[3] = ~pll_oserdes_locked_1;
-		assign led[2] = ~pll_oserdes_locked_2;
-		assign led[1] = 0;
-		assign led[0] = 0;
-	end else if (0) begin
-		assign led = counter100[23:16];
-	end else if (1) begin
+	if (1) begin
 		assign led[7] = reset100;
 		assign led[6] = ~pll_locked;
 		assign led[5] = reset125;
 		assign led[4] = ~pll_oserdes_locked_1;
-		//assign led[5] = checksum;
-		//assign led[5] = |all_errors;
-		//assign led[5] = |read_errors;
-//		assign led[3] = write_strobe;
-//		assign led[3] = reset;
 		assign led[3] = ack_valid;
 		assign led[2] = read;
 		assign led[1] = enable;
 		assign led[0] = register_select;
-	end else begin
-//		assign led[7:6] = address_errors[1:0];
-//		assign led[5:4] = write_errors[1:0];
-//		assign led[3:2] = read_errors[1:0];
-		assign led[1:0] = reset_counter[1:0];
-		//assign led[7] = |all_errors[31:7];
-		//assign led[6:0] = all_errors[6:0];
-		//assign led = address[1];
-		//assign led = address[0];
-		//assign led = write_data[1];
-		//assign led = write_data[0];
 	end
 	initial begin
 		#100;
