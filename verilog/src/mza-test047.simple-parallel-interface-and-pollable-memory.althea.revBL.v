@@ -65,7 +65,6 @@ module top #(
 	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline100 = 0;
 	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline125 = 0;
 	reg reset100 = 1;
-	wire reset_half_duplex_rpi_bus = reset_pipeline125[RESET_PIPELINE_PICKOFF] || reset100_pipeline125[2] || ~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF];
 	wire clock100;
 	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	wire rawclock125;
@@ -105,7 +104,6 @@ module top #(
 		end
 		pll_locked_pipeline125 <= { pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF-1:0], pll_locked };
 	end
-	// ----------------------------------------------------------------------
 	wire resettt = reset_pipeline125[RESET_PIPELINE_PICKOFF] || reset100_pipeline125[2] || ~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF];
 	reg [COUNTER125_BIT_PICKOFF:0] counter125 = 0;
 	reg reset125 = 1;
