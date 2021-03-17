@@ -8,8 +8,8 @@
 
 ##source [find interface/raspberrypi2-native.cfg]
 adapter driver bcm2835gpio
-#bcm2835gpio_peripheral_base 0x20000000; # rpi1
-bcm2835gpio_peripheral_base 0x3F000000; # rpi2
+bcm2835gpio_peripheral_base 0x20000000; # rpi1
+#bcm2835gpio_peripheral_base 0x3F000000; # rpi2
 ##bcm2835gpio_peripheral_base 0x3E000000; # ?
 ##bcm2835gpio_peripheral_base 0xFE000000; # rpi4
 #bcm2835gpio_speed_coeffs 113714 28; # Raspi1 BCM2835: (700Mhz)
@@ -39,7 +39,7 @@ init
 xc6s_program xc6s.tap
 #xc6s_print_dna xc6s.tap
 jtagspi_init 0 contrib/bscan_spi_xc6slx9.bit
-jtagspi_program mza_test046_simple_parallel_interface_and_pollable_memory_althea/myalthea.bin 0
+jtagspi_program mza-test049.simple-parallel-interface-and-pollable-memory.althea.revB.rpi1-26pin/myalthea.bin 0
 xc6s_program xc6s.tap
 
 exit
