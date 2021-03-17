@@ -25,7 +25,10 @@ module half_duplex_rpi_bus #(
 	parameter LOG2_OF_TRANSACTIONS_PER_DATA_WORD = $clog2(TRANSACTIONS_PER_DATA_WORD),
 	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
 	parameter LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD = $clog2(TRANSACTIONS_PER_ADDRESS_WORD),
-	parameter ADDRESS_AUTOINCREMENT_MODE = 1
+	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
+	parameter ANTI_META = 2,
+	parameter GAP = 0,
+	parameter EXTRA_PICKOFF = 0
 ) (
 	input clock,
 	input reset,
@@ -39,11 +42,8 @@ module half_duplex_rpi_bus #(
 	input [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word,
 	output reg [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_reg = 0
 );
-	localparam ANTI_META = 2;
-	localparam GAP = 0;
-	localparam EXTRA_PICKOFF = 0;
-	localparam OTHER_PICKOFF                    = ANTI_META                 + EXTRA_PICKOFF;
-	localparam ENABLE_PIPELINE_PICKOFF          =             OTHER_PICKOFF                 + GAP;
+	localparam OTHER_PICKOFF                    = ANTI_META + EXTRA_PICKOFF;
+	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + GAP;
 	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
 	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
 	localparam BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF;
