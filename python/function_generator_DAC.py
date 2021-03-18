@@ -30,13 +30,13 @@ def prepare_waveform_for_upload_to_DAC(values):
 	for i in range(len(values)):
 		if 0==i%8:
 			word64 = 0
-		partial = (values[i]%DAC_MAX)<<(8-DAC_bits+8*(i%8))
+		partial = values[i]<<(8-DAC_bits+8*(7-i%8))
 		#print(hex(partial, 16))
 		word64 |= partial
 		if 7==i%8:
 			#print(" " + hex(word64, 16))
-			waveform.append(word64>>32)
 			waveform.append(word64&0xffffffff)
+			waveform.append(word64>>32)
 	#print("len(waveform) = " + str(len(waveform)))
 	return waveform
 
