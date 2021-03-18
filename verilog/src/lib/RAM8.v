@@ -943,6 +943,59 @@ endmodule
 //	RAM_s6_8k_16bit_8bit mem (.reset(),
 //		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
 //		.clock_b(), .address_b(), .data_out_b());
+module RAM_s6_8k_16bit_32bit (
+	input reset,
+	input clock_a,
+	input [12:0] address_a,
+	input [15:0] data_in_a,
+	input write_enable_a,
+	output [15:0] data_out_a,
+	input clock_b,
+	input [11:0] address_b,
+	output [31:0] data_out_b
+);
+	wire [15:0] data_out_a_array [7:0];
+	wire [31:0] data_out_b_array [7:0];
+	wire [7:0] write_enable_a_array;
+	genvar i;
+	for (i=0; i<8; i=i+1) begin : mem_array
+		RAM_s6_1k_16bit_32bit mem (.reset(reset),
+			.clock_a(clock_a), .address_a(address_a[9:0]), .data_in_a(data_in_a), .write_enable_a(write_enable_a_array[i]), .data_out_a(data_out_a_array[i]),
+			.clock_b(clock_b), .address_b(address_b[8:0]), .data_out_b(data_out_b_array[i]));
+	end
+	reg [2:0] buffered_sel_a_0 = 0;
+	reg [2:0] buffered_sel_b_0 = 0;
+	wire [15:0] buffered_data_out_a_0;
+	wire [31:0] buffered_data_out_b_0;
+	reg [15:0] buffered_data_out_a_1 = 0;
+	reg [31:0] buffered_data_out_b_1 = 0;
+	always @(posedge clock_a) begin
+		buffered_sel_a_0 <= address_a[12:10];
+		buffered_data_out_a_1 <= buffered_data_out_a_0;
+	end
+	always @(posedge clock_b) begin
+		buffered_sel_b_0 <= address_b[11:9];
+		buffered_data_out_b_1 <= buffered_data_out_b_0;
+	end
+	assign data_out_a = buffered_data_out_a_1;
+	assign data_out_b = buffered_data_out_b_1;
+	mux_8to1 #(.WIDTH(16)) db_a (
+		.in0(data_out_a_array[0]), .in1(data_out_a_array[1]), .in2(data_out_a_array[2]), .in3(data_out_a_array[3]),
+		.in4(data_out_a_array[4]), .in5(data_out_a_array[5]), .in6(data_out_a_array[6]), .in7(data_out_a_array[7]),
+		.sel(buffered_sel_a_0), .out(buffered_data_out_a_0));
+	mux_8to1 #(.WIDTH(32)) db_b (
+		.in0(data_out_b_array[0]), .in1(data_out_b_array[1]), .in2(data_out_b_array[2]), .in3(data_out_b_array[3]),
+		.in4(data_out_b_array[4]), .in5(data_out_b_array[5]), .in6(data_out_b_array[6]), .in7(data_out_b_array[7]),
+		.sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
+	demux_1to8 we (
+		.in(write_enable_a), .sel(address_a[12:10]),
+		.out0(write_enable_a_array[0]), .out1(write_enable_a_array[1]), .out2(write_enable_a_array[2]), .out3(write_enable_a_array[3]),
+		.out4(write_enable_a_array[4]), .out5(write_enable_a_array[5]), .out6(write_enable_a_array[6]), .out7(write_enable_a_array[7]));
+endmodule
+
+//	RAM_s6_8k_16bit_8bit mem (.reset(),
+//		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
+//		.clock_b(), .address_b(), .data_out_b());
 module RAM_s6_8k_16bit_8bit (
 	input reset,
 	input clock_a,
@@ -970,7 +1023,7 @@ module RAM_s6_8k_16bit_8bit (
 	reg [15:0] buffered_data_out_a_1 = 0;
 	reg [7:0] buffered_data_out_b_1 = 0;
 	always @(posedge clock_a) begin
-		buffered_sel_a_0 <= address_a[11:9];
+		buffered_sel_a_0 <= address_a[12:10];
 		buffered_data_out_a_1 <= buffered_data_out_a_0;
 	end
 	always @(posedge clock_b) begin
@@ -1065,6 +1118,96 @@ module RAM_s6_512_32bit_8bit #(
 		.WEA(write_enable_4), // 4-bit input: Port A byte-wide write enable input
 		// Port A Data: 32-bit (each) input: Port A data
 		.DIA(data_in_a), // 32-bit input: A port data input
+		.DIPA(4'h0), // 4-bit input: A port parity input
+		// Port B Address/Control Signals: 14-bit (each) input: Port B address and control signals
+		.ADDRB(address_b_14), // 14-bit input: B port address input
+		.CLKB(clock_b), // 1-bit input: B port clock input
+		.ENB(1'b1), // 1-bit input: B port enable input
+		.REGCEB(1'b0), // 1-bit input: B port register clock enable input
+		.RSTB(1'b0), // 1-bit input: B port register set/reset input
+		.WEB(4'h0), // 4-bit input: Port B byte-wide write enable input
+		// Port B Data: 32-bit (each) input: Port B data
+		.DIB(32'd0), // 32-bit input: B port data input
+		.DIPB(4'h0) // 4-bit input: B port parity input
+	);
+endmodule
+
+//RAM_s6_1k_16bit_32bit mem (.reset(),
+//	.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
+//	.clock_b(), .address_b(), .data_out_b());
+// RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
+module RAM_s6_1k_16bit_32bit #(
+	parameter INIT_FILENAME = "NONE"
+) (
+	input reset,
+	input clock_a,
+	input [9:0] address_a,
+	input [15:0] data_in_a,
+	input write_enable_a,
+	output [15:0] data_out_a,
+	input clock_b,
+	input [8:0] address_b,
+	output [31:0] data_out_b
+);
+	wire [13:0] address_a_14;
+	assign address_a_14 = { address_a, 4'b0000 };
+	wire [13:0] address_b_14;
+	assign address_b_14 = { address_b, 5'b00000 };
+	wire [3:0] write_enable_4;
+	assign write_enable_4 = { write_enable_a, write_enable_a, write_enable_a, write_enable_a };
+	wire [31:0] data_in_a_32;
+	assign data_in_a_32 = { 16'd0, data_in_a };
+	wire [31:0] data_out_a_32;
+	assign data_out_a = data_out_a_32[15:0];
+	wire [31:0] data_out_b_32;
+	assign data_out_b = data_out_b_32;
+	RAMB16BWER #(
+		// DATA_WIDTH_A/DATA_WIDTH_B: 0, 1, 2, 4, 9, 18, or 36
+		.DATA_WIDTH_A(18),
+		.DATA_WIDTH_B(36),
+		// DOA_REG/DOB_REG: Optional output register (0 or 1)
+		.DOA_REG(0),
+		.DOB_REG(0),
+		// EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+		.EN_RSTRAM_A("TRUE"),
+		.EN_RSTRAM_B("TRUE"),
+		// INIT_A/INIT_B: Initial values on output port
+//		.INIT_A(36’h000000000),
+//		.INIT_B(36’h000000000),
+		// INIT_FILE: Optional file used to specify initial RAM contents
+		//.INIT_FILE("NONE"),
+		.INIT_FILE(INIT_FILENAME),
+		// RSTTYPE: "SYNC" or "ASYNC"
+		.RSTTYPE("SYNC"),
+		// RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR"
+		.RST_PRIORITY_A("CE"),
+		.RST_PRIORITY_B("CE"),
+		// SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE"
+		.SIM_COLLISION_CHECK("ALL"),
+		// SIM_DEVICE: Must be set to "SPARTAN6" for proper simulation behavior
+		.SIM_DEVICE("SPARTAN6"),
+		// SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+//		.SRVAL_A(36’h000000000),
+//		.SRVAL_B(36’h000000000),
+		// WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE"
+		.WRITE_MODE_A("WRITE_FIRST"),
+		.WRITE_MODE_B("WRITE_FIRST")
+	) RAMB16BWER_inst (
+		// Port A Data: 32-bit (each) output: Port A data
+		.DOA(data_out_a_32), // 32-bit output: A port data output
+		.DOPA(), // 4-bit output: A port parity output
+		// Port B Data: 32-bit (each) output: Port B data
+		.DOB(data_out_b_32), // 32-bit output: B port data output
+		.DOPB(), // 4-bit output: B port parity output
+		// Port A Address/Control Signals: 14-bit (each) input: Port A address and control signals
+		.ADDRA(address_a_14), // 14-bit input: A port address input
+		.CLKA(clock_a), // 1-bit input: A port clock input
+		.ENA(1'b1), // 1-bit input: A port enable input
+		.REGCEA(1'b0), // 1-bit input: A port register clock enable input
+		.RSTA(reset), // 1-bit input: A port register set/reset input
+		.WEA(write_enable_4), // 4-bit input: Port A byte-wide write enable input
+		// Port A Data: 32-bit (each) input: Port A data
+		.DIA(data_in_a_32), // 32-bit input: A port data input
 		.DIPA(4'h0), // 4-bit input: A port parity input
 		// Port B Address/Control Signals: 14-bit (each) input: Port B address and control signals
 		.ADDRB(address_b_14), // 14-bit input: B port address input
