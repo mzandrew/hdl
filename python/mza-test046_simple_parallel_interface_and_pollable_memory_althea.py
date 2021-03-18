@@ -104,10 +104,10 @@ if 0:
 	althea.reset_pulse()
 	time.sleep(0.1)
 
-if 1:
+if 0:
 	althea.setup_half_duplex_bus("test046")
 
-if 0:
+if 1:
 	althea.setup_half_duplex_bus("test049")
 
 if 0:
