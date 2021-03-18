@@ -140,12 +140,16 @@ if 0:
 if 0:
 	althea.test_writing_data_to_half_duplex_bus2()
 
-if 1:
+if 0:
 	values = [ 0 for a in range(2**14) ]
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
 	for i in range(9):
 		time.sleep(0.1)
 		althea.write_csv_values_to_pollable_memory_on_half_duples_bus_and_verify(size, i*RF_buckets, max_count, "bcm.csv", date_string, i)
+
+from function_generator_DAC import *
+if 1:
+	test_function_generator_DAC()
 
 if 0:
 	#print("asdf")
