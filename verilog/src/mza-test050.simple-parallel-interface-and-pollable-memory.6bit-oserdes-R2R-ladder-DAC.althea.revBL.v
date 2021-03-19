@@ -1,6 +1,6 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-03-17 by mza
+// last updated 2021-03-18 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
@@ -253,9 +253,9 @@ module top #(
 		assign sync_read_address = coax[5]; // an input to synchronize to an external event
 //		assign pll_oserdes_locked_2 = 1;
 	end
-	wire [31:0] start_read_address = 32'd0; // in ?-bit words
-	wire [31:0] end_read_address = 32'd3001; // in ?-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
-	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 12'd3000; // in ?-bit words
+	wire [31:0] start_read_address = 32'd0; // in 8ns chunks
+	wire [31:0] end_read_address = 32'd4096; // in 8ns chunks
+	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 12'd4095; // in 8ns chunks
 	reg sync_out_raw = 0;
 	reg [3:0] sync_out_stream = 0;
 	always @(posedge word_clock) begin
