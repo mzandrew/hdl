@@ -4,6 +4,8 @@
 import althea
 import math
 import sys
+import os
+import re
 pi = 4.0*math.atan(45.0)
 sampling_frequency = 1.0e9
 DAC_bits = 6
@@ -14,6 +16,9 @@ default_duty_cycle = 50.0
 default_pulse_duration = 1.0e-9
 
 def prepare_waveform_for_upload_to_DAC(values):
+	if None==values:
+		print("empty array")
+		sys.exit(2)
 	extra = len(values) % 8
 	if not 0==extra:
 		for i in range(extra):
@@ -23,9 +28,9 @@ def prepare_waveform_for_upload_to_DAC(values):
 	#print("len(values) = " + str(len(values)))
 	for i in range(len(values)):
 		if values[i]>=DAC_MAX:
-			values[i] = DAC_MAX - 1
-		elif values[i]<0.0:
-			values[i] = 0.0
+			values[i] = DAC_MAX-1
+		elif values[i]<0:
+			values[i] = 0
 	waveform = []
 	for i in range(len(values)):
 		if 0==i%8:
@@ -150,47 +155,103 @@ def prepare_PMT_waveform_for_upload_to_DAC(desired_frequency, risetime, falltime
 	#print(str(values))
 	return prepare_waveform_for_upload_to_DAC(values)
 
+def read_csv_file(input_filename, amplitude=default_amplitude, offset=default_offset):
+	values = []
+	if os.path.isfile(input_filename):
+		input_file = open(input_filename)
+		lines = input_file.readlines()
+		for line in lines:
+			match = re.search("^([0-9]+),([.\-E0-9]+),([.\-E0-9]+)", line)
+			if match:
+				instance = match.group(1)
+				valuestring = match.group(2)
+				timestring = match.group(3)
+				#print(instance + " " + valuestring + " " + timestring)
+				values.append(float(valuestring))
+	min_value = 1.0
+	max_value = -1.0
+	if len(values)==0:
+		print("no data found in file")
+		return
+	for i in range(len(values)):
+		min_value = min(min_value, values[i])
+		max_value = max(max_value, values[i])
+	#print("min_value: " + str(min_value))
+	#print("max_value: " + str(max_value))
+	diff = max_value - min_value
+	epsilon = 1.0e-7
+	if diff<epsilon:
+#		warning("no data found in file")
+		return
+	#print("diff: " + str(diff))
+	amplitude *= DAC_MAX
+	offset *= DAC_MAX
+	normalization = - 1.0 / diff
+	#print("normalization: " + str(normalization))
+	for i in range(len(values)):
+		values[i] = values[i] - min_value
+	#print(str(values))
+	for i in range(len(values)):
+		values[i] = 1.0 + values[i] * normalization
+	#print(str(values))
+	for i in range(len(values)):
+		values[i] = int(offset + amplitude * values[i])
+	#print(str(values))
+	return values
+
+def read_file_PMT_waveform_for_upload_to_DAC(desired_frequency, amplitude=default_amplitude, offset=default_offset):
+	number_of_samples = sampling_frequency / desired_frequency
+	number_of_samples = int(number_of_samples)
+	values = read_csv_file("../contrib/pulse.csv", amplitude, offset)
+	offset *= DAC_MAX
+	for i in range(len(values), number_of_samples):
+		values.append(int(offset))
+	#print(len(values))
+	#print(str(values))
+	return prepare_waveform_for_upload_to_DAC(values)
+
 def clear_DAC_waveform():
-	values = [ 0 for a in range(2**14) ]
+	values = [ 0 for a in range(2**15) ]
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, prepare_waveform_for_upload_to_DAC(values))
 
 def test_function_generator_DAC():
-	clear_DAC_waveform()
+	#clear_DAC_waveform()
+	#sys.exit(0)
 	everything = []
 	f = 1.0e6
 	waveform = prepare_sine_waveform_for_upload_to_DAC(f, 0.5, 0.5)
 	everything.extend(waveform)
 	everything.extend(waveform)
-	everything.extend(waveform)
-	waveform = prepare_pulse_waveform_for_upload_to_DAC(f, 0.375, 0.125, 1.0e-9)
-	everything.extend(waveform)
+	waveform = prepare_pulse_waveform_for_upload_to_DAC(f, 0.875, 0.125, 1.0e-9)
 	everything.extend(waveform)
 	everything.extend(waveform)
 	waveform = prepare_sawtooth_waveform_for_upload_to_DAC(f, 0.4375, 0.5625, 25.0)
 	everything.extend(waveform)
 	everything.extend(waveform)
-	everything.extend(waveform)
 	waveform = prepare_DC_waveform_for_upload_to_DAC(f, 0.4)
-	everything.extend(waveform)
 	everything.extend(waveform)
 	everything.extend(waveform)
 	waveform = prepare_square_waveform_for_upload_to_DAC(f, 0.3125, 0.125, 42.0)
 	everything.extend(waveform)
 	everything.extend(waveform)
-	everything.extend(waveform)
 	waveform = prepare_sine_waveform_for_upload_to_DAC(f, 0.25, 0.5)
 	everything.extend(waveform)
 	everything.extend(waveform)
+	waveform = read_file_PMT_waveform_for_upload_to_DAC(f, 0.9, 0.1)
+	everything.extend(waveform)
 	everything.extend(waveform)
 	waveform = prepare_RAMP_waveform_for_upload_to_DAC(f, 0.25, 0.75)
-	everything.extend(waveform)
 	everything.extend(waveform)
 	everything.extend(waveform)
 	#waveform = prepare_PMT_waveform_for_upload_to_DAC(f, 3.8e-9, 10e-9, 0.9, 0.1)
 	waveform = prepare_PMT_waveform_for_upload_to_DAC(f, 30.0e-9, 80.0e-9, 0.9, 0.1)
 	everything.extend(waveform)
 	everything.extend(waveform)
-	everything.extend(waveform)
 	#print("len(everything) = " + str(len(everything)))
+	waveform = prepare_DC_waveform_for_upload_to_DAC(f, 0.7)
+	chunks = int(4.0*(2**13 - len(everything)) / (sampling_frequency / f))
+	print(str(chunks))
+	for i in range(chunks):
+		everything.extend(waveform)
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
 
