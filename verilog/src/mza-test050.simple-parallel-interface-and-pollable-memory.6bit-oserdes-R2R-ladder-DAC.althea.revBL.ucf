@@ -1,7 +1,7 @@
 # written 2020-10-05 by mza
 # based off of mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.ucf
 # for an althea revBL
-# last updated 2021-03-17 by mza
+# last updated 2021-03-22 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
@@ -34,12 +34,12 @@ net e_n loc=p133 | iostandard=lvcmos33; # E- bank0 TL
 net e_p loc=p134 | iostandard=lvcmos33; # E+ bank0 TL
 
 # third column, on left side of board
-net z loc=p17  | iostandard=lvcmos33; # Z bank3 TL
-net y loc=p15  | iostandard=lvcmos33; # Y bank3 TL
-net x loc=p12  | iostandard=lvcmos33; # X bank3 TL
-net w loc=p10  | iostandard=lvcmos33; # W bank3 TL
-net v loc=p8   | iostandard=lvcmos33; # V bank3 TL
-net u loc=p2   | iostandard=lvcmos33; # U bank3 TL
+net z loc=p17  | iostandard=lvcmos33 | drive = 24 | slew = slow; # Z bank3 TL
+net y loc=p15  | iostandard=lvcmos33 | drive = 24 | slew = slow; # Y bank3 TL
+net x loc=p12  | iostandard=lvcmos33 | drive = 24 | slew = slow; # X bank3 TL
+net w loc=p10  | iostandard=lvcmos33 | drive = 24 | slew = slow; # W bank3 TL
+net v loc=p8   | iostandard=lvcmos33 | drive = 24 | slew = slow; # V bank3 TL
+net u loc=p2   | iostandard=lvcmos33 | drive = 24 | slew = slow; # U bank3 TL
 
 # first column, closest to FPGA on right side of board
 net m_p loc=p58  | iostandard=lvcmos33; # M+ bank2 BR
@@ -58,12 +58,12 @@ net h_p loc=p44  | iostandard=lvcmos33; # H+ bank2 BL
 net h_n loc=p43  | iostandard=lvcmos33; # H- bank2 BL
 
 # third column, on right side of board
-net n loc=p30  | iostandard=lvcmos33; # N bank3 TL
-net p loc=p35  | iostandard=lvcmos33; # P bank3 TL
-net q loc=p22  | iostandard=lvcmos33; # Q bank3 TL - differs from althea revB
-net r loc=p27  | iostandard=lvcmos33; # R bank3 TL
-net s loc=p24  | iostandard=lvcmos33; # S bank3 TL
-net t loc=p50  | iostandard=lvcmos33; # T bank2 ?? - differs from althea revB - 8 bit serdes conflicts with use of rpi_gpio6_gpclk2
+net n loc=p30  | iostandard=lvcmos33 | drive = 24 | slew = slow; # N bank3 TL
+net p loc=p35  | iostandard=lvcmos33 | drive = 24 | slew = slow; # P bank3 TL
+net q loc=p22  | iostandard=lvcmos33 | drive = 24 | slew = slow; # Q bank3 TL - differs from althea revB
+net r loc=p27  | iostandard=lvcmos33 | drive = 24 | slew = slow; # R bank3 TL
+net s loc=p24  | iostandard=lvcmos33 | drive = 24 | slew = slow; # S bank3 TL
+net t loc=p50  | iostandard=lvcmos33 | drive = 24 | slew = slow; # T bank2 ?? - differs from althea revB - 8 bit serdes conflicts with use of rpi_gpio6_gpclk2
 
 # raspberry pi 40pin headers, general purpose IO:
 net rpi_gpio2_i2c1_sda  loc=p138 | iostandard=lvcmos33 | drive = 4; # bank0 broadcom i2c peripheral
@@ -106,14 +106,16 @@ net rpi_gpio26          loc=p62  | iostandard=lvcmos33 | drive = 4; # bank2 - di
 net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3 - on same p/n pair as U
 
 # array of 8 LEDs:
-#net led<0> loc=p29 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as N
-#net led<1> loc=p26 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as R
-#net led<2> loc=p23 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as S
-#net led<3> loc=p21 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as Q
-net led<4> loc=p16 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as Z
-net led<5> loc=p14 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as Y
-net led<6> loc=p11 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as X
-net led<7> loc=p9  | iostandard=lvcmos33 | drive = 2; # on same p/n pair as W
+# available when LEFT_DAC mode is used:
+net led<0> loc=p29 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as N
+net led<1> loc=p26 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as R
+net led<2> loc=p23 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as S
+net led<3> loc=p21 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as Q
+# available when RIGHT_DAC mode is used:
+#net led<4> loc=p16 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as Z
+#net led<5> loc=p14 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as Y
+#net led<6> loc=p11 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as X
+#net led<7> loc=p9  | iostandard=lvcmos33 | drive = 2; # on same p/n pair as W
 
 # 4 more LEDs, one next to each of the first 4 coax connectors:
 net coax_led<0> loc=p102 | iostandard=lvcmos33; # differs from althea revB

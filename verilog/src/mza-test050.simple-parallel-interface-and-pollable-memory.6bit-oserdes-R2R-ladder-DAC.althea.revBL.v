@@ -1,6 +1,6 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-03-18 by mza
+// last updated 2021-03-22 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
@@ -21,6 +21,7 @@ module top #(
 	parameter LOG2_OF_OSERDES_DATA_WIDTH = $clog2(OSERDES_DATA_WIDTH),
 	parameter ADDRESS_DEPTH_OSERDES = ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
+	parameter LEFT_DAC = 1,
 	parameter TESTBENCH = 0,
 	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
 	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 5 : 23
@@ -39,8 +40,7 @@ module top #(
 	output [5:0] single_ended_left,
 	output [5:0] single_ended_right,
 	output [3:0] coax_led,
-	output [7:4] led
-	//output [3:0] led
+	output [7-LEFT_DAC*4:4-LEFT_DAC*4] led
 );
 	wire reset;
 	genvar i;
@@ -197,7 +197,7 @@ module top #(
 		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
 		.word3_in(oserdes_word_for_DACbit[3]), .word2_in(oserdes_word_for_DACbit[2]), .word1_in(oserdes_word_for_DACbit[1]), .word0_in(oserdes_word_for_DACbit[0]),
 		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
-	if (1) begin
+	if (0==LEFT_DAC) begin
 		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei6 (
 			.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock2), .locked(pll_oserdes_locked_2),
 			.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
@@ -217,9 +217,14 @@ module top #(
 			.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
 			.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
 			.word1_in(oserdes_word_for_DACbit[3]), .word0_in(oserdes_word_for_DACbit[2]),
-			.D5_out(single_ended_left[5]), .D4_out(single_ended_left[4]),
-			.D3_out(single_ended_left[3]), .D2_out(single_ended_left[2]),
-			.D1_out(single_ended_left[1]), .D0_out(single_ended_left[0]));
+			// for the case of the DAC board's outputs facing the same direction as the coax[0-3] outputs:
+			//.D5_out(single_ended_left[5]), .D4_out(single_ended_left[4]),
+			//.D3_out(single_ended_left[3]), .D2_out(single_ended_left[2]),
+			//.D1_out(single_ended_left[1]), .D0_out(single_ended_left[0]));
+			// for the case of the DAC board's outputs facing the opposite direction as the coax[0-3] outputs (the rotated case):
+			.D5_out(single_ended_left[0]), .D4_out(single_ended_left[1]),
+			.D3_out(single_ended_left[2]), .D2_out(single_ended_left[3]),
+			.D1_out(single_ended_left[4]), .D0_out(single_ended_left[5]));
 		for (i=0; i<6; i=i+1) begin : single_ended_array
 			assign single_ended_right[i] = 0;
 		end
@@ -275,7 +280,7 @@ module top #(
 		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
 	// ----------------------------------------------------------------------
-	if (1) begin
+	if (0==LEFT_DAC) begin
 		assign led[7] = ~pll_locked;
 		assign led[6] = ~pll_oserdes_locked_1;
 		assign led[5] = ~pll_oserdes_locked_2;
@@ -593,7 +598,9 @@ module top_tb;
 	end
 endmodule
 
-module myalthea (
+module myalthea #(
+	localparam LEFT_DAC = 1
+) (
 	input clock100_p, clock100_n,
 	inout [5:0] coax,
 	// other IOs:
@@ -618,8 +625,7 @@ module myalthea (
 	// other IOs:
 	input button, // reset
 	output [3:0] coax_led,
-	output [7:4] led
-	//output [3:0] led
+	output [7-LEFT_DAC*4:4-LEFT_DAC*4] led
 );
 	localparam BUS_WIDTH = 16;
 	localparam ADDRESS_DEPTH = 13;
@@ -628,6 +634,7 @@ module myalthea (
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 	wire clock10 = 0;
 	top #(
+		.LEFT_DAC(LEFT_DAC),
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
