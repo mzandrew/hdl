@@ -149,6 +149,15 @@ if 0:
 
 from function_generator_DAC import *
 if 1:
+	#clear_DAC_waveform()
+	everything = []
+	f = 1.0e6
+	waveform = prepare_sawtooth_waveform_for_upload_to_DAC(f, 1.0, 0.0, 50.0)
+	everything.extend(waveform)
+	everything = fill_up_the_rest_with(everything, prepare_DC_waveform_for_upload_to_DAC(f, 0.0))
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
+
+if 0:
 	test_function_generator_DAC()
 
 if 0:
