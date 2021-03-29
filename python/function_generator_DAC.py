@@ -224,6 +224,32 @@ def fill_up_the_rest_with(everything, waveform):
 		everything.extend(waveform)
 	return everything
 
+def generate_DAC_list_from_csv_values(length, scaling, input_filename, date_string, offset, amplitude):
+	# scaling is the number of samples per RF_bucket (usually 2)
+	length = int(length)
+	data_list = [ 0 for d in range(scaling*length) ]
+	csv_list = althea.read_csv(input_filename, date_string, length) # the bcm files are fixed format, having 5120 values on each line
+	#print(str(csv_list))
+	csv_list = althea.normalize_csv_data(csv_list, DAC_MAX)
+	#print(str(csv_list))
+	# csv_list has an integer entry for each RF_bucket as a time series
+	offset *= DAC_MAX
+	for i in range(len(data_list)):
+		#data_list[i] = int(offset + amplitude * csv_list[i//scaling])
+		data_list[i] = int(offset + amplitude * csv_list[i])
+		#print(csv_list[i//scaling])
+	#print(str(data_list))
+#	if len(data_list)<scaling*length:
+#		for i in range(len(data_list), scaling*length):
+#			data_list.append(int(offset))
+	#print(str(data_list))
+	return prepare_waveform_for_upload_to_DAC(data_list)
+
+def write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(length, offset, scaling, input_filename, date_string, DAC_offset, DAC_amplitude):
+	data_list = generate_DAC_list_from_csv_values(length, scaling, input_filename, date_string, DAC_offset, DAC_amplitude)
+	offset = offset//2
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(offset, data_list)
+
 def test_function_generator_DAC():
 	#clear_DAC_waveform()
 	#sys.exit(0)

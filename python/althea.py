@@ -893,7 +893,7 @@ def test_writing_data_to_half_duplex_bus():
 	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
 	half_duplex_bus.increment_user_errors(errors)
 
-def write_csv_values_to_pollable_memory_on_half_duples_bus_and_verify(length, offset, max_count, input_filename, date_string, max_for_normalization=6.0):
+def write_csv_values_to_pollable_memory_on_half_duplex_bus_and_verify(length, offset, max_count, input_filename, date_string, max_for_normalization=6.0):
 	data_list = generate_pulsetrain_list_from_csv_values(length, max_count, input_filename, date_string, max_for_normalization)
 	offset = int(offset/16.0)
 	write_data_to_pollable_memory_on_half_duplex_bus(offset, data_list)

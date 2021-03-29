@@ -145,7 +145,7 @@ if 0:
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
 	for i in range(9):
 		time.sleep(0.1)
-		althea.write_csv_values_to_pollable_memory_on_half_duples_bus_and_verify(size, i*RF_buckets, max_count, "bcm.csv", date_string, i)
+		althea.write_csv_values_to_pollable_memory_on_half_duplex_bus_and_verify(size, i*RF_buckets, max_count, "bcm.csv", date_string, i)
 
 from function_generator_DAC import *
 
@@ -158,8 +158,17 @@ if 0:
 if 0:
 	test_function_generator_DAC_3()
 
-if 1:
+if 0:
 	test_function_generator_DAC_4()
+
+if 1:
+	clear_DAC_waveform()
+	offset = 23/64
+	amplitude = 20/64
+	for i in range(3):
+		time.sleep(0.1)
+		write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(RF_buckets, i*RF_buckets, scaling, "bcm.csv", date_string, offset, (i+1)*amplitude)
+	#write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(6, 0, scaling, "bcm.csv", date_string, offset, amplitude)
 
 if 0:
 	#print("asdf")
