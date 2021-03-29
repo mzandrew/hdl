@@ -1,7 +1,7 @@
 # written 2020-10-05 by mza
 # based off of mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.ucf
 # for an althea revBL
-# last updated 2021-03-22 by mza
+# last updated 2021-03-29 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
@@ -39,7 +39,7 @@ net y loc=p15  | iostandard=lvcmos33 | drive = 24 | slew = slow; # Y bank3 TL
 net x loc=p12  | iostandard=lvcmos33 | drive = 24 | slew = slow; # X bank3 TL
 net w loc=p10  | iostandard=lvcmos33 | drive = 24 | slew = slow; # W bank3 TL
 net v loc=p8   | iostandard=lvcmos33 | drive = 24 | slew = slow; # V bank3 TL
-net u loc=p2   | iostandard=lvcmos33 | drive = 24 | slew = slow; # U bank3 TL
+net u loc=p2   | iostandard=lvcmos33 | drive = 24 | slew = slow; # U bank3 TL - conflicts with button when using 8 bit serdes
 
 # first column, closest to FPGA on right side of board
 net m_p loc=p58  | iostandard=lvcmos33; # M+ bank2 BR
@@ -70,7 +70,7 @@ net rpi_gpio2_i2c1_sda  loc=p138 | iostandard=lvcmos33 | drive = 4; # bank0 broa
 net rpi_gpio3_i2c1_scl  loc=p137 | iostandard=lvcmos33 | drive = 4; # bank0 broadcom i2c peripheral
 net rpi_gpio4_gpclk0    loc=p88  | iostandard=lvcmos33 | drive = 4; # bank1 broadcom gpclk peripheral - differs from althea revB
 net rpi_gpio5           loc=p66  | iostandard=lvcmos33 | drive = 4; # bank2
-net rpi_gpio6_gpclk2    loc=p51  | iostandard=lvcmos33 | drive = 4; # bank2 broadcom gpclk peripheral - on same p/n pair as T
+net rpi_gpio6_gpclk2    loc=p51  | iostandard=lvcmos33 | drive = 4; # bank2 broadcom gpclk peripheral - conflict - on same p/n pair as T
 net rpi_gpio7_spi_ce1   loc=p80  | iostandard=lvcmos33 | drive = 4; # bank1 broadcom spi peripheral
 net rpi_gpio8_spi_ce0   loc=p82  | iostandard=lvcmos33 | drive = 4; # bank1 broadcom spi peripheral
 net rpi_gpio9_spi_miso  loc=p112 | iostandard=lvcmos33 | drive = 4; # bank0 broadcom spi peripheral
@@ -103,14 +103,14 @@ net rpi_gpio26          loc=p62  | iostandard=lvcmos33 | drive = 4; # bank2 - di
 #net rot_8 loc=p120 | iostandard=lvcmos33 | pullup; # bank0 - differs from althea revB
 
 # momentary pushbutton, normally open:
-net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3 - on same p/n pair as U
+#net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3 - on same p/n pair as U
 
 # array of 8 LEDs:
 # available when LEFT_DAC mode is used:
-net led<0> loc=p29 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as N
-net led<1> loc=p26 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as R
-net led<2> loc=p23 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as S
-net led<3> loc=p21 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as Q
+#net led<0> loc=p29 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as N
+#net led<1> loc=p26 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as R
+#net led<2> loc=p23 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as S
+#net led<3> loc=p21 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as Q
 # available when RIGHT_DAC mode is used:
 #net led<4> loc=p16 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as Z
 #net led<5> loc=p14 | iostandard=lvcmos33 | drive = 2; # on same p/n pair as Y
