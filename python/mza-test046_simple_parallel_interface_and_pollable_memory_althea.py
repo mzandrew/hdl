@@ -163,12 +163,11 @@ if 0:
 
 if 1:
 	clear_DAC_waveform()
-	offset = 23/64
-	amplitude = 20/64
+	offset = 25/64
+	amplitude = 18/64
 	for i in range(3):
 		time.sleep(0.1)
-		write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(RF_buckets, i*RF_buckets, scaling, "bcm.csv", date_string, offset, (i+1)*amplitude)
-	#write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(6, 0, scaling, "bcm.csv", date_string, offset, amplitude)
+		write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(RF_buckets, i*RF_buckets, scaling, "bcm.csv", date_string, offset, i*amplitude)
 
 if 0:
 	#print("asdf")
