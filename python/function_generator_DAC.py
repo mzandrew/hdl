@@ -1,5 +1,5 @@
 # written 2021-03-17 by mza
-# last updated 2021-03-24 by mza
+# last updated 2021-03-29 by mza
 
 import althea
 import math
@@ -76,7 +76,7 @@ def prepare_pulse_waveform_for_upload_to_DAC(desired_frequency, amplitude=defaul
 	number_of_samples = sampling_frequency / desired_frequency
 	number_of_samples = int(number_of_samples)
 	#print(str(number_of_samples))
-	number_of_samples_for_pulse = 1.0e-9 / pulse_duration
+	number_of_samples_for_pulse = pulse_duration * sampling_frequency
 	number_of_samples_for_pulse = int(number_of_samples_for_pulse)
 	#print(str(number_of_samples_for_pulse))
 	amplitude *= DAC_MAX
@@ -133,20 +133,21 @@ def prepare_PMT_waveform_for_upload_to_DAC(desired_frequency, risetime, falltime
 	#print(str(number_of_samples))
 	number_of_samples_for_rising = risetime * sampling_frequency
 	number_of_samples_for_rising = int(number_of_samples_for_rising)
-	#print(str(number_of_samples_for_rising))
+	#print("number_of_samples_for_rising: " + str(number_of_samples_for_rising))
 	number_of_samples_for_falling = falltime * sampling_frequency
 	number_of_samples_for_falling = int(number_of_samples_for_falling)
 	#print(str(number_of_samples_for_falling))
 	amplitude *= DAC_MAX
 	offset *= DAC_MAX
 	values = [ 0 for i in range(number_of_samples) ]
-	a = (amplitude-offset) / math.sqrt(number_of_samples_for_rising)
+	peak = offset
+	if number_of_samples_for_rising:
+		a = (amplitude-offset) / math.sqrt(number_of_samples_for_rising)
+		for i in range(number_of_samples_for_rising):
+			values[i] = int(offset + a * math.sqrt(i+1))
+			peak = values[i]
 	tau = number_of_samples_for_falling / math.exp(1.0)
 	#print(str(tau))
-	peak = offset
-	for i in range(number_of_samples_for_rising):
-		values[i] = int(offset + a * math.sqrt(i))
-		peak = values[i]
 	for i in range(number_of_samples_for_rising, number_of_samples_for_rising+number_of_samples_for_falling):
 		j = i - number_of_samples_for_rising
 		values[i] = int(offset + (peak-offset)*math.exp(-j/tau))
@@ -260,5 +261,37 @@ def test_function_generator_DAC():
 	#print("len(everything) = " + str(len(everything)))
 	waveform = prepare_DC_waveform_for_upload_to_DAC(f, 0.6)
 	everything = fill_up_the_rest_with(everything, waveform)
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
+
+def test_function_generator_DAC_2():
+	clear_DAC_waveform()
+	everything = []
+	f = 1.0e8
+	waveform = prepare_sawtooth_waveform_for_upload_to_DAC(f, 1.00, 0.0, 35.0)
+	everything.extend(waveform)
+	everything = fill_up_the_rest_with(everything, prepare_DC_waveform_for_upload_to_DAC(f, 0.0))
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
+
+def test_function_generator_DAC_3():
+	clear_DAC_waveform()
+	everything = []
+	f = 1.0e6
+	waveform = prepare_PMT_waveform_for_upload_to_DAC(f, 1.0e-9, 2.0e-9, 1.0, 0.0)
+	everything.extend(waveform)
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
+
+def test_function_generator_DAC_4():
+	#clear_DAC_waveform()
+	everything = []
+	f = 1.0e6
+	#offset = 0.435 # 0.44 causes it to lase constantly
+	offset = 27/64 # 28/64 causes it to lase constantly
+	#amplitude = 1.0 - offset
+	amplitude = 6/64 # can see a definite pulse at the end of a fiber at 2/64, but 1/64 looks like nothing; 6/64 has a S:N of 1:1
+	duration = 1.0e-9
+	waveform = prepare_DC_waveform_for_upload_to_DAC(f, offset)
+	everything.extend(waveform)
+	waveform = prepare_pulse_waveform_for_upload_to_DAC(f, amplitude, offset, duration)
+	everything.extend(waveform)
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
 

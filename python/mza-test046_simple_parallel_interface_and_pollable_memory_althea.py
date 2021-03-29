@@ -2,7 +2,7 @@
 
 # written 2020-06-20 by mza
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2021-03-16 by mza
+# last updated 2021-03-29 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -148,17 +148,18 @@ if 0:
 		althea.write_csv_values_to_pollable_memory_on_half_duples_bus_and_verify(size, i*RF_buckets, max_count, "bcm.csv", date_string, i)
 
 from function_generator_DAC import *
-if 1:
-	#clear_DAC_waveform()
-	everything = []
-	f = 1.0e6
-	waveform = prepare_sawtooth_waveform_for_upload_to_DAC(f, 1.0, 0.0, 50.0)
-	everything.extend(waveform)
-	everything = fill_up_the_rest_with(everything, prepare_DC_waveform_for_upload_to_DAC(f, 0.0))
-	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
 
 if 0:
-	test_function_generator_DAC()
+	test_function_generator_DAC_1()
+
+if 0:
+	test_function_generator_DAC_2()
+
+if 0:
+	test_function_generator_DAC_3()
+
+if 1:
+	test_function_generator_DAC_4()
 
 if 0:
 	#print("asdf")
