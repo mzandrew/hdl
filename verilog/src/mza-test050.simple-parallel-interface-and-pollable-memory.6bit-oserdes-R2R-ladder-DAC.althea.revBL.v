@@ -61,6 +61,8 @@ module top #(
 //		assign diff_pair_right_n[i] = dpr;
 //		assign diff_pair_left_n[i] = dpl;
 //	end
+	reg [7:0] sync_out_stream = 0;
+	reg [7:0] sync_out_word = 0;
 	assign dpr = sync_out_stream[2];
 	assign dpl = sync_out_stream[2];
 //	assign diff_pair_left[3] = pll_oserdes_locked_2; // e_n
@@ -223,14 +225,14 @@ module top #(
 		assign pll_oserdes_locked_1 = 1;
 	end
 	if (1==RIGHT_DAC) begin
-		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei6 (
+		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei6r (
 			.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock2), .locked(pll_oserdes_locked_2),
 			.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
 			.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
-			.word1_in(oserdes_word_for_DACbit[3]), .word0_in(oserdes_word_for_DACbit[2]),
+			.word1_in(oserdes_word_for_DACbit[3]), .word0_in(sync_out_word),
 			.D5_out(single_ended_right[5]), .D4_out(single_ended_right[4]),
 			.D3_out(single_ended_right[3]), .D2_out(single_ended_right[2]),
-			.D1_out(single_ended_right[1]), .D0_out());
+			.D1_out(single_ended_right[1]), .D0_out(coax[4]));
 		assign single_ended_right[0] = 0;
 	end else begin
 		for (i=0; i<6; i=i+1) begin : single_ended_array_right
@@ -239,7 +241,7 @@ module top #(
 		assign pll_oserdes_locked_2 = 1;
 	end
 	if (1==LEFT_DAC) begin
-		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei6 (
+		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei6l (
 			.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock3), .locked(pll_oserdes_locked_3),
 			.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
 			.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
@@ -284,7 +286,7 @@ module top #(
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
 		assign sync_read_address = coax[5];
 	end else begin // to synchronize the coax outputs and to trigger the scope on that synchronization
-		assign coax[4] = sync_out_stream[2]; // scope trigger
+		//assign coax[4] = sync_out_stream[2]; // scope trigger
 		assign sync_read_address = coax[5]; // an input to synchronize to an external event
 //		assign pll_oserdes_locked_2 = 1;
 	end
@@ -292,9 +294,9 @@ module top #(
 	wire [31:0] end_read_address = 32'd4096; // in 8ns chunks
 	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 12'd4095; // in 8ns chunks
 	reg sync_out_raw = 0;
-	reg [3:0] sync_out_stream = 0;
 	always @(posedge word_clock) begin
 		sync_out_raw <= 0;
+		sync_out_word <= 0;
 		if (reset125) begin
 			read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:0];
 			last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:0] - 1'b1;
@@ -303,11 +305,12 @@ module top #(
 				read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:0];
 				last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:0] - 1'b1;
 				sync_out_raw <= 1;
+				sync_out_word <= {8{1'b1}};
 			end else begin
 				read_address <= read_address + 1'b1;
 			end
 		end
-		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
+		sync_out_stream <= { sync_out_stream[6:0], sync_out_raw };
 	end
 	// ----------------------------------------------------------------------
 //	if (0==LEFT_DAC) begin
