@@ -1,6 +1,6 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-03-29 by mza
+// last updated 2021-03-30 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
@@ -36,8 +36,10 @@ module top #(
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
 	output ack_valid,
-	output [11:0] diff_pair_left,
-	output [11:0] diff_pair_right,
+	output [5:0] diff_pair_left_p,
+	input [5:0] diff_pair_left_n,
+	output [5:0] diff_pair_right_p,
+	input [5:0] diff_pair_right_n,
 	output [5:0] single_ended_left,
 	output [5:0] single_ended_right,
 //	output [7-LEFT_DAC*4:4-LEFT_DAC*4] led,
@@ -49,16 +51,28 @@ module top #(
 	wire pll_oserdes_locked_1;
 	wire pll_oserdes_locked_2;
 	wire pll_oserdes_locked_3;
-	assign diff_pair_left[3] = pll_oserdes_locked_2; // e_n
-	assign diff_pair_left[2] = pll_oserdes_locked_1; // e_p
-	assign diff_pair_left[1] = pll_locked;           // b_p
-	assign diff_pair_left[0] = write_strobe;         // b_n
-	assign diff_pair_right[0] = read;            // k_p
-	assign diff_pair_right[1] = register_select; // k_n
-	assign diff_pair_right[3] = ack_valid;       // h_n
-	assign diff_pair_right[2] = enable;          // h_p
-	assign diff_pair_left[11:4] = bus[15:8]; // a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p
-	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
+	wire dpr;
+	wire dpl;
+	for (i=0; i<6; i=i+1) begin : diff_pair_p
+		assign diff_pair_right_p[i] = dpr;
+		assign diff_pair_left_p[i] = dpl;
+	end
+//	for (i=0; i<6; i=i+1) begin : diff_pair_n
+//		assign diff_pair_right_n[i] = dpr;
+//		assign diff_pair_left_n[i] = dpl;
+//	end
+	assign dpr = sync_out_stream[2];
+	assign dpl = sync_out_stream[2];
+//	assign diff_pair_left[3] = pll_oserdes_locked_2; // e_n
+//	assign diff_pair_left[2] = pll_oserdes_locked_1; // e_p
+//	assign diff_pair_left[1] = pll_locked;           // b_p
+//	assign diff_pair_left[0] = write_strobe;         // b_n
+//	assign diff_pair_right[0] = read;            // k_p
+//	assign diff_pair_right[1] = register_select; // k_n
+//	assign diff_pair_right[3] = ack_valid;       // h_n
+//	assign diff_pair_right[2] = enable;          // h_p
+//	assign diff_pair_left[11:4] = bus[15:8]; // a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p
+//	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
 	// ----------------------------------------------------------------------
 	reg [3:0] reset_counter = 0; // this counts how many times the reset input gets pulsed
 	localparam RESET_PIPELINE_PICKOFF = 5;
@@ -670,8 +684,10 @@ module myalthea #(
 			rpi_gpio13, rpi_gpio12, rpi_gpio11_spi_sclk, rpi_gpio10_spi_mosi,
 			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
 		}),
-		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
-		.diff_pair_right({ g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p, h_n, h_p, k_n, k_p }),
+		.diff_pair_left_p({ a_p, c_p, d_p, f_p, b_p, e_p }),
+		.diff_pair_left_n({ a_n, c_n, d_n, f_n, b_n, e_n }),
+		.diff_pair_right_p({ g_p, j_p, l_p, m_p, h_p, k_p }),
+		.diff_pair_right_n({ g_n, j_n, l_n, m_n, h_n, k_n }),
 		.single_ended_left({ z, y, x, w, v, u }),
 		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
