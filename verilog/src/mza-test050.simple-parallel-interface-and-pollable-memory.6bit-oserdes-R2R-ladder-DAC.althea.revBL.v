@@ -301,8 +301,8 @@ module top #(
 //		assign pll_oserdes_locked_2 = 1;
 	end
 	wire [31:0] start_read_address = 32'd0; // in 8ns chunks
-	wire [31:0] end_read_address = 32'd4096; // in 8ns chunks
-	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 12'd4095; // in 8ns chunks
+	wire [31:0] end_read_address = 32'd3773; // in 8ns chunks
+	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 12'd3772; // in 8ns chunks
 	reg sync_out_raw = 0;
 	always @(posedge word_clock) begin
 		sync_out_raw <= 0;
