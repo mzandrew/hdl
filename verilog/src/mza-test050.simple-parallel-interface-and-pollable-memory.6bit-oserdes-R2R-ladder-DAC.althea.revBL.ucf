@@ -48,8 +48,8 @@ net l_p loc=p48  | iostandard=lvcmos33; # L+ bank2 BR
 net l_n loc=p47  | iostandard=lvcmos33; # L- bank2 BR
 net j_p loc=p46  | iostandard=lvcmos33; # J+ bank2 BL
 net j_n loc=p45  | iostandard=lvcmos33; # J- bank2 BL
-net g_p loc=p41  | iostandard=lvcmos33; # G+ bank2 BL
-net g_n loc=p40  | iostandard=lvcmos33; # G- bank2 BL
+net g_p loc=p41  | iostandard=lvds_33; # G+ bank2 BL
+net g_n loc=p40  | iostandard=lvds_33; # G- bank2 BL
 
 # middle column, on right side of board
 net k_p loc=p56  | iostandard=lvcmos33; # K+ bank2 BR
