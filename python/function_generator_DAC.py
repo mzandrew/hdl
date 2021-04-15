@@ -1,5 +1,5 @@
 # written 2021-03-17 by mza
-# last updated 2021-03-29 by mza
+# last updated 2021-04-11 by mza
 
 import althea
 import math
@@ -242,31 +242,24 @@ def write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(length
 	offset = offset//2
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(offset, waveform)
 
-def test_function_generator_DAC():
+def test_function_generator_DAC_1():
 	#clear_DAC_waveform()
 	#sys.exit(0)
 	everything = []
 	f = 1.0e6
 	waveform = prepare_sine_waveform_for_upload_to_DAC(f, 0.5, 0.5)
 	everything.extend(waveform)
-	everything.extend(waveform)
 	waveform = prepare_pulse_waveform_for_upload_to_DAC(f, 0.875, 0.125, 1.0e-9)
-	everything.extend(waveform)
 	everything.extend(waveform)
 	waveform = prepare_sawtooth_waveform_for_upload_to_DAC(f, 0.4375, 0.5625, 25.0)
 	everything.extend(waveform)
-	everything.extend(waveform)
 	waveform = prepare_DC_waveform_for_upload_to_DAC(f, 0.4)
-	everything.extend(waveform)
 	everything.extend(waveform)
 	waveform = prepare_square_waveform_for_upload_to_DAC(f, 0.3125, 0.125, 42.0)
 	everything.extend(waveform)
-	everything.extend(waveform)
 	waveform = prepare_sine_waveform_for_upload_to_DAC(f, 0.25, 0.5)
 	everything.extend(waveform)
-	everything.extend(waveform)
 	waveform = read_file_PMT_waveform_for_upload_to_DAC(f, 0.9, 0.1)
-	everything.extend(waveform)
 	everything.extend(waveform)
 	waveform = prepare_RAMP_waveform_for_upload_to_DAC(f, 0.25, 0.75)
 	everything.extend(waveform)
@@ -275,10 +268,9 @@ def test_function_generator_DAC():
 	#waveform = prepare_PMT_waveform_for_upload_to_DAC(f, 3.8e-9, 10e-9, 0.9, 0.1)
 	waveform = prepare_PMT_waveform_for_upload_to_DAC(f, 30.0e-9, 80.0e-9, 0.9, 0.1)
 	everything.extend(waveform)
-	everything.extend(waveform)
 	#print("len(everything) = " + str(len(everything)))
-	waveform = prepare_DC_waveform_for_upload_to_DAC(f, 0.6)
-	everything = fill_up_the_rest_with(everything, waveform)
+	#waveform = prepare_DC_waveform_for_upload_to_DAC(f, 0.6)
+	#everything = fill_up_the_rest_with(everything, waveform)
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
 
 def test_function_generator_DAC_2():
@@ -311,5 +303,50 @@ def test_function_generator_DAC_4():
 	everything.extend(waveform)
 	waveform = prepare_pulse_waveform_for_upload_to_DAC(f, amplitude, offset, duration)
 	everything.extend(waveform)
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
+
+def test_function_generator_DAC_5():
+	clear_DAC_waveform()
+	#sys.exit(0)
+	everything = []
+	f = 42.5e6
+	samples = sampling_frequency / f
+	N = 1*int(2.0**12 / samples)
+# 	waveform = prepare_DC_waveform_for_upload_to_DAC(f, 0.4)
+#	for i in range(N):
+#		everything.extend(waveform)
+#	waveform = prepare_pulse_waveform_for_upload_to_DAC(f, 0.875, 0.125, 1.0e-9)
+#	for i in range(N):
+#		everything.extend(waveform)
+	#waveform = prepare_sawtooth_waveform_for_upload_to_DAC(f, 0.4375, 0.5625, 25.0)
+	waveform1 = prepare_sawtooth_waveform_for_upload_to_DAC(f, 0.0, 1.0, 25.0)
+	waveform2 = prepare_DC_waveform_for_upload_to_DAC(f, 0.0)
+	for i in range(N):
+		everything.extend(waveform1)
+		everything.extend(waveform2)
+		#everything.extend(waveform2)
+		#everything.extend(waveform2)
+		#everything.extend(waveform2)
+#	for i in range(N):
+#		everything.extend(waveform)
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
+
+def test_function_generator_DAC_6():
+	clear_DAC_waveform()
+	everything = []
+	f = 100.0e6
+	waveform = prepare_DC_waveform_for_upload_to_DAC(f, 0.125)
+	everything.extend(waveform)
+	waveform = prepare_sawtooth_waveform_for_upload_to_DAC(f, 0.125, 0.875, 25.0)
+#	waveform = prepare_pulse_waveform_for_upload_to_DAC(f, 0.875, 0.125, 1.0e-9)
+	everything.extend(waveform)
+	waveform = prepare_DC_waveform_for_upload_to_DAC(f, 0.125)
+	everything.extend(waveform)
+	waveform = prepare_sawtooth_waveform_for_upload_to_DAC(f, 0.125, 0.875, 25.0)
+	everything.extend(waveform)
+	#waveform = prepare_pulse_waveform_for_upload_to_DAC(f, 0.875, 0.125, 1.0e-9)
+	#everything.extend(waveform)
+	#waveform = prepare_DC_waveform_for_upload_to_DAC(f, 0.125)
+	#everything.extend(waveform)
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
 

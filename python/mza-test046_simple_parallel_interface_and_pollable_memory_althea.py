@@ -2,7 +2,7 @@
 
 # written 2020-06-20 by mza
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2021-03-29 by mza
+# last updated 2021-04-13 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -150,24 +150,47 @@ if 0:
 from function_generator_DAC import *
 
 if 0:
-	test_function_generator_DAC_1()
+	test_function_generator_DAC_1() # everything
 
 if 0:
-	test_function_generator_DAC_2()
+	test_function_generator_DAC_2() # single 8ns pulse (1.0V)
 
 if 0:
-	test_function_generator_DAC_3()
+	test_function_generator_DAC_3() # single 8ns pulse (1.3V) with some ringing
 
 if 0:
-	test_function_generator_DAC_4()
+	test_function_generator_DAC_4() # 2us baseline (0.7V) with a little blip in the middle that can fire the laser diode
 
-if 1:
+if 0:
+	test_function_generator_DAC_5() # 5us of 23.5ns on, 23.5ns off (1.65V)
+
+if 0:
+	test_function_generator_DAC_6() # whatever we were working on last
+
+if 0:
+	# 3 frames of 3 different amplitudes (0*, 1*, 2*) of a bcm waveform
 	clear_DAC_waveform()
 	offset = 25/64
 	amplitude = 18/64
 	for i in range(3):
 		time.sleep(0.1)
 		write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(RF_buckets, i*RF_buckets, scaling, "bcm.csv", date_string, offset, i*amplitude)
+
+if 0:
+	# baseline (25/64) plus a frames a bcm waveform
+	clear_DAC_waveform()
+	offset = 23/64
+	amplitude = 40/64
+	write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(RF_buckets, 0, scaling, "bcm.csv", date_string, offset, amplitude)
+
+if 1:
+	# 3 frames of a bcm waveform
+	clear_DAC_waveform()
+	offset = 25/64
+	amplitude = 2*18/64
+	for i in range(3):
+		time.sleep(0.1)
+		write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(RF_buckets, i*RF_buckets, scaling, "bcm.csv", date_string, offset, amplitude)
 
 if 0:
 	#print("asdf")
