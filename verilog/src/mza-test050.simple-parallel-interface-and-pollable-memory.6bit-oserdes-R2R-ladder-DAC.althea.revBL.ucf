@@ -1,7 +1,7 @@
 # written 2020-10-05 by mza
 # based off of mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.ucf
 # for an althea revBL
-# last updated 2021-03-29 by mza
+# last updated 2021-04-14 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
@@ -42,20 +42,20 @@ net v loc=p8   | iostandard=lvcmos33 | drive = 24 | slew = slow; # V bank3 TL
 net u loc=p2   | iostandard=lvcmos33 | drive = 24 | slew = slow; # U bank3 TL - conflicts with button when using 8 bit serdes
 
 # first column, closest to FPGA on right side of board
-net m_p loc=p58  | iostandard=lvcmos33; # M+ bank2 BR
-net m_n loc=p57  | iostandard=lvcmos33; # M- bank2 BR
-net l_p loc=p48  | iostandard=lvcmos33; # L+ bank2 BR
-net l_n loc=p47  | iostandard=lvcmos33; # L- bank2 BR
-net j_p loc=p46  | iostandard=lvcmos33; # J+ bank2 BL
-net j_n loc=p45  | iostandard=lvcmos33; # J- bank2 BL
-net g_p loc=p41  | iostandard=lvcmos33; # G+ bank2 BL
-net g_n loc=p40  | iostandard=lvcmos33; # G- bank2 BL
+net m_p loc=p58  | iostandard=lvds_33; # M+ bank2 BR
+net m_n loc=p57  | iostandard=lvds_33; # M- bank2 BR
+net l_p loc=p48  | iostandard=lvds_33; # L+ bank2 BR
+net l_n loc=p47  | iostandard=lvds_33; # L- bank2 BR
+net j_p loc=p46  | iostandard=lvds_33; # J+ bank2 BL
+net j_n loc=p45  | iostandard=lvds_33; # J- bank2 BL
+net g_p loc=p41  | iostandard=lvds_33; # G+ bank2 BL
+net g_n loc=p40  | iostandard=lvds_33; # G- bank2 BL
 
 # middle column, on right side of board
-net k_p loc=p56  | iostandard=lvcmos33; # K+ bank2 BR
-net k_n loc=p55  | iostandard=lvcmos33; # K- bank2 BR
-net h_p loc=p44  | iostandard=lvcmos33; # H+ bank2 BL
-net h_n loc=p43  | iostandard=lvcmos33; # H- bank2 BL
+net k_p loc=p56  | iostandard=lvds_33; # K+ bank2 BR
+net k_n loc=p55  | iostandard=lvds_33; # K- bank2 BR
+net h_p loc=p44  | iostandard=lvds_33; # H+ bank2 BL
+net h_n loc=p43  | iostandard=lvds_33; # H- bank2 BL
 
 # third column, on right side of board
 net n loc=p30  | iostandard=lvcmos33 | drive = 24 | slew = slow; # N bank3 TL

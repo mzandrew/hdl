@@ -1,6 +1,6 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-03-30 by mza
+// last updated 2021-04-14 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
@@ -8,6 +8,7 @@
 `include "lib/dcm.v"
 `include "lib/serdes_pll.v"
 `include "lib/half_duplex_rpi_bus.v"
+`include "lib/edge_to_pulse.v"
 
 module top #(
 	parameter BUS_WIDTH = 16,
@@ -38,7 +39,7 @@ module top #(
 	output ack_valid,
 	output [5:0] diff_pair_left_p,
 	input [5:0] diff_pair_left_n,
-	output [5:0] diff_pair_right_p,
+	input [5:0] diff_pair_right_p,
 	input [5:0] diff_pair_right_n,
 	output [5:0] single_ended_left,
 	output [5:0] single_ended_right,
@@ -54,7 +55,7 @@ module top #(
 	wire dpr;
 	wire dpl;
 	for (i=0; i<6; i=i+1) begin : diff_pair_p
-		assign diff_pair_right_p[i] = dpr;
+		//assign diff_pair_right_p[i] = dpr;
 		assign diff_pair_left_p[i] = dpl;
 	end
 //	for (i=0; i<6; i=i+1) begin : diff_pair_n
@@ -218,9 +219,9 @@ module top #(
 			.word3_in(oserdes_word_for_DACbit[7]), .word2_in(oserdes_word_for_DACbit[6]), .word1_in(oserdes_word_for_DACbit[5]), .word0_in(oserdes_word_for_DACbit[4]),
 			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
 	end else begin
-		for (i=0; i<4; i=i+1) begin : single_ended_array_coax
-			assign coax[i] = 0;
-		end
+//		for (i=0; i<4; i=i+1) begin : single_ended_array_coax
+//			assign coax[i] = 0;
+//		end
 		assign word_clock = word_clock2;
 		assign pll_oserdes_locked_1 = 1;
 	end
@@ -263,7 +264,7 @@ module top #(
 		assign reset = ~button;
 	end
 	//assign coax_led = 4'b1111;
-	assign coax_led = reset_counter;
+	//assign coax_led = reset_counter;
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
 		assign coax[5] = write_strobe;
@@ -287,12 +288,36 @@ module top #(
 		assign sync_read_address = coax[5];
 	end else begin // to synchronize the coax outputs and to trigger the scope on that synchronization
 		//assign coax[4] = sync_out_stream[2]; // scope trigger
-		assign sync_read_address = coax[5]; // an input to synchronize to an external event
+		//assign sync_read_address = coax[0] || coax[3]; // an input to synchronize to an external event
+//		assign sync_read_address = diff_pair_right_p[0] || diff_pair_right_p[5]; // an input to synchronize to an external event
+		//wire sync_read_address_raw;
+		//wire sync_read_address_not;
+		//IBUFDS buddy (.I(diff_pair_right_p[0]), .IB(diff_pair_right_n[0]), .O(sync_read_address_raw));
+		//edge_to_pulse #(.polarity(1)) my_e2p_instance (.clock(word_clock), .i(sync_read_address_raw), .o(sync_read_address_not));
+		//assign coax[0] = sync_read_address_raw;
+		//assign coax[1] = sync_read_address_not;
+		//assign sync_read_address = ~sync_read_address_not;
+		assign sync_read_address = 0;
 //		assign pll_oserdes_locked_2 = 1;
+		wire [2:0] adc_bit;
+		wire [5:0] adc_thresh;
+		IBUFDS adc0 (.I(diff_pair_right_p[0]), .IB(diff_pair_right_n[0]), .O(adc_thresh[0]));
+		IBUFDS adc1 (.I(diff_pair_right_p[1]), .IB(diff_pair_right_n[1]), .O(adc_thresh[1]));
+		IBUFDS adc2 (.I(diff_pair_right_p[2]), .IB(diff_pair_right_n[2]), .O(adc_thresh[2]));
+		IBUFDS adc3 (.I(diff_pair_right_p[3]), .IB(diff_pair_right_n[3]), .O(adc_thresh[3]));
+		IBUFDS adc4 (.I(diff_pair_right_p[4]), .IB(diff_pair_right_n[4]), .O(adc_thresh[4]));
+		IBUFDS adc5 (.I(diff_pair_right_p[5]), .IB(diff_pair_right_n[5]), .O(adc_thresh[5]));
+		assign adc_bit = adc_thresh[5] ? 3'b110 :
+		                 adc_thresh[4] ? 3'b101 :
+		                 adc_thresh[3] ? 3'b100 :
+		                 adc_thresh[2] ? 3'b011 :
+		                 adc_thresh[1] ? 3'b010 :
+		                 adc_thresh[0] ? 3'b001 : 3'b000;
+		assign coax_led = { 1'b0, adc_bit[2:0] };
 	end
 	wire [31:0] start_read_address = 32'd0; // in 8ns chunks
-	wire [31:0] end_read_address = 32'd4096; // in 8ns chunks
-	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 12'd4095; // in 8ns chunks
+	wire [31:0] end_read_address = 32'd3773; // in 8ns chunks
+	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 12'd3772; // in 8ns chunks
 	reg sync_out_raw = 0;
 	always @(posedge word_clock) begin
 		sync_out_raw <= 0;
@@ -689,8 +714,8 @@ module myalthea #(
 		}),
 		.diff_pair_left_p({ a_p, c_p, d_p, f_p, b_p, e_p }),
 		.diff_pair_left_n({ a_n, c_n, d_n, f_n, b_n, e_n }),
-		.diff_pair_right_p({ g_p, j_p, l_p, m_p, h_p, k_p }),
-		.diff_pair_right_n({ g_n, j_n, l_n, m_n, h_n, k_n }),
+		.diff_pair_right_p({ m_p, k_p, l_p, j_p, h_p, g_p }),
+		.diff_pair_right_n({ m_n, k_n, l_n, j_n, h_n, g_n }),
 		.single_ended_left({ z, y, x, w, v, u }),
 		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
