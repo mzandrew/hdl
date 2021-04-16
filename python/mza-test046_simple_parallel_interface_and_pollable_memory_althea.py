@@ -2,7 +2,7 @@
 
 # written 2020-06-20 by mza
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2021-04-13 by mza
+# last updated 2021-04-16 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -150,6 +150,9 @@ if 0:
 from function_generator_DAC import *
 
 if 0:
+	clear_DAC_waveform()
+
+if 0:
 	test_function_generator_DAC_1() # everything
 
 if 0:
@@ -168,6 +171,12 @@ if 0:
 	test_function_generator_DAC_6() # whatever we were working on last
 
 if 0:
+	test_function_generator_DAC_7() # high all the time
+
+if 1:
+	test_function_generator_DAC_8() # series of 1us things (1.0V)
+
+if 0:
 	# 3 frames of 3 different amplitudes (0*, 1*, 2*) of a bcm waveform
 	clear_DAC_waveform()
 	offset = 25/64
@@ -183,13 +192,24 @@ if 0:
 	amplitude = 40/64
 	write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(RF_buckets, 0, scaling, "bcm.csv", date_string, offset, amplitude)
 
-if 1:
-	# 3 frames of a bcm waveform
+if 0:
+	# 3 frames of a bcm waveform (for laser diode mounted in XY flexture mount)
 	clear_DAC_waveform()
 	offset = 25/64
 	amplitude = 2*18/64
 	for i in range(3):
 		time.sleep(0.1)
+		write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(RF_buckets, i*RF_buckets, scaling, "bcm.csv", date_string, offset, amplitude)
+
+if 0:
+	# 3 frames of a bcm waveform (for laser diode mounted above the sensor)
+	clear_DAC_waveform()
+	#offset = 1.3/1.65
+	offset = 0.625/1.65
+	#amplitude = 0.35
+	amplitude = 90.00/1.65
+	for i in range(3):
+		#time.sleep(0.1)
 		write_csv_DAC_values_to_pollable_memory_on_half_duplex_bus_and_verify(RF_buckets, i*RF_buckets, scaling, "bcm.csv", date_string, offset, amplitude)
 
 if 0:
