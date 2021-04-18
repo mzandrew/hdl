@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2021-02-28 by mza
+# last updated 2021-04-18 by mza
 
 import time
 import time # time.sleep
@@ -462,7 +462,7 @@ def setup_half_duplex_bus_test046():
 		read=5,
 		enable=4,
 		ack_valid=2,
-		verbosity=3
+		verbosity=2
 	)
 
 def setup_half_duplex_bus_test049():
@@ -558,8 +558,9 @@ def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=T
 	#show(start_address, values)
 	return new_count, new_errors
 
-def write_data_to_pollable_memory_on_half_duplex_bus(start_address, data):
-	print("write_data_to_pollable_memory_on_half_duplex_bus")
+def write_data_to_pollable_memory_on_half_duplex_bus(start_address, data, should_print=True):
+	if should_print:
+		print("write_data_to_pollable_memory_on_half_duplex_bus")
 	if 0:
 		reset_pulse()
 	start = time.time()
@@ -569,17 +570,20 @@ def write_data_to_pollable_memory_on_half_duplex_bus(start_address, data):
 	diff = end - start
 	per_sec = new_count / diff
 	half_duplex_bus.close()
-	print("")
-	print("%.6f"%diff + " seconds")
+	if should_print:
+		print("")
+		print("%.6f"%diff + " seconds")
 	per_sec *= bits_word
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
-	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
-	print("")
+	if should_print:
+		print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
+		print("")
 	return new_count
 
-def read_data_from_pollable_memory_on_half_duplex_bus(start_address, NUM):
-	print("read_data_from_pollable_memory_on_half_duplex_bus")
+def read_data_from_pollable_memory_on_half_duplex_bus(start_address, NUM, should_print=True):
+	if should_print:
+		print("read_data_from_pollable_memory_on_half_duplex_bus")
 	if 0:
 		reset_pulse()
 	start_address = 0
@@ -594,13 +598,15 @@ def read_data_from_pollable_memory_on_half_duplex_bus(start_address, NUM):
 	diff = end - start
 	per_sec = NUM / diff
 	half_duplex_bus.close()
-	print("")
-	print("%.6f"%diff + " seconds")
+	if should_print:
+		print("")
+		print("%.6f"%diff + " seconds")
 	per_sec *= bits_word
 	#print(str(per_sec) + " bits per second") # 237073479.53877458 bits per second
 	#print(str(per_sec/8.0) + " bytes per second") # 29691244.761581153 bytes per second
-	print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
-	print("")
+	if should_print:
+		print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
+		print("")
 
 def test_writing_data_to_half_duplex_bus2():
 	MEMSIZE = 2**14

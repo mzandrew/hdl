@@ -173,8 +173,34 @@ if 0:
 if 0:
 	test_function_generator_DAC_7() # high all the time
 
-if 1:
+if 0:
 	test_function_generator_DAC_8() # series of 1us things (1.0V)
+
+if 0:
+	test_function_generator_DAC_9(10.0e-9) # double 8ns pulse (1.3V) with some ringing; configurable gap between
+
+if 0:
+	# continuously increases delay between two pulses until a maximum, then restarts
+	clear_DAC_waveform(False)
+	tau = 1.0e-9
+	while True:
+		for i in range(140):
+			#time.sleep(0.01)
+			test_function_generator_DAC_9((i+1)*tau) # double 8ns pulse (1.3V) with some ringing; configurable gap between
+		time.sleep(1.0)
+
+if 1:
+	# continuously increases delay before a pulse until a maximum, then restarts
+	clear_DAC_waveform(False)
+	tau = 1.0e-9
+	while True:
+		for i in range(140):
+			#time.sleep(0.01)
+			test_function_generator_DAC_10((i+1)*tau) # single 8ns pulse (1.3V) with some ringing; configurable delay before
+		for i in range(139, -1, -1):
+			#time.sleep(0.01)
+			test_function_generator_DAC_10((i+1)*tau) # single 8ns pulse (1.3V) with some ringing; configurable delay before
+		time.sleep(0.1)
 
 if 0:
 	# 3 frames of 3 different amplitudes (0*, 1*, 2*) of a bcm waveform
