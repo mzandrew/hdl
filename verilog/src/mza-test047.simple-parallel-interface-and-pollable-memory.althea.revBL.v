@@ -1,6 +1,6 @@
 // written 2020-10-05 by mza
 // based on mza-test046.simple-parallel-interface-and-pollable-memory.althea.revB.v
-// last updated 2021-03-17 by mza
+// last updated 2021-06-25 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
@@ -69,8 +69,8 @@ module top #(
 	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	wire rawclock125;
 	wire clock125;
-	simpledcm_CLKGEN #(.multiply(5), .divide(4), .period(10.0)) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 100->125
-	//simpledcm_SP #(.multiply(10), .divide(4), .period(10.0), .CLKIN_DIVIDE_BY_2("TRUE")) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 100->125
+	simpledcm_CLKGEN #(.multiply(5), .divide(4), .period(10.0)) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 100->125 should be 116 ps jitter
+	//simpledcm_SP #(.multiply(10), .divide(4), .period(10.0), .CLKIN_DIVIDE_BY_2("TRUE")) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 100->125 should be 180 ps jitter
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
 	// ----------------------------------------------------------------------
@@ -166,14 +166,16 @@ module top #(
 			.clk_b(word_clock), .addr_b(read_address), .dout_b());
 		assign oserdes_word = 8'b11100000;
 	end else begin
-		RAM_s6_16k_32bit_8bit mem (.reset(reset125),
+		RAM_s6_16k_32bit_8bit #(.ENDIANNESS("BIG")) mem (.reset(reset125),
 			.clock_a(clock), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b(oserdes_word));
 	end
 	wire sync_read_address;
+	reg [3:0] sync_out_stream = 0;
+	wire [7:0] sync_out_word = { sync_out_stream[1], 7'b0 };
 	ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
 		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
-		.word3_in(oserdes_word), .word2_in(oserdes_word), .word1_in(oserdes_word), .word0_in({sync_out_stream[2], 7'b0}),
+		.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(sync_out_word),
 		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
 	//assign coax_led = 4'b1111;
 	assign coax_led = reset_counter;
@@ -195,9 +197,11 @@ module top #(
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE("n")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[5]), .locked(pll_oserdes_locked_2));
 		assign coax[4] = sync_out_stream[2]; // scope trigger
 		assign sync_read_address = 0;
-	end else if (0) begin
+	end else if (1) begin
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
-		assign sync_read_address = coax[5];
+		//assign sync_read_address = coax[5];
+		assign sync_read_address = 0;
+		assign coax[5] = sync_out_stream[2]; // scope trigger
 	end else begin // to synchronize the coax outputs and to trigger the scope on that synchronization
 		assign coax[4] = sync_out_stream[2]; // scope trigger
 		assign sync_read_address = coax[5]; // an input to synchronize to an external event
@@ -207,7 +211,6 @@ module top #(
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
 	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
 	reg sync_out_raw = 0;
-	reg [3:0] sync_out_stream = 0;
 	always @(posedge word_clock) begin
 		sync_out_raw <= 0;
 		if (reset125) begin

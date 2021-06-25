@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-03-17 by mza
+// last updated 2021-06-25 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -171,16 +171,18 @@ module top #(
 			.clock_a(clock), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b(oserdes_word));
 	end else begin
-		RAM_s6_16k_32bit_8bit mem (.reset(reset125),
+		RAM_s6_16k_32bit_8bit #(.ENDIANNESS("BIG")) mem (.reset(reset125),
 			.clock_a(clock), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b(oserdes_word));
 	end
 //	wire pll_oserdes_locked;
 //		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
 	wire sync_read_address;
+	reg [3:0] sync_out_stream = 0;
+	wire [7:0] sync_out_word = { sync_out_stream[1], 7'b0 };
 	ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
 		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
-		.word3_in(oserdes_word), .word2_in(oserdes_word), .word1_in(oserdes_word), .word0_in(oserdes_word),
+		.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(sync_out_word),
 		.D3_out(coax[3]), .D2_out(), .D1_out(), .D0_out(coax[0]));
 	assign coax[1] = enable;
 	assign coax[2] = 0;
@@ -204,9 +206,11 @@ module top #(
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE("n")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[5]), .locked(pll_oserdes_locked_2));
 		assign coax[4] = sync_out_stream[2]; // scope trigger
 		assign sync_read_address = 0;
-	end else if (0) begin
+	end else if (1) begin
 		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
-		assign sync_read_address = coax[5];
+		//assign sync_read_address = coax[5];
+		assign sync_read_address = 0;
+		assign coax[5] = sync_out_stream[2]; // scope trigger
 	end else begin // to synchronize the coax outputs and to trigger the scope on that synchronization
 		assign coax[4] = sync_out_stream[2]; // scope trigger
 		assign sync_read_address = coax[5]; // an input to synchronize to an external event
@@ -216,7 +220,6 @@ module top #(
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
 	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
 	reg sync_out_raw = 0;
-	reg [3:0] sync_out_stream = 0;
 	always @(posedge word_clock) begin
 		sync_out_raw <= 0;
 		if (reset125) begin
