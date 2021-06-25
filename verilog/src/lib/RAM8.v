@@ -1,5 +1,5 @@
 // updated 2020-10-02 by mza
-// last updated 2021-02-26 by mza
+// last updated 2021-06-25 by mza
 `ifndef RAM8_LIB
 `define RAM8_LIB
 
@@ -414,7 +414,9 @@ endmodule
 //(* BMM_INFO = " " *)
 //(* BMM_INFO = "ADDRESS_SPACE map_name RAMB16 [start:end] END_ADDRESS_MAP;" *)
 
-module RAM_s6_16k_8bit (
+module RAM_s6_16k_8bit #(
+	parameter ENDIANNESS = "LITTLE"
+) (
 	input read_clock,
 	input write_clock,
 	input reset,
@@ -430,7 +432,7 @@ module RAM_s6_16k_8bit (
 //	RAM_s6_2k_8bit #(.INIT_FILENAME("bcm_init.mem")) mem00 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[0]), .read_enable(1'b1));
 	genvar i;
 	for (i=0; i<8; i=i+1) begin : mem_array
-		RAM_s6_2k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[i]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[i]), .read_enable(1'b1));
+		RAM_s6_2k_8bit #(.ENDIANNESS(ENDIANNESS)) mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[i]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[i]), .read_enable(1'b1));
 	end
 	reg [2:0] buffered_sel_0 = 0;
 	wire [7:0] buffered_data_out_0;
@@ -818,7 +820,9 @@ endmodule
 //	RAM_s6_16k_32bit_8bit mem (.reset(),
 //		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
 //		.clock_b(), .address_b(), .data_out_b());
-module RAM_s6_16k_32bit_8bit (
+module RAM_s6_16k_32bit_8bit #(
+	parameter ENDIANNESS = "LITTLE"
+) (
 	input reset,
 	input clock_a,
 	input [13:0] address_a,
@@ -834,7 +838,7 @@ module RAM_s6_16k_32bit_8bit (
 	wire [31:0] write_enable_a_array;
 	genvar i;
 	for (i=0; i<32; i=i+1) begin : mem_array
-		RAM_s6_512_32bit_8bit mem (.reset(reset),
+		RAM_s6_512_32bit_8bit #(.ENDIANNESS(ENDIANNESS)) mem (.reset(reset),
 			.clock_a(clock_a), .address_a(address_a[8:0]), .data_in_a(data_in_a), .write_enable_a(write_enable_a_array[i]), .data_out_a(data_out_a_array[i]),
 			.clock_b(clock_b), .address_b(address_b[10:0]), .data_out_b(data_out_b_array[i]));
 	end
@@ -889,7 +893,9 @@ endmodule
 //	RAM_s6_4k_32bit_8bit mem (.reset(),
 //		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
 //		.clock_b(), .address_b(), .data_out_b());
-module RAM_s6_4k_32bit_8bit (
+module RAM_s6_4k_32bit_8bit #(
+	parameter ENDIANNESS = "LITTLE"
+) (
 	input reset,
 	input clock_a,
 	input [11:0] address_a,
@@ -906,7 +912,7 @@ module RAM_s6_4k_32bit_8bit (
 	genvar i;
 	for (i=0; i<8; i=i+1) begin : mem_array
 //		RAM_s6_2k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[i]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[i]), .read_enable(1'b1));
-		RAM_s6_512_32bit_8bit mem (.reset(reset),
+		RAM_s6_512_32bit_8bit #(.ENDIANNESS(ENDIANNESS)) mem (.reset(reset),
 			.clock_a(clock_a), .address_a(address_a[8:0]), .data_in_a(data_in_a), .write_enable_a(write_enable_a_array[i]), .data_out_a(data_out_a_array[i]),
 			.clock_b(clock_b), .address_b(address_b[10:0]), .data_out_b(data_out_b_array[i]));
 	end
@@ -943,7 +949,9 @@ endmodule
 //	RAM_s6_8k_16bit_8bit mem (.reset(),
 //		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
 //		.clock_b(), .address_b(), .data_out_b());
-module RAM_s6_8k_16bit_32bit (
+module RAM_s6_8k_16bit_32bit #(
+	parameter ENDIANNESS = "LITTLE"
+) (
 	input reset,
 	input clock_a,
 	input [12:0] address_a,
@@ -959,7 +967,7 @@ module RAM_s6_8k_16bit_32bit (
 	wire [7:0] write_enable_a_array;
 	genvar i;
 	for (i=0; i<8; i=i+1) begin : mem_array
-		RAM_s6_1k_16bit_32bit mem (.reset(reset),
+		RAM_s6_1k_16bit_32bit #(.ENDIANNESS(ENDIANNESS)) mem (.reset(reset),
 			.clock_a(clock_a), .address_a(address_a[9:0]), .data_in_a(data_in_a), .write_enable_a(write_enable_a_array[i]), .data_out_a(data_out_a_array[i]),
 			.clock_b(clock_b), .address_b(address_b[8:0]), .data_out_b(data_out_b_array[i]));
 	end
@@ -996,7 +1004,9 @@ endmodule
 //	RAM_s6_8k_16bit_8bit mem (.reset(),
 //		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
 //		.clock_b(), .address_b(), .data_out_b());
-module RAM_s6_8k_16bit_8bit (
+module RAM_s6_8k_16bit_8bit #(
+	parameter ENDIANNESS = "LITTLE"
+) (
 	input reset,
 	input clock_a,
 	input [12:0] address_a,
@@ -1012,7 +1022,7 @@ module RAM_s6_8k_16bit_8bit (
 	wire [7:0] write_enable_a_array;
 	genvar i;
 	for (i=0; i<8; i=i+1) begin : mem_array
-		RAM_s6_1k_16bit_8bit mem (.reset(reset),
+		RAM_s6_1k_16bit_8bit #(.ENDIANNESS(ENDIANNESS)) mem (.reset(reset),
 			.clock_a(clock_a), .address_a(address_a[9:0]), .data_in_a(data_in_a), .write_enable_a(write_enable_a_array[i]), .data_out_a(data_out_a_array[i]),
 			.clock_b(clock_b), .address_b(address_b[10:0]), .data_out_b(data_out_b_array[i]));
 	end
@@ -1051,7 +1061,8 @@ endmodule
 //	.clock_b(), .address_b(), .data_out_b());
 // RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
 module RAM_s6_512_32bit_8bit #(
-	parameter INIT_FILENAME = "NONE"
+	parameter INIT_FILENAME = "NONE",
+	parameter ENDIANNESS = "LITTLE"
 ) (
 	input reset,
 	input clock_a,
@@ -1066,7 +1077,11 @@ module RAM_s6_512_32bit_8bit #(
 	wire [13:0] address_a_14;
 	assign address_a_14 = { address_a, 5'b00000 };
 	wire [13:0] address_b_14;
-	assign address_b_14 = { address_b, 3'b000 };
+	if (ENDIANNESS=="LITTLE") begin
+		assign address_b_14 = { address_b, 3'b000 };
+	end else begin
+		assign address_b_14 = { address_b[10:2], 2'd3-address_b[1:0], 3'b000 };
+	end
 	wire [3:0] write_enable_4;
 	assign write_enable_4 = { write_enable_a, write_enable_a, write_enable_a, write_enable_a };
 	wire [31:0] data_out_b_32;
@@ -1137,7 +1152,8 @@ endmodule
 //	.clock_b(), .address_b(), .data_out_b());
 // RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
 module RAM_s6_1k_16bit_32bit #(
-	parameter INIT_FILENAME = "NONE"
+	parameter INIT_FILENAME = "NONE",
+	parameter ENDIANNESS = "LITTLE"
 ) (
 	input reset,
 	input clock_a,
@@ -1152,7 +1168,11 @@ module RAM_s6_1k_16bit_32bit #(
 	wire [13:0] address_a_14;
 	assign address_a_14 = { address_a, 4'b0000 };
 	wire [13:0] address_b_14;
-	assign address_b_14 = { address_b, 5'b00000 };
+	if (ENDIANNESS=="LITTLE") begin
+		assign address_b_14 = { address_b, 5'b00000 };
+	end else begin
+		assign address_b_14 = { address_b[8:1], 1'd1-address_b[0], 5'b00000 };
+	end
 	wire [3:0] write_enable_4;
 	assign write_enable_4 = { write_enable_a, write_enable_a, write_enable_a, write_enable_a };
 	wire [31:0] data_in_a_32;
@@ -1227,7 +1247,8 @@ endmodule
 //	.clock_b(), .address_b(), .data_out_b());
 // RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
 module RAM_s6_1k_16bit_8bit #(
-	parameter INIT_FILENAME = "NONE"
+	parameter INIT_FILENAME = "NONE",
+	parameter ENDIANNESS = "LITTLE"
 ) (
 	input reset,
 	input clock_a,
@@ -1242,7 +1263,11 @@ module RAM_s6_1k_16bit_8bit #(
 	wire [13:0] address_a_14;
 	assign address_a_14 = { address_a, 4'b0000 };
 	wire [13:0] address_b_14;
-	assign address_b_14 = { address_b, 3'b000 };
+	if (ENDIANNESS=="LITTLE") begin
+		assign address_b_14 = { address_b, 3'b000 };
+	end else begin
+		assign address_b_14 = { address_b[10:1], 1'd1-address_b[0], 3'b000 };
+	end
 	wire [3:0] write_enable_4;
 	assign write_enable_4 = { write_enable_a, write_enable_a, write_enable_a, write_enable_a };
 	wire [31:0] data_in_a_32;
