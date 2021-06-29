@@ -1,6 +1,40 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2020-04-26 by mza
+// last updated 2021-06-28 by mza
+
+module sequencer_sync #(
+	parameter ADDRESS_DEPTH_OSERDES = 16,
+	parameter ADDRESS_DEPTH = 14
+) (
+	input clock, reset,
+	input sync_read_address,
+	input [31:0] start_read_address, // in 2-bit words
+	input [31:0] end_read_address, // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
+	output reg [ADDRESS_DEPTH_OSERDES-1:0] read_address = 0, // in 8-bit words
+	output reg [3:0] sync_out_stream = 0,
+	output [7:0] sync_out_word
+);
+	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
+	reg sync_out_raw = 0;
+	always @(posedge clock) begin
+		sync_out_raw <= 0;
+		if (reset) begin
+			read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH];
+			last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH] - 1'b1;
+			sync_out_stream <= 0;
+		end else begin
+			if (read_address==last_read_address || sync_read_address) begin
+				read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH];
+				last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH] - 1'b1;
+				sync_out_raw <= 1;
+			end else begin
+				read_address <= read_address + 1'b1;
+			end
+		end
+		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
+	end
+	assign sync_out_word = { sync_out_stream[1], 7'b0 };
+endmodule
 
 // 5,120 buckets/revolution * 9 revolutions = 46,080 buckets
 // need off-between-on functionality, so double that (=92,160)

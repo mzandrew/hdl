@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-06-25 by mza
+// last updated 2021-06-28 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -9,6 +9,7 @@
 `include "lib/dcm.v"
 `include "lib/serdes_pll.v"
 `include "lib/half_duplex_rpi_bus.v"
+`include "lib/sequencer.v"
 
 module top #(
 	parameter BUS_WIDTH = 16,
@@ -140,7 +141,7 @@ module top #(
 	);
 	wire word_clock;
 	wire [BUS_WIDTH_OSERDES-1:0] oserdes_word;
-	reg [ADDRESS_DEPTH_OSERDES-1:0] read_address = 0; // in 8-bit words
+	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 	if (0) begin
 		RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset125),
 			.wclk(clock), .waddr(address_word_narrow), .din(write_data_word), .write_en(write_strobe),
@@ -177,9 +178,12 @@ module top #(
 	end
 //	wire pll_oserdes_locked;
 //		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
-	wire sync_read_address;
-	reg [3:0] sync_out_stream = 0;
-	wire [7:0] sync_out_word = { sync_out_stream[1], 7'b0 };
+	wire sync_read_address; // assert this when you feel like (re)synchronizing
+	wire [3:0] sync_out_stream; // sync_out_stream[2] is usually good
+	wire [7:0] sync_out_word; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
+	wire [31:0] start_read_address = 32'd0; // in 2-bit words
+	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
+	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .ADDRESS_DEPTH(ADDRESS_DEPTH)) ss (.clock(word_clock), .reset(reset125), .sync_read_address(sync_read_address), .start_read_address(start_read_address), .end_read_address(end_read_address), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
 		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
 		.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(sync_out_word),
@@ -215,26 +219,6 @@ module top #(
 		assign coax[4] = sync_out_stream[2]; // scope trigger
 		assign sync_read_address = coax[5]; // an input to synchronize to an external event
 		assign pll_oserdes_locked_2 = 1;
-	end
-	wire [31:0] start_read_address = 32'd0; // in 2-bit words
-	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
-	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
-	reg sync_out_raw = 0;
-	always @(posedge word_clock) begin
-		sync_out_raw <= 0;
-		if (reset125) begin
-			read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH];
-			last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH] - 1'b1;
-		end else begin
-			if (read_address==last_read_address || sync_read_address) begin
-				read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH];
-				last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH] - 1'b1;
-				sync_out_raw <= 1;
-			end else begin
-				read_address <= read_address + 1'b1;
-			end
-		end
-		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
 	// ----------------------------------------------------------------------
 	if (1) begin
