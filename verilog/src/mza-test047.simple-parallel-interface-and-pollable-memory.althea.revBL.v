@@ -9,6 +9,7 @@
 `include "lib/serdes_pll.v"
 `include "lib/half_duplex_rpi_bus.v"
 `include "lib/sequencer.v"
+`include "lib/reset.v"
 
 module top #(
 	parameter BUS_WIDTH = 16,
@@ -61,11 +62,7 @@ module top #(
 		assign single_ended_right[i] = 0;
 	end
 	// ----------------------------------------------------------------------
-	reg [3:0] reset_counter = 0; // this counts how many times the reset input gets pulsed
-	localparam RESET_PIPELINE_PICKOFF = 5;
-	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline100 = 0;
-	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline125 = 0;
-	reg reset100 = 1;
+	wire reset100;
 	wire clock100;
 	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	wire rawclock125;
@@ -75,50 +72,8 @@ module top #(
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
 	// ----------------------------------------------------------------------
-	reg [COUNTER100_BIT_PICKOFF:0] counter100 = 0;
-	always @(posedge clock100) begin
-		if (reset_pipeline100[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
-			reset_counter <= reset_counter + 1'b1; // this counts how many times the reset input gets pulsed
-		end else if (reset_pipeline100[RESET_PIPELINE_PICKOFF]) begin
-			counter100 <= 0;
-			reset100 <= 1;
-		end else begin
-			if (reset100) begin
-				if (counter100[COUNTER100_BIT_PICKOFF]) begin
-					reset100 <= 0;
-				end
-				counter100 <= counter100 + 1'b1;
-			end
-		end
-		reset_pipeline100 <= { reset_pipeline100[RESET_PIPELINE_PICKOFF-1:0], reset };
-	end
-	reg [2:0] reset100_pipeline125 = 0;
-	localparam PLL_LOCKED_PIPELINE125_PICKOFF = 2;
-	reg [PLL_LOCKED_PIPELINE125_PICKOFF:0] pll_locked_pipeline125 = 0;
-	always @(posedge clock125) begin
-		if (~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF]) begin
-			reset100_pipeline125 <= 0;
-			reset_pipeline125 <= 0;
-		end else begin
-			reset100_pipeline125 <= { reset100_pipeline125[1:0], reset100 };
-			reset_pipeline125 <= { reset_pipeline125[RESET_PIPELINE_PICKOFF-1:0], reset };
-		end
-		pll_locked_pipeline125 <= { pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF-1:0], pll_locked };
-	end
-	wire resettt = reset_pipeline125[RESET_PIPELINE_PICKOFF] || reset100_pipeline125[2] || ~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF];
-	reg [COUNTER125_BIT_PICKOFF:0] counter125 = 0;
-	reg reset125 = 1;
-	always @(posedge clock) begin
-		if (resettt) begin
-			counter125 <= 0;
-			reset125 <= 1;
-		end else if (reset125) begin
-			if (counter125[COUNTER125_BIT_PICKOFF]) begin
-				reset125 <= 0;
-			end
-			counter125 <= counter125 + 1'b1;
-		end
-	end
+	reset_promulgator #(.CLOCK1_BIT_PICKOFF(COUNTER100_BIT_PICKOFF), .CLOCK2_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) rp (.reset_input(reset), .clock1(clock100), .clock2(clock125), .pll_locked_input(pll_locked), .reset1(reset100), .reset2(reset125), .pll_locked_output(pll_locked_copy));
+	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
 	wire [ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[ADDRESS_DEPTH-1:0];
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] write_data_word;
@@ -181,8 +136,8 @@ module top #(
 		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
 		.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(sync_out_word),
 		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
-	//assign coax_led = 4'b1111;
-	assign coax_led = reset_counter;
+	assign coax_led = 4'b1111;
+	//assign coax_led = reset_counter;
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
 		assign coax[5] = write_strobe;
@@ -214,7 +169,7 @@ module top #(
 	// ----------------------------------------------------------------------
 	if (1) begin
 		assign led[7] = reset100;
-		assign led[6] = ~pll_locked;
+		assign led[6] = ~pll_locked_copy;
 		assign led[5] = reset125;
 		assign led[4] = ~pll_oserdes_locked_1;
 		assign led[3] = ack_valid;

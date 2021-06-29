@@ -1,5 +1,64 @@
 // written 2020-05-23 by mza
-// last updated 2020-05-27 by mza
+// last updated 2021-06-29 by mza
+
+module reset_promulgator #(
+	parameter CLOCK1_BIT_PICKOFF = 20,
+	parameter CLOCK2_BIT_PICKOFF = 20,
+	parameter RESET_PIPELINE_PICKOFF = 5,
+	parameter PLL_LOCKED_PIPELINE_CLOCK2_PICKOFF = 2
+) (
+	input reset_input,
+	input clock1, clock2,
+	input pll_locked_input,
+	output reg reset1 = 1,
+	output reg reset2 = 1,
+	output reg pll_locked_output = 0
+);
+	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline_clock1 = 0;
+	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline_clock2 = 0;
+	reg [3:0] reset_counter = 0; // this counts how many times the reset input gets pulsed
+	reg [CLOCK1_BIT_PICKOFF:0] counter_clock1 = 0;
+	always @(posedge clock1) begin
+		if (reset_pipeline_clock1[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
+			reset_counter <= reset_counter + 1'b1; // this counts how many times the reset input gets pulsed
+		end else if (reset_pipeline_clock1[RESET_PIPELINE_PICKOFF]) begin
+			counter_clock1 <= 0;
+			reset1 <= 1;
+		end else if (reset1) begin
+			if (counter_clock1[CLOCK1_BIT_PICKOFF]) begin
+				reset1 <= 0;
+			end
+			counter_clock1 <= counter_clock1 + 1'b1;
+		end
+		reset_pipeline_clock1 <= { reset_pipeline_clock1[RESET_PIPELINE_PICKOFF-1:0], reset_input };
+	end
+	reg [2:0] reset_clock1_pipeline_clock2 = 0;
+	reg [PLL_LOCKED_PIPELINE_CLOCK2_PICKOFF:0] pll_locked_pipeline_clock2 = 0;
+	integer j;
+	always @(posedge clock2) begin
+		if (~pll_locked_pipeline_clock2[PLL_LOCKED_PIPELINE_CLOCK2_PICKOFF]) begin
+			reset_clock1_pipeline_clock2 <= 0;
+			reset_pipeline_clock2 <= 0;
+		end else begin
+			reset_clock1_pipeline_clock2 <= { reset_clock1_pipeline_clock2[1:0], reset1 };
+			reset_pipeline_clock2 <= { reset_pipeline_clock2[RESET_PIPELINE_PICKOFF-1:0], reset_input };
+		end
+		pll_locked_output <= pll_locked_pipeline_clock2[PLL_LOCKED_PIPELINE_CLOCK2_PICKOFF];
+		pll_locked_pipeline_clock2 <= { pll_locked_pipeline_clock2[PLL_LOCKED_PIPELINE_CLOCK2_PICKOFF-1:0], pll_locked_input };
+	end
+	reg [CLOCK2_BIT_PICKOFF:0] counter_clock2 = 0;
+	always @(posedge clock2) begin
+		if (reset_pipeline_clock2[RESET_PIPELINE_PICKOFF] || reset_clock1_pipeline_clock2[2] || ~pll_locked_pipeline_clock2[PLL_LOCKED_PIPELINE_CLOCK2_PICKOFF]) begin
+			counter_clock2 <= 0;
+			reset2 <= 1;
+		end else if (reset2) begin
+			if (counter_clock2[CLOCK2_BIT_PICKOFF]) begin
+				reset2 <= 0;
+			end
+			counter_clock2 <= counter_clock2 + 1'b1;
+		end
+	end
+endmodule
 
 //	reset #(.FREQUENCY(10000000)) myr (.upstream_clock(), .upstream_reset(), .downstream_pll_locked(), .downstream_reset());
 module reset #(
