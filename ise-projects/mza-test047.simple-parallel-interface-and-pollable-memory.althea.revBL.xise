@@ -17,7 +17,7 @@
   <files>
     <file xil_pn:name="../verilog/src/mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="5"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="6"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="7"/>
     </file>
     <file xil_pn:name="../verilog/src/mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
@@ -367,6 +367,7 @@
     <file xil_pn:name="../verilog/src/lib/dcm.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/serdes_pll.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/half_duplex_rpi_bus.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="../verilog/src/lib/sequencer.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>
