@@ -176,6 +176,7 @@ module top #(
 		//assign sync_read_address = coax[5];
 		assign sync_read_address = 0;
 		assign coax[5] = sync_out_stream[2]; // scope trigger
+		assign pll_oserdes_locked_2 = 1;
 	end else begin // to synchronize the coax outputs and to trigger the scope on that synchronization
 		assign coax[4] = sync_out_stream[2]; // scope trigger
 		assign sync_read_address = coax[5]; // an input to synchronize to an external event
