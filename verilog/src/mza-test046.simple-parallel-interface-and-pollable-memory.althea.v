@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-06-29 by mza
+// last updated 2021-06-30 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -147,8 +147,6 @@ module top #(
 		.D3_out(coax[3]), .D2_out(), .D1_out(), .D0_out(coax[0]));
 	assign coax[1] = enable;
 	assign coax[2] = 0;
-	assign coax_led = 4'b1001;
-	//assign coax_led = reset_counter;
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
 		assign coax[5] = write_strobe;
@@ -168,7 +166,7 @@ module top #(
 		assign coax[4] = sync_out_stream[2]; // scope trigger
 		assign sync_read_address = 0;
 	end else if (1) begin
-		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
 		//assign sync_read_address = coax[5];
 		assign sync_read_address = 0;
 		assign coax[5] = sync_out_stream[2]; // scope trigger
@@ -177,6 +175,8 @@ module top #(
 		assign sync_read_address = coax[5]; // an input to synchronize to an external event
 		assign pll_oserdes_locked_2 = 1;
 	end
+	//assign coax_led = reset_counter;
+	assign coax_led = 4'b1001;
 	// ----------------------------------------------------------------------
 	if (1) begin
 		assign led[7] = reset50;

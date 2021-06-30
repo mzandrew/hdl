@@ -142,7 +142,8 @@ module ocyrus_single8 #(
 	parameter PHASE = 0.0,
 	parameter PERIOD = 20.0,
 	parameter DIVIDE = 2,
-	parameter MULTIPLY = 40
+	parameter MULTIPLY = 40,
+	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
 	input clock_in,
 	output word_clock_out,
@@ -154,7 +155,7 @@ module ocyrus_single8 #(
 	wire bit_clock;
 	wire bit_strobe;
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE)) mylei (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(D_out));
-	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE), .PHASE(PHASE)) difficult_pll_TR (
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE), .CLK_FEEDBACK(CLK_FEEDBACK), .PHASE(PHASE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
 	);
@@ -169,7 +170,8 @@ module ocyrus_double8 #(
 	parameter PINTYPE1 = "p",
 	parameter PERIOD = 20.0,
 	parameter DIVIDE = 2,
-	parameter MULTIPLY = 40
+	parameter MULTIPLY = 40,
+	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
 	input clock_in,
 	output word_clock_out,
@@ -182,7 +184,7 @@ module ocyrus_double8 #(
 );
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
-	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE), .CLK_FEEDBACK(CLK_FEEDBACK)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
 	);
@@ -199,7 +201,8 @@ module ocyrus_quad8 #(
 	parameter PINTYPE3 = "p",
 	parameter PERIOD = 20.0,
 	parameter DIVIDE = 2,
-	parameter MULTIPLY = 40
+	parameter MULTIPLY = 40,
+	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
 	input clock_in,
 	output word_clock_out,
@@ -214,7 +217,7 @@ module ocyrus_quad8 #(
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE3)) mylei3 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
-	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE), .CLK_FEEDBACK(CLK_FEEDBACK)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
 	);
@@ -262,25 +265,41 @@ endmodule
 // 127.221875 / 2 * 16 = 1017.775 MHz
 // 508.8875 / 2 * 4 = 1017.775 MHz
 module simpll #(
-	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
-	parameter CLKIN_PERIOD=6.4,
+	parameter BIT_DEPTH = 8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter CLKIN_PERIOD = 6.4,
 	parameter PHASE = 0.0,
-	parameter PLLD=5,
-	parameter PLLX=32
+	parameter PLLD = 5,
+	parameter PLLX = 32,
+	parameter CLK_FEEDBACK = "CLKFBOUT",
+	parameter COMPENSATION = CLK_FEEDBACK=="CLKFBOUT" ? "INTERNAL" : "EXTERNAL"
 ) (
 	input clock_in,
 	input reset,
+	input clock_nx_fb,
 	output pll_is_locked,
 	output clock_1x,
 	output clock_nx
 );
-	// from clock_generator_pll_s8_diff.v from XAPP1064 example code
+	// from clock_generator_pll_s8_diff.v from XAPP1064 example code, ug615 and ug382
 	// frequency of VCO after div and mult must be in range [400,1050] MHz for speed grade 3
 	// frequency of PFD (right after first DIVCLK_DIVIDE) stage must be in range [19, 500] MHz for speed grade 3
 	// frequency of BUFG can't be higher than 400 MHz
-	wire fb; // feedback net
+	wire fb_in; // incoming feedback net
+	wire fb_out; // outgoing feedback net
+	wire clock_in_copy;
+	if (CLK_FEEDBACK=="CLKFBOUT") begin
+		assign fb_in = fb_out;
+		assign clock_in_copy = clock_in;
+		//localparam COMPENSATION = "INTERNAL";
+	end else begin // "CLKOUT0"
+		BUFIO2 #(.DIVIDE(1), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("TRUE")) boopy (.I(clock_in), .DIVCLK(clock_in_copy));
+		BUFIO2FB schmoopy (.I(clock_nx_fb), .O(fb_in));
+		//assign fb_in = clock_nx;
+		//localparam COMPENSATION = "EXTERNAL";
+	end
 	PLL_ADV #(
 		.SIM_DEVICE("SPARTAN6"),
+		.CLK_FEEDBACK(CLK_FEEDBACK), // "CLKFBOUT" or "CLKOUT0"
 		.BANDWIDTH("OPTIMIZED"), // "high", "low" or "optimized"
 		.CLKFBOUT_PHASE(0.0), // phase shift (degrees) of all output clocks
 		.CLKIN1_PERIOD(CLKIN_PERIOD), // clock period (ns) of input clock on clkin1
@@ -305,14 +324,14 @@ module simpll #(
 		.CLKOUT3_DUTY_CYCLE(0.5), // duty cycle for clkout3 (0.01 to 0.99)
 		.CLKOUT4_DUTY_CYCLE(0.5), // duty cycle for clkout4 (0.01 to 0.99)
 		.CLKOUT5_DUTY_CYCLE(0.5), // duty cycle for clkout5 (0.01 to 0.99)
-		.COMPENSATION("INTERNAL"), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
+		.COMPENSATION(COMPENSATION), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
 		.REF_JITTER(0.100) // input reference jitter (0.000 to 0.999 ui%)
 		) pll_adv_inst (
 		.RST(reset), // asynchronous pll reset
 		.LOCKED(pll_is_locked), // active high pll lock signal
-		.CLKFBIN(fb), // clock feedback input
-		.CLKFBOUT(fb), // general output feedback signal
-		.CLKIN1(clock_in), // primary clock input
+		.CLKFBIN(fb_in), // clock feedback input
+		.CLKFBOUT(fb_out), // general output feedback signal
+		.CLKIN1(clock_in_copy), // primary clock input
 		.CLKOUT0(clock_nx), // *n clock for transmitter
 		.CLKOUT1(clock_1x), //
 		.CLKOUT2(), // *1 clock for BUFG
@@ -348,7 +367,8 @@ module oserdes_pll #(
 	parameter CLKIN_PERIOD = 6.4,
 	parameter PHASE = 0.0,
 	parameter PLLD=5,
-	parameter PLLX=32
+	parameter PLLX=32,
+	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
 	input clock_in, input reset, output word_clock_out,
 	output serializer_clock_out, output serializer_strobe_out, output locked
@@ -365,10 +385,12 @@ module oserdes_pll #(
 			.CLKIN_PERIOD(CLKIN_PERIOD),
 			.PHASE(PHASE),
 			.PLLD(PLLD),
-			.PLLX(PLLX)
+			.PLLX(PLLX),
+			.CLK_FEEDBACK(CLK_FEEDBACK)
 		) simon (
 			.clock_in(clock_in),
 			.reset(reset),
+			.clock_nx_fb(serializer_clock_out),
 			.pll_is_locked(pll_is_locked),
 			.clock_1x(rawclock_1x_plladv),
 			.clock_nx(rawclock_nx_plladv)
