@@ -259,6 +259,82 @@ module ocyrus_hex8 #(
 	);
 endmodule
 
+module ocyrus_hex8_split_4_2 #(
+	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
+	parameter BIT_WIDTH=1, // how many bits come out in parallel
+	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
+	parameter PINTYPE0 = "p",
+	parameter PINTYPE1 = "p",
+	parameter PINTYPE2 = "p",
+	parameter PINTYPE3 = "p",
+	parameter PINTYPE4 = "p",
+	parameter PINTYPE5 = "p",
+	parameter PERIOD = 20.0,
+	parameter DIVIDE = 2,
+	parameter MULTIPLY = 40
+) (
+	input clock_in,
+	output word_clock_out,
+	input reset,
+	input [BIT_DEPTH-1:0] word0_in, word1_in, word2_in, word3_in, word4_in, word5_in,
+	output D0_out, D1_out, D2_out, D3_out, D4_out, D5_out,
+	output locked
+);
+	wire bit_clock0, bit_clock1;
+	wire bit_strobe0, bit_strobe1;
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE3)) mylei3 (.word_clock(word_clock_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE4)) mylei4 (.word_clock(word_clock_out), .bit_clock(bit_clock1), .bit_strobe(bit_strobe1), .reset(reset), .word_in(word4_in), .bit_out(D4_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE5)) mylei5 (.word_clock(word_clock_out), .bit_clock(bit_clock1), .bit_strobe(bit_strobe1), .reset(reset), .word_in(word5_in), .bit_out(D5_out));
+//oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+//		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
+//		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
+	wire clock_1x, clock_nx;
+	wire pll_is_locked; // Locked output from PLL
+	simpll #(
+		.BIT_DEPTH(BIT_DEPTH),
+		.CLKIN_PERIOD(PERIOD),
+		.PHASE(0.0),
+		.PLLD(DIVIDE),
+		.PLLX(MULTIPLY)
+	) siphon (
+		.clock_in(clock_in),
+		.reset(reset),
+		.clock_nx_fb(bit_clock0),
+		.pll_is_locked(pll_is_locked),
+		.clock_1x(clock_1x),
+		.clock_nx(clock_nx)
+	);
+	BUFG bufg_tx (.I(clock_1x), .O(word_clock_out));
+	wire strobe_is_aligned0, strobe_is_aligned1;
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) tx_bufpll_inst_0 (
+		.PLLIN(clock_nx), // PLL Clock input
+		.GCLK(word_clock_out), // Global Clock input
+		.LOCKED(pll_is_locked), // Clock0 locked input
+		.IOCLK(bit_clock0), // Output PLL Clock
+		.LOCK(strobe_is_aligned0), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(bit_strobe0) // Output SERDES strobe
+	);
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) tx_bufpll_inst_1 (
+		.PLLIN(clock_nx), // PLL Clock input
+		.GCLK(word_clock_out), // Global Clock input
+		.LOCKED(pll_is_locked), // Clock0 locked input
+		.IOCLK(bit_clock1), // Output PLL Clock
+		.LOCK(strobe_is_aligned1), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(bit_strobe1) // Output SERDES strobe
+	);
+	assign locked = pll_is_locked & strobe_is_aligned0 & strobe_is_aligned1;
+endmodule
+
 // 156.25 / 8.0 * 61.875 / 2.375 = 508.840461 for scrod revA3 on-board oscillator
 // 156.25 / 5 * 32 = 1000 for scrod revA3 on-board oscillator
 // 50.0 / 2 * 40 = 1000 for althea on-board oscillator
