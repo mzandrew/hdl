@@ -145,12 +145,22 @@ module top #(
 	//	.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
 	//	.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(sync_out_word),
 	//	.D3_out(coax[3]), .D2_out(), .D1_out(), .D0_out(coax[0]));
+	//wire pre_coax_4;
 	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei6 (
 		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
 		.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(sync_out_word),
 		.word4_in(oserdes_word), .word5_in(sync_out_word),
 		.D0_out(coax[0]), .D1_out(), .D2_out(), .D3_out(coax[3]),
 		.D4_out(coax[4]), .D5_out());
+	// without an odelay present, the measured delay between coax[0] and coax[4] rising edges is -1995 ps (sigma 12 ps)
+	//odelay_fixed #(.AMOUNT(0)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1139 ps (sigma 36 ps)
+	//odelay_fixed #(.AMOUNT(1)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1121 ps (sigma 39 ps)
+	//odelay_fixed #(.AMOUNT(2)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1070 ps (sigma 42 ps)
+	//odelay_fixed #(.AMOUNT(3)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1032 ps (sigma 42 ps)
+	//odelay_fixed #(.AMOUNT(4)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1001 ps (sigma 44 ps)
+	//odelay_fixed #(.AMOUNT(5)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); //  -963 ps (sigma 45 ps)
+	//odelay_fixed #(.AMOUNT(6)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); //  -913 ps
+	// range is 20-50 ps per tap, linear fit is 38 ps per tap
 	assign coax[1] = enable;
 	assign coax[2] = 0;
 	if (0) begin // to test the rpi interface to the read/write pollable memory

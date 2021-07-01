@@ -525,6 +525,7 @@ module oserdes_pll #(
 endmodule
 
 //	odelay_fixed #(.AMOUNT()) beckham (.bit_in(), .bit_out());
+// ug381 says should limit fixed odelays to 3/4 of a bit period
 // spartan6 errata (EN148) says not to go above a delay tap value of 6 when used in ODELAY mode to get full performance (1080 MHz)
 // otherwise, limit the data rate to 800 MHz for the commercial grade -3 part
 module odelay_fixed #(
@@ -543,7 +544,7 @@ module odelay_fixed #(
 		.IDELAY2_VALUE(0), // Delay value when IDELAY_MODE="PCI" (0-255)
 		.IDELAY_MODE("NORMAL"), // "NORMAL" or "PCI"
 		.IDELAY_TYPE("FIXED"), // "FIXED", "DEFAULT", "VARIABLE_FROM_ZERO", "VARIABLE_FROM_HALF_MAX" or "DIFF_PHASE_DETECTOR"
-		.IDELAY_VALUE(), // Amount of taps for fixed input delay (0-255)
+		.IDELAY_VALUE(0), // Amount of taps for fixed input delay (0-255)
 		.ODELAY_VALUE(AMOUNT), // Amount of taps for fixed output delay (0-255)
 		.SERDES_MODE("NONE"), // "NONE", "M*****" or "S****" (idelay only according to ug381)
 		.SIM_TAPDELAY_VALUE(75) // Per tap delay used for simulation in ps
