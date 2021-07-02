@@ -402,7 +402,7 @@ module simpll #(
 		assign clock_in_copy = clock_in;
 		//localparam COMPENSATION = "INTERNAL";
 	end else begin // "CLKOUT0"
-		BUFIO2 #(.DIVIDE(1), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("TRUE")) boopy (.I(clock_in), .DIVCLK(clock_in_copy));
+		BUFIO2 #(.DIVIDE(1), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("TRUE")) boopy (.I(clock_in), .DIVCLK(clock_in_copy), .IOCLK(), .SERDESSTROBE());
 		BUFIO2FB #(.DIVIDE_BYPASS("TRUE")) schmoopy (.I(clock_nx_fb), .O(fb_in));
 		//assign fb_in = clock_nx;
 		//localparam COMPENSATION = "EXTERNAL";

@@ -157,15 +157,15 @@ module top #(
 	reg [2:0] rot_pipeline_b = 0;
 	reg [2:0] word_clock1_sel = 0;
 	wire word_clock1;
-	reg [7:0] oserdes_word1 = 0;
+	//reg [7:0] oserdes_word1 = 0;
 	reg [15:0] oserdes_word1_buffer_long = 0;
 	reg [7:0] oserdes_word1_buffer;
-	reg [7:0] sync_out_word1 = 0;
+	//reg [7:0] sync_out_word1 = 0;
 	reg [15:0] sync_out_word1_buffer_long = 0;
 	reg [7:0] sync_out_word1_buffer = 0;
 	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei6 (
 		.clock_in(clock125), .reset(reset125), .word_clock0_out(word_clock), .locked(pll_oserdes_locked_1),
-		.word_clock1_sel(word_clock1_sel), .word_clock1_out(word_clock1),
+		.word_clock1_sel(word_clock1_sel[1:0]), .word_clock1_out(word_clock1),
 		.word0_in(oserdes_word_buffer_b), .word1_in(oserdes_word_buffer_b), .word2_in(oserdes_word_buffer_b), .word3_in(sync_out_word_buffer_b),
 		.word4_in(oserdes_word1_buffer), .word5_in(sync_out_word1_buffer),
 		.D0_out(coax[0]), .D1_out(), .D2_out(), .D3_out(coax[3]),
@@ -174,7 +174,7 @@ module top #(
 		//word_clock1_sel <= rot[1:0];
 		word_clock1_sel <= rot_pipeline_b;
 		rot_pipeline_b <= rot_pipeline_a;
-		rot_pipeline_a <= rot;
+		rot_pipeline_a <= ~rot;
 //		word_clock1_sel <= rot_pipeline[ROT_PIPELINE_PICKOFF];
 //		rot_pipeline <= { rot_pipeline[ROT_PIPELINE_PICKOFF-1:0], rot };
 	end
@@ -187,15 +187,15 @@ module top #(
 		sync_out_word_buffer_b <= sync_out_word_buffer_a;
 		sync_out_word_buffer_a <= sync_out_word;
 	end
-	reg [3:0] offset = 4'd15;
+	reg [3:0] offset = 4'd8;
 	always @(posedge word_clock1) begin
 		oserdes_word1_buffer <= oserdes_word1_buffer_long[offset -: 8];
-		oserdes_word1_buffer_long <= { oserdes_word1_buffer_long[15:8], oserdes_word };
+		oserdes_word1_buffer_long <= { oserdes_word1_buffer_long[7:0], oserdes_word };
 		sync_out_word1_buffer <= sync_out_word1_buffer_long[offset -: 8];
-		sync_out_word1_buffer_long <= { sync_out_word1_buffer_long[15:8], sync_out_word };
-		oserdes_word1 <= oserdes_word;
-		sync_out_word1 <= sync_out_word;
-		offset <= 4'd15 - word_clock1_sel;
+		sync_out_word1_buffer_long <= { sync_out_word1_buffer_long[7:0], sync_out_word };
+		//oserdes_word1 <= oserdes_word;
+		//sync_out_word1 <= sync_out_word;
+		offset <= 4'd8 + word_clock1_sel;
 	end
 	// without an odelay present, the measured delay between coax[0] and coax[4] rising edges is -1995 ps (sigma 12 ps)
 	//odelay_fixed #(.AMOUNT(0)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1139 ps (sigma 36 ps)
