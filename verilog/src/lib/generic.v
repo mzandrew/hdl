@@ -1,5 +1,5 @@
 // written 2019-09-22 by mza
-// last updated 2021-02-26 by mza
+// last updated 2021-07-01 by mza
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
@@ -435,6 +435,21 @@ module clock #(
 		#HALF_PERIOD_OF_CLOCK_NS;
 		clock = ~clock;
 	end
+endmodule
+
+//	ddr mario (.clock(clock), .reset(reset), .data0_in(), .data1_in(), .data_out());
+module ddr (
+	input clock,
+	input reset,
+	input data0_in, data1_in,
+	output data_out
+);
+	wire clock0, clock180;
+	//BUFIO2 #(.DIVIDE(2), .USE_DOUBLER("TRUE"), .I_INVERT("FALSE")) b0 (.I(clock), .IOCLK(clock0),   .DIVCLK(), .SERDESSTROBE());
+	//BUFIO2 #(.DIVIDE(2), .USE_DOUBLER("FALSE"), .I_INVERT("TRUE")) b1 (.I(clock), .IOCLK(clock180), .DIVCLK(), .SERDESSTROBE());
+	assign clock0 = clock;
+	assign clock180 = ~clock;
+	ODDR2 #(.DDR_ALIGNMENT("NONE")) ddr (.C0(clock0), .C1(clock180), .CE(1'b1), .D0(data0_in), .D1(data1_in), .R(reset), .S(1'b0), .Q(data_out));
 endmodule
 
 `endif

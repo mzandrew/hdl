@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2021-06-30 by mza
+// last updated 2021-07-01 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -259,6 +259,25 @@ module ocyrus_hex8 #(
 	);
 endmodule
 
+module clock_select #(
+	parameter N = 4,
+	parameter log2_N = $clog2(N)
+) (
+	input [N-1:0] clock,
+	input [log2_N-1:0] select,
+	output clock_out
+);
+	reg [log2_N-1:0] select_copy = 0;
+	always @(posedge clock[0]) begin
+		select_copy <= select;
+	end
+	wire clock_0s;
+	wire clock_1s;
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_0s (.I0(clock[0]), .I1(clock[1]), .S(select_copy[0]), .O(clock_0s));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_1s (.I0(clock[2]), .I1(clock[3]), .S(select_copy[0]), .O(clock_1s));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_sx (.I0(clock_0s), .I1(clock_1s), .S(select_copy[1]), .O(clock_out));
+endmodule
+
 module ocyrus_hex8_split_4_2 #(
 	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
@@ -272,50 +291,60 @@ module ocyrus_hex8_split_4_2 #(
 	parameter PINTYPE5 = "p",
 	parameter PERIOD = 20.0,
 	parameter DIVIDE = 2,
-	parameter MULTIPLY = 40
+	parameter MULTIPLY = 40,
+	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
 	input clock_in,
-	output word_clock_out,
 	input reset,
 	input [BIT_DEPTH-1:0] word0_in, word1_in, word2_in, word3_in, word4_in, word5_in,
+	input [1:0] word_clock1_sel,
+	output word_clock0_out,
+	output word_clock1_out,
 	output D0_out, D1_out, D2_out, D3_out, D4_out, D5_out,
 	output locked
 );
 	wire bit_clock0, bit_clock1;
 	wire bit_strobe0, bit_strobe1;
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE3)) mylei3 (.word_clock(word_clock_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE4)) mylei4 (.word_clock(word_clock_out), .bit_clock(bit_clock1), .bit_strobe(bit_strobe1), .reset(reset), .word_in(word4_in), .bit_out(D4_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE5)) mylei5 (.word_clock(word_clock_out), .bit_clock(bit_clock1), .bit_strobe(bit_strobe1), .reset(reset), .word_in(word5_in), .bit_out(D5_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock0_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock0_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock0_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE3)) mylei3 (.word_clock(word_clock0_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE4)) mylei4 (.word_clock(word_clock1_out), .bit_clock(bit_clock1), .bit_strobe(bit_strobe1), .reset(reset), .word_in(word4_in), .bit_out(D4_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE5)) mylei5 (.word_clock(word_clock1_out), .bit_clock(bit_clock1), .bit_strobe(bit_strobe1), .reset(reset), .word_in(word5_in), .bit_out(D5_out));
 //oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
 //		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 //		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
-	wire clock_1x, clock_nx;
+	wire [4:0] clock_1x;
+	wire clock_nx;
 	wire pll_is_locked; // Locked output from PLL
 	simpll #(
 		.BIT_DEPTH(BIT_DEPTH),
 		.CLKIN_PERIOD(PERIOD),
 		.PHASE(0.0),
 		.PLLD(DIVIDE),
-		.PLLX(MULTIPLY)
+		.PLLX(MULTIPLY),
+		.CLK_FEEDBACK(CLK_FEEDBACK)
 	) siphon (
 		.clock_in(clock_in),
 		.reset(reset),
 		.clock_nx_fb(bit_clock0),
 		.pll_is_locked(pll_is_locked),
-		.clock_1x(clock_1x),
+		.clock_1x(clock_1x[0]),
+		.clock_1x_1(clock_1x[1]),
+		.clock_1x_2(clock_1x[2]),
+		.clock_1x_3(clock_1x[3]),
+		.clock_1x_4(clock_1x[4]),
 		.clock_nx(clock_nx)
 	);
-	BUFG bufg_tx (.I(clock_1x), .O(word_clock_out));
+	BUFG bufg_tx (.I(clock_1x[0]), .O(word_clock0_out));
+	clock_select cs (.clock(clock_1x[4:1]), .select(word_clock1_sel), .clock_out(word_clock1_out));
 	wire strobe_is_aligned0, strobe_is_aligned1;
 	BUFPLL #(
 		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
 		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
 	) tx_bufpll_inst_0 (
 		.PLLIN(clock_nx), // PLL Clock input
-		.GCLK(word_clock_out), // Global Clock input
+		.GCLK(word_clock0_out), // Global Clock input
 		.LOCKED(pll_is_locked), // Clock0 locked input
 		.IOCLK(bit_clock0), // Output PLL Clock
 		.LOCK(strobe_is_aligned0), // BUFPLL Clock and strobe locked
@@ -326,7 +355,7 @@ module ocyrus_hex8_split_4_2 #(
 		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
 	) tx_bufpll_inst_1 (
 		.PLLIN(clock_nx), // PLL Clock input
-		.GCLK(word_clock_out), // Global Clock input
+		.GCLK(word_clock1_out), // Global Clock input
 		.LOCKED(pll_is_locked), // Clock0 locked input
 		.IOCLK(bit_clock1), // Output PLL Clock
 		.LOCK(strobe_is_aligned1), // BUFPLL Clock and strobe locked
@@ -348,12 +377,17 @@ module simpll #(
 	parameter PLLX = 32,
 	parameter CLK_FEEDBACK = "CLKFBOUT",
 	parameter COMPENSATION = CLK_FEEDBACK=="CLKFBOUT" ? "INTERNAL" : "EXTERNAL"
+	//parameter COMPENSATION = "SOURCE_SYNCHRONOUS"
 ) (
 	input clock_in,
 	input reset,
 	input clock_nx_fb,
 	output pll_is_locked,
 	output clock_1x,
+	output clock_1x_1,
+	output clock_1x_2,
+	output clock_1x_3,
+	output clock_1x_4,
 	output clock_nx
 );
 	// from clock_generator_pll_s8_diff.v from XAPP1064 example code, ug615 and ug382
@@ -369,7 +403,7 @@ module simpll #(
 		//localparam COMPENSATION = "INTERNAL";
 	end else begin // "CLKOUT0"
 		BUFIO2 #(.DIVIDE(1), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("TRUE")) boopy (.I(clock_in), .DIVCLK(clock_in_copy));
-		BUFIO2FB schmoopy (.I(clock_nx_fb), .O(fb_in));
+		BUFIO2FB #(.DIVIDE_BYPASS("TRUE")) schmoopy (.I(clock_nx_fb), .O(fb_in));
 		//assign fb_in = clock_nx;
 		//localparam COMPENSATION = "EXTERNAL";
 	end
@@ -384,16 +418,16 @@ module simpll #(
 		.CLKFBOUT_MULT(PLLX), // multiplication factor for all output clocks
 		.CLKOUT0_DIVIDE(1), // division factor for clkout0 (1 to 128)
 		.CLKOUT1_DIVIDE(BIT_DEPTH), // division factor for clkout1 (1 to 128)
-		.CLKOUT2_DIVIDE(2), // division factor for clkout2 (1 to 128)
-		.CLKOUT3_DIVIDE(4), // division factor for clkout3 (1 to 128)
-		.CLKOUT4_DIVIDE(8), // division factor for clkout4 (1 to 128)
-		.CLKOUT5_DIVIDE(16), // division factor for clkout5 (1 to 128)
+		.CLKOUT2_DIVIDE(BIT_DEPTH), // division factor for clkout2 (1 to 128)
+		.CLKOUT3_DIVIDE(BIT_DEPTH), // division factor for clkout3 (1 to 128)
+		.CLKOUT4_DIVIDE(BIT_DEPTH), // division factor for clkout4 (1 to 128)
+		.CLKOUT5_DIVIDE(BIT_DEPTH), // division factor for clkout5 (1 to 128)
 		.CLKOUT0_PHASE(0.0), // phase shift (degrees) for clkout0 (0.0 to 360.0)
 		.CLKOUT1_PHASE(PHASE), // phase shift (degrees) for clkout1 (0.0 to 360.0)
-		.CLKOUT2_PHASE(0.0), // phase shift (degrees) for clkout2 (0.0 to 360.0)
-		.CLKOUT3_PHASE(0.0), // phase shift (degrees) for clkout3 (0.0 to 360.0)
-		.CLKOUT4_PHASE(0.0), // phase shift (degrees) for clkout4 (0.0 to 360.0)
-		.CLKOUT5_PHASE(0.0), // phase shift (degrees) for clkout5 (0.0 to 360.0)
+		.CLKOUT2_PHASE(PHASE+1*360/BIT_DEPTH), // phase shift (degrees) for clkout2 (0.0 to 360.0)
+		.CLKOUT3_PHASE(PHASE+2*360/BIT_DEPTH), // phase shift (degrees) for clkout3 (0.0 to 360.0)
+		.CLKOUT4_PHASE(PHASE+3*360/BIT_DEPTH), // phase shift (degrees) for clkout4 (0.0 to 360.0)
+		.CLKOUT5_PHASE(PHASE+4*360/BIT_DEPTH), // phase shift (degrees) for clkout5 (0.0 to 360.0)
 		.CLKOUT0_DUTY_CYCLE(0.5), // duty cycle for clkout0 (0.01 to 0.99)
 		.CLKOUT1_DUTY_CYCLE(0.5), // duty cycle for clkout1 (0.01 to 0.99)
 		.CLKOUT2_DUTY_CYCLE(0.5), // duty cycle for clkout2 (0.01 to 0.99)
@@ -401,7 +435,7 @@ module simpll #(
 		.CLKOUT4_DUTY_CYCLE(0.5), // duty cycle for clkout4 (0.01 to 0.99)
 		.CLKOUT5_DUTY_CYCLE(0.5), // duty cycle for clkout5 (0.01 to 0.99)
 		.COMPENSATION(COMPENSATION), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
-		.REF_JITTER(0.100) // input reference jitter (0.000 to 0.999 ui%)
+		.REF_JITTER(0.200) // input reference jitter (0.000 to 0.999 ui%)
 		) pll_adv_inst (
 		.RST(reset), // asynchronous pll reset
 		.LOCKED(pll_is_locked), // active high pll lock signal
@@ -410,10 +444,10 @@ module simpll #(
 		.CLKIN1(clock_in_copy), // primary clock input
 		.CLKOUT0(clock_nx), // *n clock for transmitter
 		.CLKOUT1(clock_1x), //
-		.CLKOUT2(), // *1 clock for BUFG
-		.CLKOUT3(), // one of six general clock output signals
-		.CLKOUT4(), // one of six general clock output signals
-		.CLKOUT5(), // one of six general clock output signals
+		.CLKOUT2(clock_1x_1), // *1 clock for BUFG
+		.CLKOUT3(clock_1x_2), // one of six general clock output signals
+		.CLKOUT4(clock_1x_3), // one of six general clock output signals
+		.CLKOUT5(clock_1x_4), // one of six general clock output signals
 		.CLKFBDCM(), // output feedback signal used when pll feeds a dcm
 		.CLKOUTDCM0(), // one of six clock outputs to connect to the dcm
 		.CLKOUTDCM1(), // one of six clock outputs to connect to the dcm
@@ -469,6 +503,10 @@ module oserdes_pll #(
 			.clock_nx_fb(serializer_clock_out),
 			.pll_is_locked(pll_is_locked),
 			.clock_1x(rawclock_1x_plladv),
+			.clock_1x(),
+			.clock_1x(),
+			.clock_1x(),
+			.clock_1x(),
 			.clock_nx(rawclock_nx_plladv)
 		);
 		if (SCOPE == "BUFIO2") begin

@@ -97,10 +97,10 @@ net rpi_gpio21          loc=p84  | iostandard=lvcmos33 | drive = 4; # bank1
 #timespec "ts_clock10" = period "tnm_clock10" 100.0 ns high 50%; # 10 MHz
 
 # hexadecimal rotary encoder:
-#net rot_1 loc=p74 | iostandard=lvcmos33 | pullup; # bank1
-#net rot_2 loc=p50 | iostandard=lvcmos33 | pullup; # bank2
-#net rot_4 loc=p67 | iostandard=lvcmos33 | pullup; # bank2
-#net rot_8 loc=p62 | iostandard=lvcmos33 | pullup; # bank2
+net rot<0> loc=p74 | iostandard=lvcmos33 | pullup; # rot_1 bank1
+net rot<1> loc=p50 | iostandard=lvcmos33 | pullup; # rot_2 bank2
+#net rot<2> loc=p67 | iostandard=lvcmos33 | pullup; # rot_4 bank2
+#net rot<3> loc=p62 | iostandard=lvcmos33 | pullup; # rot_8 bank2
 
 # momentary pushbutton, normally open:
 net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3

@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-06-30 by mza
+// last updated 2021-07-01 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -32,6 +32,7 @@ module top #(
 	input clock10,
 	input reset,
 	inout [5:0] coax,
+	input [1:0] rot,
 	inout [BUS_WIDTH-1:0] bus,
 	input read, // 0=write; 1=read
 	input register_select, // 0=address; 1=data
@@ -98,6 +99,7 @@ module top #(
 	);
 	wire word_clock;
 	wire [BUS_WIDTH_OSERDES-1:0] oserdes_word;
+	reg [7:0] oserdes_word_buffer = 0;
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 	if (0) begin
 		RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset125),
@@ -138,6 +140,7 @@ module top #(
 	wire sync_read_address; // assert this when you feel like (re)synchronizing
 	wire [3:0] sync_out_stream; // sync_out_stream[2] is usually good
 	wire [7:0] sync_out_word; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
+	reg [7:0] sync_out_word_buffer = 0; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
 	wire [31:0] start_read_address = 32'd0; // in 2-bit words
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
 	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .ADDRESS_DEPTH(ADDRESS_DEPTH)) ss (.clock(word_clock), .reset(reset125), .sync_read_address(sync_read_address), .start_read_address(start_read_address), .end_read_address(end_read_address), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
@@ -146,12 +149,46 @@ module top #(
 	//	.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(sync_out_word),
 	//	.D3_out(coax[3]), .D2_out(), .D1_out(), .D0_out(coax[0]));
 	//wire pre_coax_4;
+//	localparam ROT_PIPELINE_PICKOFF = 2;
+//	reg [1:0] rot_pipeline [3:0];
+	reg [1:0] rot_pipeline_a = 0;
+	reg [1:0] rot_pipeline_b = 0;
+	reg [1:0] rot_pipeline_c = 0;
+	reg [1:0] word_clock1_sel = 0;
+	wire word_clock1;
+	reg [7:0] oserdes_word1 = 0;
+	reg [7:0] oserdes_word1_buffer;
+	reg [7:0] sync_out_word1 = 0;
+	reg [7:0] sync_out_word1_buffer = 0;
 	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei6 (
-		.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
-		.word0_in(oserdes_word), .word1_in(oserdes_word), .word2_in(oserdes_word), .word3_in(sync_out_word),
-		.word4_in(oserdes_word), .word5_in(sync_out_word),
+		.clock_in(clock125), .reset(reset125), .word_clock0_out(word_clock), .locked(pll_oserdes_locked_1),
+		.word_clock1_sel(word_clock1_sel), .word_clock1_out(word_clock1),
+		.word0_in(oserdes_word_buffer), .word1_in(oserdes_word_buffer), .word2_in(oserdes_word_buffer), .word3_in(sync_out_word_buffer),
+		.word4_in(oserdes_word1_buffer), .word5_in(sync_out_word1_buffer),
 		.D0_out(coax[0]), .D1_out(), .D2_out(), .D3_out(coax[3]),
 		.D4_out(coax[4]), .D5_out());
+	always @(posedge word_clock1) begin
+		//word_clock1_sel <= rot[1:0];
+		word_clock1_sel <= rot_pipeline_c;
+		rot_pipeline_c <= rot_pipeline_b;
+		rot_pipeline_b <= rot_pipeline_a;
+		rot_pipeline_a <= rot;
+//		word_clock1_sel <= rot_pipeline[ROT_PIPELINE_PICKOFF];
+//		rot_pipeline <= { rot_pipeline[ROT_PIPELINE_PICKOFF-1:0], rot };
+	end
+	//ddr mario0 (.clock(clock125),   .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[1]));
+	ddr mario1 (.clock(word_clock),  .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[2]));
+	ddr mario2 (.clock(word_clock1), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[1]));
+	always @(posedge word_clock) begin
+		oserdes_word_buffer <= oserdes_word;
+		sync_out_word_buffer <= sync_out_word;
+	end
+	always @(posedge word_clock1) begin
+		oserdes_word1_buffer <= oserdes_word1;
+		sync_out_word1_buffer <= sync_out_word1;
+		oserdes_word1 <= oserdes_word;
+		sync_out_word1 <= sync_out_word;
+	end
 	// without an odelay present, the measured delay between coax[0] and coax[4] rising edges is -1995 ps (sigma 12 ps)
 	//odelay_fixed #(.AMOUNT(0)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1139 ps (sigma 36 ps)
 	//odelay_fixed #(.AMOUNT(1)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1121 ps (sigma 39 ps)
@@ -161,8 +198,9 @@ module top #(
 	//odelay_fixed #(.AMOUNT(5)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); //  -963 ps (sigma 45 ps)
 	//odelay_fixed #(.AMOUNT(6)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); //  -913 ps
 	// range is 20-50 ps per tap, linear fit is 38 ps per tap
-	assign coax[1] = enable;
-	assign coax[2] = 0;
+	//assign coax[1] = enable;
+	//assign coax[2] = 0;
+	assign coax_led[2:1] = rot_pipeline_c;
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
 		assign coax[5] = write_strobe;
@@ -193,7 +231,9 @@ module top #(
 		assign pll_oserdes_locked_2 = 1;
 	end
 	//assign coax_led = reset_counter;
-	assign coax_led = 4'b1001;
+	//assign coax_led = 4'b1001;
+	assign coax_led[0] = 1'b1;
+	assign coax_led[3] = 1'b1;
 	// ----------------------------------------------------------------------
 	if (1) begin
 		assign led[7] = reset50;
@@ -533,6 +573,7 @@ module myalthea (
 	u, v, w, x, y, z,
 	// other IOs:
 	input button, // reset
+	input [1:0] rot,
 	output [3:0] coax_led,
 	output [7:0] led
 );
@@ -563,6 +604,7 @@ module myalthea (
 		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
 		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio2_i2c1_sda),
+		.rot(rot),
 		.coax_led(coax_led),
 		.led(led)
 	);
