@@ -6,7 +6,7 @@
 `define althea_revB
 `include "lib/generic.v"
 `include "lib/RAM8.v"
-`include "lib/dcm.v"
+`include "lib/plldcm.v"
 `include "lib/serdes_pll.v"
 `include "lib/half_duplex_rpi_bus.v"
 `include "lib/sequencer.v"
@@ -69,7 +69,15 @@ module top #(
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
 	wire rawclock125;
 	wire clock125;
-	simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm_125 (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
+	if (0) begin
+		simpledcm_CLKGEN #(.MULTIPLY(20), .DIVIDE(8), .PERIOD(20.0)) dcm_clkgen (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
+	end else if (0) begin
+		simpledcm_SP #(.MULTIPLY(20), .DIVIDE(8), .ALT_CLOCKOUT_DIVIDE(2), .PERIOD(20.0)) dcm_sp (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 50->125
+	end else if (1) begin
+		simplepll_ADV #(.OVERALL_DIVIDE(1), .MULTIPLY(20), .DIVIDE(8), .PERIOD(20.0)) pll_adv (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .locked(pll_locked)); // 50->125
+	end else begin
+		simplepll_BASE #(.OVERALL_DIVIDE(1), .MULTIPLY(20), .DIVIDE0(8), .PHASE0(0.0), .PERIOD(20.0)) pll_base (.clockin(clock50), .reset(reset50), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
+	end
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
 	// ----------------------------------------------------------------------

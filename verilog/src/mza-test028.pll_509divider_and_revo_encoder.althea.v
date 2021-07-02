@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2019-08-15 by mza
+// last updated 2021-07-02 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
@@ -56,7 +56,7 @@ module mza_test028_pll_509divider_and_revo_encoder_althea (
 	wire rawclock254;
 	wire rawclock254b;
 	wire locked;
-	simplepll_BASE #(.overall_divide(2), .multiply(4), .divide1(8), .divide2(4), .period(1.965), .compensation("INTERNAL")) mypll (.clockin(clock509), .reset(reset), .clock1out(rawclock127), .clock1out180(rawclock127b), .clock2out(rawclock254), .clock2out180(rawclock254b), .locked(locked));
+	simplepll_BASE #(.OVERALL_DIVIDE(2), .MULTIPLY(4), .DIVIDE1(8), .DIVIDE2(4), .PERIOD(1.965), .COMPENSATION("INTERNAL")) mypll (.clockin(clock509), .reset(reset), .clock1out(rawclock127), .clock1out180(rawclock127b), .clock2out(rawclock254), .clock2out180(rawclock254b), .locked(locked));
 	wire clock127;
 	wire clock127b;
 	BUFG mybufg1 (.I(rawclock127), .O(clock127));

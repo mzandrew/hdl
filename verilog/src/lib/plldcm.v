@@ -1,13 +1,19 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2021-03-01 by mza
+// last updated 2021-07-02 by mza
 
-`ifndef DCM_LIB
-`define DCM_LIB
+`ifndef PLLDCM_LIB
+`define PLLDCM_LIB
 
 // can only be used to directly feed a DCM
-//simplepll_ADV #(.overall_divide(1), .multiply(10), .divide(4), .period(20.0)) mypll (.clockin(clock50), .reset(reset), .clockout(clock), .locked()); // 50->125
-module simplepll_ADV #(parameter overall_divide=1, multiply=4, divide=1, period=10.0, compensation="PLL2DCM") (
+//simplepll_ADV_2DCM #(.OVERALL_DIVIDE(1), .MULTIPLY(10), .DIVIDE(4), .PERIOD(20.0)) mypll (.clockin(clock50), .reset(reset), .clockout(clock), .locked()); // 50->125
+module simplepll_ADV_2DCM #(
+	parameter OVERALL_DIVIDE = 1,
+	parameter MULTIPLY = 4,
+	parameter DIVIDE = 1,
+	parameter PERIOD = 10.0,
+	parameter COMPENSATION = "PLL2DCM"
+) (
 	input clockin,
 	input reset,
 	output clockout,
@@ -18,11 +24,11 @@ module simplepll_ADV #(parameter overall_divide=1, multiply=4, divide=1, period=
 		.SIM_DEVICE("SPARTAN6"),
 		.BANDWIDTH("OPTIMIZED"), // "high", "low" or "optimized"
 		.CLKFBOUT_PHASE(0.0), // phase shift (degrees) of all output clocks
-		.CLKIN1_PERIOD(period), // clock period (ns) of input clock on clkin1
-		.CLKIN2_PERIOD(period), // clock period (ns) of input clock on clkin2
-		.DIVCLK_DIVIDE(overall_divide), // division factor for all clocks (1 to 52)
-		.CLKFBOUT_MULT(multiply), // multiplication factor for all output clocks
-		.CLKOUT0_DIVIDE(divide), // division factor for clkout0 (1 to 128)
+		.CLKIN1_PERIOD(PERIOD), // clock period (ns) of input clock on clkin1
+		.CLKIN2_PERIOD(PERIOD), // clock period (ns) of input clock on clkin2
+		.DIVCLK_DIVIDE(OVERALL_DIVIDE), // division factor for all clocks (1 to 52)
+		.CLKFBOUT_MULT(MULTIPLY), // multiplication factor for all output clocks
+		.CLKOUT0_DIVIDE(DIVIDE), // division factor for clkout0 (1 to 128)
 		.CLKOUT1_DIVIDE(1), // division factor for clkout1 (1 to 128)
 		.CLKOUT2_DIVIDE(1), // division factor for clkout2 (1 to 128)
 		.CLKOUT3_DIVIDE(1), // division factor for clkout3 (1 to 128)
@@ -40,7 +46,7 @@ module simplepll_ADV #(parameter overall_divide=1, multiply=4, divide=1, period=
 		.CLKOUT3_DUTY_CYCLE(0.5), // duty cycle for clkout3 (0.01 to 0.99)
 		.CLKOUT4_DUTY_CYCLE(0.5), // duty cycle for clkout4 (0.01 to 0.99)
 		.CLKOUT5_DUTY_CYCLE(0.5), // duty cycle for clkout5 (0.01 to 0.99)
-		.COMPENSATION(compensation), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
+		.COMPENSATION(COMPENSATION), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
 		.REF_JITTER(0.100) // input reference jitter (0.000 to 0.999 ui%)
 	) pll_adv_inst (
 		.RST(reset), // asynchronous pll reset
@@ -74,8 +80,82 @@ module simplepll_ADV #(parameter overall_divide=1, multiply=4, divide=1, period=
 	);
 endmodule
 
+//simplepll_ADV #(.OVERALL_DIVIDE(1), .MULTIPLY(10), .DIVIDE(4), .PERIOD(20.0)) mypll (.clockin(clock50), .reset(reset), .clockout(clock), .locked()); // 50->125
+module simplepll_ADV #(
+	parameter OVERALL_DIVIDE = 1,
+	parameter MULTIPLY = 4,
+	parameter DIVIDE = 1,
+	parameter PERIOD = 10.0,
+	parameter COMPENSATION = "INTERNAL"
+) (
+	input clockin,
+	input reset,
+	output clockout,
+	output locked
+);
+	wire fb;
+	PLL_ADV #(
+		.SIM_DEVICE("SPARTAN6"),
+		.BANDWIDTH("OPTIMIZED"), // "high", "low" or "optimized"
+		.CLKFBOUT_PHASE(0.0), // phase shift (degrees) of all output clocks
+		.CLKIN1_PERIOD(PERIOD), // clock period (ns) of input clock on clkin1
+		.CLKIN2_PERIOD(PERIOD), // clock period (ns) of input clock on clkin2
+		.DIVCLK_DIVIDE(OVERALL_DIVIDE), // division factor for all clocks (1 to 52)
+		.CLKFBOUT_MULT(MULTIPLY), // multiplication factor for all output clocks
+		.CLKOUT0_DIVIDE(DIVIDE), // division factor for clkout0 (1 to 128)
+		.CLKOUT1_DIVIDE(1), // division factor for clkout1 (1 to 128)
+		.CLKOUT2_DIVIDE(1), // division factor for clkout2 (1 to 128)
+		.CLKOUT3_DIVIDE(1), // division factor for clkout3 (1 to 128)
+		.CLKOUT4_DIVIDE(1), // division factor for clkout4 (1 to 128)
+		.CLKOUT5_DIVIDE(1), // division factor for clkout5 (1 to 128)
+		.CLKOUT0_PHASE(0.0), // phase shift (degrees) for clkout0 (0.0 to 360.0)
+		.CLKOUT1_PHASE(0.0), // phase shift (degrees) for clkout1 (0.0 to 360.0)
+		.CLKOUT2_PHASE(0.0), // phase shift (degrees) for clkout2 (0.0 to 360.0)
+		.CLKOUT3_PHASE(0.0), // phase shift (degrees) for clkout3 (0.0 to 360.0)
+		.CLKOUT4_PHASE(0.0), // phase shift (degrees) for clkout4 (0.0 to 360.0)
+		.CLKOUT5_PHASE(0.0), // phase shift (degrees) for clkout5 (0.0 to 360.0)
+		.CLKOUT0_DUTY_CYCLE(0.5), // duty cycle for clkout0 (0.01 to 0.99)
+		.CLKOUT1_DUTY_CYCLE(0.5), // duty cycle for clkout1 (0.01 to 0.99)
+		.CLKOUT2_DUTY_CYCLE(0.5), // duty cycle for clkout2 (0.01 to 0.99)
+		.CLKOUT3_DUTY_CYCLE(0.5), // duty cycle for clkout3 (0.01 to 0.99)
+		.CLKOUT4_DUTY_CYCLE(0.5), // duty cycle for clkout4 (0.01 to 0.99)
+		.CLKOUT5_DUTY_CYCLE(0.5), // duty cycle for clkout5 (0.01 to 0.99)
+		.COMPENSATION(COMPENSATION), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
+		.REF_JITTER(0.100) // input reference jitter (0.000 to 0.999 ui%)
+	) pll_adv_inst (
+		.RST(reset), // asynchronous pll reset
+		.LOCKED(locked), // active high pll lock signal
+		.CLKFBIN(fb), // clock feedback input
+		.CLKFBOUT(fb), // general output feedback signal
+		.CLKIN1(clockin), // primary clock input
+		.CLKOUT0(clockout),
+		.CLKOUT1(), //
+		.CLKOUT2(), //
+		.CLKOUT3(), // one of six general clock output signals
+		.CLKOUT4(), // one of six general clock output signals
+		.CLKOUT5(), // one of six general clock output signals
+		.CLKFBDCM(), // output feedback signal used when pll feeds a dcm
+		.CLKOUTDCM0(), // one of six clock outputs to connect to the dcm
+		.CLKOUTDCM1(), // one of six clock outputs to connect to the dcm
+		.CLKOUTDCM2(), // one of six clock outputs to connect to the dcm
+		.CLKOUTDCM3(), // one of six clock outputs to connect to the dcm
+		.CLKOUTDCM4(), // one of six clock outputs to connect to the dcm
+		.CLKOUTDCM5(), // one of six clock outputs to connect to the dcm
+		.DO(), // dynamic reconfig data output (16-bits)
+		.DRDY(), // dynamic reconfig ready output
+		.CLKIN2(1'b0), // secondary clock input
+		.CLKINSEL(1'b1), // selects '1' = clkin1, '0' = clkin2
+		.DADDR(5'b00000), // dynamic reconfig address input (5-bits)
+		.DCLK(1'b0), // dynamic reconfig clock input
+		.DEN(1'b0), // dynamic reconfig enable input
+		.DI(16'h0000), // dynamic reconfig data input (16-bits)
+		.DWE(1'b0), // dynamic reconfig write enable input
+		.REL(1'b0) // used to force the state of the PFD outputs (test only)
+	);
+endmodule
+
 //wire rawclock125;
-//simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) other (.clockin(clock50), .reset(reset), .clock0out(rawclock125), .locked(other_pll_locked)); // 50->125
+//simplepll_BASE #(.OVERALL_DIVIDE(1), .MULTIPLY(10), .DIVIDE0(4), .PHASE0(0.0), .PERIOD(20.0)) other (.clockin(clock50), .reset(reset), .clock0out(rawclock125), .locked(other_pll_locked)); // 50->125
 //wire clock125;
 //BUFG mrt (.I(rawclock125), .O(clock125));
 // divclk_divide 1 to 52
@@ -83,12 +163,12 @@ endmodule
 // clkout_divide 1 to 128
 module simplepll_BASE #(
 	parameter
-	period=10.0,
-	overall_divide=1,
-	multiply=4,
-	divide0=1, divide1=2, divide2=4, divide3=8, divide4=16, divide5=32,
-	phase0=0.0, phase1=0.0, phase2=0.0, phase3=0.0, phase4=0.0, phase5=0.0,
-	compensation="SYSTEM_SYNCHRONOUS"
+	PERIOD=10.0,
+	OVERALL_DIVIDE=1,
+	MULTIPLY=4,
+	DIVIDE0=1, DIVIDE1=2, DIVIDE2=4, DIVIDE3=8, DIVIDE4=16, DIVIDE5=32,
+	PHASE0=0.0, PHASE1=0.0, PHASE2=0.0, PHASE3=0.0, PHASE4=0.0, PHASE5=0.0,
+	COMPENSATION="SYSTEM_SYNCHRONOUS"
 ) (
 	input clockin,
 	input reset,
@@ -103,31 +183,31 @@ module simplepll_BASE #(
 	wire fb;
 	PLL_BASE #(
 		.BANDWIDTH("OPTIMIZED"), // "HIGH", "LOW" or "OPTIMIZED"
-		.CLKFBOUT_MULT(multiply), // Multiplication factor for all output clocks
+		.CLKFBOUT_MULT(MULTIPLY), // Multiplication factor for all output clocks
 		.CLKFBOUT_PHASE(0.0), // Phase shift (degrees) of all output clocks
-		.CLKIN_PERIOD(period), // Clock period (ns) of input clock on CLKIN
-		.CLKOUT0_DIVIDE(divide0), // Division factor for CLKOUT0 (1 to 128)
+		.CLKIN_PERIOD(PERIOD), // Clock period (ns) of input clock on CLKIN
+		.CLKOUT0_DIVIDE(DIVIDE0), // Division factor for CLKOUT0 (1 to 128)
 		.CLKOUT0_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT0 (0.01 to 0.99)
-		.CLKOUT0_PHASE(phase0), // Phase shift (degrees) for CLKOUT0 (0.0 to 360.0)
-		.CLKOUT1_DIVIDE(divide1), // Division factor for CLKOUT1 (1 to 128)
+		.CLKOUT0_PHASE(PHASE0), // Phase shift (degrees) for CLKOUT0 (0.0 to 360.0)
+		.CLKOUT1_DIVIDE(DIVIDE1), // Division factor for CLKOUT1 (1 to 128)
 		.CLKOUT1_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT1 (0.01 to 0.99)
-		.CLKOUT1_PHASE(phase1), // Phase shift (degrees) for CLKOUT1 (0.0 to 360.0)
-		.CLKOUT2_DIVIDE(divide2), // Division factor for CLKOUT2 (1 to 128)
+		.CLKOUT1_PHASE(PHASE1), // Phase shift (degrees) for CLKOUT1 (0.0 to 360.0)
+		.CLKOUT2_DIVIDE(DIVIDE2), // Division factor for CLKOUT2 (1 to 128)
 		.CLKOUT2_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT2 (0.01 to 0.99)
-		.CLKOUT2_PHASE(phase2), // Phase shift (degrees) for CLKOUT2 (0.0 to 360.0)
-		.CLKOUT3_DIVIDE(divide3), // Division factor for CLKOUT3 (1 to 128)
+		.CLKOUT2_PHASE(PHASE2), // Phase shift (degrees) for CLKOUT2 (0.0 to 360.0)
+		.CLKOUT3_DIVIDE(DIVIDE3), // Division factor for CLKOUT3 (1 to 128)
 		.CLKOUT3_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT3 (0.01 to 0.99)
-		.CLKOUT3_PHASE(phase3), // Phase shift (degrees) for CLKOUT3 (0.0 to 360.0)
-		.CLKOUT4_DIVIDE(divide4), // Division factor for CLKOUT4 (1 to 128)
+		.CLKOUT3_PHASE(PHASE3), // Phase shift (degrees) for CLKOUT3 (0.0 to 360.0)
+		.CLKOUT4_DIVIDE(DIVIDE4), // Division factor for CLKOUT4 (1 to 128)
 		.CLKOUT4_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT4 (0.01 to 0.99)
-		.CLKOUT4_PHASE(phase4), // Phase shift (degrees) for CLKOUT4 (0.0 to 360.0)
-		.CLKOUT5_DIVIDE(divide5), // Division factor for CLKOUT5 (1 to 128)
+		.CLKOUT4_PHASE(PHASE4), // Phase shift (degrees) for CLKOUT4 (0.0 to 360.0)
+		.CLKOUT5_DIVIDE(DIVIDE5), // Division factor for CLKOUT5 (1 to 128)
 		.CLKOUT5_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT5 (0.01 to 0.99)
-		.CLKOUT5_PHASE(phase5), // Phase shift (degrees) for CLKOUT5 (0.0 to 360.0)
-		.COMPENSATION(compensation), // "SYSTEM_SYNCHRONOUS",
+		.CLKOUT5_PHASE(PHASE5), // Phase shift (degrees) for CLKOUT5 (0.0 to 360.0)
+		.COMPENSATION(COMPENSATION), // "SYSTEM_SYNCHRONOUS",
 		// "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL",
 		// "DCM2PLL", "PLL2DCM"
-		.DIVCLK_DIVIDE(overall_divide), // Division factor for all clocks (1 to 52)
+		.DIVCLK_DIVIDE(OVERALL_DIVIDE), // Division factor for all clocks (1 to 52)
 		.REF_JITTER(0.100) // Input reference jitter (0.000 to 0.999 UI%)
 	) PLL_BASE_inst (
 		.CLKFBOUT(fb), // General output feedback signal
@@ -144,13 +224,13 @@ module simplepll_BASE #(
 	);
 endmodule
 
-//	simpledcm_CLKGEN #(.multiply(), .divide(), .period()) mydcm (.clockin(), .reset(), .clockout(), .clockout180(), .locked());
+//	simpledcm_CLKGEN #(.MULTIPLY(), .DIVIDE(), .PERIOD()) mydcm (.clockin(), .reset(), .clockout(), .clockout180(), .locked());
 // clockin: 0.5-375 MHz (ds162.pdf)
 // clockout: 5-375 MHz (ds162.pdf)
-// multiply: 2-256
-// divide: 1-256
+// MULTIPLY: 2-256
+// DIVIDE: 1-256
 // clkfxdv_divide:2, 4, 8, 16, 32
-module simpledcm_CLKGEN #(parameter multiply=4, divide=1, period="10.0") (
+module simpledcm_CLKGEN #(parameter MULTIPLY=4, DIVIDE=1, PERIOD="10.0") (
 	input clockin,
 	input reset,
 	output clockout,
@@ -159,17 +239,17 @@ module simpledcm_CLKGEN #(parameter multiply=4, divide=1, period="10.0") (
 );
 	DCM_CLKGEN #(
 //		.DFS_OSCILLATOR_MODE("PHASE_FREQ_LOCK"), // "The DCM has the attribute DFS_OSCILLATOR_MODE not set to PHASE_FREQ_LOCK. No phase relationship exists between the input clock and CLKFX or CLKFX180 outputs of this DCM. Data paths between these clock domains must be constrained using FROM/TO constraints" but "Module DCM_CLKGEN does not have a parameter named DFS_OSCILLATOR_MODE"
-		.CLKFXDV_DIVIDE(2), // Specifies divide value for CLKFXDV.
-		.CLKFX_DIVIDE(divide), // This value in conjunction with the input frequency and CLKFX_MULTIPLY
+		.CLKFXDV_DIVIDE(2), // Specifies DIVIDE value for CLKFXDV.
+		.CLKFX_DIVIDE(DIVIDE), // This value in conjunction with the input frequency and CLKFX_MULTIPLY
 		// value determine the resultant output frequency for the CLKFX and
 		// CLKFX180 outputs.
 		.CLKFX_MD_MAX(0.0), // When using the DCM_CLKGEN with variable M and D values, this would
 		// specify the maximum ratio of M and D used during static timing
 		// analysis to ensure proper timing of the DCM output.
-		.CLKFX_MULTIPLY(multiply), // This value in conjunction with the input frequency and CLKFX_DIVIDE
+		.CLKFX_MULTIPLY(MULTIPLY), // This value in conjunction with the input frequency and CLKFX_DIVIDE
 		// value determine the resultant output frequency for the CLKFX and
 		// CLKFX180 outputs.
-		.CLKIN_PERIOD(period), // This attribute specifies the source clock period which is used to
+		.CLKIN_PERIOD(PERIOD), // This attribute specifies the source clock period which is used to
 		// help the DCM adjust for the optimum CLKFX/CLKFX180 outputs and also
 		// result in faster locking time.
 		.STARTUP_WAIT("FALSE") // Delays configuration DONE signal until DCM LOCKED signal goes high.
@@ -199,14 +279,14 @@ module simpledcm_CLKGEN #(parameter multiply=4, divide=1, period="10.0") (
 	);
 endmodule
 
-//	simpledcm_SP #(.multiply(), .divide(), .alt_clockout_divide(), .period()) mydcm (.clockin(), .reset(), .clockout(), .clockout180(), .alt_clockout(), .locked());
-// multiply: 2-32
-// divide: 1-32
+//	simpledcm_SP #(.MULTIPLY(), .DIVIDE(), .ALT_CLOCKOUT_DIVIDE(), .PERIOD()) mydcm (.clockin(), .reset(), .clockout(), .clockout180(), .alt_clockout(), .locked());
+// MULTIPLY: 2-32
+// DIVIDE: 1-32
 module simpledcm_SP #(
-	parameter alt_clockout_divide=2.0,
-	parameter multiply=4,
-	parameter divide=1,
-	parameter period=10.0,
+	parameter ALT_CLOCKOUT_DIVIDE=2.0,
+	parameter MULTIPLY=4,
+	parameter DIVIDE=1,
+	parameter PERIOD=10.0,
 	parameter CLKIN_DIVIDE_BY_2 = "FALSE"
 ) (
 	input clockin,
@@ -221,12 +301,12 @@ module simpledcm_SP #(
 //	wire clockfb_out;
 //	BUFG mybufg (.I(clockfb_out), .O(clockfb_in));
 	DCM_SP #(
-		.CLKDV_DIVIDE(alt_clockout_divide), // Divide by: 1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5
+		.CLKDV_DIVIDE(ALT_CLOCKOUT_DIVIDE), // Divide by: 1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5
 		// 7.0,7.5,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0 or 16.0
-		.CLKFX_DIVIDE(divide), // Can be any integer from 1 to 32
-		.CLKFX_MULTIPLY(multiply), // Can be any integer from 2 to 32
+		.CLKFX_DIVIDE(DIVIDE), // Can be any integer from 1 to 32
+		.CLKFX_MULTIPLY(MULTIPLY), // Can be any integer from 2 to 32
 		.CLKIN_DIVIDE_BY_2(CLKIN_DIVIDE_BY_2), // TRUE/FALSE to enable CLKIN divide by two feature
-		.CLKIN_PERIOD(period), // Specify period of input clock
+		.CLKIN_PERIOD(PERIOD), // Specify period of input clock
 		.CLKOUT_PHASE_SHIFT("NONE"), // Specify phase shift of NONE, FIXED or VARIABLE
 		.CLK_FEEDBACK("1X"), // Specify clock feedback of NONE, 1X or 2X
 		.DESKEW_ADJUST("SYSTEM_SYNCHRONOUS"), // SOURCE_SYNCHRONOUS, SYSTEM_SYNCHRONOUS or
@@ -258,8 +338,8 @@ module simpledcm_SP #(
 	);
 endmodule
 
-//plldcm #(.overall_divide(1), .pllmultiply(10), .plldivide(1), .pllperiod(20.0), .dcmmultiply(2), .dcmdivide(8), .dcmperiod(2.0)) kronos (.clockin(clock50), .reset(reset), .clockout(clock), .clockout180(), .locked()); // 50->125
-module plldcm #(parameter overall_divide=1, pllmultiply=1, plldivide=1, pllperiod=10.0, dcmmultiply=1, dcmdivide=1, dcmperiod="10.0") (
+//plldcm #(.OVERALL_DIVIDE(1), .pllmultiply(10), .plldivide(1), .pllperiod(20.0), .dcmmultiply(2), .dcmdivide(8), .dcmperiod(2.0)) kronos (.clockin(clock50), .reset(reset), .clockout(clock), .clockout180(), .locked()); // 50->125
+module plldcm #(parameter OVERALL_DIVIDE=1, PLLMULTIPLY=1, PLLDIVIDE=1, PLLPERIOD=10.0, DCMMULTIPLY=1, DCMDIVIDE=1, DCMPERIOD="10.0") (
 	input clockin,
 	input reset,
 	output clockout,
@@ -270,13 +350,13 @@ module plldcm #(parameter overall_divide=1, pllmultiply=1, plldivide=1, pllperio
 	wire dcmlocked;
 	wire plllocked;
 	assign locked = dcmlocked & plllocked;
-	simplepll_ADV #(.overall_divide(overall_divide), .multiply(pllmultiply), .divide(plldivide), .period(pllperiod), .compensation("PLL2DCM")) mypll (
-	//simplepll_ADV #(.overall_divide(overall_divide), .multiply(pllmultiply), .divide(plldivide), .period(pllperiod), .compensation("DCM2PLL")) mypll (
+	simplepll_ADV_2DCM #(.OVERALL_DIVIDE(OVERALL_DIVIDE), .MULTIPLY(PLLMULTIPLY), .DIVIDE(PLLDIVIDE), .PERIOD(PLLPERIOD), .COMPENSATION("PLL2DCM")) mypll (
+	//simplepll_ADV #(.OVERALL_DIVIDE(OVERALL_DIVIDE), .MULTIPLY(PLLMULTIPLY), .DIVIDE(PLLDIVIDE), .PERIOD(PLLPERIOD), .COMPENSATION("DCM2PLL")) mypll (
 		.clockin(clockin),
 		.reset(reset),
 		.clockout(clockintermediate),
 		.locked(plllocked));
-	simpledcm_SP #(.multiply(dcmmultiply), .divide(dcmdivide), .period(dcmperiod)) mydcm (
+	simpledcm_SP #(.MULTIPLY(DCMMULTIPLY), .DIVIDE(DCMDIVIDE), .PERIOD(DCMPERIOD)) mydcm (
 		.clockin(clockintermediate),
 		.reset(reset),
 		.clockout(clockout),

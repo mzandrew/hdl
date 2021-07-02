@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2020-05-29 by mza
+// last updated 2021-07-02 by mza
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
@@ -216,9 +216,9 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire rawclock509_1;
 	wire rawclock509_3;
 	wire locked1;
-	simplepll_BASE #(.overall_divide(2), .multiply(4), .period(1.965), .compensation("INTERNAL"),
-		.divide0(8), .divide1(8), .divide2(4), .divide3(4), .divide4(2), .divide5(2),
-		.phase0(0.0), .phase1(180.0), .phase2(0.0), .phase3(180.0), .phase4(90.0), .phase5(270.0)
+	simplepll_BASE #(.OVERALL_DIVIDE(2), .MULTIPLY(4), .PERIOD(1.965), .COMPENSATION("INTERNAL"),
+		.DIVIDE0(8), .DIVIDE1(8), .DIVIDE2(4), .DIVIDE3(4), .DIVIDE4(2), .DIVIDE5(2),
+		.PHASE0(0.0), .PHASE1(180.0), .PHASE2(0.0), .PHASE3(180.0), .PHASE4(90.0), .PHASE5(270.0)
 	) mypll (.clockin(clock509), .reset(reset), .locked(locked1),
 		.clock0out(rawclock127), .clock1out(rawclock127b),
 		.clock2out(rawclock254), .clock3out(rawclock254b),

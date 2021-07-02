@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2019-08-26 by mza
-// last updated 2020-04-03 by mza
+// last updated 2021-07-02 by mza
 
 module mza_test033_clock50_sine500_althea (
 	input local_clock50_in_p, local_clock50_in_n,
@@ -29,7 +29,7 @@ module mza_test033_clock50_sine500_althea (
 	assign led_1 = 0;
 	assign led_0 = counter[25];
 	wire rawclock125;
-	simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) other (.clockin(clock50), .reset(reset), .clock0out(rawclock125), .locked(other_pll_locked)); // 50->125
+	simplepll_BASE #(.OVERALL_DIVIDE(1), .MULTIPLY(10), .DIVIDE0(4), .PHASE0(0.0), .PERIOD(20.0)) other (.clockin(clock50), .reset(reset), .clock0out(rawclock125), .locked(other_pll_locked)); // 50->125
 	wire clock125;
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock500_oddr;

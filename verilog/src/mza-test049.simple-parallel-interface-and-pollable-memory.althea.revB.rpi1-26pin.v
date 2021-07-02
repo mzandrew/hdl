@@ -1,12 +1,12 @@
 // written 2020-10-01 by mza
 // based off of mza-test046.simple-parallel-interface-and-pollable-memory.althea.v
 // for an althea revB on a rpi1 (26 pin header)
-// last updated 2021-03-17 by mza
+// last updated 2021-07-02 by mza
 
 `define althea_revB
 `include "lib/generic.v"
 `include "lib/RAM8.v"
-`include "lib/dcm.v"
+`include "lib/plldcm.v"
 `include "lib/serdes_pll.v"
 `include "lib/half_duplex_rpi_bus.v"
 
@@ -70,7 +70,7 @@ module top #(
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
 	wire rawclock125;
 	wire clock125;
-	simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm_125 (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
+	simpledcm_CLKGEN #(.MULTIPLY(10), .DIVIDE(4), .PERIOD(20.0)) mydcm_125 (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
 	// ----------------------------------------------------------------------

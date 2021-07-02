@@ -4,7 +4,7 @@
 // content borrowed from mza-test031.clock509_and_revo_generator.althea.v
 // content borrowed from mza-test032.pll_509divider_and_revo_encoder_plus_calibration_serdes.althea.v
 // grabs output from XRM.py corresponding to an array from the bunch current monitor
-// last updated 2020-05-12 by mza
+// last updated 2021-07-02 by mza
 
 // todo:
 // implement A/B so we can write into an array while playing back the other
@@ -32,7 +32,7 @@ module function_generator_althea #(
 	reg reset3 = 1;
 	wire rawclock125;
 	wire pll_locked;
-	simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
+	simplepll_BASE #(.OVERALL_DIVIDE(1), .MULTIPLY(10), .DIVIDE0(4), .PHASE0(0.0), .PERIOD(20.0)) kronos (.clockin(clock50), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
 	wire clock; // 125 MHz
 //	wire clock10;
 	BUFG mrt (.I(rawclock125), .O(clock));

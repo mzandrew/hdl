@@ -1,11 +1,11 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-04-14 by mza
+// last updated 2021-07-02 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
 `include "lib/RAM8.v"
-`include "lib/dcm.v"
+`include "lib/plldcm.v"
 `include "lib/serdes_pll.v"
 `include "lib/half_duplex_rpi_bus.v"
 `include "lib/edge_to_pulse.v"
@@ -86,8 +86,8 @@ module top #(
 	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	wire rawclock125;
 	wire clock125;
-	simpledcm_CLKGEN #(.multiply(5), .divide(4), .period(10.0)) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 100->125
-	//simpledcm_SP #(.multiply(10), .divide(4), .period(10.0), .CLKIN_DIVIDE_BY_2("TRUE")) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 100->125
+	simpledcm_CLKGEN #(.MULTIPLY(5), .DIVIDE(4), .PERIOD(10.0)) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 100->125
+	//simpledcm_SP #(.MULTIPLY(10), .DIVIDE(4), .PERIOD(10.0), .CLKIN_DIVIDE_BY_2("TRUE")) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 100->125
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
 	// ----------------------------------------------------------------------

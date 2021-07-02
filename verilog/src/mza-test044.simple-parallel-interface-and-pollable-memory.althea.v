@@ -1,15 +1,11 @@
-// to run on an althea
-//`define TESTBENCH;
-//`define xilinx
-
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2020-07-06 by mza
+// last updated 2021-07-02 by mza
 
 `define althea_revA
 `include "lib/generic.v"
 `include "lib/RAM8.v"
-`include "lib/dcm.v"
+`include "lib/plldcm.v"
 //`include "lib/spi.v"
 //`include "lib/serdes_pll.v"
 //`include "lib/reset.v"
@@ -73,7 +69,7 @@ module top #(
 	wire rawclock125;
 	wire clock125;
 	wire pll_locked;
-	simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm_125 (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
+	simpledcm_CLKGEN #(.MULTIPLY(10), .DIVIDE(4), .PERIOD(20.0)) mydcm_125 (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
 	// ----------------------------------------------------------------------

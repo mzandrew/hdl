@@ -1,15 +1,11 @@
-// to run on an althea
-//`define TESTBENCH;
-//`define xilinx
-
 // written 2020-05-07 by mza
 // based on mza-test040.spi-pollable-memory.v and modified to work on an althea
-// last updated 2020-05-13 by mza
+// last updated 2021-07-02 by mza
 
 `include "lib/spi.v"
 `include "lib/RAM8.v"
 `include "lib/serdes_pll.v"
-`include "lib/dcm.v"
+`include "lib/plldcm.v"
 
 //`define USE_SLOW_CLOCK
 //`define USE_INFERRED_RAM_16
@@ -38,7 +34,7 @@ module top (
 	IBUFGDS mybuf (.I(clock50_p), .IB(clock50_n), .O(clock50));
 	wire rawclock125;
 	wire pll_locked;
-	simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
+	simplepll_BASE #(.OVERALL_DIVIDE(1), .MULTIPLY(10), .DIVIDE0(4), .PHASE0(0.0), .PERIOD(20.0)) kronos (.clockin(clock50), .reset(reset1), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
 	wire clock125;
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire word_clock;

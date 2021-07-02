@@ -1,14 +1,14 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2021-01-23 by mza
+// last updated 2021-07-02 by mza
 // this code runs on an althea connected to a RAFFERTY board
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
 `define althea_revA
 `include "lib/serdes_pll.v"
-`include "lib/dcm.v"
+`include "lib/plldcm.v"
 `include "lib/synchronizer.v"
 
 module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althea #(
@@ -112,9 +112,9 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	wire rawclock127_270;
 //	wire raw_clock509a, raw_clock509b;
 	assign led_rfclock = pll_127_127_locked;
-	simplepll_BASE #(.overall_divide(2), .multiply(16), .period(7.86), .compensation("INTERNAL"),
-		.divide0(8), .divide1(8), .divide2(8), .divide3(8), .divide4(2), .divide5(2),
-		.phase0(0.0), .phase1(90.0), .phase2(180.0), .phase3(270.0), .phase4(0.0), .phase5(180.0)
+	simplepll_BASE #(.OVERALL_DIVIDE(2), .MULTIPLY(16), .PERIOD(7.86), .COMPENSATION("INTERNAL"),
+		.DIVIDE0(8), .DIVIDE1(8), .DIVIDE2(8), .DIVIDE3(8), .DIVIDE4(2), .DIVIDE5(2),
+		.PHASE0(0.0), .PHASE1(90.0), .PHASE2(180.0), .PHASE3(270.0), .PHASE4(0.0), .PHASE5(180.0)
 	) pll_127_127 (.clockin(revo_stream_clock127), .reset(pll_127_127_reset), .locked(pll_127_127_locked),
 		.clock0out(rawclock127_0), .clock1out(rawclock127_90),
 		.clock2out(rawclock127_180), .clock3out(rawclock127_270),

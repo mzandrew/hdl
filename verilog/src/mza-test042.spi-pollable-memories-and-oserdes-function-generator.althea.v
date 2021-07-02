@@ -1,16 +1,12 @@
-// to run on an althea
-//`define TESTBENCH;
-//`define xilinx
-
 // written 2020-05-13 by mza
 // based on mza-test041.spi-pollable-memory.althea.v
-// last updated 2020-06-06 by mza
+// last updated 2021-07-02 by mza
 
 `define althea_revA
 `include "lib/spi.v"
 `include "lib/RAM8.v"
 `include "lib/serdes_pll.v"
-`include "lib/dcm.v"
+`include "lib/plldcm.v"
 `include "lib/reset.v"
 `include "lib/frequency_counter.v"
 //`include "lib/axi4lite.v"
@@ -54,7 +50,7 @@ module top (
 	wire [31:0] ring_oscillator_enable;
 	ring_oscillator #(.number_of_bits_for_coarse_stages(4), .number_of_bits_for_medium_stages(4), .number_of_bits_for_fine_stages(4)) ro (.enable(ring_oscillator_enable[0]), .select(ring_oscillator_select[11:0]), .clock_out(clock_ro_raw));
 //	BUFG mybuf_ro (.I(clock_ro_raw), .O(clock_ro_raw1));
-	simpledcm_CLKGEN #(.multiply(50), .divide(50), .period(100.0)) mydcm_ro (.clockin(clock_ro_raw), .reset(global_reset || (~ring_oscillator_enable[0])), .clockout(clock_ro_raw_a), .clockout180(clock_ro_raw_b), .locked(clock_ro_locked)); // 10->10
+	simpledcm_CLKGEN #(.MULTIPLY(50), .DIVIDE(50), .PERIOD(100.0)) mydcm_ro (.clockin(clock_ro_raw), .reset(global_reset || (~ring_oscillator_enable[0])), .clockout(clock_ro_raw_a), .clockout180(clock_ro_raw_b), .locked(clock_ro_locked)); // 10->10
 	BUFG mybuf_roa (.I(clock_ro_raw_a), .O(clock_ro));
 	BUFG mybuf_rob (.I(clock_ro_raw_b), .O(clock_ro_b));
 	reg [COUNTER_RO_PICKOFF:0] counter_ro = 0;
@@ -69,8 +65,8 @@ module top (
 	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50_0));
 	wire clock50_raw1;
 //	wire clock50_raw2;
-	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm_alt50 (.clockin(clock_alt), .reset(reset1_clock_alt), .clockout(clock50_raw1), .clockout180(), .locked(pll_locked_alt)); // 10->50
-//	simpledcm_CLKGEN #(.multiply(50), .divide(10), .period(100.0)) mydcm_ro50 (.clockin(clock_ro), .reset(global_reset), .clockout(clock50_raw2), .clockout180(), .locked(pll_locked_ro)); // 10->50
+	simpledcm_CLKGEN #(.MULTIPLY(50), .DIVIDE(10), .PERIOD(100.0)) mydcm_alt50 (.clockin(clock_alt), .reset(reset1_clock_alt), .clockout(clock50_raw1), .clockout180(), .locked(pll_locked_alt)); // 10->50
+//	simpledcm_CLKGEN #(.MULTIPLY(50), .DIVIDE(10), .PERIOD(100.0)) mydcm_ro50 (.clockin(clock_ro), .reset(global_reset), .clockout(clock50_raw2), .clockout180(), .locked(pll_locked_ro)); // 10->50
 	BUFG mybuf1 (.I(clock50_raw1), .O(clock50_1));
 //	BUFG mybuf2 (.I(clock50_raw2), .O(clock50_2));
 	//BUFGMUX sam12 (.I0(clock50_1), .I1(clock50_2), .S(ring_oscillator_enable[0]), .O(clock50_12));
@@ -87,11 +83,11 @@ module top (
 	wire clock125;
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	if (0) begin
-		simplepll_BASE #(.overall_divide(1), .multiply(10), .divide0(4), .phase0(0.0), .period(20.0)) kronos (.clockin(clock50), .reset(reset2_clock50), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
+		simplepll_BASE #(.OVERALL_DIVIDE(1), .MULTIPLY(10), .DIVIDE0(4), .PHASE0(0.0), .PERIOD(20.0)) kronos (.clockin(clock50), .reset(reset2_clock50), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
 	end else if (0) begin
-		simpledcm_SP #(.multiply(10), .divide(4), .alt_clockout_divide(2), .period(20.0)) mydcm (.clockin(clock50), .reset(reset2_clock50), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 50->125
+		simpledcm_SP #(.MULTIPLY(10), .DIVIDE(4), .ALT_CLOCKOUT_DIVIDE(2), .PERIOD(20.0)) mydcm (.clockin(clock50), .reset(reset2_clock50), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 50->125
 	end else begin
-		simpledcm_CLKGEN #(.multiply(10), .divide(4), .period(20.0)) mydcm_125 (.clockin(clock50), .reset(reset2_clock50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
+		simpledcm_CLKGEN #(.MULTIPLY(10), .DIVIDE(4), .PERIOD(20.0)) mydcm_125 (.clockin(clock50), .reset(reset2_clock50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
 	end
 	// ----------------------------------------------------------------------
 	wire reset3_clock125;
