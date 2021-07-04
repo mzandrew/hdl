@@ -163,10 +163,10 @@ module top #(
 	iserdes_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) isds8 (
 		.clock_in(clock125), .reset(reset125), .data_in(single_ended_right[3]), .word_clock_out(word_clock3),
 		.locked(pll_oserdes_locked_2), .word_out(iserdes_word));
-	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(3'd0), .data_out(iserdes_word_buffer));
+	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(3'd4), .data_out(iserdes_word_buffer));
 	// use coax[0] and coax[4] to measure (with scope) and correct (with rotary switch) for the "arbitrary routing" bitslip which is compile-dependent
 	// or send oserdes stream out of "v" and into iserdes on "q" (with an ezhook) and then see the result oserdes on coax[5] (measured delay from coax[4] to coax[5] is ~43 ns; with pipelining and a bitslip, this can be adjusted to be 0 ns delay)
-	localparam DELAY = 6;
+	localparam DELAY = 7;
 	pipeline #(.WIDTH(8), .DEPTH(DELAY+2)) queens (.clock(word_clock), .in(oserdes_word), .out(oserdes_word_delayed));
 	pipeline #(.WIDTH(8), .DEPTH(DELAY+2)) diamond_head (.clock(word_clock), .in(sync_out_word), .out(sync_out_word_delayed));
 	bitslip #(.WIDTH(8)) bso (.clock(word_clock1), .data_in(oserdes_word), .bitslip(word_clock_sel), .data_out(oserdes_word1_buffer));
