@@ -498,7 +498,7 @@ module ocyrus_hex8_split_4_2 #(
 		.clock_nx(clock_nx)
 	);
 	BUFG bufg_tx (.I(clock_1x[0]), .O(word_clock0123_out));
-	clock_select #(.SYNC_CLOCK(1)) cs (.clock(clock_1x[4:1]), .select(word_clock45_sel), .clock_out(word_clock45_out));
+	clock_select cs (.clock(clock_1x[4:1]), .select(word_clock45_sel), .clock_out(word_clock45_out));
 	wire strobe_is_aligned0123, strobe_is_aligned45;
 	BUFPLL #(
 		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
