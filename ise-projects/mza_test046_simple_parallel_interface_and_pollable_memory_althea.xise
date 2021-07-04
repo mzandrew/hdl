@@ -366,11 +366,11 @@
     <!-- include files.                                                       -->
     <file xil_pn:name="../verilog/src/lib/generic.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/RAM8.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="../verilog/src/lib/plldcm.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/serdes_pll.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/half_duplex_rpi_bus.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/sequencer.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/reset.v" xil_pn:type="FILE_VERILOG"/>
-    <file xil_pn:name="../verilog/src/lib/plldcm.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>

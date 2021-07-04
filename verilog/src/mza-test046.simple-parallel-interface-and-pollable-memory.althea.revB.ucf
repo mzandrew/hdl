@@ -1,7 +1,7 @@
 # written 2020-10-01 by mza
 # based off of mza-test044.simple-parallel-interface-and-pollable-memory.althea.ucf
 # for an althea revB
-# last updated 2021-07-02 by mza
+# last updated 2021-07-03 by mza
 
 # 50 MHz local oscillator:
 net clock50_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK50+
@@ -59,7 +59,7 @@ net h_n loc=p43  | iostandard=lvcmos33; # H- bank2 BL
 
 # third column, on right side of board
 net n loc=p30  | iostandard=lvcmos33; # N bank3 TL
-net p loc=p35  | iostandard=lvcmos33; # P bank3 TL
+net p loc=p35  | iostandard=lvcmos33; # P bank3 TL - this conflicts with using coax[5] in cascaded serdes mode
 net q loc=p33  | iostandard=lvcmos33; # Q bank3 TL
 net r loc=p27  | iostandard=lvcmos33; # R bank3 TL
 net s loc=p24  | iostandard=lvcmos33; # S bank3 TL
@@ -126,7 +126,7 @@ net coax<1> loc=p102 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
 net coax<2> loc=p79  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
 net coax<3> loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
 net coax<4> loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3
-net coax<5> loc=p34  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3; on an _n pin
+net coax<5> loc=p34  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3; on an _n pin - this conflicts with using p in cascaded serdes mode
 
 #net "althea/reset_1/asychronous_reset_source" TIG;
 #net "althea/reset_2/asychronous_reset_source" TIG;
@@ -135,6 +135,9 @@ net coax<5> loc=p34  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3; 
 #net "althea/global_reset" TIG;
 #net "althea/clock_select" TIG;
 #net "althea/leds" TIG;
+
+NET "althea/word_clock_sel<0>" TIG;
+NET "althea/word_clock_sel<1>" TIG;
 
 config vccaux=3.3;
 

@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2021-07-01 by mza
+// last updated 2021-07-03 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -76,6 +76,186 @@ module iserdes_single4 #(
 //		);
 endmodule
 
+module iserdes_single8_inner #(
+	parameter BIT_RATIO = 8,
+	parameter PINTYPE = "p"
+) (
+	//input sample_clock_in,
+	//input pll_is_locked,
+	input reset,
+	input bit_clock,
+	input bit_strobe,
+	input word_clock,
+	input data_in,
+	output [BIT_RATIO-1:0] word_out
+);
+//	wire bit_clock;
+//	wire ioce;
+//	wire raw_word_clock;
+	//BUFIO2 #(.DIVIDE(BIT_RATIO), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")) buffy (.I(sample_clock), .DIVCLK(raw_word_clock), .IOCLK(bit_clock), .SERDESSTROBE(ioce));
+//	wire buffered_pll_is_locked_and_strobe_is_aligned;
+//	BUFPLL #(
+//		.DIVIDE(BIT_RATIO) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+//	) rx_bufpll_inst (
+//		.PLLIN(sample_clock), // PLL Clock input
+//		.GCLK(raw_word_clock), // Global Clock input
+//		.LOCKED(pll_is_locked), // Clock0 locked input
+//		.IOCLK(bit_clock), // Output PLL Clock
+//		.LOCK(buffered_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
+//		.SERDESSTROBE(ioce) // Output SERDES strobe
+//	);
+//	BUFG fabbuf (.I(raw_word_clock), .O(word_clock));
+	wire cascade;
+	// want first bit in to be the MSB of output word (Q1 contains first bit; secondary iserdes outputs first nybble)
+	if (PINTYPE=="p") begin
+		ISERDES2 #(
+			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
+			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
+			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
+			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
+			.SERDES_MODE("MASTER") // "NONE", "M*****" or "S****"
+		) ISERDES2_inst_0 (
+			.CFB0(), // 1-bit output: Clock feed-through route output
+			.CFB1(), // 1-bit output: Clock feed-through route output
+			.DFB(), // 1-bit output: Feed-through clock output
+			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
+			.INCDEC(), // 1-bit output: Phase detector output
+			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
+			.Q4(word_out[0]), // see ug381 page 80
+			.Q3(word_out[1]),
+			.Q2(word_out[2]),
+			.Q1(word_out[3]),
+			.SHIFTOUT(cascade), // 1-bit output: Cascade output signal for primary/secondary I/O
+			.VALID(), // 1-bit output: Output status of the phase detector
+			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
+			.CE0(1'b1), // 1-bit input: Clock enable input
+			.CLK0(bit_clock), // 1-bit input: I/O clock network input
+			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
+			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
+			.D(data_in), // 1-bit input: Input data
+			.IOCE(bit_strobe), // 1-bit input: Data strobe input
+			.RST(reset), // 1-bit input: Asynchronous reset input
+			.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
+		);
+		ISERDES2 #(
+			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
+			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
+			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
+			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
+			.SERDES_MODE("SLAVE") // "NONE", "M*****" or "S****"
+		) ISERDES2_inst_1 (
+			.CFB0(), // 1-bit output: Clock feed-through route output
+			.CFB1(), // 1-bit output: Clock feed-through route output
+			.DFB(), // 1-bit output: Feed-through clock output
+			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
+			.INCDEC(), // 1-bit output: Phase detector output
+			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
+			.Q4(word_out[4]), // see ug381 page 80
+			.Q3(word_out[5]),
+			.Q2(word_out[6]),
+			.Q1(word_out[7]),
+			.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
+			.VALID(), // 1-bit output: Output status of the phase detector
+			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
+			.CE0(1'b1), // 1-bit input: Clock enable input
+			.CLK0(bit_clock), // 1-bit input: I/O clock network input
+			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
+			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
+			.D(data_in), // 1-bit input: Input data
+			.IOCE(bit_strobe), // 1-bit input: Data strobe input
+			.RST(reset), // 1-bit input: Asynchronous reset input
+			.SHIFTIN(cascade) // 1-bit input: Cascade input signal for primary/secondary I/O
+		);
+	end else begin // not sure what needs to change here (if anything) for the "n" type...
+		ISERDES2 #(
+			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
+			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
+			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
+			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
+			.SERDES_MODE("MASTER") // "NONE", "M*****" or "S****"
+		) ISERDES2_inst_0 (
+			.CFB0(), // 1-bit output: Clock feed-through route output
+			.CFB1(), // 1-bit output: Clock feed-through route output
+			.DFB(), // 1-bit output: Feed-through clock output
+			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
+			.INCDEC(), // 1-bit output: Phase detector output
+			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
+			.Q4(word_out[0]), // see ug381 page 80
+			.Q3(word_out[1]),
+			.Q2(word_out[2]),
+			.Q1(word_out[3]),
+			.SHIFTOUT(cascade), // 1-bit output: Cascade output signal for primary/secondary I/O
+			.VALID(), // 1-bit output: Output status of the phase detector
+			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
+			.CE0(1'b1), // 1-bit input: Clock enable input
+			.CLK0(bit_clock), // 1-bit input: I/O clock network input
+			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
+			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
+			.D(data_in), // 1-bit input: Input data
+			.IOCE(bit_strobe), // 1-bit input: Data strobe input
+			.RST(reset), // 1-bit input: Asynchronous reset input
+			.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
+		);
+		ISERDES2 #(
+			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
+			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
+			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
+			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
+			.SERDES_MODE("SLAVE") // "NONE", "M*****" or "S****"
+		) ISERDES2_inst_1 (
+			.CFB0(), // 1-bit output: Clock feed-through route output
+			.CFB1(), // 1-bit output: Clock feed-through route output
+			.DFB(), // 1-bit output: Feed-through clock output
+			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
+			.INCDEC(), // 1-bit output: Phase detector output
+			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
+			.Q4(word_out[4]), // see ug381 page 80
+			.Q3(word_out[5]),
+			.Q2(word_out[6]),
+			.Q1(word_out[7]),
+			.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
+			.VALID(), // 1-bit output: Output status of the phase detector
+			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
+			.CE0(1'b1), // 1-bit input: Clock enable input
+			.CLK0(bit_clock), // 1-bit input: I/O clock network input
+			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
+			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
+			.D(data_in), // 1-bit input: Input data
+			.IOCE(bit_strobe), // 1-bit input: Data strobe input
+			.RST(reset), // 1-bit input: Asynchronous reset input
+			.SHIFTIN(cascade) // 1-bit input: Cascade input signal for primary/secondary I/O
+		);
+	end
+endmodule
+
+module iserdes_single8 #(
+	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
+	parameter BIT_WIDTH=1, // how many bits come out in parallel
+	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
+	parameter PINTYPE = "p",
+	parameter PHASE = 0.0,
+	parameter PERIOD = 20.0,
+	parameter DIVIDE = 2,
+	parameter MULTIPLY = 40,
+	parameter CLK_FEEDBACK = "CLKFBOUT"
+) (
+	input clock_in,
+	input reset,
+	input data_in,
+	output word_clock_out,
+	output [BIT_DEPTH-1:0] word_out,
+	output locked
+);
+	wire bit_clock;
+	wire bit_strobe;
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE)) is8i (.bit_clock(bit_clock), .bit_strobe(bit_strobe), .word_clock(word_clock_out), .reset(reset), .data_in(data_in), .word_out(word_out));
+	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE), .CLK_FEEDBACK(CLK_FEEDBACK), .PHASE(PHASE)) difficult_pll (
+		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
+		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
+	);
+endmodule
+
 //	ocyrus_single8_inner #(.BIT_RATIO(8)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
 module ocyrus_single8_inner #(
 	parameter PINTYPE = "p", // "p" (primary) or "n" (secondary)
@@ -91,7 +271,7 @@ module ocyrus_single8_inner #(
 	wire cascade_do1, cascade_to1, cascade_di1, cascade_ti1;
 	wire cascade_do2, cascade_to2, cascade_di2, cascade_ti2;
 	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
-	// want MSB of word to come out first
+	// want MSB of word to come out first (D1 comes out first; secondary oserdes goes first)
 	if (PINTYPE=="p") begin
 		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
@@ -259,25 +439,6 @@ module ocyrus_hex8 #(
 	);
 endmodule
 
-module clock_select #(
-	parameter N = 4,
-	parameter log2_N = $clog2(N)
-) (
-	input [N-1:0] clock,
-	input [log2_N-1:0] select,
-	output clock_out
-);
-	reg [log2_N-1:0] select_copy = 0;
-	always @(posedge clock[0]) begin
-		select_copy <= select;
-	end
-	wire clock_0s;
-	wire clock_1s;
-	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_0s (.I0(clock[0]), .I1(clock[1]), .S(select_copy[0]), .O(clock_0s));
-	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_1s (.I0(clock[2]), .I1(clock[3]), .S(select_copy[0]), .O(clock_1s));
-	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_sx (.I0(clock_0s), .I1(clock_1s), .S(select_copy[1]), .O(clock_out));
-endmodule
-
 module ocyrus_hex8_split_4_2 #(
 	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
@@ -297,20 +458,20 @@ module ocyrus_hex8_split_4_2 #(
 	input clock_in,
 	input reset,
 	input [BIT_DEPTH-1:0] word0_in, word1_in, word2_in, word3_in, word4_in, word5_in,
-	input [1:0] word_clock1_sel,
-	output word_clock0_out,
-	output word_clock1_out,
+	input [1:0] word_clock45_sel,
+	output word_clock0123_out,
+	output word_clock45_out,
 	output D0_out, D1_out, D2_out, D3_out, D4_out, D5_out,
 	output locked
 );
 	wire bit_clock0, bit_clock1;
 	wire bit_strobe0, bit_strobe1;
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock0_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock0_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock0_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE3)) mylei3 (.word_clock(word_clock0_out), .bit_clock(bit_clock0), .bit_strobe(bit_strobe0), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE4)) mylei4 (.word_clock(word_clock1_out), .bit_clock(bit_clock1), .bit_strobe(bit_strobe1), .reset(reset), .word_in(word4_in), .bit_out(D4_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE5)) mylei5 (.word_clock(word_clock1_out), .bit_clock(bit_clock1), .bit_strobe(bit_strobe1), .reset(reset), .word_in(word5_in), .bit_out(D5_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE3)) mylei3 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE4)) mylei4 (.word_clock(word_clock45_out), .bit_clock(bit_clock45), .bit_strobe(bit_strobe45), .reset(reset), .word_in(word4_in), .bit_out(D4_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE5)) mylei5 (.word_clock(word_clock45_out), .bit_clock(bit_clock45), .bit_strobe(bit_strobe45), .reset(reset), .word_in(word5_in), .bit_out(D5_out));
 //oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
 //		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 //		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
@@ -327,7 +488,7 @@ module ocyrus_hex8_split_4_2 #(
 	) siphon (
 		.clock_in(clock_in),
 		.reset(reset),
-		.clock_nx_fb(bit_clock0),
+		.clock_nx_fb(bit_clock0123),
 		.pll_is_locked(pll_is_locked),
 		.clock_1x(clock_1x[0]),
 		.clock_1x_1(clock_1x[1]),
@@ -336,32 +497,32 @@ module ocyrus_hex8_split_4_2 #(
 		.clock_1x_4(clock_1x[4]),
 		.clock_nx(clock_nx)
 	);
-	BUFG bufg_tx (.I(clock_1x[0]), .O(word_clock0_out));
-	clock_select cs (.clock(clock_1x[4:1]), .select(word_clock1_sel), .clock_out(word_clock1_out));
-	wire strobe_is_aligned0, strobe_is_aligned1;
+	BUFG bufg_tx (.I(clock_1x[0]), .O(word_clock0123_out));
+	clock_select #(.SYNC_CLOCK(1)) cs (.clock(clock_1x[4:1]), .select(word_clock45_sel), .clock_out(word_clock45_out));
+	wire strobe_is_aligned0123, strobe_is_aligned45;
 	BUFPLL #(
 		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
 		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
-	) tx_bufpll_inst_0 (
+	) tx_bufpll_inst_0123 (
 		.PLLIN(clock_nx), // PLL Clock input
-		.GCLK(word_clock0_out), // Global Clock input
+		.GCLK(word_clock0123_out), // Global Clock input
 		.LOCKED(pll_is_locked), // Clock0 locked input
-		.IOCLK(bit_clock0), // Output PLL Clock
-		.LOCK(strobe_is_aligned0), // BUFPLL Clock and strobe locked
-		.SERDESSTROBE(bit_strobe0) // Output SERDES strobe
+		.IOCLK(bit_clock0123), // Output PLL Clock
+		.LOCK(strobe_is_aligned0123), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(bit_strobe0123) // Output SERDES strobe
 	);
 	BUFPLL #(
 		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
 		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
-	) tx_bufpll_inst_1 (
+	) tx_bufpll_inst_45 (
 		.PLLIN(clock_nx), // PLL Clock input
-		.GCLK(word_clock1_out), // Global Clock input
+		.GCLK(word_clock45_out), // Global Clock input
 		.LOCKED(pll_is_locked), // Clock0 locked input
-		.IOCLK(bit_clock1), // Output PLL Clock
-		.LOCK(strobe_is_aligned1), // BUFPLL Clock and strobe locked
-		.SERDESSTROBE(bit_strobe1) // Output SERDES strobe
+		.IOCLK(bit_clock45), // Output PLL Clock
+		.LOCK(strobe_is_aligned45), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(bit_strobe45) // Output SERDES strobe
 	);
-	assign locked = pll_is_locked & strobe_is_aligned0 & strobe_is_aligned1;
+	assign locked = pll_is_locked & strobe_is_aligned0123 & strobe_is_aligned45;
 endmodule
 
 // 156.25 / 8.0 * 61.875 / 2.375 = 508.840461 for scrod revA3 on-board oscillator
@@ -436,7 +597,7 @@ module simpll #(
 		.CLKOUT5_DUTY_CYCLE(0.5), // duty cycle for clkout5 (0.01 to 0.99)
 		.COMPENSATION(COMPENSATION), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
 		.REF_JITTER(0.200) // input reference jitter (0.000 to 0.999 ui%)
-		) pll_adv_inst (
+	) pll_adv_inst (
 		.RST(reset), // asynchronous pll reset
 		.LOCKED(pll_is_locked), // active high pll lock signal
 		.CLKFBIN(fb_in), // clock feedback input
@@ -503,10 +664,10 @@ module oserdes_pll #(
 			.clock_nx_fb(serializer_clock_out),
 			.pll_is_locked(pll_is_locked),
 			.clock_1x(rawclock_1x_plladv),
-			.clock_1x(),
-			.clock_1x(),
-			.clock_1x(),
-			.clock_1x(),
+			.clock_1x_1(),
+			.clock_1x_2(),
+			.clock_1x_3(),
+			.clock_1x_4(),
 			.clock_nx(rawclock_nx_plladv)
 		);
 		if (SCOPE == "BUFIO2") begin

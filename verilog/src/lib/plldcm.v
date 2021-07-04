@@ -364,5 +364,25 @@ module plldcm #(parameter OVERALL_DIVIDE=1, PLLMULTIPLY=1, PLLDIVIDE=1, PLLPERIO
 		.locked(dcmlocked));
 endmodule
 
+module clock_select #(
+	parameter N = 4,
+	parameter log2_N = $clog2(N),
+	parameter SYNC_CLOCK = N-1
+) (
+	input [N-1:0] clock,
+	input [log2_N-1:0] select,
+	output clock_out
+);
+	reg [log2_N-1:0] select_copy = 0;
+	always @(posedge clock[SYNC_CLOCK]) begin
+		select_copy <= select;
+	end
+	wire clock_0s;
+	wire clock_1s;
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_0s (.I0(clock[0]), .I1(clock[1]), .S(select_copy[0]), .O(clock_0s));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_1s (.I0(clock[2]), .I1(clock[3]), .S(select_copy[0]), .O(clock_1s));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_sx (.I0(clock_0s), .I1(clock_1s), .S(select_copy[1]), .O(clock_out));
+endmodule
+
 `endif
 
