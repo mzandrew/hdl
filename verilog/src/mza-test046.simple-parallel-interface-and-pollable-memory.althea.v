@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-03 by mza
+// last updated 2021-07-04 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -153,20 +153,26 @@ module top #(
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
 	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .ADDRESS_DEPTH(ADDRESS_DEPTH)) ss (.clock(word_clock), .reset(reset125), .sync_read_address(sync_read_address), .start_read_address(start_read_address), .end_read_address(end_read_address), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	wire [2:0] rot_pipeline;
+	pipeline #(.WIDTH(3), .DEPTH(3)) tongs (.clock(word_clock), .in(~rot), .out(rot_pipeline));
 	reg [2:0] word_clock_sel = 0;
+	always @(posedge word_clock) begin
+		word_clock_sel <= rot_pipeline;
+	end
 	wire word_clock1;
 	wire [7:0] oserdes_word1_buffer;
 	wire [7:0] oserdes_word1_buffer_delayed;
 	wire word_clock3;
 	wire [7:0] iserdes_word;
 	wire [7:0] iserdes_word_buffer;
+	wire [7:0] iserdes_word_buffer_delayed;
 	iserdes_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) isds8 (
 		.clock_in(clock125), .reset(reset125), .data_in(single_ended_right[3]), .word_clock_out(word_clock3),
 		.locked(pll_oserdes_locked_2), .word_out(iserdes_word));
 	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(3'd4), .data_out(iserdes_word_buffer));
+	pipeline #(.WIDTH(8), .DEPTH(2)) publics (.clock(word_clock1), .in(iserdes_word_buffer), .out(iserdes_word_buffer_delayed));
 	// use coax[0] and coax[4] to measure (with scope) and correct (with rotary switch) for the "arbitrary routing" bitslip which is compile-dependent
 	// or send oserdes stream out of "v" and into iserdes on "q" (with an ezhook) and then see the result oserdes on coax[5] (measured delay from coax[4] to coax[5] is ~43 ns; with pipelining and a bitslip, this can be adjusted to be 0 ns delay)
-	localparam DELAY = 7;
+	localparam DELAY = 9;
 	pipeline #(.WIDTH(8), .DEPTH(DELAY+2)) queens (.clock(word_clock), .in(oserdes_word), .out(oserdes_word_delayed));
 	pipeline #(.WIDTH(8), .DEPTH(DELAY+2)) diamond_head (.clock(word_clock), .in(sync_out_word), .out(sync_out_word_delayed));
 	bitslip #(.WIDTH(8)) bso (.clock(word_clock1), .data_in(oserdes_word), .bitslip(word_clock_sel), .data_out(oserdes_word1_buffer));
@@ -175,14 +181,10 @@ module top #(
 	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE3("n")) mylei6 (
 		.clock_in(clock125), .reset(reset125), .word_clock0123_out(word_clock1), .locked(pll_oserdes_locked_1),
 		.word_clock45_sel(word_clock_sel[1:0]), .word_clock45_out(word_clock),
-		.word0_in(oserdes_word1_buffer_delayed), .word1_in(oserdes_word1_buffer), .word2_in(oserdes_word1_buffer), .word3_in(iserdes_word_buffer),
+		.word0_in(oserdes_word1_buffer_delayed), .word1_in(oserdes_word1_buffer), .word2_in(oserdes_word1_buffer), .word3_in(iserdes_word_buffer_delayed),
 		.word4_in(oserdes_word_delayed), .word5_in(sync_out_word_delayed),
 		.D0_out(coax[4]), .D1_out(single_ended_left[1]), .D2_out(), .D3_out(coax[5]),
 		.D4_out(coax[0]), .D5_out(coax[3]));
-	pipeline #(.WIDTH(3), .DEPTH(3)) tongs (.clock(word_clock), .in(~rot), .out(rot_pipeline));
-	always @(posedge word_clock) begin
-		word_clock_sel <= rot_pipeline;
-	end
 	//ddr mario0 (.clock(clock125), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[1]));
 	ddr mario1 (.clock(word_clock1), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[2]));
 	ddr mario2 (.clock(word_clock), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[1]));

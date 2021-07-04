@@ -128,16 +128,10 @@ net coax<3> loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
 net coax<4> loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3
 net coax<5> loc=p34  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3; on an _n pin - this conflicts with using p in cascaded serdes mode
 
-#net "althea/reset_1/asychronous_reset_source" TIG;
-#net "althea/reset_2/asychronous_reset_source" TIG;
-#net "althea/reset_3/asychronous_reset_source" TIG;
-#net "althea/reset_4/asychronous_reset_source" TIG;
-#net "althea/global_reset" TIG;
-#net "althea/clock_select" TIG;
-#net "althea/leds" TIG;
-
-NET "althea/word_clock_sel<0>" TIG;
-NET "althea/word_clock_sel<1>" TIG;
+net "button" tig;
+net "rot<?>" tig;
+net "althea/word_clock_sel<?>" tig;
+net "led<?>" tig;
 
 config vccaux=3.3;
 
