@@ -1,5 +1,6 @@
 // written 2019-09-22 by mza
-// last updated 2021-07-01 by mza
+// last updated 2021-07-03 by mza
+
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
@@ -450,6 +451,41 @@ module ddr (
 	assign clock0 = clock;
 	assign clock180 = ~clock;
 	ODDR2 #(.DDR_ALIGNMENT("NONE")) ddr (.C0(clock0), .C1(clock180), .CE(1'b1), .D0(data0_in), .D1(data1_in), .R(reset), .S(1'b0), .Q(data_out));
+endmodule
+
+module pipeline #(
+	parameter WIDTH = 8,
+	parameter DEPTH = 4
+) (
+	input clock,
+	input [WIDTH-1:0] in,
+	output [WIDTH-1:0] out
+);
+	reg [WIDTH-1:0] middle [DEPTH-1:0];
+	integer i;
+	always @(posedge clock) begin
+		for (i=1; i<DEPTH; i=i+1) begin
+			middle[i] <= middle[i-1];
+		end
+		middle[0] <= in;
+	end
+	assign out = middle[DEPTH-1];
+endmodule
+
+module bitslip #(
+	parameter WIDTH = 8,
+	parameter LOG2_WIDTH = $clog2(WIDTH)
+) (
+	input clock,
+	input [WIDTH-1:0] data_in,
+	input [LOG2_WIDTH-1:0] bitslip,
+	output reg [WIDTH-1:0] data_out
+);
+	reg [2*WIDTH-1:0] long;
+	always @(posedge clock) begin
+		data_out <= long[WIDTH+bitslip -: WIDTH];
+		long <= { long[WIDTH-1:0], data_in };
+	end
 endmodule
 
 `endif
