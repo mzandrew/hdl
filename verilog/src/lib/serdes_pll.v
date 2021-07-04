@@ -727,6 +727,15 @@ endmodule
 // ug381 says should limit fixed odelays to 3/4 of a bit period
 // spartan6 errata (EN148) says not to go above a delay tap value of 6 when used in ODELAY mode to get full performance (1080 MHz)
 // otherwise, limit the data rate to 800 MHz for the commercial grade -3 part
+	// without an odelay present, the measured delay between coax[0] and coax[4] rising edges is -1995 ps (sigma 12 ps)
+	//odelay_fixed #(.AMOUNT(0)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1139 ps (sigma 36 ps)
+	//odelay_fixed #(.AMOUNT(1)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1121 ps (sigma 39 ps)
+	//odelay_fixed #(.AMOUNT(2)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1070 ps (sigma 42 ps)
+	//odelay_fixed #(.AMOUNT(3)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1032 ps (sigma 42 ps)
+	//odelay_fixed #(.AMOUNT(4)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1001 ps (sigma 44 ps)
+	//odelay_fixed #(.AMOUNT(5)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); //  -963 ps (sigma 45 ps)
+	//odelay_fixed #(.AMOUNT(6)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); //  -913 ps
+	// range is 20-50 ps per tap, linear fit is 38 ps per tap
 module odelay_fixed #(
 	parameter AMOUNT = 0
 ) (
