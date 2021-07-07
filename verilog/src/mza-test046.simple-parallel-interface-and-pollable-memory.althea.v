@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-06 by mza
+// last updated 2021-07-07 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -171,27 +171,35 @@ module top #(
 	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(3'd4), .data_out(iserdes_word_buffer));
 	pipeline #(.WIDTH(8), .DEPTH(2)) publics (.clock(word_clock1), .in(iserdes_word_buffer), .out(iserdes_word_buffer_delayed));
 	// use coax[0] and coax[4] to measure (with scope) and correct (with rotary switch) for the "arbitrary routing" bitslip which is compile-dependent
-	// or send oserdes stream out of "v" and into iserdes on "q" (with an ezhook) and then see the result oserdes on coax[5] (measured delay from coax[4] to coax[5] is ~43 ns; with pipelining and a bitslip, this can be adjusted to be 0 ns delay)
+	// or send oserdes stream out of "v" and into iserdes on "q" (with an ezhook) or stream out of "r" and into "q" (with a jumper) and then see the result oserdes on coax[5] (measured delay from coax[4] to coax[5] is ~43 ns; with pipelining and a bitslip, this can be adjusted to be 0 ns delay)
 	localparam DELAY = 9;
 	pipeline #(.WIDTH(8), .DEPTH(DELAY+2)) queens (.clock(word_clock), .in(oserdes_word), .out(oserdes_word_delayed));
 	pipeline #(.WIDTH(8), .DEPTH(DELAY+2)) diamond_head (.clock(word_clock), .in(sync_out_word), .out(sync_out_word_delayed));
 	bitslip #(.WIDTH(8)) bso (.clock(word_clock1), .data_in(oserdes_word), .bitslip(word_clock_sel), .data_out(oserdes_word1_buffer));
 	pipeline #(.WIDTH(8), .DEPTH(DELAY)) kewalos (.clock(word_clock1), .in(oserdes_word1_buffer), .out(oserdes_word1_buffer_delayed));
 	//pipeline #(.WIDTH(8), .DEPTH(DELAY)) canoes (.clock(word_clock1), .in(sync_out_word1_buffer), .out(sync_out_word1_buffer1));
+	wire pre_coax_4;
 	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE3("n")) mylei6 (
 		.clock_in(clock125), .reset(reset125), .word_clock0123_out(word_clock1), .locked(pll_oserdes_locked_1),
 		.word_clock45_sel(word_clock_sel[1:0]), .word_clock45_out(word_clock),
 		.word0_in(oserdes_word1_buffer_delayed), .word1_in(oserdes_word1_buffer), .word2_in(oserdes_word1_buffer), .word3_in(iserdes_word_buffer_delayed),
 		.word4_in(oserdes_word_delayed), .word5_in(sync_out_word_delayed),
-		.D0_out(coax[4]), .D1_out(single_ended_left[1]), .D2_out(), .D3_out(coax[5]),
+		.D0_out(pre_coax_4), .D1_out(single_ended_left[1]), .D2_out(single_ended_right[2]), .D3_out(coax[5]),
 		.D4_out(coax[0]), .D5_out(coax[3]),
 		.iserdes_bit_input(single_ended_right[3]), .iserdes_word_out(iserdes_word));
+	// when 50->125 MHz is from a dcm_clkgen:
+	assign coax[4] = pre_coax_4; // -38 ps (sigma 16 ps) 15.png
+	//odelay_fixed #(.AMOUNT({5'd0, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -78 ps (sigma 43 ps) 14.png
+	//odelay_fixed #(.AMOUNT({5'd1, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // 163 ps (sigma 57 ps) 16.png
+	//odelay_fixed #(.AMOUNT({5'd2, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // 519 ps (sigma 67 ps) 17.png
+	//odelay_fixed #(.AMOUNT({5'd4, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // ps (sigma ps)
+	//odelay_fixed #(.AMOUNT({5'd8, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // ps (sigma ps)
+	//odelay_fixed #(.AMOUNT({5'd16, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // ps (sigma ps)
 	//ddr mario0 (.clock(clock125), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[1]));
 	ddr mario1 (.clock(word_clock1), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[2]));
 	ddr mario2 (.clock(word_clock), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[1]));
 	//assign coax[1] = enable;
 	//assign coax[2] = 0;
-	assign coax_led[2:0] = rot_pipeline;
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
 		assign coax[5] = write_strobe;
@@ -221,12 +229,13 @@ module top #(
 		assign sync_read_address = coax[5]; // an input to synchronize to an external event
 		assign pll_oserdes_locked_2 = 1;
 	end
+	// ----------------------------------------------------------------------
+	assign coax_led[2:0] = rot_pipeline;
 	//assign coax_led = reset_counter;
 	//assign coax_led = 4'b1001;
 	//assign coax_led[0] = 1'b1;
 	//assign coax_led[3] = 1'b1;
 	assign coax_led[3] = 0;
-	// ----------------------------------------------------------------------
 	if (1) begin
 		assign led[7] = reset50;
 		assign led[6] = ~pll_locked_copy;
@@ -237,6 +246,7 @@ module top #(
 		assign led[1] = enable;
 		assign led[0] = register_select;
 	end
+	// ----------------------------------------------------------------------
 	initial begin
 		#100;
 		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_DATA_WIDTH);
@@ -565,9 +575,9 @@ module myalthea (
 	u, v, w, x, y, z,
 	// other IOs:
 	input button, // reset
-	input [2:0] rot,
-	output [3:0] coax_led,
-	output [7:0] led
+//	output [3:0] coax_led,
+//	output [7:0] led,
+	input [2:0] rot
 );
 	localparam BUS_WIDTH = 16;
 	localparam ADDRESS_DEPTH = 14;
@@ -575,6 +585,10 @@ module myalthea (
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 	wire clock10 = 0;
+	wire [3:0] internal_coax_led;
+	wire [7:0] internal_led;
+//	assign led = internal_led;
+//	assign coax_led = internal_coax_led;
 	top #(
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH),
@@ -596,9 +610,9 @@ module myalthea (
 		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
 		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio2_i2c1_sda),
-		.rot(rot),
-		.coax_led(coax_led),
-		.led(led)
+		.coax_led(internal_coax_led),
+		.led(internal_led),
+		.rot(rot)
 	);
 endmodule
 

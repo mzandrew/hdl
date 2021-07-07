@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2021-07-06 by mza
+// last updated 2021-07-07 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -453,6 +453,7 @@ module ocyrus_hex8_split_4_2 #(
 	parameter PERIOD = 20.0,
 	parameter DIVIDE = 2,
 	parameter MULTIPLY = 40,
+	parameter PHASE45 = 0.0,
 	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
 	input clock_in,
@@ -485,6 +486,7 @@ module ocyrus_hex8_split_4_2 #(
 		.BIT_DEPTH(BIT_DEPTH),
 		.CLKIN_PERIOD(PERIOD),
 		.PHASE(0.0),
+		.PHASE2345(0.0),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
 		.CLK_FEEDBACK(CLK_FEEDBACK)
@@ -537,6 +539,7 @@ module simpll #(
 	parameter BIT_DEPTH = 8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter CLKIN_PERIOD = 6.4,
 	parameter PHASE = 0.0,
+	parameter PHASE2345 = 0.0,
 	parameter PLLD = 5,
 	parameter PLLX = 32,
 	parameter CLK_FEEDBACK = "CLKFBOUT",
@@ -588,10 +591,10 @@ module simpll #(
 		.CLKOUT5_DIVIDE(BIT_DEPTH), // division factor for clkout5 (1 to 128)
 		.CLKOUT0_PHASE(0.0), // phase shift (degrees) for clkout0 (0.0 to 360.0)
 		.CLKOUT1_PHASE(PHASE), // phase shift (degrees) for clkout1 (0.0 to 360.0)
-		.CLKOUT2_PHASE(PHASE+1*360/BIT_DEPTH), // phase shift (degrees) for clkout2 (0.0 to 360.0)
-		.CLKOUT3_PHASE(PHASE+2*360/BIT_DEPTH), // phase shift (degrees) for clkout3 (0.0 to 360.0)
-		.CLKOUT4_PHASE(PHASE+3*360/BIT_DEPTH), // phase shift (degrees) for clkout4 (0.0 to 360.0)
-		.CLKOUT5_PHASE(PHASE+4*360/BIT_DEPTH), // phase shift (degrees) for clkout5 (0.0 to 360.0)
+		.CLKOUT2_PHASE(PHASE2345+1*360/BIT_DEPTH), // phase shift (degrees) for clkout2 (0.0 to 360.0)
+		.CLKOUT3_PHASE(PHASE2345+2*360/BIT_DEPTH), // phase shift (degrees) for clkout3 (0.0 to 360.0)
+		.CLKOUT4_PHASE(PHASE2345+3*360/BIT_DEPTH), // phase shift (degrees) for clkout4 (0.0 to 360.0)
+		.CLKOUT5_PHASE(PHASE2345+4*360/BIT_DEPTH), // phase shift (degrees) for clkout5 (0.0 to 360.0)
 		.CLKOUT0_DUTY_CYCLE(0.5), // duty cycle for clkout0 (0.01 to 0.99)
 		.CLKOUT1_DUTY_CYCLE(0.5), // duty cycle for clkout1 (0.01 to 0.99)
 		.CLKOUT2_DUTY_CYCLE(0.5), // duty cycle for clkout2 (0.01 to 0.99)
@@ -730,15 +733,23 @@ endmodule
 // ug381 says should limit fixed odelays to 3/4 of a bit period
 // spartan6 errata (EN148) says not to go above a delay tap value of 6 when used in ODELAY mode to get full performance (1080 MHz)
 // otherwise, limit the data rate to 800 MHz for the commercial grade -3 part
+	// when 50->125 MHz is from a dcm_clkgen:
 	// without an odelay present, the measured delay between coax[0] and coax[4] rising edges is -1995 ps (sigma 12 ps)
-	//odelay_fixed #(.AMOUNT(0)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1139 ps (sigma 36 ps)
-	//odelay_fixed #(.AMOUNT(1)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1121 ps (sigma 39 ps)
-	//odelay_fixed #(.AMOUNT(2)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1070 ps (sigma 42 ps)
-	//odelay_fixed #(.AMOUNT(3)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1032 ps (sigma 42 ps)
-	//odelay_fixed #(.AMOUNT(4)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1001 ps (sigma 44 ps)
-	//odelay_fixed #(.AMOUNT(5)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); //  -963 ps (sigma 45 ps)
-	//odelay_fixed #(.AMOUNT(6)) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); //  -913 ps
+	//odelay_fixed #(.AMOUNT({5'd0, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1139 ps (sigma 36 ps)
+	//odelay_fixed #(.AMOUNT({5'd0, 3'd1})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1121 ps (sigma 39 ps)
+	//odelay_fixed #(.AMOUNT({5'd0, 3'd2})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1070 ps (sigma 42 ps)
+	//odelay_fixed #(.AMOUNT({5'd0, 3'd3})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1032 ps (sigma 42 ps)
+	//odelay_fixed #(.AMOUNT({5'd0, 3'd4})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -1001 ps (sigma 44 ps)
+	//odelay_fixed #(.AMOUNT({5'd0, 3'd5})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); //  -963 ps (sigma 45 ps)
+	//odelay_fixed #(.AMOUNT({5'd0, 3'd6})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); //  -913 ps
 	// range is 20-50 ps per tap, linear fit is 38 ps per tap
+	// when 50->125 MHz is from a pll_adv:
+	//odelay_fixed #(.AMOUNT({5'd0, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // ps (sigma ps)
+	//odelay_fixed #(.AMOUNT({5'd1, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // 221 ps (sigma 55 ps) 9.png
+	//odelay_fixed #(.AMOUNT({5'd2, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // 468 ps (sigma 69 ps) 10.png
+	//odelay_fixed #(.AMOUNT({5'd4, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // 109 ps (sigma 100 ps) 13.png
+	//odelay_fixed #(.AMOUNT({5'd8, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -168 ps (sigma 44 ps) 12.png
+	//odelay_fixed #(.AMOUNT({5'd16, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -173 ps (sigma 45 ps) 11.png (distorted)
 module odelay_fixed #(
 	parameter AMOUNT = 0
 ) (
