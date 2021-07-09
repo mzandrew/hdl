@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-07 by mza
+// last updated 2021-07-09 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -46,7 +46,8 @@ module top #(
 	output [7:0] led
 );
 	genvar i;
-	wire pll_locked, pll_locked_copy;
+	wire pll_locked;
+	wire pll_locked_copy;
 	wire pll_oserdes_locked_1;
 	wire pll_oserdes_locked_2;
 	assign diff_pair_left[3] = 0;                    // e_n
@@ -81,7 +82,11 @@ module top #(
 	BUFG mrt (.I(rawclock125), .O(clock125));
 	wire clock = clock125;
 	// ----------------------------------------------------------------------
-	reset_promulgator #(.CLOCK1_BIT_PICKOFF(COUNTER50_BIT_PICKOFF), .CLOCK2_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) rp (.reset_input(reset), .clock1(clock50), .clock2(clock125), .pll_locked_input(pll_locked), .reset1(reset50), .reset2(reset125), .pll_locked_output(pll_locked_copy));
+//	reset_promulgator #(.CLOCK1_BIT_PICKOFF(COUNTER50_BIT_PICKOFF), .CLOCK2_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) rp (.reset_input(reset), .clock1(clock50), .clock2(clock125), .pll_locked_input(pll_locked), .reset1(reset50), .reset2(reset125), .pll_locked_output(pll_locked_copy));
+//	reset3_wait4plls #(.CLOCK1_BIT_PICKOFF(COUNTER50_BIT_PICKOFF), .CLOCK2_BIT_PICKOFF(COUNTER125_BIT_PICKOFF), .CLOCK3_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) r3 (.reset_input(reset), .pll_locked1_input(1'b1), .pll_locked2_input(pll_locked),  .pll_locked3_input(blah), .clock1_input(clock50), .clock2_input(clock125), .clock3_input(word_clock), .reset1_output(reset50), .reset2_output(reset_clock125), .reset3_output(reset_word_clock));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER50_BIT_PICKOFF)) reset50_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock50), .reset_output(reset50));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) reset125_wait4pll (.reset_input(reset50), .pll_locked_input(pll_locked), .clock_input(clock125), .reset_output(reset125));
+//	reset_wait4pll #(.COUNTER_BIT_PICKOFF(CLOCKWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset125), .pll_locked_input(oserdes_pll_locked_1), .clock_input(word_clock), .reset_output(reset_word));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
 	wire [ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[ADDRESS_DEPTH-1:0];
@@ -160,6 +165,7 @@ module top #(
 	end
 	wire word_clock1;
 	wire [7:0] oserdes_word1_buffer;
+	wire [7:0] oserdes_word1_buffer_mid;
 	wire [7:0] oserdes_word1_buffer_delayed;
 //	wire word_clock3;
 	wire [7:0] iserdes_word;
@@ -168,18 +174,19 @@ module top #(
 //	iserdes_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) isds8 (
 //		.clock_in(clock125), .reset(reset125), .data_in(single_ended_right[3]), .word_clock_out(word_clock3),
 //		.locked(pll_oserdes_locked_2), .word_out(iserdes_word));
-	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(3'd4), .data_out(iserdes_word_buffer));
-	pipeline #(.WIDTH(8), .DEPTH(2)) publics (.clock(word_clock1), .in(iserdes_word_buffer), .out(iserdes_word_buffer_delayed));
+	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(3'd1), .data_out(iserdes_word_buffer));
+	pipeline #(.WIDTH(8), .DEPTH(3)) publics (.clock(word_clock1), .in(iserdes_word_buffer), .out(iserdes_word_buffer_delayed));
 	// use coax[0] and coax[4] to measure (with scope) and correct (with rotary switch) for the "arbitrary routing" bitslip which is compile-dependent
 	// or send oserdes stream out of "v" and into iserdes on "q" (with an ezhook) or stream out of "r" and into "q" (with a jumper) and then see the result oserdes on coax[5] (measured delay from coax[4] to coax[5] is ~43 ns; with pipelining and a bitslip, this can be adjusted to be 0 ns delay)
-	localparam DELAY = 9;
-	pipeline #(.WIDTH(8), .DEPTH(DELAY+2)) queens (.clock(word_clock), .in(oserdes_word), .out(oserdes_word_delayed));
-	pipeline #(.WIDTH(8), .DEPTH(DELAY+2)) diamond_head (.clock(word_clock), .in(sync_out_word), .out(sync_out_word_delayed));
-	bitslip #(.WIDTH(8)) bso (.clock(word_clock1), .data_in(oserdes_word), .bitslip(word_clock_sel), .data_out(oserdes_word1_buffer));
-	pipeline #(.WIDTH(8), .DEPTH(DELAY)) kewalos (.clock(word_clock1), .in(oserdes_word1_buffer), .out(oserdes_word1_buffer_delayed));
+	localparam DELAY = 7;
+	pipeline #(.WIDTH(8), .DEPTH(DELAY+4)) queens (.clock(word_clock), .in(oserdes_word), .out(oserdes_word_delayed));
+	pipeline #(.WIDTH(8), .DEPTH(DELAY+4)) diamond_head (.clock(word_clock), .in(sync_out_word), .out(sync_out_word_delayed));
+	bitslip #(.WIDTH(8)) bso1 (.clock(word_clock1), .data_in(oserdes_word), .bitslip(word_clock_sel), .data_out(oserdes_word1_buffer));
+	pipeline #(.WIDTH(8), .DEPTH(DELAY)) kewalos (.clock(word_clock1), .in(oserdes_word1_buffer), .out(oserdes_word1_buffer_mid));
+	bitslip #(.WIDTH(8)) bso2 (.clock(word_clock1), .data_in(oserdes_word1_buffer_mid), .bitslip(3'd0), .data_out(oserdes_word1_buffer_delayed));
 	//pipeline #(.WIDTH(8), .DEPTH(DELAY)) canoes (.clock(word_clock1), .in(sync_out_word1_buffer), .out(sync_out_word1_buffer1));
 	wire pre_coax_4;
-	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE3("n")) mylei6 (
+	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE3("n"), .PHASE45(-22.5)) mylei6 (
 		.clock_in(clock125), .reset(reset125), .word_clock0123_out(word_clock1), .locked(pll_oserdes_locked_1),
 		.word_clock45_sel(word_clock_sel[1:0]), .word_clock45_out(word_clock),
 		.word0_in(oserdes_word1_buffer_delayed), .word1_in(oserdes_word1_buffer), .word2_in(oserdes_word1_buffer), .word3_in(iserdes_word_buffer_delayed),

@@ -453,6 +453,7 @@ module ddr (
 	ODDR2 #(.DDR_ALIGNMENT("NONE")) ddr (.C0(clock0), .C1(clock180), .CE(1'b1), .D0(data0_in), .D1(data1_in), .R(reset), .S(1'b0), .Q(data_out));
 endmodule
 
+//	pipeline #(.WIDTH(8), .DEPTH(DELAY)) kewalos (.clock(word_clock1), .in(oserdes_word1_buffer), .out(oserdes_word1_buffer_delayed));
 module pipeline #(
 	parameter WIDTH = 8,
 	parameter DEPTH = 4
