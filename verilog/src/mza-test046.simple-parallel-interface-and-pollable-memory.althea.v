@@ -26,7 +26,8 @@ module top #(
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
 	parameter COUNTER50_BIT_PICKOFF = TESTBENCH ? 5 : 23,
-	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 5 : 23
+	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 5 : 23,
+	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
 	input clock50_p, clock50_n,
 	input clock10,
@@ -80,13 +81,18 @@ module top #(
 		simplepll_BASE #(.OVERALL_DIVIDE(1), .MULTIPLY(20), .DIVIDE0(8), .PHASE0(0.0), .PERIOD(20.0)) pll_base (.clockin(clock50), .reset(reset50), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
 	end
 	BUFG mrt (.I(rawclock125), .O(clock125));
-	wire clock = clock125;
+	wire word_clock;
+	wire word_clock1;
+	wire clock = word_clock;
 	// ----------------------------------------------------------------------
 //	reset_promulgator #(.CLOCK1_BIT_PICKOFF(COUNTER50_BIT_PICKOFF), .CLOCK2_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) rp (.reset_input(reset), .clock1(clock50), .clock2(clock125), .pll_locked_input(pll_locked), .reset1(reset50), .reset2(reset125), .pll_locked_output(pll_locked_copy));
 //	reset3_wait4plls #(.CLOCK1_BIT_PICKOFF(COUNTER50_BIT_PICKOFF), .CLOCK2_BIT_PICKOFF(COUNTER125_BIT_PICKOFF), .CLOCK3_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) r3 (.reset_input(reset), .pll_locked1_input(1'b1), .pll_locked2_input(pll_locked),  .pll_locked3_input(blah), .clock1_input(clock50), .clock2_input(clock125), .clock3_input(word_clock), .reset1_output(reset50), .reset2_output(reset_clock125), .reset3_output(reset_word_clock));
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER50_BIT_PICKOFF)) reset50_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock50), .reset_output(reset50));
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) reset125_wait4pll (.reset_input(reset50), .pll_locked_input(pll_locked), .clock_input(clock125), .reset_output(reset125));
-//	reset_wait4pll #(.COUNTER_BIT_PICKOFF(CLOCKWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset125), .pll_locked_input(oserdes_pll_locked_1), .clock_input(word_clock), .reset_output(reset_word));
+	wire reset_word;
+	wire reset_word1;
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset125), .pll_locked_input(pll_oserdes_locked_1), .clock_input(word_clock), .reset_output(reset_word));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword1_wait4pll (.reset_input(reset125), .pll_locked_input(pll_oserdes_locked_1), .clock_input(word_clock1), .reset_output(reset_word1));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
 	wire [ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[ADDRESS_DEPTH-1:0];
@@ -98,8 +104,8 @@ module top #(
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) hdrb (
-		.clock(clock),
-		.reset(reset125),
+		.clock(word_clock),
+		.reset(reset_word),
 		.bus(bus),
 		.read(read), // 0=write; 1=read
 		.register_select(register_select), // 0=address; 1=data
@@ -110,14 +116,13 @@ module top #(
 		.read_data_word(read_data_word),
 		.address_word_reg(address_word_full)
 	);
-	wire word_clock;
 	wire [BUS_WIDTH_OSERDES-1:0] oserdes_word;
 	wire [7:0] oserdes_word_delayed;
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 	if (0) begin
-		RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset125),
-			.wclk(clock), .waddr(address_word_narrow), .din(write_data_word), .write_en(write_strobe),
-			.rclk(clock), .raddr(address_word_narrow), .dout(read_data_word));
+		RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset_word),
+			.wclk(word_clock), .waddr(address_word_narrow), .din(write_data_word), .write_en(write_strobe),
+			.rclk(word_clock), .raddr(address_word_narrow), .dout(read_data_word));
 		assign oserdes_word = 8'b11100100;
 	end else if (0) begin
 		RAM_inferred_dual_port_gearbox #(
@@ -125,27 +130,27 @@ module top #(
 			.ADDR_WIDTH_A(ADDRESS_DEPTH), .ADDR_WIDTH_B(ADDRESS_DEPTH_OSERDES),
 			.DATA_WIDTH_A(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .DATA_WIDTH_B(BUS_WIDTH_OSERDES)
 		) myram (
-			.clk_a(clock), .addr_a(address_word_narrow), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
+			.clk_a(word_clock), .addr_a(address_word_narrow), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
 			.clk_b(word_clock), .addr_b(read_address), .dout_b(oserdes_word));
 	end else if (0) begin
 		RAM_inferred_dual_port #(
 			.addr_width_a(ADDRESS_DEPTH), .addr_width_b(ADDRESS_DEPTH_OSERDES),
 			.data_width_a(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .data_width_b(BUS_WIDTH_OSERDES)
 		) myram (
-			.clk_a(clock), .addr_a(address_word_narrow), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
+			.clk_a(word_clock), .addr_a(address_word_narrow), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
 			.clk_b(word_clock), .addr_b(read_address), .din_b({BUS_WIDTH_OSERDES{1'b0}}), .write_en_b(1'b0), .dout_b());
 		assign oserdes_word = 8'b11100000;
 	end else if (0) begin
-		RAM_s6_8k_16bit_8bit mem (.reset(reset125),
-			.clock_a(clock), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
+		RAM_s6_8k_16bit_8bit mem (.reset(reset_word),
+			.clock_a(word_clock), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b(oserdes_word));
 	end else if (0) begin
-		RAM_s6_4k_32bit_8bit mem (.reset(reset125),
-			.clock_a(clock), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
+		RAM_s6_4k_32bit_8bit mem (.reset(reset_word),
+			.clock_a(word_clock), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b(oserdes_word));
 	end else begin
-		RAM_s6_16k_32bit_8bit #(.ENDIANNESS("BIG")) mem (.reset(reset125),
-			.clock_a(clock), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
+		RAM_s6_16k_32bit_8bit #(.ENDIANNESS("BIG")) mem (.reset(reset_word),
+			.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b(oserdes_word));
 	end
 //	wire pll_oserdes_locked;
@@ -156,14 +161,13 @@ module top #(
 	wire [7:0] sync_out_word_delayed; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
 	wire [31:0] start_read_address = 32'd0; // in 2-bit words
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
-	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .ADDRESS_DEPTH(ADDRESS_DEPTH)) ss (.clock(word_clock), .reset(reset125), .sync_read_address(sync_read_address), .start_read_address(start_read_address), .end_read_address(end_read_address), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
+	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .ADDRESS_DEPTH(ADDRESS_DEPTH)) ss (.clock(word_clock), .reset(reset_word), .sync_read_address(sync_read_address), .start_read_address(start_read_address), .end_read_address(end_read_address), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	wire [2:0] rot_pipeline;
 	pipeline #(.WIDTH(3), .DEPTH(3)) tongs (.clock(word_clock), .in(~rot), .out(rot_pipeline));
 	reg [2:0] word_clock_sel = 0;
 	always @(posedge word_clock) begin
 		word_clock_sel <= rot_pipeline;
 	end
-	wire word_clock1;
 	wire [7:0] oserdes_word1_buffer;
 	wire [7:0] oserdes_word1_buffer_mid;
 	wire [7:0] oserdes_word1_buffer_delayed;
@@ -192,6 +196,7 @@ module top #(
 		.word0_in(oserdes_word1_buffer_delayed), .word1_in(oserdes_word1_buffer), .word2_in(oserdes_word1_buffer), .word3_in(iserdes_word_buffer_delayed),
 		.word4_in(oserdes_word_delayed), .word5_in(sync_out_word_delayed),
 		.D0_out(pre_coax_4), .D1_out(single_ended_left[1]), .D2_out(single_ended_right[2]), .D3_out(coax[5]),
+		//.D0_out(pre_coax_4), .D1_out(single_ended_left[1]), .D2_out(), .D3_out(coax[5]),
 		.D4_out(coax[0]), .D5_out(coax[3]),
 		.iserdes_bit_input(single_ended_right[3]), .iserdes_word_out(iserdes_word));
 	// when 50->125 MHz is from a dcm_clkgen:
@@ -245,13 +250,17 @@ module top #(
 	assign coax_led[3] = 0;
 	if (1) begin
 		assign led[7] = reset50;
-		assign led[6] = ~pll_locked_copy;
+		assign led[6] = ~pll_locked;
 		assign led[5] = reset125;
 		assign led[4] = ~pll_oserdes_locked_1;
-		assign led[3] = ack_valid;
-		assign led[2] = read;
-		assign led[1] = enable;
-		assign led[0] = register_select;
+		assign led[3] = reset_word;
+		assign led[2] = ~pll_oserdes_locked_2;
+		assign led[1] = reset_word1;
+		assign led[0] = enable;
+		//assign led[3] = ack_valid;
+		//assign led[2] = read;
+		//assign led[1] = enable;
+		//assign led[0] = register_select;
 	end
 	// ----------------------------------------------------------------------
 	initial begin
