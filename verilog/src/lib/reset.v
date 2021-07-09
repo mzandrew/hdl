@@ -1,5 +1,56 @@
 // written 2020-05-23 by mza
-// last updated 2021-06-29 by mza
+// last updated 2021-07-09 by mza
+
+//	reset_wait4pll #(.COUNTER_BIT_PICKOFF(CLOCK1_BIT_PICKOFF), .PLL_LOCKED_PIPELINE_PICKOFF(PLL_LOCKED_PIPELINE_CLOCK1_PICKOFF), .RESET_PIPELINE_PICKOFF(RESET_PIPELINE_PICKOFF)) reset1_wait4pll (.reset_input(reset_input), .pll_locked_input(pll_locked1_input), .clock_input(clock1_input), .reset_output(reset1_output));
+module reset_wait4pll #(
+	parameter COUNTER_BIT_PICKOFF = 20,
+	parameter PLL_LOCKED_PIPELINE_PICKOFF = 10,
+	parameter RESET_PIPELINE_PICKOFF = 5
+) (
+	input reset_input,
+	input pll_locked_input,
+	input clock_input,
+	output reg reset_output = 1
+);
+	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline = 0;
+	reg [PLL_LOCKED_PIPELINE_PICKOFF:0] pll_locked_pipeline = 0;
+	reg [COUNTER_BIT_PICKOFF:0] counter = 0;
+	always @(posedge clock_input) begin
+		if (~pll_locked_pipeline[PLL_LOCKED_PIPELINE_PICKOFF] | reset_pipeline[RESET_PIPELINE_PICKOFF]) begin
+			counter <= 0;
+			reset_output <= 1;
+		end else if (reset_output) begin
+			if (counter[COUNTER_BIT_PICKOFF]) begin
+				reset_output <= 0;
+			end
+			counter <= counter + 1'b1;
+		end
+		reset_pipeline <= { reset_pipeline[RESET_PIPELINE_PICKOFF-1:0], reset_input };
+		pll_locked_pipeline <= { pll_locked_pipeline[PLL_LOCKED_PIPELINE_PICKOFF-1:0], pll_locked_input };
+	end
+endmodule
+
+//	reset3_wait4plls #(.CLOCK1_BIT_PICKOFF(20), .CLOCK2_BIT_PICKOFF(20), .CLOCK3_BIT_PICKOFF(20)) r3 (.reset_input(reset), .pll_locked1_input(1'b1), .pll_locked2_input(pll_is_locked),  .pll_locked3_input(pll_is_locked), .clock1_input(clock_in), .clock2_input(word_clock0123_out), .clock3_input(word_clock45_out), .reset1_output(), .reset2_output(reset_clock0123), .reset3_output(reset_clock45));
+module reset3_wait4plls #(
+	parameter CLOCK1_BIT_PICKOFF = 20,
+	parameter CLOCK2_BIT_PICKOFF = 20,
+	parameter CLOCK3_BIT_PICKOFF = 20,
+	parameter RESET_PIPELINE_PICKOFF = 5,
+	parameter PLL_LOCKED_PIPELINE_CLOCK1_PICKOFF = 10,
+	parameter PLL_LOCKED_PIPELINE_CLOCK2_PICKOFF = 10,
+	parameter PLL_LOCKED_PIPELINE_CLOCK3_PICKOFF = 10
+) (
+	input reset_input,
+	input pll_locked1_input, pll_locked2_input, pll_locked3_input,
+	input clock1_input, clock2_input, clock3_input,
+	output reset1_output,
+	output reset2_output,
+	output reset3_output
+);
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(CLOCK1_BIT_PICKOFF), .PLL_LOCKED_PIPELINE_PICKOFF(PLL_LOCKED_PIPELINE_CLOCK1_PICKOFF), .RESET_PIPELINE_PICKOFF(RESET_PIPELINE_PICKOFF)) reset1_wait4pll (.reset_input(reset_input), .pll_locked_input(pll_locked1_input), .clock_input(clock1_input), .reset_output(reset1_output));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(CLOCK2_BIT_PICKOFF), .PLL_LOCKED_PIPELINE_PICKOFF(PLL_LOCKED_PIPELINE_CLOCK2_PICKOFF), .RESET_PIPELINE_PICKOFF(RESET_PIPELINE_PICKOFF)) reset2_wait4pll (.reset_input(reset_input), .pll_locked_input(pll_locked2_input), .clock_input(clock2_input), .reset_output(reset2_output));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(CLOCK3_BIT_PICKOFF), .PLL_LOCKED_PIPELINE_PICKOFF(PLL_LOCKED_PIPELINE_CLOCK3_PICKOFF), .RESET_PIPELINE_PICKOFF(RESET_PIPELINE_PICKOFF)) reset3_wait4pll (.reset_input(reset_input), .pll_locked_input(pll_locked3_input), .clock_input(clock3_input), .reset_output(reset3_output));
+endmodule
 
 module reset_promulgator #(
 	parameter CLOCK1_BIT_PICKOFF = 20,
