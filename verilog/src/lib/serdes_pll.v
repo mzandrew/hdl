@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2021-07-07 by mza
+// last updated 2021-07-09 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -469,24 +469,29 @@ module ocyrus_hex8_split_4_2 #(
 );
 	wire bit_clock0123, bit_clock45;
 	wire bit_strobe0123, bit_strobe45;
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE3)) mylei3 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset), .word_in(word3_in), .bit_out(D3_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE4)) mylei4 (.word_clock(word_clock45_out), .bit_clock(bit_clock45), .bit_strobe(bit_strobe45), .reset(reset), .word_in(word4_in), .bit_out(D4_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE5)) mylei5 (.word_clock(word_clock45_out), .bit_clock(bit_clock45), .bit_strobe(bit_strobe45), .reset(reset), .word_in(word5_in), .bit_out(D5_out));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) is8i (.bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .word_clock(word_clock0123_out), .reset(reset), .data_in(iserdes_bit_input), .word_out(iserdes_word_out));
+	wire pll_is_locked; // Locked output from PLL
+	wire reset_clock0123;
+	wire reset_clock45;
+	reset_wait4pll reset0123_wait4pll (.reset_input(reset), .pll_locked_input(locked), .clock_input(word_clock0123_out), .reset_output(reset_clock0123));
+	reset_wait4pll reset45_wait4pll (.reset_input(reset), .pll_locked_input(locked), .clock_input(word_clock45_out), .reset_output(reset_clock45));
+//	reset3_wait4plls #(.CLOCK1_BIT_PICKOFF(20), .CLOCK2_BIT_PICKOFF(20), .CLOCK3_BIT_PICKOFF(20)) r3 (.reset_input(reset), .pll_locked1_input(1'b1), .pll_locked2_input(pll_is_locked),  .pll_locked3_input(pll_is_locked), .clock1_input(clock_in), .clock2_input(word_clock0123_out), .clock3_input(word_clock45_out), .reset1_output(), .reset2_output(reset_clock0123), .reset3_output(reset_clock45));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset_clock0123), .word_in(word0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset_clock0123), .word_in(word1_in), .bit_out(D1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset_clock0123), .word_in(word2_in), .bit_out(D2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE3)) mylei3 (.word_clock(word_clock0123_out), .bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .reset(reset_clock0123), .word_in(word3_in), .bit_out(D3_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE4)) mylei4 (.word_clock(word_clock45_out), .bit_clock(bit_clock45), .bit_strobe(bit_strobe45), .reset(reset_clock45), .word_in(word4_in), .bit_out(D4_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE5)) mylei5 (.word_clock(word_clock45_out), .bit_clock(bit_clock45), .bit_strobe(bit_strobe45), .reset(reset_clock45), .word_in(word5_in), .bit_out(D5_out));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) is8i (.bit_clock(bit_clock0123), .bit_strobe(bit_strobe0123), .word_clock(word_clock0123_out), .reset(reset_clock0123), .data_in(iserdes_bit_input), .word_out(iserdes_word_out));
 //oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
 //		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 //		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
 	wire [4:0] clock_1x;
 	wire clock_nx;
-	wire pll_is_locked; // Locked output from PLL
 	simpll #(
 		.BIT_DEPTH(BIT_DEPTH),
 		.CLKIN_PERIOD(PERIOD),
 		.PHASE(0.0),
-		.PHASE2345(0.0),
+		.PHASE2345(PHASE45),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
 		.CLK_FEEDBACK(CLK_FEEDBACK)
