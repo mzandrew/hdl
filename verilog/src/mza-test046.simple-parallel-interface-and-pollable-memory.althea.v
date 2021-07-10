@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-09 by mza
+// last updated 2021-07-10 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -51,16 +51,20 @@ module top #(
 	wire pll_locked_copy;
 	wire pll_oserdes_locked_1;
 	wire pll_oserdes_locked_2;
-	assign diff_pair_left[3] = 0;                    // e_n
-	assign diff_pair_left[2] = pll_oserdes_locked_1; // e_p
-	assign diff_pair_left[1] = pll_locked;           // b_p
-	assign diff_pair_left[0] = write_strobe;         // b_n
-	assign diff_pair_right[0] = read;            // k_p
-	assign diff_pair_right[1] = register_select; // k_n
-	assign diff_pair_right[3] = ack_valid;       // h_n
-	assign diff_pair_right[2] = enable;          // h_p
-	assign diff_pair_left[11:4] = bus[15:8]; // a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p
-	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
+//	assign diff_pair_left[3] = 0;                    // e_n
+//	assign diff_pair_left[2] = pll_oserdes_locked_1; // e_p
+//	assign diff_pair_left[1] = pll_locked;           // b_p
+//	assign diff_pair_left[0] = write_strobe;         // b_n
+//	assign diff_pair_right[0] = read;            // k_p
+//	assign diff_pair_right[1] = register_select; // k_n
+//	assign diff_pair_right[3] = ack_valid;       // h_n
+//	assign diff_pair_right[2] = enable;          // h_p
+//	assign diff_pair_left[11:4] = bus[15:8]; // a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p
+//	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
+	for (i=0; i<12; i=i+1) begin : diff_pair_array
+		assign diff_pair_left[i] = 0;
+		assign diff_pair_right[i] = 0;
+	end
 	//for (i=0; i<6; i=i+1) begin : single_ended_array
 		//assign single_ended_left[i] = 0;
 		//assign single_ended_right[i] = 0;
@@ -248,19 +252,22 @@ module top #(
 	//assign coax_led[0] = 1'b1;
 	//assign coax_led[3] = 1'b1;
 	assign coax_led[3] = 0;
+	wire [7:0] status8;
+	assign status8[7] = reset50;
+	assign status8[6] = ~pll_locked;
+	assign status8[5] = reset125;
+	assign status8[4] = ~pll_oserdes_locked_1;
+	assign status8[3] = reset_word;
+	assign status8[2] = ~pll_oserdes_locked_2;
+	assign status8[1] = reset_word1;
+	assign status8[0] = enable;
+	//assign status8[3] = ack_valid;
+	//assign status8[2] = read;
+	//assign status8[1] = enable;
+	//assign status8[0] = register_select;
 	if (1) begin
-		assign led[7] = reset50;
-		assign led[6] = ~pll_locked;
-		assign led[5] = reset125;
-		assign led[4] = ~pll_oserdes_locked_1;
-		assign led[3] = reset_word;
-		assign led[2] = ~pll_oserdes_locked_2;
-		assign led[1] = reset_word1;
-		assign led[0] = enable;
-		//assign led[3] = ack_valid;
-		//assign led[2] = read;
-		//assign led[1] = enable;
-		//assign led[0] = register_select;
+//		assign led = status8;
+		pipeline #(.WIDTH(8), .DEPTH(2)) blinx (.clock(clock50), .in(status8), .out(led));
 	end
 	// ----------------------------------------------------------------------
 	initial begin
