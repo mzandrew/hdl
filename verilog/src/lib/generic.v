@@ -1,5 +1,5 @@
 // written 2019-09-22 by mza
-// last updated 2021-07-03 by mza
+// last updated 2021-07-10 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
@@ -471,6 +471,18 @@ module pipeline #(
 		middle[0] <= in;
 	end
 	assign out = middle[DEPTH-1];
+endmodule
+
+module resync #(
+	parameter WIDTH = 1
+) (
+	input clock,
+	input [WIDTH-1:0] in,
+	output reg [WIDTH-1:0] out = 0
+);
+	always @(posedge clock) begin
+		out <= in;
+	end
 endmodule
 
 module bitslip #(
