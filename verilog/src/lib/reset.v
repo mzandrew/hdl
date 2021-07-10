@@ -1,5 +1,5 @@
 // written 2020-05-23 by mza
-// last updated 2021-07-09 by mza
+// last updated 2021-07-10 by mza
 
 //	reset_wait4pll #(.COUNTER_BIT_PICKOFF(CLOCK1_BIT_PICKOFF), .PLL_LOCKED_PIPELINE_PICKOFF(PLL_LOCKED_PIPELINE_CLOCK1_PICKOFF), .RESET_PIPELINE_PICKOFF(RESET_PIPELINE_PICKOFF)) reset1_wait4pll (.reset_input(reset_input), .pll_locked_input(pll_locked1_input), .clock_input(clock1_input), .reset_output(reset1_output));
 module reset_wait4pll #(
@@ -12,11 +12,16 @@ module reset_wait4pll #(
 	input clock_input,
 	output reg reset_output = 1
 );
+	wire reset_input_copy;
+	wire pll_locked_input_copy;
+	resync r (.clock(clock_input), .in(reset_input), .out(reset_input_copy));
+	resync p (.clock(clock_input), .in(pll_locked_input), .out(pll_locked_input_copy));
 	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline = 0;
 	reg [PLL_LOCKED_PIPELINE_PICKOFF:0] pll_locked_pipeline = 0;
 	reg [COUNTER_BIT_PICKOFF:0] counter = 0;
+	reg should_be_in_reset = 0;
 	always @(posedge clock_input) begin
-		if (~pll_locked_pipeline[PLL_LOCKED_PIPELINE_PICKOFF] | reset_pipeline[RESET_PIPELINE_PICKOFF]) begin
+		if (should_be_in_reset) begin
 			counter <= 0;
 			reset_output <= 1;
 		end else if (reset_output) begin
@@ -25,8 +30,9 @@ module reset_wait4pll #(
 			end
 			counter <= counter + 1'b1;
 		end
-		reset_pipeline <= { reset_pipeline[RESET_PIPELINE_PICKOFF-1:0], reset_input };
-		pll_locked_pipeline <= { pll_locked_pipeline[PLL_LOCKED_PIPELINE_PICKOFF-1:0], pll_locked_input };
+		should_be_in_reset <= ~pll_locked_pipeline[PLL_LOCKED_PIPELINE_PICKOFF] || reset_pipeline[RESET_PIPELINE_PICKOFF];
+		reset_pipeline <= { reset_pipeline[RESET_PIPELINE_PICKOFF-1:0], reset_input_copy };
+		pll_locked_pipeline <= { pll_locked_pipeline[PLL_LOCKED_PIPELINE_PICKOFF-1:0], pll_locked_input_copy };
 	end
 endmodule
 
