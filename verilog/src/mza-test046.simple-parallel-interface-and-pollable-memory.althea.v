@@ -51,16 +51,6 @@ module top #(
 	wire pll_locked_copy;
 	wire pll_oserdes_locked_1;
 	wire pll_oserdes_locked_2;
-//	assign diff_pair_left[3] = 0;                    // e_n
-//	assign diff_pair_left[2] = pll_oserdes_locked_1; // e_p
-//	assign diff_pair_left[1] = pll_locked;           // b_p
-//	assign diff_pair_left[0] = write_strobe;         // b_n
-//	assign diff_pair_right[0] = read;            // k_p
-//	assign diff_pair_right[1] = register_select; // k_n
-//	assign diff_pair_right[3] = ack_valid;       // h_n
-//	assign diff_pair_right[2] = enable;          // h_p
-//	assign diff_pair_left[11:4] = bus[15:8]; // a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p
-//	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
 	for (i=0; i<12; i=i+1) begin : diff_pair_array
 		assign diff_pair_left[i] = 0;
 		assign diff_pair_right[i] = 0;
@@ -89,8 +79,6 @@ module top #(
 	wire word_clock1;
 	wire clock = word_clock0;
 	// ----------------------------------------------------------------------
-//	reset_promulgator #(.CLOCK1_BIT_PICKOFF(COUNTER50_BIT_PICKOFF), .CLOCK2_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) rp (.reset_input(reset), .clock1(clock50), .clock2(clock125), .pll_locked_input(pll_locked), .reset1(reset50), .reset2(reset125), .pll_locked_output(pll_locked_copy));
-//	reset3_wait4plls #(.CLOCK1_BIT_PICKOFF(COUNTER50_BIT_PICKOFF), .CLOCK2_BIT_PICKOFF(COUNTER125_BIT_PICKOFF), .CLOCK3_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) r3 (.reset_input(reset), .pll_locked1_input(1'b1), .pll_locked2_input(pll_locked),  .pll_locked3_input(blah), .clock1_input(clock50), .clock2_input(clock125), .clock3_input(word_clock0), .reset1_output(reset50), .reset2_output(reset_clock125), .reset3_output(reset_word_clock));
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER50_BIT_PICKOFF)) reset50_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock50), .reset_output(reset50));
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER125_BIT_PICKOFF)) reset125_wait4pll (.reset_input(reset50), .pll_locked_input(pll_locked), .clock_input(clock125), .reset_output(reset125));
 	wire reset_word;
@@ -124,32 +112,11 @@ module top #(
 	wire [7:0] oserdes_word_delayed;
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 	if (0) begin
-		RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset_word),
-			.wclk(word_clock0), .waddr(address_word_narrow), .din(write_data_word), .write_en(write_strobe),
-			.rclk(word_clock0), .raddr(address_word_narrow), .dout(read_data_word));
-		assign oserdes_word = 8'b11100100;
-	end else if (0) begin
-		RAM_inferred_dual_port_gearbox #(
-			.GEARBOX_RATIO(4),
-			.ADDR_WIDTH_A(ADDRESS_DEPTH), .ADDR_WIDTH_B(ADDRESS_DEPTH_OSERDES),
-			.DATA_WIDTH_A(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .DATA_WIDTH_B(BUS_WIDTH_OSERDES)
-		) myram (
-			.clk_a(word_clock0), .addr_a(address_word_narrow), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
-			.clk_b(word_clock0), .addr_b(read_address), .dout_b(oserdes_word));
-	end else if (0) begin
-		RAM_inferred_dual_port #(
-			.addr_width_a(ADDRESS_DEPTH), .addr_width_b(ADDRESS_DEPTH_OSERDES),
-			.data_width_a(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .data_width_b(BUS_WIDTH_OSERDES)
-		) myram (
-			.clk_a(word_clock0), .addr_a(address_word_narrow), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
-			.clk_b(word_clock0), .addr_b(read_address), .din_b({BUS_WIDTH_OSERDES{1'b0}}), .write_en_b(1'b0), .dout_b());
-		assign oserdes_word = 8'b11100000;
-	end else if (0) begin
-		RAM_s6_8k_16bit_8bit mem (.reset(reset_word),
+		RAM_s6_4k_32bit_8bit mem (.reset(reset_word),
 			.clock_a(word_clock0), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
 			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word));
 	end else if (0) begin
-		RAM_s6_4k_32bit_8bit mem (.reset(reset_word),
+		RAM_s6_8k_16bit_8bit mem (.reset(reset_word),
 			.clock_a(word_clock0), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
 			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word));
 	end else begin
@@ -175,13 +142,9 @@ module top #(
 	wire [7:0] oserdes_word1_buffer;
 	wire [7:0] oserdes_word1_buffer_mid;
 	wire [7:0] oserdes_word1_buffer_delayed;
-//	wire word_clock3;
 	wire [7:0] iserdes_word;
 	wire [7:0] iserdes_word_buffer;
 	wire [7:0] iserdes_word_buffer_delayed;
-//	iserdes_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) isds8 (
-//		.clock_in(clock125), .reset(reset125), .data_in(single_ended_right[3]), .word_clock_out(word_clock3),
-//		.locked(pll_oserdes_locked_2), .word_out(iserdes_word));
 	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(3'd1), .data_out(iserdes_word_buffer));
 	pipeline #(.WIDTH(8), .DEPTH(3)) publics (.clock(word_clock1), .in(iserdes_word_buffer), .out(iserdes_word_buffer_delayed));
 	// use coax[0] and coax[4] to measure (with scope) and correct (with rotary switch) for the "arbitrary routing" bitslip which is compile-dependent
@@ -203,15 +166,7 @@ module top #(
 		//.D0_out(pre_coax_4), .D1_out(single_ended_left[1]), .D2_out(), .D3_out(coax[5]),
 		.D4_out(coax[0]), .D5_out(coax[3]),
 		.iserdes_bit_input(single_ended_right[3]), .iserdes_word_out(iserdes_word));
-	// when 50->125 MHz is from a dcm_clkgen:
 	assign coax[4] = pre_coax_4; // -38 ps (sigma 16 ps) 15.png
-	//odelay_fixed #(.AMOUNT({5'd0, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -78 ps (sigma 43 ps) 14.png
-	//odelay_fixed #(.AMOUNT({5'd1, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // 163 ps (sigma 57 ps) 16.png
-	//odelay_fixed #(.AMOUNT({5'd2, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // 519 ps (sigma 67 ps) 17.png
-	//odelay_fixed #(.AMOUNT({5'd4, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // ps (sigma ps)
-	//odelay_fixed #(.AMOUNT({5'd8, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // ps (sigma ps)
-	//odelay_fixed #(.AMOUNT({5'd16, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // ps (sigma ps)
-	//ddr mario0 (.clock(clock125), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[1]));
 	ddr mario1 (.clock(word_clock1), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[2]));
 	ddr mario2 (.clock(word_clock0), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[1]));
 	//assign coax[1] = enable;

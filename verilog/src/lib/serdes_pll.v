@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2021-07-09 by mza
+// last updated 2021-07-10 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -755,6 +755,13 @@ endmodule
 	//odelay_fixed #(.AMOUNT({5'd4, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // 109 ps (sigma 100 ps) 13.png
 	//odelay_fixed #(.AMOUNT({5'd8, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -168 ps (sigma 44 ps) 12.png
 	//odelay_fixed #(.AMOUNT({5'd16, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -173 ps (sigma 45 ps) 11.png (distorted)
+	// when 50->125 MHz is from a dcm_clkgen:
+	//odelay_fixed #(.AMOUNT({5'd0, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // -78 ps (sigma 43 ps) 14.png
+	//odelay_fixed #(.AMOUNT({5'd1, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // 163 ps (sigma 57 ps) 16.png
+	//odelay_fixed #(.AMOUNT({5'd2, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // 519 ps (sigma 67 ps) 17.png
+	//odelay_fixed #(.AMOUNT({5'd4, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // ps (sigma ps)
+	//odelay_fixed #(.AMOUNT({5'd8, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // ps (sigma ps)
+	//odelay_fixed #(.AMOUNT({5'd16, 3'd0})) twoturntables (.bit_in(pre_coax_4), .bit_out(coax[4])); // ps (sigma ps)
 module odelay_fixed #(
 	parameter AMOUNT = 0
 ) (
