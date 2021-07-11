@@ -116,7 +116,7 @@ module top #(
 	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
 	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .ADDRESS_DEPTH(ADDRESS_DEPTH)) ss (.clock(word_clock0), .reset(reset_word0), .sync_read_address(sync_read_address), .start_read_address(start_read_address), .end_read_address(end_read_address), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	wire [2:0] rot_pipeline;
-	pipeline #(.WIDTH(3), .DEPTH(3)) tongs (.clock(word_clock0), .in(~rot), .out(rot_pipeline));
+	cdc_pipeline #(.WIDTH(3), .DEPTH(3)) tongs (.clock(word_clock0), .in(~rot), .out(rot_pipeline));
 	reg [2:0] word_clock_sel = 0;
 	always @(posedge word_clock0) begin
 		word_clock_sel <= rot_pipeline;
@@ -128,7 +128,7 @@ module top #(
 	wire [7:0] iserdes_word_buffer;
 	wire [7:0] iserdes_word_buffer_delayed;
 	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(3'd1), .data_out(iserdes_word_buffer));
-	pipeline #(.WIDTH(8), .DEPTH(3)) publics (.clock(word_clock1), .in(iserdes_word_buffer), .out(iserdes_word_buffer_delayed));
+	cdc_pipeline #(.WIDTH(8), .DEPTH(3)) publics (.clock(word_clock1), .in(iserdes_word_buffer), .out(iserdes_word_buffer_delayed));
 	// use coax[0] and coax[4] to measure (with scope) and correct (with rotary switch) for the "arbitrary routing" bitslip which is compile-dependent
 	// or send oserdes stream out of "v" and into iserdes on "q" (with an ezhook) or stream out of "r" and into "q" (with a jumper) and then see the result oserdes on coax[5] (measured delay from coax[4] to coax[5] is ~43 ns; with pipelining and a bitslip, this can be adjusted to be 0 ns delay)
 	localparam DELAY = 7;
@@ -199,8 +199,8 @@ module top #(
 	assign status8[0] = register_select;
 	if (1) begin
 //		assign led = status8;
-		pipeline #(.WIDTH(8), .DEPTH(2)) blinx (.clock(clock50), .in(status8), .out(led));
-		pipeline #(.WIDTH(8), .DEPTH(2)) jarjar (.clock(clock50), .in(status4), .out(coax_led));
+		cdc_pipeline #(.WIDTH(8), .DEPTH(2)) blinx (.clock(clock50), .in(status8), .out(led));
+		cdc_pipeline #(.WIDTH(8), .DEPTH(2)) jarjar (.clock(clock50), .in(status4), .out(coax_led));
 	end
 	// ----------------------------------------------------------------------
 	initial begin

@@ -130,10 +130,12 @@ net coax<5> loc=p34  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3; 
 
 net "button" tig;
 net "rot<?>" tig;
-net "althea/word_clock_sel<?>" tig;
+#net "althea/word_clock_sel<?>" tig;
 #net "led<?>" tig;
 #net "coax_led<?>" tig;
-net "*should_be_in_reset_cdc*" tig;
+#net "*should_be_in_reset_cdc*" tig;
+#net "*pipeline_cdc*" tig;
+net "*cdc*" tig;
 
 config vccaux=3.3;
 

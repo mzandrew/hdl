@@ -473,6 +473,27 @@ module pipeline #(
 	assign out = middle[DEPTH-1];
 endmodule
 
+module cdc_pipeline #(
+	parameter WIDTH = 8,
+	parameter DEPTH = 4
+) (
+	input clock,
+	input [WIDTH-1:0] in,
+	output [WIDTH-1:0] out
+);
+	(* KEEP = "TRUE" *) wire [WIDTH-1:0] pipeline_cdc;
+	assign pipeline_cdc = in;
+	reg [WIDTH-1:0] middle [DEPTH-1:0];
+	integer i;
+	always @(posedge clock) begin
+		for (i=1; i<DEPTH; i=i+1) begin
+			middle[i] <= middle[i-1];
+		end
+		middle[0] <= pipeline_cdc;
+	end
+	assign out = middle[DEPTH-1];
+endmodule
+
 module resync #(
 	parameter WIDTH = 1
 ) (

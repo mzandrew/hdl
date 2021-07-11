@@ -12,7 +12,7 @@ module reset_wait4pll #(
 	output reg reset_output = 1
 );
 	reg [COUNTER_BIT_PICKOFF:0] counter = 0;
-	wire should_be_in_reset_cdc = ~pll_locked_input || reset_input;
+	(* KEEP = "TRUE" *) wire should_be_in_reset_cdc = ~pll_locked_input || reset_input;
 	wire should_be_in_reset_pipeline;
 	pipeline #(.WIDTH(1), .DEPTH(PIPELINE_PICKOFF)) z (.clock(clock_input), .in(should_be_in_reset_cdc), .out(should_be_in_reset_pipeline));
 	always @(posedge clock_input) begin
