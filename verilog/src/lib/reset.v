@@ -1,27 +1,22 @@
 // written 2020-05-23 by mza
-// last updated 2021-07-10 by mza
+// last updated 2021-07-11 by mza
 
 //	reset_wait4pll #(.COUNTER_BIT_PICKOFF(CLOCK1_BIT_PICKOFF), .PLL_LOCKED_PIPELINE_PICKOFF(PLL_LOCKED_PIPELINE_CLOCK1_PICKOFF), .RESET_PIPELINE_PICKOFF(RESET_PIPELINE_PICKOFF)) reset1_wait4pll (.reset_input(reset_input), .pll_locked_input(pll_locked1_input), .clock_input(clock1_input), .reset_output(reset1_output));
 module reset_wait4pll #(
 	parameter COUNTER_BIT_PICKOFF = 20,
-	parameter PLL_LOCKED_PIPELINE_PICKOFF = 10,
-	parameter RESET_PIPELINE_PICKOFF = 5
+	parameter PIPELINE_PICKOFF = 6
 ) (
 	input reset_input,
 	input pll_locked_input,
 	input clock_input,
 	output reg reset_output = 1
 );
-	wire reset_input_copy;
-	wire pll_locked_input_copy;
-	resync r (.clock(clock_input), .in(reset_input), .out(reset_input_copy));
-	resync p (.clock(clock_input), .in(pll_locked_input), .out(pll_locked_input_copy));
-	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline = 0;
-	reg [PLL_LOCKED_PIPELINE_PICKOFF:0] pll_locked_pipeline = 0;
 	reg [COUNTER_BIT_PICKOFF:0] counter = 0;
-	reg should_be_in_reset = 0;
+	wire should_be_in_reset_cdc = ~pll_locked_input || reset_input;
+	wire should_be_in_reset_pipeline;
+	pipeline #(.WIDTH(1), .DEPTH(PIPELINE_PICKOFF)) z (.clock(clock_input), .in(should_be_in_reset_cdc), .out(should_be_in_reset_pipeline));
 	always @(posedge clock_input) begin
-		if (should_be_in_reset) begin
+		if (should_be_in_reset_pipeline) begin
 			counter <= 0;
 			reset_output <= 1;
 		end else if (reset_output) begin
@@ -30,9 +25,6 @@ module reset_wait4pll #(
 			end
 			counter <= counter + 1'b1;
 		end
-		should_be_in_reset <= ~pll_locked_pipeline[PLL_LOCKED_PIPELINE_PICKOFF] || reset_pipeline[RESET_PIPELINE_PICKOFF];
-		reset_pipeline <= { reset_pipeline[RESET_PIPELINE_PICKOFF-1:0], reset_input_copy };
-		pll_locked_pipeline <= { pll_locked_pipeline[PLL_LOCKED_PIPELINE_PICKOFF-1:0], pll_locked_input_copy };
 	end
 endmodule
 

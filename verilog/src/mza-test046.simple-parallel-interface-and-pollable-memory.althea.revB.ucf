@@ -1,7 +1,7 @@
 # written 2020-10-01 by mza
 # based off of mza-test044.simple-parallel-interface-and-pollable-memory.althea.ucf
 # for an althea revB
-# last updated 2021-07-10 by mza
+# last updated 2021-07-11 by mza
 
 # 50 MHz local oscillator:
 net clock50_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK50+
@@ -133,11 +133,7 @@ net "rot<?>" tig;
 net "althea/word_clock_sel<?>" tig;
 #net "led<?>" tig;
 #net "coax_led<?>" tig;
-#net "althea/reset125_wait4pll/reset_output" tig;
-#pin "*reset_input*" tig;
-#net "*reset_output*" tig;
-#net "*tig_cdc<?>" tig;
-#net "*tig_cdc.tig_cdc*" tig;
+net "*should_be_in_reset_cdc*" tig;
 
 config vccaux=3.3;
 
