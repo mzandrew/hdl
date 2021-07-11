@@ -439,6 +439,19 @@ module ocyrus_hex8 #(
 	);
 endmodule
 
+//	wire rawclock125;
+//	wire clock125;
+//	if (1) begin
+//		simpledcm_CLKGEN #(.MULTIPLY(20), .DIVIDE(8), .PERIOD(20.0)) dcm_clkgen (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 50->125
+//	end else if (0) begin
+//		simpledcm_SP #(.MULTIPLY(20), .DIVIDE(8), .ALT_CLOCKOUT_DIVIDE(2), .PERIOD(20.0)) dcm_sp (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 50->125
+//	end else if (0) begin
+//		simplepll_ADV #(.OVERALL_DIVIDE(1), .MULTIPLY(20), .DIVIDE(8), .PERIOD(20.0)) pll_adv (.clockin(clock50), .reset(reset50), .clockout(rawclock125), .locked(pll_locked)); // 50->125
+//	end else begin
+//		simplepll_BASE #(.OVERALL_DIVIDE(1), .MULTIPLY(20), .DIVIDE0(8), .PHASE0(0.0), .PERIOD(20.0)) pll_base (.clockin(clock50), .reset(reset50), .clock0out(rawclock125), .clock1out(), .clock2out(), .clock3out(), .clock4out(), .clock5out(), .locked(pll_locked)); // 50->125
+//	end
+//	BUFG mrt (.I(rawclock125), .O(clock125));
+
 module ocyrus_hex8_split_4_2 #(
 	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
@@ -451,8 +464,8 @@ module ocyrus_hex8_split_4_2 #(
 	parameter PINTYPE4 = "p",
 	parameter PINTYPE5 = "p",
 	parameter PERIOD = 20.0,
-	parameter DIVIDE = 2,
 	parameter MULTIPLY = 40,
+	parameter DIVIDE = 2,
 	parameter PHASE45 = 0.0,
 	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
