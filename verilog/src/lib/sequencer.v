@@ -1,15 +1,15 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2021-06-28 by mza
+// last updated 2021-07-12 by mza
 
 module sequencer_sync #(
 	parameter ADDRESS_DEPTH_OSERDES = 16,
-	parameter ADDRESS_DEPTH = 14
+	parameter LOG2_OF_OSERDES_DATA_WIDTH = 3
 ) (
 	input clock, reset,
 	input sync_read_address,
-	input [31:0] start_read_address, // in 2-bit words
-	input [31:0] end_read_address, // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
+	input [31:0] start_read_address, // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
+	input [31:0] end_read_address, // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
 	output reg [ADDRESS_DEPTH_OSERDES-1:0] read_address = 0, // in 8-bit words
 	output reg [3:0] sync_out_stream = 0,
 	output [7:0] sync_out_word
@@ -19,19 +19,19 @@ module sequencer_sync #(
 	always @(posedge clock) begin
 		sync_out_raw <= 0;
 		if (reset) begin
-			read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH];
-			last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH] - 1'b1;
+			read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:LOG2_OF_OSERDES_DATA_WIDTH];
+			last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:LOG2_OF_OSERDES_DATA_WIDTH] - 1'b1;
 			sync_out_stream <= 0;
 		end else begin
 			if (read_address==last_read_address || sync_read_address) begin
-				read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH];
-				last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:ADDRESS_DEPTH_OSERDES-ADDRESS_DEPTH] - 1'b1;
+				read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:LOG2_OF_OSERDES_DATA_WIDTH];
+				last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:LOG2_OF_OSERDES_DATA_WIDTH] - 1'b1;
 				sync_out_raw <= 1;
 			end else begin
 				read_address <= read_address + 1'b1;
 			end
+			sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 		end
-		sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
 	end
 	assign sync_out_word = { sync_out_stream[1], 7'b0 };
 endmodule

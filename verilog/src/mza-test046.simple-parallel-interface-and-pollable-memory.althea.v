@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-10 by mza
+// last updated 2021-07-12 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -17,12 +17,11 @@ module top #(
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
 	parameter LOG2_OF_TRANSACTIONS_PER_DATA_WORD = $clog2(TRANSACTIONS_PER_DATA_WORD),
-	parameter BUS_WIDTH_OSERDES = 8,
-	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
-	parameter ADDRESS_DEPTH = 14,
 	parameter OSERDES_DATA_WIDTH = 8,
+	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
+	parameter BANK_ADDRESS_DEPTH = 14,
 	parameter LOG2_OF_OSERDES_DATA_WIDTH = $clog2(OSERDES_DATA_WIDTH),
-	parameter ADDRESS_DEPTH_OSERDES = ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_DATA_WIDTH,
+	parameter ADDRESS_DEPTH_OSERDES = BANK_ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
 	parameter COUNTER50_BIT_PICKOFF = TESTBENCH ? 5 : 23,
@@ -71,13 +70,17 @@ module top #(
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword1_wait4pll (.reset_input(reset50), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock1), .reset_output(reset_word1));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
-	wire [ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[ADDRESS_DEPTH-1:0];
+	wire [BANK_ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[BANK_ADDRESS_DEPTH-1:0];
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] write_data_word;
-	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word;
+	localparam LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-BANK_ADDRESS_DEPTH;
+	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [LOG2_OF_NUMBER_OF_BANKS-1:0];
+	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] bank;
+	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe;
 	half_duplex_rpi_bus #(
 		.BUS_WIDTH(BUS_WIDTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
+		.BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) hdrb (
 		.clock(word_clock0),
@@ -89,32 +92,45 @@ module top #(
 		.ack_valid(ack_valid),
 		.write_strobe(write_strobe),
 		.write_data_word(write_data_word),
-		.read_data_word(read_data_word),
-		.address_word_reg(address_word_full)
+		.read_data_word(read_data_word[bank]),
+		.address_word_reg(address_word_full),
+		.bank(bank)
 	);
-	wire [BUS_WIDTH_OSERDES-1:0] oserdes_word;
+	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [LOG2_OF_NUMBER_OF_BANKS-1:0];
 	wire [7:0] oserdes_word_delayed;
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
-	if (0) begin
-		RAM_s6_4k_32bit_8bit mem (.reset(reset_word0),
-			.clock_a(word_clock0), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
-			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word));
-	end else if (0) begin
-		RAM_s6_8k_16bit_8bit mem (.reset(reset_word0),
-			.clock_a(word_clock0), .address_a(address_word_reg), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
-			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word));
+	if (BANK_ADDRESS_DEPTH==12) begin
+		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem0 (.reset(reset_word0),
+			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
+			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
+		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem1 (.reset(reset_word0),
+			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[1]), .data_out_a(read_data_word[1]),
+			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[1]));
+		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem2 (.reset(reset_word0),
+			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[2]), .data_out_a(read_data_word[2]),
+			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[2]));
+		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem3 (.reset(reset_word0),
+			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[3]), .data_out_a(read_data_word[3]),
+			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[3]));
+	end else if (BANK_ADDRESS_DEPTH==13) begin
+		RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem0 (.reset(reset_word0),
+			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
+			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
+		RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem1 (.reset(reset_word0),
+			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[1]), .data_out_a(read_data_word[1]),
+			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[1]));
 	end else begin
 		RAM_s6_16k_32bit_8bit #(.ENDIANNESS("BIG")) mem (.reset(reset_word0),
-			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
-			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word));
+			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
+			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
 	end
 	wire sync_read_address; // assert this when you feel like (re)synchronizing
 	wire [3:0] sync_out_stream; // sync_out_stream[2] is usually good
 	wire [7:0] sync_out_word; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
 	wire [7:0] sync_out_word_delayed; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
-	wire [31:0] start_read_address = 32'd0; // in 2-bit words
-	wire [31:0] end_read_address = 32'd46080; // in 2-bit words; 23040 = 5120 (buckets/revo) * 9 (revos) / 2 (bits per RF-bucket period)
-	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .ADDRESS_DEPTH(ADDRESS_DEPTH)) ss (.clock(word_clock0), .reset(reset_word0), .sync_read_address(sync_read_address), .start_read_address(start_read_address), .end_read_address(end_read_address), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
+	wire [31:0] start_read_address = 32'd0; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
+	wire [31:0] end_read_address = 32'd1000; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
+	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_DATA_WIDTH)) ss (.clock(word_clock0), .reset(reset_word0), .sync_read_address(sync_read_address), .start_read_address(start_read_address), .end_read_address(end_read_address), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	wire [2:0] rot_pipeline;
 	cdc_pipeline #(.WIDTH(3), .DEPTH(3)) tongs (.clock(word_clock0), .in(~rot), .out(rot_pipeline));
 	reg [2:0] word_clock_sel = 0;
@@ -132,9 +148,9 @@ module top #(
 	// use coax[0] and coax[4] to measure (with scope) and correct (with rotary switch) for the "arbitrary routing" bitslip which is compile-dependent
 	// or send oserdes stream out of "v" and into iserdes on "q" (with an ezhook) or stream out of "r" and into "q" (with a jumper) and then see the result oserdes on coax[5] (measured delay from coax[4] to coax[5] is ~43 ns; with pipelining and a bitslip, this can be adjusted to be 0 ns delay)
 	localparam DELAY = 7;
-	pipeline #(.WIDTH(8), .DEPTH(DELAY+4)) queens (.clock(word_clock0), .in(oserdes_word), .out(oserdes_word_delayed));
+	pipeline #(.WIDTH(8), .DEPTH(DELAY+4)) queens (.clock(word_clock0), .in(oserdes_word[0]), .out(oserdes_word_delayed));
 	pipeline #(.WIDTH(8), .DEPTH(DELAY+4)) diamond_head (.clock(word_clock0), .in(sync_out_word), .out(sync_out_word_delayed));
-	bitslip #(.WIDTH(8)) bso1 (.clock(word_clock1), .data_in(oserdes_word), .bitslip(word_clock_sel), .data_out(oserdes_word1_buffer));
+	bitslip #(.WIDTH(8)) bso1 (.clock(word_clock1), .data_in(oserdes_word[0]), .bitslip(word_clock_sel), .data_out(oserdes_word1_buffer));
 	pipeline #(.WIDTH(8), .DEPTH(DELAY)) kewalos (.clock(word_clock1), .in(oserdes_word1_buffer), .out(oserdes_word1_buffer_mid));
 	bitslip #(.WIDTH(8)) bso2 (.clock(word_clock1), .data_in(oserdes_word1_buffer_mid), .bitslip(3'd0), .data_out(oserdes_word1_buffer_delayed));
 	//pipeline #(.WIDTH(8), .DEPTH(DELAY)) canoes (.clock(word_clock1), .in(sync_out_word1_buffer), .out(sync_out_word1_buffer1));
@@ -155,22 +171,22 @@ module top #(
 	//assign coax[2] = 0;
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
-		assign coax[5] = write_strobe;
+		assign coax[5] = write_strobe[0];
 		assign pll_oserdes_locked_2 = 1;
 	end else if (0) begin // to put the oserdes outputs on coax[4] and coax[5]
 		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL")) mylei2 (
 			.clock_in(clock50), .reset(reset50), .word_clock_out(),
-			.word1_in(oserdes_word), .D1_out(coax[5]),
-			.word0_in(oserdes_word), .D0_out(coax[4]),
+			.word1_in(oserdes_word[0]), .D1_out(coax[5]),
+			.word0_in(oserdes_word[0]), .D0_out(coax[4]),
 			.bit_clock(), .bit_strobe(),
 			.locked(pll_oserdes_locked_2));
 		assign sync_read_address = 0;
 	end else if (0) begin
-		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL"), .PINTYPE("n")) mylei (.clock_in(clock50), .reset(reset50), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[5]), .locked(pll_oserdes_locked_2));
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL"), .PINTYPE("n")) mylei (.clock_in(clock50), .reset(reset50), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[5]), .locked(pll_oserdes_locked_2));
 		assign coax[4] = sync_out_stream[2]; // scope trigger
 		assign sync_read_address = 0;
 	end else if (1) begin
-		//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock50), .reset(reset50), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
+		//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock50), .reset(reset50), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
 		//assign sync_read_address = coax[5];
 		assign sync_read_address = 0;
 		//assign coax[5] = sync_out_stream[2]; // scope trigger
@@ -200,12 +216,12 @@ module top #(
 	if (1) begin
 //		assign led = status8;
 		cdc_pipeline #(.WIDTH(8), .DEPTH(2)) blinx (.clock(clock50), .in(status8), .out(led));
-		cdc_pipeline #(.WIDTH(8), .DEPTH(2)) jarjar (.clock(clock50), .in(status4), .out(coax_led));
+		cdc_pipeline #(.WIDTH(4), .DEPTH(2)) jarjar (.clock(clock50), .in(status4), .out(coax_led));
 	end
 	// ----------------------------------------------------------------------
 	initial begin
 		#100;
-		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_DATA_WIDTH);
+		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, BANK_ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_DATA_WIDTH);
 		$display("%d, %d, %d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
 	end
 endmodule
@@ -217,7 +233,7 @@ module top_tb;
 	localparam NUMBER_OF_PERIODS_OF_CONTROLLER_WHILE_WAITING_FOR_ACK = 2000;
 	reg clock = 0;
 	localparam BUS_WIDTH = 16;
-	localparam ADDRESS_DEPTH = 14;
+	localparam BANK_ADDRESS_DEPTH = 14;
 	localparam TRANSACTIONS_PER_DATA_WORD = 2;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
@@ -244,7 +260,7 @@ module top_tb;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] wdata = 0;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] rdata = 0;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are controller
-	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
+	top #(.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
 		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(reset),
 		.coax(coax),
 		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
@@ -536,7 +552,7 @@ module myalthea (
 	input [2:0] rot
 );
 	localparam BUS_WIDTH = 16;
-	localparam ADDRESS_DEPTH = 14;
+	localparam BANK_ADDRESS_DEPTH = 12;
 	localparam TRANSACTIONS_PER_DATA_WORD = 2;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
@@ -547,7 +563,7 @@ module myalthea (
 //	assign coax_led = internal_coax_led;
 	top #(
 		.TESTBENCH(0),
-		.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH),
+		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)

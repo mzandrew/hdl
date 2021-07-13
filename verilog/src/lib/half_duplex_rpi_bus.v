@@ -1,6 +1,6 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-03-17 by mza
+// last updated 2021-07-12 by mza
 
 module half_duplex_rpi_bus #(
 	parameter BUS_WIDTH = 16,
@@ -9,6 +9,8 @@ module half_duplex_rpi_bus #(
 	parameter LOG2_OF_TRANSACTIONS_PER_DATA_WORD = $clog2(TRANSACTIONS_PER_DATA_WORD),
 	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
 	parameter LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD = $clog2(TRANSACTIONS_PER_ADDRESS_WORD),
+	parameter BANK_ADDRESS_DEPTH = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD,
+	parameter LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD - BANK_ADDRESS_DEPTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter ANTI_META = 2,
 	parameter GAP = 0,
@@ -21,10 +23,11 @@ module half_duplex_rpi_bus #(
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
 	output ack_valid,
-	output reg write_strobe = 0,
+	output reg [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe = 0,
 	output [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] write_data_word,
 	input [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word,
-	output reg [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_reg = 0
+	output reg [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_reg = 0,
+	output [LOG2_OF_NUMBER_OF_BANKS-1:0] bank
 );
 	localparam OTHER_PICKOFF                    = ANTI_META + EXTRA_PICKOFF;
 	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + GAP;
@@ -45,6 +48,7 @@ module half_duplex_rpi_bus #(
 		assign address_word[(i+1)*BUS_WIDTH-1:i*BUS_WIDTH] = address[i];
 	end
 	reg [LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD-1:0] aword = TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+	assign bank = address_word_reg[BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1 -: LOG2_OF_NUMBER_OF_BANKS];
 	reg [1:0] wstate = 0;
 	//wire [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] write_data_word;
 	reg [BUS_WIDTH-1:0] write_data [TRANSACTIONS_PER_DATA_WORD-1:0];
@@ -100,7 +104,7 @@ module half_duplex_rpi_bus #(
 						end
 					end
 				end else if (read_pipeline[READ_PIPELINE_PICKOFF:READ_PIPELINE_PICKOFF-1]==2'b00) begin // write mode
-					if (register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF:REGISTER_SELECT_PIPELINE_PICKOFF-1]==2'b11) begin
+					if (register_select_pipeline[REGISTER_SELECT_PIPELINE_PICKOFF:REGISTER_SELECT_PIPELINE_PICKOFF-1]==2'b11) begin // register_select=1 means data
 						pre_ack_valid <= 1;
 						if (wstate[1]==0) begin
 							if (wstate[0]==0) begin
@@ -150,7 +154,7 @@ module half_duplex_rpi_bus #(
 							wword <= wword - 1'b1;
 						end else begin
 							wstate[1] <= 1;
-							write_strobe <= 1;
+							write_strobe[bank] <= 1;
 						end
 					end
 				end
