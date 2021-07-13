@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-12 by mza
+// last updated 2021-07-13 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -99,26 +99,32 @@ module top #(
 	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [LOG2_OF_NUMBER_OF_BANKS-1:0];
 	wire [7:0] oserdes_word_delayed;
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
-	if (BANK_ADDRESS_DEPTH==12) begin
-		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem0 (.reset(reset_word0),
-			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
-			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
-		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem1 (.reset(reset_word0),
-			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[1]), .data_out_a(read_data_word[1]),
-			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[1]));
-		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem2 (.reset(reset_word0),
-			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[2]), .data_out_a(read_data_word[2]),
-			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[2]));
-		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem3 (.reset(reset_word0),
-			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[3]), .data_out_a(read_data_word[3]),
-			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[3]));
-	end else if (BANK_ADDRESS_DEPTH==13) begin
-		RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem0 (.reset(reset_word0),
-			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
-			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
-		RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem1 (.reset(reset_word0),
-			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[1]), .data_out_a(read_data_word[1]),
-			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[1]));
+	if (1) begin
+		if (BANK_ADDRESS_DEPTH==12) begin
+			RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem0 (.reset(reset_word0),
+				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
+			RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem1 (.reset(reset_word0),
+				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[1]), .data_out_a(read_data_word[1]),
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[1]));
+			RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem2 (.reset(reset_word0),
+				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[2]), .data_out_a(read_data_word[2]),
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[2]));
+			RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem3 (.reset(reset_word0),
+				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[3]), .data_out_a(read_data_word[3]),
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[3]));
+		end else if (BANK_ADDRESS_DEPTH==13) begin
+			RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem0 (.reset(reset_word0),
+				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
+			RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem1 (.reset(reset_word0),
+				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[1]), .data_out_a(read_data_word[1]),
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[1]));
+		end else begin
+			RAM_s6_16k_32bit_8bit #(.ENDIANNESS("BIG")) mem (.reset(reset_word0),
+				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
+		end
 	end else begin
 		RAM_s6_16k_32bit_8bit #(.ENDIANNESS("BIG")) mem (.reset(reset_word0),
 			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
@@ -128,9 +134,9 @@ module top #(
 	wire [3:0] sync_out_stream; // sync_out_stream[2] is usually good
 	wire [7:0] sync_out_word; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
 	wire [7:0] sync_out_word_delayed; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
-	wire [31:0] start_read_address = 32'd0; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
-	wire [31:0] end_read_address = 32'd1000; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
-	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_DATA_WIDTH)) ss (.clock(word_clock0), .reset(reset_word0), .sync_read_address(sync_read_address), .start_read_address(start_read_address), .end_read_address(end_read_address), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
+	wire [31:0] start_sample = 32'd0; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
+	wire [31:0] end_sample = 32'd1000; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
+	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_DATA_WIDTH)) ss (.clock(word_clock0), .reset(reset_word0), .sync_read_address(sync_read_address), .start_sample(start_sample), .end_sample(end_sample), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	wire [2:0] rot_pipeline;
 	cdc_pipeline #(.WIDTH(3), .DEPTH(3)) tongs (.clock(word_clock0), .in(~rot), .out(rot_pipeline));
 	reg [2:0] word_clock_sel = 0;
