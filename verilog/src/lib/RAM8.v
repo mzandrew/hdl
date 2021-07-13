@@ -1,5 +1,6 @@
 // updated 2020-10-02 by mza
-// last updated 2021-06-25 by mza
+// last updated 2021-07-12 by mza
+
 `ifndef RAM8_LIB
 `define RAM8_LIB
 
@@ -888,6 +889,67 @@ module RAM_s6_16k_32bit_8bit #(
 		.out24(write_enable_a_array[24]), .out25(write_enable_a_array[25]), .out26(write_enable_a_array[26]), .out27(write_enable_a_array[27]),
 		.out28(write_enable_a_array[28]), .out29(write_enable_a_array[29]), .out30(write_enable_a_array[30]), .out31(write_enable_a_array[31]),
 		.in(write_enable_a), .sel(address_a[13:9]));
+endmodule
+
+//	RAM_s6_8k_32bit_8bit mem (.reset(),
+//		.clock_a(), .address_a(), .data_in_a(), .write_enable_a(), .data_out_a(),
+//		.clock_b(), .address_b(), .data_out_b());
+module RAM_s6_8k_32bit_8bit #(
+	parameter ENDIANNESS = "LITTLE"
+) (
+	input reset,
+	input clock_a,
+	input [12:0] address_a,
+	input [31:0] data_in_a,
+	input write_enable_a,
+	output [31:0] data_out_a,
+	input clock_b,
+	input [14:0] address_b,
+	output [7:0] data_out_b
+);
+	wire [31:0] data_out_a_array [15:0];
+	wire [7:0] data_out_b_array [15:0];
+	wire [31:0] write_enable_a_array;
+	genvar i;
+	for (i=0; i<16; i=i+1) begin : mem_array
+		RAM_s6_512_32bit_8bit #(.ENDIANNESS(ENDIANNESS)) mem (.reset(reset),
+			.clock_a(clock_a), .address_a(address_a[8:0]), .data_in_a(data_in_a), .write_enable_a(write_enable_a_array[i]), .data_out_a(data_out_a_array[i]),
+			.clock_b(clock_b), .address_b(address_b[10:0]), .data_out_b(data_out_b_array[i]));
+	end
+	reg [3:0] buffered_sel_a_0 = 0;
+	reg [3:0] buffered_sel_b_0 = 0;
+	wire [31:0] buffered_data_out_a_0;
+	wire [7:0] buffered_data_out_b_0;
+	reg [31:0] buffered_data_out_a_1 = 0;
+	reg [7:0] buffered_data_out_b_1 = 0;
+	always @(posedge clock_a) begin
+		buffered_sel_a_0 <= address_a[12:9];
+		buffered_data_out_a_1 <= buffered_data_out_a_0;
+	end
+	always @(posedge clock_b) begin
+		buffered_sel_b_0 <= address_b[14:11];
+		buffered_data_out_b_1 <= buffered_data_out_b_0;
+	end
+	assign data_out_a = buffered_data_out_a_1;
+	assign data_out_b = buffered_data_out_b_1;
+	mux_16to1 #(.WIDTH(32)) db_a (
+		.in00(data_out_a_array[00]), .in01(data_out_a_array[01]), .in02(data_out_a_array[02]), .in03(data_out_a_array[03]),
+		.in04(data_out_a_array[04]), .in05(data_out_a_array[05]), .in06(data_out_a_array[06]), .in07(data_out_a_array[07]),
+		.in08(data_out_a_array[08]), .in09(data_out_a_array[09]), .in10(data_out_a_array[10]), .in11(data_out_a_array[11]),
+		.in12(data_out_a_array[12]), .in13(data_out_a_array[13]), .in14(data_out_a_array[14]), .in15(data_out_a_array[15]),
+		.sel(buffered_sel_a_0), .out(buffered_data_out_a_0));
+	mux_16to1 #(.WIDTH(8)) db_b (
+		.in00(data_out_b_array[00]), .in01(data_out_b_array[01]), .in02(data_out_b_array[02]), .in03(data_out_b_array[03]),
+		.in04(data_out_b_array[04]), .in05(data_out_b_array[05]), .in06(data_out_b_array[06]), .in07(data_out_b_array[07]),
+		.in08(data_out_b_array[08]), .in09(data_out_b_array[09]), .in10(data_out_b_array[10]), .in11(data_out_b_array[11]),
+		.in12(data_out_b_array[12]), .in13(data_out_b_array[13]), .in14(data_out_b_array[14]), .in15(data_out_b_array[15]),
+		.sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
+	demux_1to16 we (
+		.out00(write_enable_a_array[00]), .out01(write_enable_a_array[01]), .out02(write_enable_a_array[02]), .out03(write_enable_a_array[03]),
+		.out04(write_enable_a_array[04]), .out05(write_enable_a_array[05]), .out06(write_enable_a_array[06]), .out07(write_enable_a_array[07]),
+		.out08(write_enable_a_array[08]), .out09(write_enable_a_array[09]), .out10(write_enable_a_array[10]), .out11(write_enable_a_array[11]),
+		.out12(write_enable_a_array[12]), .out13(write_enable_a_array[13]), .out14(write_enable_a_array[14]), .out15(write_enable_a_array[15]),
+		.in(write_enable_a), .sel(address_a[12:9]));
 endmodule
 
 //	RAM_s6_4k_32bit_8bit mem (.reset(),
