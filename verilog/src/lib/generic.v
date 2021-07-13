@@ -1,5 +1,5 @@
 // written 2019-09-22 by mza
-// last updated 2021-07-10 by mza
+// last updated 2021-07-12 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
@@ -56,6 +56,34 @@ module mux_8to1 #(
 		(sel==3'd5) ? in5 :
 		(sel==3'd6) ? in6 :
 		              in7;
+endmodule
+
+module mux_16to1 #(
+	parameter WIDTH = 1
+) (
+	input [WIDTH-1:0]
+		in00, in01, in02, in03, in04, in05, in06, in07,
+		in08, in09, in10, in11, in12, in13, in14, in15,
+	input [3:0] sel,
+	output [WIDTH-1:0] out
+);
+	assign out =
+		(sel==4'd00) ? in00 :
+		(sel==4'd01) ? in01 :
+		(sel==4'd02) ? in02 :
+		(sel==4'd03) ? in03 :
+		(sel==4'd04) ? in04 :
+		(sel==4'd05) ? in05 :
+		(sel==4'd06) ? in06 :
+		(sel==4'd07) ? in07 :
+		(sel==4'd08) ? in08 :
+		(sel==4'd09) ? in09 :
+		(sel==4'd10) ? in10 :
+		(sel==4'd11) ? in11 :
+		(sel==4'd12) ? in12 :
+		(sel==4'd13) ? in13 :
+		(sel==4'd14) ? in14 :
+		               in15;
 endmodule
 
 module mux_32to1 #(
@@ -148,6 +176,34 @@ module mux_8to1_tb;
 		#1; sel <= 3'd7; a <= 1; b <= 1; c <= 1; d <= 1; e <= 1; f <= 1; g <= 1; h <= 0;
 	end
 	mux_8to1 tst (.in0(a), .in1(b), .in2(c), .in3(d), .in4(e), .in5(f), .in6(g), .in7(h), .sel(sel), .out(out));
+endmodule
+
+module demux_1to16 #(
+	parameter WIDTH = 1,
+	parameter [WIDTH-1:0] default_value = 0
+) (
+	input [WIDTH-1:0] in,
+	input [3:0] sel,
+	output [WIDTH-1:0]
+		out00, out01, out02, out03, out04, out05, out06, out07,
+		out08, out09, out10, out11, out12, out13, out14, out15
+);
+	assign out00 = (sel==4'd00) ? in : default_value;
+	assign out01 = (sel==4'd01) ? in : default_value;
+	assign out02 = (sel==4'd02) ? in : default_value;
+	assign out03 = (sel==4'd03) ? in : default_value;
+	assign out04 = (sel==4'd04) ? in : default_value;
+	assign out05 = (sel==4'd05) ? in : default_value;
+	assign out06 = (sel==4'd06) ? in : default_value;
+	assign out07 = (sel==4'd07) ? in : default_value;
+	assign out08 = (sel==4'd08) ? in : default_value;
+	assign out09 = (sel==4'd09) ? in : default_value;
+	assign out10 = (sel==4'd10) ? in : default_value;
+	assign out11 = (sel==4'd11) ? in : default_value;
+	assign out12 = (sel==4'd12) ? in : default_value;
+	assign out13 = (sel==4'd13) ? in : default_value;
+	assign out14 = (sel==4'd14) ? in : default_value;
+	assign out15 = (sel==4'd15) ? in : default_value;
 endmodule
 
 module demux_1to32 #(
