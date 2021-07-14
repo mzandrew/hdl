@@ -181,13 +181,15 @@ module top #(
 	assign bank1[13] = 32'h5cde73e3;
 	assign bank1[14] = { 16'h4321, 4'd0, status4, status8 };
 	assign bank1[15] = { 16'h1234, 13'd0, rot_pipeline };
-	wire [2:0] bitslip_iserdes        = bank2[0][2:0];
-	wire [2:0] bitslip_oserdes1       = bank2[1][2:0];
-	wire [2:0] bitslip_oserdes1_again = bank2[2][2:0];
+	wire  [2:0] bitslip_iserdes        = bank2[0][2:0];
+	wire  [2:0] bitslip_oserdes1       = bank2[1][2:0];
+	wire  [2:0] bitslip_oserdes1_again = bank2[2][2:0];
 	(* KEEP = "TRUE" *)
-	wire [1:0] word_clock_sel         = bank2[3][1:0];
-	wire       train_oserdes          = bank2[4][0];
-	wire [7:0] train_oserdes_pattern  = bank2[5][7:0];
+	wire  [1:0] word_clock_sel         = bank2[3][1:0];
+	wire       train_oserdes           = bank2[4][0];
+	wire  [7:0] train_oserdes_pattern  = bank2[5][7:0];
+	wire [31:0] start_sample           = bank2[6][31:0];
+	wire [31:0] end_sample             = bank2[7][31:0];
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
 		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
 	end
@@ -195,8 +197,8 @@ module top #(
 	wire [3:0] sync_out_stream; // sync_out_stream[2] is usually good
 	wire [7:0] sync_out_word; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
 	wire [7:0] sync_out_word_delayed; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
-	wire [31:0] start_sample = 32'd0; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
-	wire [31:0] end_sample = 32'd1000; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
+//	wire [31:0] start_sample = 32'd0; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
+//	wire [31:0] end_sample = 32'd1000; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
 	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_DATA_WIDTH)) ss (.clock(word_clock0), .reset(reset_word0), .sync_read_address(sync_read_address), .start_sample(start_sample), .end_sample(end_sample), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	wire [2:0] rot_pipeline;
 	cdc_pipeline #(.WIDTH(3), .DEPTH(3)) tongs (.clock(word_clock0), .in(~rot), .out(rot_pipeline));
@@ -222,7 +224,7 @@ module top #(
 	bitslip #(.WIDTH(8)) bso2 (.clock(word_clock1), .data_in(oserdes_word1_buffer_mid), .bitslip(bitslip_oserdes1_again), .data_out(oserdes_word1_buffer_delayed));
 	//pipeline #(.WIDTH(8), .DEPTH(DELAY)) canoes (.clock(word_clock1), .in(sync_out_word1_buffer), .out(sync_out_word1_buffer1));
 	wire pre_coax_4;
-	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL"), .PINTYPE3("n"), .PHASE45(-22.5)) mylei6 (
+	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL"), .PINTYPE3("n"), .PHASE45(0)) mylei6 (
 		.clock_in(clock50), .reset(reset50), .word_clock0123_out(word_clock1), .locked(pll_oserdes_locked),
 		.word_clock45_sel(word_clock_sel[1:0]), .word_clock45_out(word_clock0),
 		.word0_in(oserdes_word1_buffer_delayed), .word1_in(oserdes_word1_buffer), .word2_in(oserdes_word1_buffer), .word3_in(iserdes_word_buffer_delayed),
