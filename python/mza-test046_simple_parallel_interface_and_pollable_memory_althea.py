@@ -157,11 +157,17 @@ if 1:
 		print(hex(readback[i], 8))
 	j = 2
 	values = [ 0 for a in range(2**4) ]
-	values[0] = 1 # bitslip_iserdes[2:0]
-	values[1] = 2 # bitslip_oserdes1[2:0]
-	values[2] = 0 # bitslip_oserdes1_again[2:0]
+	values[0] = 3 # bitslip_iserdes[2:0]
+	values[1] = 1 # bitslip_oserdes1[2:0]
+	values[2] = 1 # bitslip_oserdes1_again[2:0]
 	values[3] = 3 # word_clock_sel[1:0]
+	values[4] = 1 # oserdes_train [0]
+	values[5] = 0b11001010 # oserdes_train_pattern [7:0]
+	#values[5] = 0b11110000 # oserdes_train_pattern [7:0]
 	althea.write_to_half_duplex_bus_and_then_verify(j * 2**12, values)
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**12, 2**4)
+	for i in range(8):
+		print(hex(readback[i], 8))
 	#althea.test_writing_data_to_half_duplex_bus()
 
 if 0:
