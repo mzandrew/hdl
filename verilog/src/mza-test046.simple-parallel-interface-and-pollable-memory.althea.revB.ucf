@@ -132,9 +132,7 @@ net "button" tig;
 net "rot<?>" tig;
 #net "althea/word_clock_sel<?>" tig;
 #net "led<?>" tig;
-#net "coax_led<?>" tig;
-#net "*should_be_in_reset_cdc*" tig;
-#net "*pipeline_cdc*" tig;
+net "coax_led<?>" tig;
 net "*cdc*" tig;
 
 config vccaux=3.3;

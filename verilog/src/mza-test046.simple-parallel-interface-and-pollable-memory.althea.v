@@ -45,6 +45,8 @@ module top #(
 	output [3:0] coax_led,
 	output [7:0] led
 );
+	wire [3:0] status4;
+	wire [7:0] status8;
 	genvar i;
 	wire pll_oserdes_locked;
 	wire pll_oserdes_locked_2;
@@ -100,7 +102,23 @@ module top #(
 	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [LOG2_OF_NUMBER_OF_BANKS-1:0];
 	wire [7:0] oserdes_word_delayed;
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
-	if (1) begin
+	wire [31:0] bank1 [15:0];
+	wire [31:0] bank2 [15:0];
+	reg [31:0] counter = 0;
+	parameter WRITE_STROBE_PICKOFF = 20;
+	reg write_strobe_b = 0;
+	always @(posedge word_clock0) begin
+		write_strobe_b <= 0;
+		if (reset_word0) begin
+			counter <= 0;
+		end else begin
+			if (counter[WRITE_STROBE_PICKOFF:0]==0) begin
+				write_strobe_b <= 1;
+			end
+			counter <= counter + 1'b1;
+		end
+	end
+	if (0) begin
 		if (BANK_ADDRESS_DEPTH==12) begin
 			RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem0 (.reset(reset_word0),
 				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
@@ -127,10 +145,44 @@ module top #(
 				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
 		end
 	end else begin
-		RAM_s6_16k_32bit_8bit #(.ENDIANNESS("BIG")) mem (.reset(reset_word0),
+		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank0 (.reset(reset_word0),
 			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
 			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
+		RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock0), .reset(reset_word0),
+			.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
+			.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
+			.data_in_b_4(bank1[4]),  .data_in_b_5(bank1[5]),  .data_in_b_6(bank1[6]),  .data_in_b_7(bank1[7]),
+			.data_in_b_8(bank1[8]),  .data_in_b_9(bank1[9]),  .data_in_b_a(bank1[10]), .data_in_b_b(bank1[11]),
+			.data_in_b_c(bank1[12]), .data_in_b_d(bank1[13]), .data_in_b_e(bank1[14]), .data_in_b_f(bank1[15]),
+			.write_strobe_b(write_strobe_b));
+		RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank2 (.clock(word_clock0), .reset(reset_word0),
+			.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[2]),
+			.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[2]),
+			.data_out_b_0(bank2[0]),  .data_out_b_1(bank2[1]),  .data_out_b_2(bank2[2]),  .data_out_b_3(bank2[3]),
+			.data_out_b_4(bank2[4]),  .data_out_b_5(bank2[5]),  .data_out_b_6(bank2[6]),  .data_out_b_7(bank2[7]),
+			.data_out_b_8(bank2[8]),  .data_out_b_9(bank2[9]),  .data_out_b_a(bank2[10]), .data_out_b_b(bank2[11]),
+			.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
 	end
+	assign bank1[0]  = 32'h00000000;
+	assign bank1[1]  = 32'h11000011;
+	assign bank1[2]  = 32'h22000022;
+	assign bank1[3]  = 32'h33000033;
+	assign bank1[4]  = 32'h44000044;
+	assign bank1[5]  = 32'h55000055;
+	assign bank1[6]  = 32'h66000066;
+	assign bank1[7]  = 32'h77000077;
+	assign bank1[8]  = 32'h01234567;
+	assign bank1[9]  = 32'h89abcdef;
+	assign bank1[10] = 32'haaaa5555;
+	assign bank1[11] = 32'hffff0000;
+	assign bank1[12] = 32'h00be11e2;
+	assign bank1[13] = 32'h5cde73e3;
+	assign bank1[14] = { 16'h4321, 4'd0, status4, status8 };
+	assign bank1[15] = { 16'h1234, 13'd0, rot_pipeline };
+	wire [2:0] bitslip_iserdes        = bank2[0][2:0];
+	wire [2:0] bitslip_oserdes1       = bank2[1][2:0];
+	wire [2:0] bitslip_oserdes1_again = bank2[2][2:0];
+	wire [1:0] word_clock_sel         = bank2[3][1:0];
 	wire sync_read_address; // assert this when you feel like (re)synchronizing
 	wire [3:0] sync_out_stream; // sync_out_stream[2] is usually good
 	wire [7:0] sync_out_word; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
@@ -140,26 +192,26 @@ module top #(
 	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_DATA_WIDTH)) ss (.clock(word_clock0), .reset(reset_word0), .sync_read_address(sync_read_address), .start_sample(start_sample), .end_sample(end_sample), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	wire [2:0] rot_pipeline;
 	cdc_pipeline #(.WIDTH(3), .DEPTH(3)) tongs (.clock(word_clock0), .in(~rot), .out(rot_pipeline));
-	reg [2:0] word_clock_sel = 0;
-	always @(posedge word_clock0) begin
-		word_clock_sel <= rot_pipeline;
-	end
+//	reg [2:0] word_clock_sel = 0;
+//	always @(posedge word_clock0) begin
+//		word_clock_sel <= rot_pipeline;
+//	end
 	wire [7:0] oserdes_word1_buffer;
 	wire [7:0] oserdes_word1_buffer_mid;
 	wire [7:0] oserdes_word1_buffer_delayed;
 	wire [7:0] iserdes_word;
 	wire [7:0] iserdes_word_buffer;
 	wire [7:0] iserdes_word_buffer_delayed;
-	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(3'd1), .data_out(iserdes_word_buffer));
+	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(bitslip_iserdes), .data_out(iserdes_word_buffer));
 	cdc_pipeline #(.WIDTH(8), .DEPTH(3)) publics (.clock(word_clock1), .in(iserdes_word_buffer), .out(iserdes_word_buffer_delayed));
 	// use coax[0] and coax[4] to measure (with scope) and correct (with rotary switch) for the "arbitrary routing" bitslip which is compile-dependent
 	// or send oserdes stream out of "v" and into iserdes on "q" (with an ezhook) or stream out of "r" and into "q" (with a jumper) and then see the result oserdes on coax[5] (measured delay from coax[4] to coax[5] is ~43 ns; with pipelining and a bitslip, this can be adjusted to be 0 ns delay)
 	localparam DELAY = 7;
 	pipeline #(.WIDTH(8), .DEPTH(DELAY+4)) queens (.clock(word_clock0), .in(oserdes_word[0]), .out(oserdes_word_delayed));
 	pipeline #(.WIDTH(8), .DEPTH(DELAY+4)) diamond_head (.clock(word_clock0), .in(sync_out_word), .out(sync_out_word_delayed));
-	bitslip #(.WIDTH(8)) bso1 (.clock(word_clock1), .data_in(oserdes_word[0]), .bitslip(word_clock_sel), .data_out(oserdes_word1_buffer));
+	bitslip #(.WIDTH(8)) bso1 (.clock(word_clock1), .data_in(oserdes_word[0]), .bitslip(bitslip_oserdes1), .data_out(oserdes_word1_buffer));
 	pipeline #(.WIDTH(8), .DEPTH(DELAY)) kewalos (.clock(word_clock1), .in(oserdes_word1_buffer), .out(oserdes_word1_buffer_mid));
-	bitslip #(.WIDTH(8)) bso2 (.clock(word_clock1), .data_in(oserdes_word1_buffer_mid), .bitslip(3'd0), .data_out(oserdes_word1_buffer_delayed));
+	bitslip #(.WIDTH(8)) bso2 (.clock(word_clock1), .data_in(oserdes_word1_buffer_mid), .bitslip(bitslip_oserdes1_again), .data_out(oserdes_word1_buffer_delayed));
 	//pipeline #(.WIDTH(8), .DEPTH(DELAY)) canoes (.clock(word_clock1), .in(sync_out_word1_buffer), .out(sync_out_word1_buffer1));
 	wire pre_coax_4;
 	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL"), .PINTYPE3("n"), .PHASE45(-22.5)) mylei6 (
@@ -204,14 +256,14 @@ module top #(
 		assign pll_oserdes_locked_2 = 1;
 	end
 	// ----------------------------------------------------------------------
-	wire [3:0] status4;
-	assign status4[2:0] = rot_pipeline;
+	//assign status4[2:0] = rot_pipeline;
 	//assign status4 = reset_counter;
 	//assign status4 = 4'b1001;
 	//assign status4[0] = 1'b1;
 	//assign status4[3] = 1'b1;
-	assign status4[3] = 0;
-	wire [7:0] status8;
+	//assign status4[2] = 0;
+	//assign status4[3] = 0;
+	assign status4[3:0] = bank;
 	assign status8[7] = reset50;
 	assign status8[6] = ~pll_oserdes_locked;
 	assign status8[5] = reset_word0;
@@ -554,7 +606,7 @@ module myalthea (
 	u, v, w, x, y, z,
 	// other IOs:
 	input button, // reset
-//	output [3:0] coax_led,
+	output [3:0] coax_led,
 //	output [7:0] led,
 	input [2:0] rot
 );
@@ -567,7 +619,7 @@ module myalthea (
 	wire [3:0] internal_coax_led;
 	wire [7:0] internal_led;
 //	assign led = internal_led;
-//	assign coax_led = internal_coax_led;
+	assign coax_led = internal_coax_led;
 	top #(
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
