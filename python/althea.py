@@ -586,10 +586,10 @@ def read_data_from_pollable_memory_on_half_duplex_bus(start_address, NUM, should
 		print("read_data_from_pollable_memory_on_half_duplex_bus")
 	if 0:
 		reset_pulse()
-	start_address = 0
+	#start_address = 0
 	#start_address = 1600
-	MEMSIZE = 2**14
-	NUM = MEMSIZE
+	#MEMSIZE = 2**14
+	#NUM = MEMSIZE
 	#NUM = 64
 	start = time.time()
 	values = half_duplex_bus.read(start_address, NUM)
@@ -607,6 +607,7 @@ def read_data_from_pollable_memory_on_half_duplex_bus(start_address, NUM, should
 	if should_print:
 		print("%.3f"%(per_sec/8.0e6) + " MB per second") # 14.596 MB per second on an rpi2
 		print("")
+	return values
 
 def test_writing_data_to_half_duplex_bus2():
 	MEMSIZE = 2**14
