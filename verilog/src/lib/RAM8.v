@@ -1,5 +1,5 @@
 // updated 2020-10-02 by mza
-// last updated 2021-07-12 by mza
+// last updated 2021-07-14 by mza
 
 `ifndef RAM8_LIB
 `define RAM8_LIB
@@ -41,124 +41,168 @@ module RAM_inferred_with_register_outputs #(
 	parameter NUMBER_OF_ADDRESSES = 1<<ADDR_WIDTH,
 	parameter DATA_WIDTH = 32
 ) (
-	input reset,
-	input [ADDR_WIDTH-1:0] waddr_a, raddr_a,
-	input [DATA_WIDTH-1:0] din_a,
-	input write_en_a, wclk_a, rclk_a,
-	output reg [DATA_WIDTH-1:0] dout_a = 0,
-	output [DATA_WIDTH-1:0] dout_b_0,
-	output [DATA_WIDTH-1:0] dout_b_1,
-	output [DATA_WIDTH-1:0] dout_b_2,
-	output [DATA_WIDTH-1:0] dout_b_3,
-	output [DATA_WIDTH-1:0] dout_b_4,
-	output [DATA_WIDTH-1:0] dout_b_5,
-	output [DATA_WIDTH-1:0] dout_b_6,
-	output [DATA_WIDTH-1:0] dout_b_7,
-	output [DATA_WIDTH-1:0] dout_b_8,
-	output [DATA_WIDTH-1:0] dout_b_9,
-	output [DATA_WIDTH-1:0] dout_b_a,
-	output [DATA_WIDTH-1:0] dout_b_b,
-	output [DATA_WIDTH-1:0] dout_b_c,
-	output [DATA_WIDTH-1:0] dout_b_d,
-	output [DATA_WIDTH-1:0] dout_b_e,
-	output [DATA_WIDTH-1:0] dout_b_f
+	input reset, clock,
+	input [ADDR_WIDTH-1:0] waddress_a, raddress_a,
+	input [DATA_WIDTH-1:0] data_in_a,
+	input write_strobe_a,
+	output reg [DATA_WIDTH-1:0] data_out_a = 0,
+	output [DATA_WIDTH-1:0] data_out_b_0,
+	output [DATA_WIDTH-1:0] data_out_b_1,
+	output [DATA_WIDTH-1:0] data_out_b_2,
+	output [DATA_WIDTH-1:0] data_out_b_3,
+	output [DATA_WIDTH-1:0] data_out_b_4,
+	output [DATA_WIDTH-1:0] data_out_b_5,
+	output [DATA_WIDTH-1:0] data_out_b_6,
+	output [DATA_WIDTH-1:0] data_out_b_7,
+	output [DATA_WIDTH-1:0] data_out_b_8,
+	output [DATA_WIDTH-1:0] data_out_b_9,
+	output [DATA_WIDTH-1:0] data_out_b_a,
+	output [DATA_WIDTH-1:0] data_out_b_b,
+	output [DATA_WIDTH-1:0] data_out_b_c,
+	output [DATA_WIDTH-1:0] data_out_b_d,
+	output [DATA_WIDTH-1:0] data_out_b_e,
+	output [DATA_WIDTH-1:0] data_out_b_f
 );
 	reg [DATA_WIDTH-1:0] mem [NUMBER_OF_ADDRESSES-1:0];
-	always @(posedge wclk_a) begin
-		if (~reset) begin
-			if (write_en_a) begin
-				mem[waddr_a] <= din_a;
+	always @(posedge clock) begin
+		if (reset) begin
+			data_out_a <= 0;
+		end else begin
+			if (write_strobe_a) begin
+				mem[waddress_a] <= data_in_a;
 			end
+			data_out_a <= mem[raddress_a];
 		end
 	end
-	always @(posedge rclk_a) begin
-		if (~reset) begin
-			dout_a <= mem[raddr_a];
-		end
-	end
-	assign dout_b_0 = mem[0];
-	assign dout_b_1 = mem[1];
-	assign dout_b_2 = mem[2];
-	assign dout_b_3 = mem[3];
-	assign dout_b_4 = mem[4];
-	assign dout_b_5 = mem[5];
-	assign dout_b_6 = mem[6];
-	assign dout_b_7 = mem[7];
-	assign dout_b_8 = mem[8];
-	assign dout_b_9 = mem[9];
-	assign dout_b_a = mem[10];
-	assign dout_b_b = mem[11];
-	assign dout_b_c = mem[12];
-	assign dout_b_d = mem[13];
-	assign dout_b_e = mem[14];
-	assign dout_b_f = mem[15];
+	assign data_out_b_0 = mem[0];
+	assign data_out_b_1 = mem[1];
+	assign data_out_b_2 = mem[2];
+	assign data_out_b_3 = mem[3];
+	assign data_out_b_4 = mem[4];
+	assign data_out_b_5 = mem[5];
+	assign data_out_b_6 = mem[6];
+	assign data_out_b_7 = mem[7];
+	assign data_out_b_8 = mem[8];
+	assign data_out_b_9 = mem[9];
+	assign data_out_b_a = mem[10];
+	assign data_out_b_b = mem[11];
+	assign data_out_b_c = mem[12];
+	assign data_out_b_d = mem[13];
+	assign data_out_b_e = mem[14];
+	assign data_out_b_f = mem[15];
 endmodule
 
 // untested
-// port a takes precedence here
+// port a takes precedence here (no writes to memory from b bus when write_strobe_a is active)
 // from the untested systemverilog version
-//	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri (.reset(),
-//		.wclk_a(), .waddr_a(), .din_a(), .write_en_a(),
-//		.rclk_a(), .raddr_a(), .dout_a(),
-//		.din_b_0(), .din_b_1(), .din_b_2(), .din_b_3(), .din_b_4(), .din_b_5(), .din_b_6(), .din_b_7(),
-//		.din_b_8(), .din_b_9(), .din_b_a(), .din_b_b(), .din_b_c(), .din_b_d(), .din_b_e(), .din_b_f());
 module RAM_inferred_with_register_inputs #(
 	parameter ADDR_WIDTH = 4,
 	parameter NUMBER_OF_ADDRESSES = 1<<ADDR_WIDTH,
 	parameter DATA_WIDTH = 32
 ) (
-	input reset,
-	input [ADDR_WIDTH-1:0] waddr_a, raddr_a,
-	input [DATA_WIDTH-1:0] din_a,
-	input write_en_a, wclk_a, rclk_a,
-	output reg [DATA_WIDTH-1:0] dout_a = 0,
-	input [DATA_WIDTH-1:0] din_b_0,
-	input [DATA_WIDTH-1:0] din_b_1,
-	input [DATA_WIDTH-1:0] din_b_2,
-	input [DATA_WIDTH-1:0] din_b_3,
-	input [DATA_WIDTH-1:0] din_b_4,
-	input [DATA_WIDTH-1:0] din_b_5,
-	input [DATA_WIDTH-1:0] din_b_6,
-	input [DATA_WIDTH-1:0] din_b_7,
-	input [DATA_WIDTH-1:0] din_b_8,
-	input [DATA_WIDTH-1:0] din_b_9,
-	input [DATA_WIDTH-1:0] din_b_a,
-	input [DATA_WIDTH-1:0] din_b_b,
-	input [DATA_WIDTH-1:0] din_b_c,
-	input [DATA_WIDTH-1:0] din_b_d,
-	input [DATA_WIDTH-1:0] din_b_e,
-	input [DATA_WIDTH-1:0] din_b_f
+	input reset, clock,
+	input [ADDR_WIDTH-1:0] raddress_a,
+	output reg [DATA_WIDTH-1:0] data_out_a = 0,
+	input write_strobe_b,
+	input [DATA_WIDTH-1:0] data_in_b_0,
+	input [DATA_WIDTH-1:0] data_in_b_1,
+	input [DATA_WIDTH-1:0] data_in_b_2,
+	input [DATA_WIDTH-1:0] data_in_b_3,
+	input [DATA_WIDTH-1:0] data_in_b_4,
+	input [DATA_WIDTH-1:0] data_in_b_5,
+	input [DATA_WIDTH-1:0] data_in_b_6,
+	input [DATA_WIDTH-1:0] data_in_b_7,
+	input [DATA_WIDTH-1:0] data_in_b_8,
+	input [DATA_WIDTH-1:0] data_in_b_9,
+	input [DATA_WIDTH-1:0] data_in_b_a,
+	input [DATA_WIDTH-1:0] data_in_b_b,
+	input [DATA_WIDTH-1:0] data_in_b_c,
+	input [DATA_WIDTH-1:0] data_in_b_d,
+	input [DATA_WIDTH-1:0] data_in_b_e,
+	input [DATA_WIDTH-1:0] data_in_b_f
 );
 	reg [DATA_WIDTH-1:0] mem [NUMBER_OF_ADDRESSES-1:0];
-	genvar i;
-	always @(posedge wclk_a) begin
-		if (~reset) begin
-			if (write_en_a) begin
-				mem[waddr_a] <= din_a;
-			end else begin
-				mem[0]  <= din_b_0;
-				mem[1]  <= din_b_1;
-				mem[2]  <= din_b_2;
-				mem[3]  <= din_b_3;
-				mem[4]  <= din_b_4;
-				mem[5]  <= din_b_5;
-				mem[6]  <= din_b_6;
-				mem[7]  <= din_b_7;
-				mem[8]  <= din_b_8;
-				mem[9]  <= din_b_9;
-				mem[10] <= din_b_a;
-				mem[11] <= din_b_b;
-				mem[12] <= din_b_c;
-				mem[13] <= din_b_d;
-				mem[14] <= din_b_e;
-				mem[15] <= din_b_f;
+	always @(posedge clock) begin
+		if (reset) begin
+			data_out_a <= 0;
+		end else begin
+			data_out_a <= mem[raddress_a];
+			if (write_strobe_b) begin
+				mem[0]  <= data_in_b_0;
+				mem[1]  <= data_in_b_1;
+				mem[2]  <= data_in_b_2;
+				mem[3]  <= data_in_b_3;
+				mem[4]  <= data_in_b_4;
+				mem[5]  <= data_in_b_5;
+				mem[6]  <= data_in_b_6;
+				mem[7]  <= data_in_b_7;
+				mem[8]  <= data_in_b_8;
+				mem[9]  <= data_in_b_9;
+				mem[10] <= data_in_b_a;
+				mem[11] <= data_in_b_b;
+				mem[12] <= data_in_b_c;
+				mem[13] <= data_in_b_d;
+				mem[14] <= data_in_b_e;
+				mem[15] <= data_in_b_f;
 			end
 		end
 	end
-	always @(posedge rclk_a) begin
-		if (~reset) begin
-			dout_a <= mem[raddr_a];
+endmodule
+
+module RAM_inferred_with_register_inputs_tb;
+	wire word_clock0;
+	reg reset_word0 = 1;
+	reg [3:0] read_address = 0;
+	wire [31:0] read_data_word [3:0];
+	reg [31:0] counter = 0;
+	parameter WRITE_STROBE_PICKOFF = 10;
+	reg write_strobe_b = 0;
+	always @(posedge word_clock0) begin
+		write_strobe_b <= 0;
+		if (reset_word0) begin
+			counter <= 0;
+		end else begin
+			if (counter[WRITE_STROBE_PICKOFF:0]==0) begin
+				write_strobe_b <= 1;
+			end
+			counter <= counter + 1'b1;
 		end
+	end
+	wire [31:0] bank1 [15:0];
+	assign bank1[0]  = 32'h00000000;
+	assign bank1[1]  = 32'h11000011;
+	assign bank1[2]  = 32'h22000022;
+	assign bank1[3]  = 32'h33000033;
+	assign bank1[4]  = 32'h44000044;
+	assign bank1[5]  = 32'h55000055;
+	assign bank1[6]  = 32'h66000066;
+	assign bank1[7]  = 32'h77000077;
+	assign bank1[8]  = 32'h01234567;
+	assign bank1[9]  = 32'h89abcdef;
+	assign bank1[10] = 32'haaaa5555;
+	assign bank1[11] = 32'hffff0000;
+	assign bank1[12] = 32'h00be11e2;
+	assign bank1[13] = 32'h5cde73e3;
+	assign bank1[14] = 32'h11111111;
+	assign bank1[15] = 32'h88888888;
+		RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock0), .reset(reset_word0),
+			.raddress_a(read_address[3:0]), .data_out_a(read_data_word[1]),
+			.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
+			.data_in_b_4(bank1[4]),  .data_in_b_5(bank1[5]),  .data_in_b_6(bank1[6]),  .data_in_b_7(bank1[7]),
+			.data_in_b_8(bank1[8]),  .data_in_b_9(bank1[9]),  .data_in_b_a(bank1[10]), .data_in_b_b(bank1[11]),
+			.data_in_b_c(bank1[12]), .data_in_b_d(bank1[13]), .data_in_b_e(bank1[14]), .data_in_b_f(bank1[15]),
+			.write_strobe_b(write_strobe_b));
+	clock #(.FREQUENCY_OF_CLOCK_HZ(250000000)) c (.clock(word_clock0));
+	initial begin
+		#100;
+		reset_word0 <= 0;
+		#9000;
+		read_address <= 0; #100; read_address <= 1; #100; read_address <= 2; #100; read_address <= 3; #100;
+		read_address <= 4; #100; read_address <= 5; #100; read_address <= 6; #100; read_address <= 7; #100;
+		read_address <= 8; #100; read_address <= 9; #100; read_address <= 10; #100; read_address <= 11; #100;
+		read_address <= 12; #100; read_address <= 13; #100; read_address <= 14; #100; read_address <= 15; #100;
+		#200;
+		$finish;
 	end
 endmodule
 
@@ -200,7 +244,7 @@ module RAM_inferred_with_register_outputs_and_inputs #(
 	assign register3 = mem[3];
 endmodule
 
-module RAM_inferred_with_register_outputs #(
+module RAM_inferred_with_register_outputs_original #(
 	parameter addr_width = 9,
 	parameter data_width = 8
 ) (
