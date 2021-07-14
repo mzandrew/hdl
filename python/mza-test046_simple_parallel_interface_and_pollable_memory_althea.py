@@ -110,22 +110,58 @@ if 1:
 if 0:
 	althea.setup_half_duplex_bus("test049")
 
-if 0:
+if 1:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
-	values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
-#	values = [ 0 for a in range(2**14) ]
+	#values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
+	#values = [ 0 for a in range(2**14) ]
+	values = [ 0 for a in range(2**12) ]
 #	for i in range(125):
 #		values[i] = 0xffffffff
-#	values[0] = 0x11223344
-#	values[1] = 0x00005566
-#	values[2] = 0xffff0000
-#	values[3] = 0x77008800
-#	values[4] = 0x55555555
-#	values[5] = 0x00005555
-#	values[6] = 0x55550000
-#	values[7] = 0x55005500
-	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
-	#althea.read_data_from_pollable_memory_on_half_duplex_bus(0, 2**14)
+	values[0]  = 0xc0000000
+	values[1]  = 0x00000001
+	values[2]  = 0x00000001
+	values[3]  = 0x80000000
+	values[4]  = 0x00000000
+	values[5]  = 0x55555555
+	values[6]  = 0x00005555
+	values[7]  = 0x55550000
+	values[8]  = 0x55005500
+	values[9]  = 0x00000000
+	values[10] = 0xff000000
+	values[11] = 0x000000cc
+	values[12] = 0x55000000
+	values[13] = 0x000000ff
+	values[14] = 0x00000000
+	values[15] = 0xfff00000
+	values[16] = 0x00000ccc
+	values[17] = 0x55500000
+	values[18] = 0x00000fff
+	values[19] = 0x00000000
+	values[20] = 0x01020304
+	values[21] = 0x05060708
+	values[22] = 0x0a0b0c0d
+	values[23] = 0x0e0f0000
+	values[24] = 0x00000000
+	values[25] = 0x0103070f
+	values[26] = 0x00000000
+	values[27] = 0x1f3f7fff
+	values[28] = 0x00000000
+	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
+	althea.write_to_half_duplex_bus_and_then_verify(0, values)
+#	for j in range(4):
+#		print()
+	j = 1
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**12, 2**4)
+	for i in range(2**4):
+#	for i in range(8):
+		print(hex(readback[i], 8))
+	j = 2
+	values = [ 0 for a in range(2**4) ]
+	values[0] = 1 # bitslip_iserdes[2:0]
+	values[1] = 2 # bitslip_oserdes1[2:0]
+	values[2] = 0 # bitslip_oserdes1_again[2:0]
+	values[3] = 3 # word_clock_sel[1:0]
+	althea.write_to_half_duplex_bus_and_then_verify(j * 2**12, values)
 	#althea.test_writing_data_to_half_duplex_bus()
 
 if 0:
@@ -140,7 +176,7 @@ if 0:
 if 0:
 	althea.test_writing_data_to_half_duplex_bus2()
 
-if 1:
+if 0:
 	values = [ 0 for a in range(2**14) ]
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
 	for i in range(9):
