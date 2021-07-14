@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-13 by mza
+// last updated 2021-07-14 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -81,9 +81,9 @@ module top #(
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [NUMBER_OF_BANKS-1:0];
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] bank;
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe;
-	wire [31:0] read_errors;
-	wire [31:0] write_errors;
-	wire [31:0] address_errors;
+	wire [31:0] hdrb_read_errors;
+	wire [31:0] hdrb_write_errors;
+	wire [31:0] hdrb_address_errors;
 	half_duplex_rpi_bus #(
 		.BUS_WIDTH(BUS_WIDTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
@@ -102,9 +102,9 @@ module top #(
 		.write_data_word(write_data_word),
 		.read_data_word(read_data_word[bank]),
 		.address_word_reg(address_word_full),
-		.read_errors(read_errors),
-		.write_errors(write_errors),
-		.address_errors(address_errors),
+		.read_errors(hdrb_read_errors),
+		.write_errors(hdrb_write_errors),
+		.address_errors(hdrb_address_errors),
 		.bank(bank)
 	);
 	wire [OSERDES_DATA_WIDTH-1:0] potential_oserdes_word [NUMBER_OF_BANKS-1:0];
@@ -181,9 +181,9 @@ module top #(
 	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
 	assign bank1[1]  = { oserdes_word_delayed, oserdes_word1_buffer, oserdes_word1_buffer_mid, oserdes_word1_buffer_delayed };
 	assign bank1[2]  = { iserdes_word, 8'd0, iserdes_word_buffer, iserdes_word_buffer_delayed };
-	assign bank1[3]  = read_errors;
-	assign bank1[4]  = write_errors;
-	assign bank1[5]  = address_errors;
+	assign bank1[3]  = hdrb_read_errors;
+	assign bank1[4]  = hdrb_write_errors;
+	assign bank1[5]  = hdrb_address_errors;
 	assign bank1[6]  = 32'h66000066;
 	assign bank1[7]  = 32'h77000077;
 	assign bank1[8]  = 32'h01234567;
