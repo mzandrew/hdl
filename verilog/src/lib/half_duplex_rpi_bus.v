@@ -1,6 +1,6 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-07-12 by mza
+// last updated 2021-07-14 by mza
 
 module half_duplex_rpi_bus #(
 	parameter BUS_WIDTH = 16,
@@ -12,7 +12,7 @@ module half_duplex_rpi_bus #(
 	parameter BANK_ADDRESS_DEPTH = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD,
 	parameter LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD - BANK_ADDRESS_DEPTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
-	parameter ANTI_META = 2,
+	parameter ANTI_META = 3, // a lot of these state machines check against something[PICKOFF:PICKOFF-1]==2'b00, so we need at least 3 here
 	parameter GAP = 0,
 	parameter EXTRA_PICKOFF = 0
 ) (
@@ -57,10 +57,30 @@ module half_duplex_rpi_bus #(
 	end
 	reg [LOG2_OF_TRANSACTIONS_PER_DATA_WORD-1:0] wword = TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 	//wire [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] read_data_word;
-	wire [BUS_WIDTH-1:0] read_data [TRANSACTIONS_PER_DATA_WORD-1:0];
-	for (i=0; i<TRANSACTIONS_PER_DATA_WORD; i=i+1) begin : read_data_array
-		assign read_data[i] = read_data_word[(i+1)*BUS_WIDTH-1:i*BUS_WIDTH];
-	end
+	reg ready_for_new_read_data_word = 0;
+`define READ_DATA_IS_REGTYPE
+`ifndef READ_DATA_IS_REGTYPE
+		wire [BUS_WIDTH-1:0] read_data [TRANSACTIONS_PER_DATA_WORD-1:0];
+		for (i=0; i<TRANSACTIONS_PER_DATA_WORD; i=i+1) begin : read_data_array
+			assign read_data[i] = read_data_word[(i+1)*BUS_WIDTH-1:i*BUS_WIDTH];
+		end
+`endif
+`ifdef READ_DATA_IS_REGTYPE
+		reg [BUS_WIDTH-1:0] read_data [TRANSACTIONS_PER_DATA_WORD-1:0];
+		for (i=0; i<TRANSACTIONS_PER_DATA_WORD; i=i+1) begin : read_data_array
+			always @(posedge clock) begin
+				if (reset) begin
+					read_data[i] <= 0;
+				end else begin
+					if (enable_pipeline[ENABLE_PIPELINE_PICKOFF:ENABLE_PIPELINE_PICKOFF-1]==2'b00) begin // enable=0
+						if (ready_for_new_read_data_word) begin
+							read_data[i] <= read_data_word[(i+1)*BUS_WIDTH-1:i*BUS_WIDTH];
+						end
+					end
+				end
+			end
+		end
+`endif
 	reg [1:0] rstate = 0;
 	reg [LOG2_OF_TRANSACTIONS_PER_DATA_WORD-1:0] rword = TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 	reg [31:0] read_errors = 0;
@@ -71,6 +91,7 @@ module half_duplex_rpi_bus #(
 		pre_ack_valid <= 0;
 		write_strobe <= 0;
 		if (reset) begin
+			ready_for_new_read_data_word <= 0;
 			register_select_pipeline <= 0;
 			read_pipeline <= 0;
 			enable_pipeline <= 0;
@@ -94,7 +115,10 @@ module half_duplex_rpi_bus #(
 			address_errors <= 0;
 			pre_bus <= 0;
 		end else begin
-			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF:ENABLE_PIPELINE_PICKOFF-1]==2'b11) begin
+			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF:ENABLE_PIPELINE_PICKOFF-1]==2'b01) begin
+				ready_for_new_read_data_word <= 0;
+			end
+			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF:ENABLE_PIPELINE_PICKOFF-1]==2'b11) begin // enable=1
 				if (read_pipeline[READ_PIPELINE_PICKOFF:READ_PIPELINE_PICKOFF-1]==2'b11) begin // read mode
 					pre_ack_valid <= 1;
 					if (rstate[1]==0) begin
@@ -140,6 +164,7 @@ module half_duplex_rpi_bus #(
 						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 					end
 					if (wstate[1]) begin
+						ready_for_new_read_data_word <= 1;
 						wstate <= 0;
 						wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 						//if (write_data_word==32'h31231507) begin
@@ -170,6 +195,7 @@ module half_duplex_rpi_bus #(
 						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 					end
 					if (rstate[1]) begin
+						ready_for_new_read_data_word <= 1;
 						rstate <= 0;
 						rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					end else begin
@@ -193,6 +219,7 @@ module half_duplex_rpi_bus #(
 						rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					end
 					if (astate[1]) begin
+						ready_for_new_read_data_word <= 1;
 						astate <= 0;
 						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 						address_word_reg <= address_word;

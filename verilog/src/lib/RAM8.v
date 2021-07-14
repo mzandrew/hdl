@@ -34,6 +34,134 @@ module RAM_inferred #(
 	end
 endmodule
 
+// untested
+// from the untested systemverilog version
+module RAM_inferred_with_register_outputs #(
+	parameter ADDR_WIDTH = 4,
+	parameter NUMBER_OF_ADDRESSES = 1<<ADDR_WIDTH,
+	parameter DATA_WIDTH = 32
+) (
+	input reset,
+	input [ADDR_WIDTH-1:0] waddr_a, raddr_a,
+	input [DATA_WIDTH-1:0] din_a,
+	input write_en_a, wclk_a, rclk_a,
+	output reg [DATA_WIDTH-1:0] dout_a = 0,
+	output [DATA_WIDTH-1:0] dout_b_0,
+	output [DATA_WIDTH-1:0] dout_b_1,
+	output [DATA_WIDTH-1:0] dout_b_2,
+	output [DATA_WIDTH-1:0] dout_b_3,
+	output [DATA_WIDTH-1:0] dout_b_4,
+	output [DATA_WIDTH-1:0] dout_b_5,
+	output [DATA_WIDTH-1:0] dout_b_6,
+	output [DATA_WIDTH-1:0] dout_b_7,
+	output [DATA_WIDTH-1:0] dout_b_8,
+	output [DATA_WIDTH-1:0] dout_b_9,
+	output [DATA_WIDTH-1:0] dout_b_a,
+	output [DATA_WIDTH-1:0] dout_b_b,
+	output [DATA_WIDTH-1:0] dout_b_c,
+	output [DATA_WIDTH-1:0] dout_b_d,
+	output [DATA_WIDTH-1:0] dout_b_e,
+	output [DATA_WIDTH-1:0] dout_b_f
+);
+	reg [DATA_WIDTH-1:0] mem [NUMBER_OF_ADDRESSES-1:0];
+	always @(posedge wclk_a) begin
+		if (~reset) begin
+			if (write_en_a) begin
+				mem[waddr_a] <= din_a;
+			end
+		end
+	end
+	always @(posedge rclk_a) begin
+		if (~reset) begin
+			dout_a <= mem[raddr_a];
+		end
+	end
+	assign dout_b_0 = mem[0];
+	assign dout_b_1 = mem[1];
+	assign dout_b_2 = mem[2];
+	assign dout_b_3 = mem[3];
+	assign dout_b_4 = mem[4];
+	assign dout_b_5 = mem[5];
+	assign dout_b_6 = mem[6];
+	assign dout_b_7 = mem[7];
+	assign dout_b_8 = mem[8];
+	assign dout_b_9 = mem[9];
+	assign dout_b_a = mem[10];
+	assign dout_b_b = mem[11];
+	assign dout_b_c = mem[12];
+	assign dout_b_d = mem[13];
+	assign dout_b_e = mem[14];
+	assign dout_b_f = mem[15];
+endmodule
+
+// untested
+// port a takes precedence here
+// from the untested systemverilog version
+//	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri (.reset(),
+//		.wclk_a(), .waddr_a(), .din_a(), .write_en_a(),
+//		.rclk_a(), .raddr_a(), .dout_a(),
+//		.din_b_0(), .din_b_1(), .din_b_2(), .din_b_3(), .din_b_4(), .din_b_5(), .din_b_6(), .din_b_7(),
+//		.din_b_8(), .din_b_9(), .din_b_a(), .din_b_b(), .din_b_c(), .din_b_d(), .din_b_e(), .din_b_f());
+module RAM_inferred_with_register_inputs #(
+	parameter ADDR_WIDTH = 4,
+	parameter NUMBER_OF_ADDRESSES = 1<<ADDR_WIDTH,
+	parameter DATA_WIDTH = 32
+) (
+	input reset,
+	input [ADDR_WIDTH-1:0] waddr_a, raddr_a,
+	input [DATA_WIDTH-1:0] din_a,
+	input write_en_a, wclk_a, rclk_a,
+	output reg [DATA_WIDTH-1:0] dout_a = 0,
+	input [DATA_WIDTH-1:0] din_b_0,
+	input [DATA_WIDTH-1:0] din_b_1,
+	input [DATA_WIDTH-1:0] din_b_2,
+	input [DATA_WIDTH-1:0] din_b_3,
+	input [DATA_WIDTH-1:0] din_b_4,
+	input [DATA_WIDTH-1:0] din_b_5,
+	input [DATA_WIDTH-1:0] din_b_6,
+	input [DATA_WIDTH-1:0] din_b_7,
+	input [DATA_WIDTH-1:0] din_b_8,
+	input [DATA_WIDTH-1:0] din_b_9,
+	input [DATA_WIDTH-1:0] din_b_a,
+	input [DATA_WIDTH-1:0] din_b_b,
+	input [DATA_WIDTH-1:0] din_b_c,
+	input [DATA_WIDTH-1:0] din_b_d,
+	input [DATA_WIDTH-1:0] din_b_e,
+	input [DATA_WIDTH-1:0] din_b_f
+);
+	reg [DATA_WIDTH-1:0] mem [NUMBER_OF_ADDRESSES-1:0];
+	genvar i;
+	always @(posedge wclk_a) begin
+		if (~reset) begin
+			if (write_en_a) begin
+				mem[waddr_a] <= din_a;
+			end else begin
+				mem[0]  <= din_b_0;
+				mem[1]  <= din_b_1;
+				mem[2]  <= din_b_2;
+				mem[3]  <= din_b_3;
+				mem[4]  <= din_b_4;
+				mem[5]  <= din_b_5;
+				mem[6]  <= din_b_6;
+				mem[7]  <= din_b_7;
+				mem[8]  <= din_b_8;
+				mem[9]  <= din_b_9;
+				mem[10] <= din_b_a;
+				mem[11] <= din_b_b;
+				mem[12] <= din_b_c;
+				mem[13] <= din_b_d;
+				mem[14] <= din_b_e;
+				mem[15] <= din_b_f;
+			end
+		end
+	end
+	always @(posedge rclk_a) begin
+		if (~reset) begin
+			dout_a <= mem[raddr_a];
+		end
+	end
+endmodule
+
 module RAM_inferred_with_register_outputs_and_inputs #(
 	parameter addr_width = 9,
 	parameter data_width = 8
@@ -593,149 +721,6 @@ module RAM_s6_1k_8bit (
 		.RSTA(reset), .RSTBRST(1'b0) // 1 bit input: reset
 	);
 endmodule
-
-//// https://stackoverflow.com/q/60315588/5728815
-//module dp_async_ram (clk, rst, rd0, rd1, wr0, wr1, in1, in0, out1,out0, addr0, addr1);
-//  parameter DEPTH = 16;
-//  parameter WIDTH = 8;
-//  parameter ADDR = 4;
-//  input clk, rst;
-//  input rd0, rd1;
-//  input wr0, wr1;
-//  input [WIDTH-1:0] in0, in1;
-//  input [ADDR-1:0] addr0, addr1;
-//  output [WIDTH-1:0] out0, out1;
-//  //Define Memory
-//  logic [WIDTH-1:0] mem [0:DEPTH-1];
-//  logic [WIDTH-1:0] data0, data1;
-//// with modification from https://stackoverflow.com/a/60315691/5728815
-//always @ (posedge clk) begin
-//    if (wr0 && ~rd0)
-//        mem[addr0] <= in0;
-//    if (rd0 && ~wr0)
-//        data0 <= mem[addr0];
-//end
-//always @ (posedge clk) begin
-//    if (wr1 && ~rd1)
-//        mem[addr1] <= in1;
-//    if (rd1 && ~wr1)
-//        data1 <= mem[addr1];
-//end
-////Read Logic
-//  assign out0 = (rd0 && (!wr0))? data0: {WIDTH{1'bz}}; //High Impedance Mode here
-//  assign out1 = (rd0 && (!wr0))? data1: {WIDTH{1'bz}};
-//endmodule // dp_async_ram
-
-// altera Recommended HDL Coding Styles
-// Example 12-22: SystemVerilog Mixed-Width RAM with Read Width Smaller than Write Width
-// module mixed_width_ram // 256x32 write and 1024x8 read
-//(
-// input [7:0] waddr,
-// input [31:0] wdata,
-// input we, clk,
-// input [9:0] raddr,
-// output [7:0] q
-//);
-// logic [3:0][7:0] ram[0:255];
-// always_ff@(posedge clk)
-// begin
-// if(we) ram[waddr] <= wdata;
-// q <= ram[raddr / 4][raddr % 4];
-// end
-//endmodule : mixed_width_ram
-
-//// system verilog version (from UG901)
-//// 3-D Ram Inference Example (Simple Dual port)
-//module rams_sdp_3d #(
-//	parameter NUM_RAMS = 2,
-//	A_WID = 10,
-//	D_WID = 32
-//) (
-//	input clka,
-//	input clkb,
-//	input [NUM_RAMS-1:0] wea,
-//	input [NUM_RAMS-1:0] ena,
-//	input [NUM_RAMS-1:0] enb,
-//	input [A_WID-1:0] addra [NUM_RAMS-1:0],
-//	input [A_WID-1:0] addrb [NUM_RAMS-1:0],
-//	input [D_WID-1:0] dina [NUM_RAMS-1:0],
-//	output reg [D_WID-1:0] doutb [NUM_RAMS-1:0]
-//);
-//	reg [D_WID-1:0] mem [NUM_RAMS-1:0][2**A_WID-1:0];
-//	genvar i;
-//	// PORT_A
-//	generate
-//	for (i=0; i<NUM_RAMS; i=i+1) begin : port_a_ops
-//		always @ (posedge clka) begin
-//			if (ena[i]) begin
-//				if (wea[i]) begin
-//					mem[i][addra[i]] <= dina[i];
-//				end
-//			end
-//		end
-//	end
-//	endgenerate
-//	//PORT_B
-//	generate
-//	for (i=0; i<NUM_RAMS; i=i+1) begin : port_b_ops
-//		always @ (posedge clkb) begin
-//			if (enb[i]) begin
-//				doutb[i] <= mem[i][addrb[i]];
-//			end
-//		end
-//	end
-//	endgenerate
-//endmodule
-
-//// system verilog version (from UG901)
-//// 3-D Ram Inference Example (True Dual port)
-//module rams_tdp_3d #(
-//	parameter NUM_RAMS = 2,
-//	A_WID = 10,
-//	D_WID = 32
-//) (
-//	input clka,
-//	input clkb,
-//	input [NUM_RAMS-1:0] wea,
-//	input [NUM_RAMS-1:0] web,
-//	input [NUM_RAMS-1:0] ena,
-//	input [NUM_RAMS-1:0] enb,
-//	input [A_WID-1:0] addra [NUM_RAMS-1:0],
-//	input [A_WID-1:0] addrb [NUM_RAMS-1:0],
-//	input [D_WID-1:0] dina [NUM_RAMS-1:0],
-//	input [D_WID-1:0] dinb [NUM_RAMS-1:0],
-//	output reg [D_WID-1:0] douta [NUM_RAMS-1:0],
-//	output reg [D_WID-1:0] doutb [NUM_RAMS-1:0]
-//);
-//	reg [D_WID-1:0] mem [NUM_RAMS-1:0][2**A_WID-1:0];
-//	genvar i;
-//	// PORT_A
-//	generate
-//	for (i=0; i<NUM_RAMS; i=i+1) begin:port_a_ops
-//		always @ (posedge clka) begin
-//			if (ena[i]) begin
-//				if (wea[i]) begin
-//					mem[i][addra[i]] <= dina[i];
-//				end
-//				douta[i] <= mem[i][addra[i]];
-//			end
-//		end
-//	end
-//	endgenerate
-//	//PORT_B
-//	generate
-//	for (i=0; i<NUM_RAMS; i=i+1) begin:port_b_ops
-//		always @ (posedge clkb) begin
-//			if (enb[i]) begin
-//				if (web[i]) begin
-//					mem[i][addrb[i]] <= dinb[i];
-//				end
-//				doutb[i] <= mem[i][addrb[i]];
-//			end
-//		end
-//	end
-//	endgenerate
-//endmodule
 
 // RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
 module RAM_s6_512_32bit #(

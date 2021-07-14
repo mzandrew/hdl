@@ -6,6 +6,7 @@
 `define althea_revB
 `include "lib/generic.v"
 `include "lib/RAM8.v"
+//`include "lib/RAM.sv" // ise does not and will not support systemverilog
 `include "lib/plldcm.v"
 `include "lib/serdes_pll.v"
 `include "lib/half_duplex_rpi_bus.v"
