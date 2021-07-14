@@ -27,6 +27,9 @@ module half_duplex_rpi_bus #(
 	output [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] write_data_word,
 	input [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word,
 	output reg [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_reg = 0,
+	output reg [31:0] read_errors = 0,
+	output reg [31:0] write_errors = 0,
+	output reg [31:0] address_errors = 0,
 	output [LOG2_OF_NUMBER_OF_BANKS-1:0] bank
 );
 	localparam OTHER_PICKOFF                    = ANTI_META + EXTRA_PICKOFF;
@@ -83,9 +86,6 @@ module half_duplex_rpi_bus #(
 `endif
 	reg [1:0] rstate = 0;
 	reg [LOG2_OF_TRANSACTIONS_PER_DATA_WORD-1:0] rword = TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
-	reg [31:0] read_errors = 0;
-	reg [31:0] write_errors = 0;
-	reg [31:0] address_errors = 0;
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
 	always @(posedge clock) begin
 		pre_ack_valid <= 0;

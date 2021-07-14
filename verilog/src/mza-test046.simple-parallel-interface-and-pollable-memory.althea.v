@@ -81,6 +81,9 @@ module top #(
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [NUMBER_OF_BANKS-1:0];
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] bank;
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe;
+	wire [31:0] read_errors;
+	wire [31:0] write_errors;
+	wire [31:0] address_errors;
 	half_duplex_rpi_bus #(
 		.BUS_WIDTH(BUS_WIDTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
@@ -99,11 +102,20 @@ module top #(
 		.write_data_word(write_data_word),
 		.read_data_word(read_data_word[bank]),
 		.address_word_reg(address_word_full),
+		.read_errors(read_errors),
+		.write_errors(write_errors),
+		.address_errors(address_errors),
 		.bank(bank)
 	);
 	wire [OSERDES_DATA_WIDTH-1:0] potential_oserdes_word [NUMBER_OF_BANKS-1:0];
 	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [NUMBER_OF_BANKS-1:0];
 	wire [7:0] oserdes_word_delayed;
+	wire [7:0] oserdes_word1_buffer;
+	wire [7:0] oserdes_word1_buffer_mid;
+	wire [7:0] oserdes_word1_buffer_delayed;
+	wire [7:0] iserdes_word;
+	wire [7:0] iserdes_word_buffer;
+	wire [7:0] iserdes_word_buffer_delayed;
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 	wire [31:0] bank1 [15:0];
 	wire [31:0] bank2 [15:0];
@@ -165,12 +177,13 @@ module top #(
 			.data_out_b_8(bank2[8]),  .data_out_b_9(bank2[9]),  .data_out_b_a(bank2[10]), .data_out_b_b(bank2[11]),
 			.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
 	end
-	assign bank1[0]  = 32'h00000000;
-	assign bank1[1]  = 32'h11000011;
-	assign bank1[2]  = 32'h22000022;
-	assign bank1[3]  = 32'h33000033;
-	assign bank1[4]  = 32'h44000044;
-	assign bank1[5]  = 32'h55000055;
+	wire [2:0] rot_pipeline;
+	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
+	assign bank1[1]  = { oserdes_word_delayed, oserdes_word1_buffer, oserdes_word1_buffer_mid, oserdes_word1_buffer_delayed };
+	assign bank1[2]  = { iserdes_word, 8'd0, iserdes_word_buffer, iserdes_word_buffer_delayed };
+	assign bank1[3]  = read_errors;
+	assign bank1[4]  = write_errors;
+	assign bank1[5]  = address_errors;
 	assign bank1[6]  = 32'h66000066;
 	assign bank1[7]  = 32'h77000077;
 	assign bank1[8]  = 32'h01234567;
@@ -179,14 +192,14 @@ module top #(
 	assign bank1[11] = 32'hffff0000;
 	assign bank1[12] = 32'h00be11e2;
 	assign bank1[13] = 32'h5cde73e3;
-	assign bank1[14] = { 16'h4321, 4'd0, status4, status8 };
-	assign bank1[15] = { 16'h1234, 13'd0, rot_pipeline };
+	assign bank1[14] = { 16'h0, 4'd0, status4, status8 };
+	assign bank1[15] = { 16'h0, 13'd0, rot_pipeline };
 	wire  [2:0] bitslip_iserdes        = bank2[0][2:0];
 	wire  [2:0] bitslip_oserdes1       = bank2[1][2:0];
 	wire  [2:0] bitslip_oserdes1_again = bank2[2][2:0];
 	(* KEEP = "TRUE" *)
 	wire  [1:0] word_clock_sel         = bank2[3][1:0];
-	wire       train_oserdes           = bank2[4][0];
+	wire        train_oserdes          = bank2[4][0];
 	wire  [7:0] train_oserdes_pattern  = bank2[5][7:0];
 	wire [31:0] start_sample           = bank2[6][31:0];
 	wire [31:0] end_sample             = bank2[7][31:0];
@@ -200,18 +213,11 @@ module top #(
 //	wire [31:0] start_sample = 32'd0; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
 //	wire [31:0] end_sample = 32'd1000; // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
 	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_DATA_WIDTH)) ss (.clock(word_clock0), .reset(reset_word0), .sync_read_address(sync_read_address), .start_sample(start_sample), .end_sample(end_sample), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
-	wire [2:0] rot_pipeline;
 	cdc_pipeline #(.WIDTH(3), .DEPTH(3)) tongs (.clock(word_clock0), .in(~rot), .out(rot_pipeline));
 //	reg [2:0] word_clock_sel = 0;
 //	always @(posedge word_clock0) begin
 //		word_clock_sel <= rot_pipeline;
 //	end
-	wire [7:0] oserdes_word1_buffer;
-	wire [7:0] oserdes_word1_buffer_mid;
-	wire [7:0] oserdes_word1_buffer_delayed;
-	wire [7:0] iserdes_word;
-	wire [7:0] iserdes_word_buffer;
-	wire [7:0] iserdes_word_buffer_delayed;
 	bitslip #(.WIDTH(8)) bsi (.clock(word_clock1), .data_in(iserdes_word), .bitslip(bitslip_iserdes), .data_out(iserdes_word_buffer));
 	cdc_pipeline #(.WIDTH(8), .DEPTH(3)) publics (.clock(word_clock1), .in(iserdes_word_buffer), .out(iserdes_word_buffer_delayed));
 	// use coax[0] and coax[4] to measure (with scope) and correct (with rotary switch) for the "arbitrary routing" bitslip which is compile-dependent
