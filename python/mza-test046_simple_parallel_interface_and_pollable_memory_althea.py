@@ -161,9 +161,11 @@ if 1:
 	values[1] = 1 # bitslip_oserdes1[2:0]
 	values[2] = 1 # bitslip_oserdes1_again[2:0]
 	values[3] = 3 # word_clock_sel[1:0]
-	values[4] = 1 # oserdes_train [0]
+	values[4] = 0 # oserdes_train [0]
 	values[5] = 0b11001010 # oserdes_train_pattern [7:0]
 	#values[5] = 0b11110000 # oserdes_train_pattern [7:0]
+	values[6] = 0 # start_sample (3 LSBs ignored)
+	values[7] = 16 # end_sample (3 LSBs ignored)
 	althea.write_to_half_duplex_bus_and_then_verify(j * 2**12, values)
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**12, 2**4)
 	for i in range(8):
