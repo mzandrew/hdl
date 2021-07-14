@@ -21,10 +21,13 @@ module top #(
 	parameter OSERDES_DATA_WIDTH = 8,
 	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
 	parameter BANK_ADDRESS_DEPTH = 14,
+	parameter LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD - BANK_ADDRESS_DEPTH,
+	parameter NUMBER_OF_BANKS = 1<<LOG2_OF_NUMBER_OF_BANKS,
 	parameter LOG2_OF_OSERDES_DATA_WIDTH = $clog2(OSERDES_DATA_WIDTH),
 	parameter ADDRESS_DEPTH_OSERDES = BANK_ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
+	parameter WRITE_STROBE_PICKOFF = 17, // about 1 kHz
 	parameter COUNTER50_BIT_PICKOFF = TESTBENCH ? 5 : 23,
 	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
@@ -75,8 +78,7 @@ module top #(
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
 	wire [BANK_ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[BANK_ADDRESS_DEPTH-1:0];
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] write_data_word;
-	localparam LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-BANK_ADDRESS_DEPTH;
-	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [LOG2_OF_NUMBER_OF_BANKS-1:0];
+	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [NUMBER_OF_BANKS-1:0];
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] bank;
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe;
 	half_duplex_rpi_bus #(
@@ -99,13 +101,13 @@ module top #(
 		.address_word_reg(address_word_full),
 		.bank(bank)
 	);
-	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [LOG2_OF_NUMBER_OF_BANKS-1:0];
+	wire [OSERDES_DATA_WIDTH-1:0] potential_oserdes_word [NUMBER_OF_BANKS-1:0];
+	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [NUMBER_OF_BANKS-1:0];
 	wire [7:0] oserdes_word_delayed;
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 	wire [31:0] bank1 [15:0];
 	wire [31:0] bank2 [15:0];
 	reg [31:0] counter = 0;
-	parameter WRITE_STROBE_PICKOFF = 20;
 	reg write_strobe_b = 0;
 	always @(posedge word_clock0) begin
 		write_strobe_b <= 0;
@@ -122,32 +124,32 @@ module top #(
 		if (BANK_ADDRESS_DEPTH==12) begin
 			RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem0 (.reset(reset_word0),
 				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
-				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[0]));
 			RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem1 (.reset(reset_word0),
 				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[1]), .data_out_a(read_data_word[1]),
-				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[1]));
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[1]));
 			RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem2 (.reset(reset_word0),
 				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[2]), .data_out_a(read_data_word[2]),
-				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[2]));
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[2]));
 			RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem3 (.reset(reset_word0),
 				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[3]), .data_out_a(read_data_word[3]),
-				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[3]));
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[3]));
 		end else if (BANK_ADDRESS_DEPTH==13) begin
 			RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem0 (.reset(reset_word0),
 				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
-				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[0]));
 			RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem1 (.reset(reset_word0),
 				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[1]), .data_out_a(read_data_word[1]),
-				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[1]));
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[1]));
 		end else begin
 			RAM_s6_16k_32bit_8bit #(.ENDIANNESS("BIG")) mem (.reset(reset_word0),
 				.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
-				.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
+				.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[0]));
 		end
 	end else begin
 		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank0 (.reset(reset_word0),
 			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
-			.clock_b(word_clock0), .address_b(read_address), .data_out_b(oserdes_word[0]));
+			.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[0]));
 		RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock0), .reset(reset_word0),
 			.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
 			.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
@@ -182,7 +184,13 @@ module top #(
 	wire [2:0] bitslip_iserdes        = bank2[0][2:0];
 	wire [2:0] bitslip_oserdes1       = bank2[1][2:0];
 	wire [2:0] bitslip_oserdes1_again = bank2[2][2:0];
+	(* KEEP = "TRUE" *)
 	wire [1:0] word_clock_sel         = bank2[3][1:0];
+	wire       train_oserdes          = bank2[4][0];
+	wire [7:0] train_oserdes_pattern  = bank2[5][7:0];
+	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
+		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
+	end
 	wire sync_read_address; // assert this when you feel like (re)synchronizing
 	wire [3:0] sync_out_stream; // sync_out_stream[2] is usually good
 	wire [7:0] sync_out_word; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
@@ -282,6 +290,7 @@ module top #(
 		#100;
 		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, BANK_ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_DATA_WIDTH);
 		$display("%d, %d, %d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
+		$display("%d", NUMBER_OF_BANKS);
 	end
 endmodule
 
