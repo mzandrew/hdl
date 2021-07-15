@@ -1,5 +1,10 @@
 // written 2021-07-14 by mza
-// last updated 2021-07-14 by mza
+// last updated 2021-07-15 by mza
+
+`ifndef HISTOGRAM_LIB
+`define HISTOGRAM_LIB
+
+`include "generic.v"
 
 module histogram #(
 	parameter DATA_WIDTH = 4,
@@ -33,22 +38,10 @@ module histogram #(
 	reg clear_count_already_found = 0;
 	always @(posedge clock) begin
 		if (reset || clear_results) begin
-			count[0]  <= 0;
-			count[1]  <= 0;
-			count[2]  <= 0;
-			count[3]  <= 0;
-			count[4]  <= 0;
-			count[5]  <= 0;
-			count[6]  <= 0;
-			count[7]  <= 0;
-			count[8]  <= 0;
-			count[9]  <= 0;
-			count[10] <= 0;
-			count[11] <= 0;
-			count[12] <= 0;
-			count[13] <= 0;
-			count[14] <= 0;
-			count[15] <= 0;
+			count[000] <= 0; count[001] <= 0; count[002] <= 0; count[003] <= 0;
+			count[004] <= 0; count[005] <= 0; count[006] <= 0; count[007] <= 0;
+			count[008] <= 0; count[009] <= 0; count[010] <= 0; count[011] <= 0;
+			count[012] <= 0; count[013] <= 0; count[014] <= 0; count[015] <= 0;
 			sample_counter <= 0;
 			max_count_reached <= 0;
 			result_valid <= 0;
@@ -127,9 +120,8 @@ module histogram #(
 endmodule
 
 module histogram_tb;
-	localparam DATA_WIDTH = 4;
+	localparam DATA_WIDTH = 8;
 	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 4;
-	localparam LOG2_OF_NUMBER_OF_RESULTS = 2;
 	wire clock;
 	reg reset = 1;
 	reg clear_results = 0;
@@ -145,40 +137,40 @@ module histogram_tb;
 	wire [DATA_WIDTH-1:0] result03;
 	wire max_count_reached;
 	wire result_valid;
-	histogram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE),
-		.LOG2_OF_NUMBER_OF_RESULTS(LOG2_OF_NUMBER_OF_RESULTS)
-		) h1n1 (
+	histogram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) h1n1 (
 		.clock(clock), .reset(reset), .clear_results(clear_results), .data_in(data_in), .sample(sample),
 		.result00(result00), .result01(result01), .result02(result02), .result03(result03),
 		.count00(count00), .count01(count01), .count02(count02), .count03(count03),
 		.max_count_reached(max_count_reached), .result_valid(result_valid));
 	initial begin
 		#100; reset <= 0;
-		#40; data_in <= 4'b0000; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b1110; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b1011; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b0110; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b1011; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b1100; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b1101; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b1111; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h01; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h02; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h04; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h20; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h80; #4; sample <= 1; #4; sample <= 0;
 		#40;
-		#40; data_in <= 4'b0110; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b0110; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
 		#40;
-		#40; data_in <= 4'b1010; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b1011; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b0101; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
 		#40;
-		#40; data_in <= 4'b0001; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b1110; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b0111; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b0011; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 4'b0011; #4; sample <= 1; #4; sample <= 0;
-		#1000;
+		#40; data_in <= 8'h55; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'haa; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h99; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h44; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h11; #4; sample <= 1; #4; sample <= 0;
+		#4000;
 		#100; clear_results <= 1; #4; clear_results <= 0;
 		#100; $finish;
 	end
 	clock #(.FREQUENCY_OF_CLOCK_HZ(250000000)) c (.clock(clock));
 endmodule
+
+`endif
 
