@@ -12,6 +12,7 @@
 `include "lib/half_duplex_rpi_bus.v"
 `include "lib/sequencer.v"
 `include "lib/reset.v"
+`include "lib/histogram.v"
 
 module top #(
 	parameter BUS_WIDTH = 16,
