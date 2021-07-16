@@ -1,5 +1,5 @@
 // written 2021-07-14 by mza
-// last updated 2021-07-15 by mza
+// last updated 2021-07-16 by mza
 
 `ifndef HISTOGRAM_LIB
 `define HISTOGRAM_LIB
@@ -9,6 +9,9 @@
 module histogram #(
 	parameter DATA_WIDTH = 4,
 	parameter LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 4
+	// 8 uses up 92% of slice LUTs, fails timing by 78 ns and can't produce a static timing report; seems to work on hardware
+	// 6 uses up 72% of slice LUTs, fails timing by 18 ns, but shows a lot of count->index[i]/j->index/index->index timing failures
+	// 5 uses up 56% of slice LUTs, passes timing
 ) (
 	input reset, clock,
 	input sample,
@@ -32,19 +35,36 @@ module histogram #(
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] count [MAX_INDEX:0];
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] count_copy [LAST_RESULT:0];
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] sample_counter;
-	reg [DATA_WIDTH-1:0] i = 0; // i=result #
+	reg [LAST_RESULT:0] i = 0; // i=result #
 	reg [DATA_WIDTH-1:0] j = 0; // j=index of count to compare against
 	reg [DATA_WIDTH-1:0] index [LAST_RESULT:0]; // result indices
 	reg clear_count_already_found = 0;
-	always @(posedge clock) begin
+	genvar k;
+	for (k=0; k<=MAX_INDEX; k=k+1) begin : accumulate
+		always @(posedge clock) begin
+			if (reset || clear_results) begin
+				count[k] <= 0;
+			end else begin
+				if (max_count_reached) begin
+					if (clear_count_already_found) begin
+						if (k==index[i]) begin
+							count[k] <= 0;
+						end
+					end
+				end else begin
+					if (sample) begin
+						if (k==data_in) begin
+							count[k] <= count[k] + 1'd1;
+						end
+					end
+				end
+			end
+		end
+	end
+	always @(posedge clock) begin // look for peaks
 		if (reset || clear_results) begin
-			count[000] <= 0; count[001] <= 0; count[002] <= 0; count[003] <= 0;
-			count[004] <= 0; count[005] <= 0; count[006] <= 0; count[007] <= 0;
-			count[008] <= 0; count[009] <= 0; count[010] <= 0; count[011] <= 0;
-			count[012] <= 0; count[013] <= 0; count[014] <= 0; count[015] <= 0;
 			sample_counter <= 0;
 			max_count_reached <= 0;
-			result_valid <= 0;
 			i <= 0;
 			j <= 1;
 			index[0] <= 0;
@@ -56,27 +76,10 @@ module histogram #(
 			count_copy[2] <= 0;
 			count_copy[3] <= 0;
 			clear_count_already_found <= 0;
+			result_valid <= 0;
 		end else begin
 			if (~max_count_reached) begin
 				if (sample) begin
-					case (data_in)
-						4'h0    : begin count[0]  <=  count[0] + 1'b1; end
-						4'h1    : begin count[1]  <=  count[1] + 1'b1; end
-						4'h2    : begin count[2]  <=  count[2] + 1'b1; end
-						4'h3    : begin count[3]  <=  count[3] + 1'b1; end
-						4'h4    : begin count[4]  <=  count[4] + 1'b1; end
-						4'h5    : begin count[5]  <=  count[5] + 1'b1; end
-						4'h6    : begin count[6]  <=  count[6] + 1'b1; end
-						4'h7    : begin count[7]  <=  count[7] + 1'b1; end
-						4'h8    : begin count[8]  <=  count[8] + 1'b1; end
-						4'h9    : begin count[9]  <=  count[9] + 1'b1; end
-						4'ha    : begin count[10] <= count[10] + 1'b1; end
-						4'hb    : begin count[11] <= count[11] + 1'b1; end
-						4'hc    : begin count[12] <= count[12] + 1'b1; end
-						4'hd    : begin count[13] <= count[13] + 1'b1; end
-						4'he    : begin count[14] <= count[14] + 1'b1; end
-						default : begin count[15] <= count[15] + 1'b1; end
-					endcase
 					if (sample_counter<NUMBER_OF_SAMPLES_TO_ACQUIRE) begin
 						sample_counter <= sample_counter + 1'b1;
 					end else begin
@@ -87,7 +90,6 @@ module histogram #(
 				if (~result_valid) begin
 					if (clear_count_already_found) begin
 						count_copy[i] <= count[index[i]];
-						count[index[i]] <= 0;
 						clear_count_already_found <= 0;
 						if (i!=LAST_RESULT) begin
 							i <= i + 1'd1;
@@ -121,7 +123,7 @@ endmodule
 
 module histogram_tb;
 	localparam DATA_WIDTH = 8;
-	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 4;
+	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 5;
 	wire clock;
 	reg reset = 1;
 	reg clear_results = 0;
@@ -153,9 +155,21 @@ module histogram_tb;
 		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
 		#40; data_in <= 8'h80; #4; sample <= 1; #4; sample <= 0;
 		#40;
+		#40; data_in <= 8'h01; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h02; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h04; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h20; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h80; #4; sample <= 1; #4; sample <= 0;
+		#40;
+		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
 		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
 		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
 		#40;
+		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
 		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
 		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
 		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
@@ -165,7 +179,12 @@ module histogram_tb;
 		#40; data_in <= 8'h99; #4; sample <= 1; #4; sample <= 0;
 		#40; data_in <= 8'h44; #4; sample <= 1; #4; sample <= 0;
 		#40; data_in <= 8'h11; #4; sample <= 1; #4; sample <= 0;
-		#4000;
+		#40; data_in <= 8'h99; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h51; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h38; #4; sample <= 1; #4; sample <= 0;
+		#40; data_in <= 8'h83; #4; sample <= 1; #4; sample <= 0;
+		#4200;
 		#100; clear_results <= 1; #4; clear_results <= 0;
 		#100; $finish;
 	end
