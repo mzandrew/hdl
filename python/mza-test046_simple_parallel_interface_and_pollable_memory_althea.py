@@ -111,6 +111,34 @@ if 0:
 	althea.setup_half_duplex_bus("test049")
 
 if 1:
+#	for j in range(4):
+#		print()
+	j = 1
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**12, 2**4)
+	for i in range(2**4):
+#	for i in range(8):
+		print(hex(readback[i], 8))
+	j = 2
+	values = [ 0 for a in range(2**4) ]
+	values[0] = 3 # bitslip_iserdes[2:0]
+	values[1] = 1 # bitslip_oserdes1[2:0]
+	values[2] = 1 # bitslip_oserdes1_again[2:0]
+	values[3] = 3 # word_clock_sel[1:0]
+	values[4] = 1 # oserdes_train [0]
+	values[5] = 0b11001010 # oserdes_train_pattern [7:0]
+	#values[5] = 0b11110000 # oserdes_train_pattern [7:0]
+	values[6] = 0 # start_sample (3 LSBs ignored)
+	values[7] = 16 # end_sample (3 LSBs ignored)
+	#values[8] = 0b10 # clear histogram and stop sampling
+	#althea.write_to_half_duplex_bus_and_then_verify(j * 2**12, values)
+	values[8] = 0b01 # start sampling histogram
+	althea.write_to_half_duplex_bus_and_then_verify(j * 2**12, values)
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**12, 2**4)
+	for i in range(8):
+		print(hex(readback[i], 8))
+	#althea.test_writing_data_to_half_duplex_bus()
+
+if 1:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
 	#values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
 	#values = [ 0 for a in range(2**14) ]
@@ -148,29 +176,6 @@ if 1:
 	values[28] = 0x00000000
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
 	althea.write_to_half_duplex_bus_and_then_verify(0, values)
-#	for j in range(4):
-#		print()
-	j = 1
-	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**12, 2**4)
-	for i in range(2**4):
-#	for i in range(8):
-		print(hex(readback[i], 8))
-	j = 2
-	values = [ 0 for a in range(2**4) ]
-	values[0] = 3 # bitslip_iserdes[2:0]
-	values[1] = 1 # bitslip_oserdes1[2:0]
-	values[2] = 1 # bitslip_oserdes1_again[2:0]
-	values[3] = 3 # word_clock_sel[1:0]
-	values[4] = 0 # oserdes_train [0]
-	values[5] = 0b11001010 # oserdes_train_pattern [7:0]
-	#values[5] = 0b11110000 # oserdes_train_pattern [7:0]
-	values[6] = 0 # start_sample (3 LSBs ignored)
-	values[7] = 16 # end_sample (3 LSBs ignored)
-	althea.write_to_half_duplex_bus_and_then_verify(j * 2**12, values)
-	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**12, 2**4)
-	for i in range(8):
-		print(hex(readback[i], 8))
-	#althea.test_writing_data_to_half_duplex_bus()
 
 if 0:
 	#max_address_plus_one = 2**14
