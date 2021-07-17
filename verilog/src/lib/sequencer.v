@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2021-07-13 by mza
+// last updated 2021-07-17 by mza
 
 module sequencer_sync #(
 	parameter ADDRESS_DEPTH_OSERDES = 16,
@@ -70,15 +70,18 @@ module function_generator #(
 //	reg [channel][ADDRESS_BUS_DEPTH-1:0]
 	genvar ch; // generate
 	for (ch=0; ch<NUMBER_OF_CHANNELS; ch=ch+1) begin : chan
-		if (ADDRESS_BUS_DEPTH==10) begin
-			RAM_s6_1k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
-		end else if (ADDRESS_BUS_DEPTH==11) begin
-			RAM_s6_2k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
-		end else if (ADDRESS_BUS_DEPTH==14) begin
-			RAM_s6_16k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+//		if (ADDRESS_BUS_DEPTH==10) begin
+//			RAM_s6_1k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+//		end else if (ADDRESS_BUS_DEPTH==11) begin
+//			RAM_s6_2k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
+//		end else if (ADDRESS_BUS_DEPTH==14) begin
+//			RAM_s6_16k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out), .write_address(write_address), .read_address(read_address), .write_enable(write_enable), .read_enable(1'b1));
 //		end else begin
-			// assert
-		end
+			// assert!
+//		end
+		RAM_s6_primitive #(.DATA_WIDTH_A(DATA_BUS_WIDTH), .DATA_WIDTH_B(DATA_BUS_WIDTH)) mem (.reset(reset),
+			.write_clock(write_clock), .write_address(write_address), .data_in(data_in), .write_enable(write_enable),
+			.read_clock(read_clock), .read_address(read_address), .read_enable(1'b1), .data_out(data_out));
 		always @(posedge read_clock) begin
 			if (reset || sync_read_address) begin
 				read_address <= 0;

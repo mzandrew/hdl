@@ -71,7 +71,7 @@ module histogram_using_block_memory #(
 //	RAM_s6_2k_8bit mem (.reset(reset),
 //		.write_clock(clock), .write_address(ram_write_address), .data_in(ram_data_in), .write_enable(ram_write_enable),
 //		.read_clock(clock), .read_address(ram_read_address), .read_enable(1'b1), .data_out(data_out_from_ram));
-	RAM_s6_1k_16bit mem (.reset(reset),
+	RAM_s6_primitive #(.DATA_WIDTH_A(16), .DATA_WIDTH_B(16)) mem (.reset(reset),
 		.write_clock(clock), .write_address(ram_write_address), .data_in(ram_data_in), .write_enable(ram_write_enable),
 		.read_clock(clock), .read_address(ram_read_address), .read_enable(1'b1), .data_out(data_out_from_ram));
 	always @(posedge clock) begin
