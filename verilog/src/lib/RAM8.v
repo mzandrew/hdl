@@ -1,5 +1,5 @@
 // updated 2020-10-02 by mza
-// last updated 2021-07-14 by mza
+// last updated 2021-07-17 by mza
 
 `ifndef RAM8_LIB
 `define RAM8_LIB
@@ -587,9 +587,7 @@ endmodule
 //(* BMM_INFO = " " *)
 //(* BMM_INFO = "ADDRESS_SPACE map_name RAMB16 [start:end] END_ADDRESS_MAP;" *)
 
-module RAM_s6_16k_8bit #(
-	parameter ENDIANNESS = "LITTLE"
-) (
+module RAM_s6_16k_8bit (
 	input read_clock,
 	input write_clock,
 	input reset,
@@ -605,7 +603,10 @@ module RAM_s6_16k_8bit #(
 //	RAM_s6_2k_8bit #(.INIT_FILENAME("bcm_init.mem")) mem00 (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[0]), .read_enable(1'b1));
 	genvar i;
 	for (i=0; i<8; i=i+1) begin : mem_array
-		RAM_s6_2k_8bit #(.ENDIANNESS(ENDIANNESS)) mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[i]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[i]), .read_enable(1'b1));
+//		RAM_s6_2k_8bit mem (.write_clock(write_clock), .read_clock(read_clock), .reset(reset), .data_in(data_in), .data_out(data_out_array[i]), .write_address(write_address[10:0]), .read_address(read_address[10:0]), .write_enable(write_enable_array[i]), .read_enable(1'b1));
+		RAM_s6_primitive #(.DATA_WIDTH_A(8), .DATA_WIDTH_B(8)) mem (.reset(reset),
+			.write_clock(write_clock), .write_address(write_address[10:0]), .data_in(data_in), .write_enable(write_enable_array[i]),
+			.read_clock(read_clock), .read_address(read_address[10:0]), .read_enable(1'b1), .data_out(data_out_array[i]));
 	end
 	reg [2:0] buffered_sel_0 = 0;
 	wire [7:0] buffered_data_out_0;
@@ -623,176 +624,6 @@ module RAM_s6_16k_8bit #(
 		.in(write_enable), .sel(write_address[13:11]),
 		.out0(write_enable_array[0]), .out1(write_enable_array[1]), .out2(write_enable_array[2]), .out3(write_enable_array[3]),
 		.out4(write_enable_array[4]), .out5(write_enable_array[5]), .out6(write_enable_array[6]), .out7(write_enable_array[7]));
-endmodule
-
-// RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
-module RAM_s6_1k_16bit #(
-	parameter INIT_FILENAME = "NONE"
-) (
-	input read_clock,
-	input write_clock,
-	input reset,
-	input [15:0] data_in,
-	output [15:0] data_out,
-	input [9:0] write_address,
-	input [9:0] read_address,
-	input write_enable,
-	input read_enable
-);
-	wire [31:0] data_in_32;
-	assign data_in_32 = { 16'h0000, data_in };
-	wire [31:0] data_out_32;
-	assign data_out = data_out_32[15:0];
-	wire [13:0] write_address_14;
-	assign write_address_14 = { write_address, 4'b0000 };
-	wire [13:0] read_address_14;
-	assign read_address_14 = { read_address, 4'b0000 };
-	wire [3:0] write_enable_4;
-	assign write_enable_4 = { write_enable, write_enable, write_enable, write_enable };
-	RAMB16BWER #(
-		// DATA_WIDTH_A/DATA_WIDTH_B: 0, 1, 2, 4, 9, 18, or 36
-		.DATA_WIDTH_A(18),
-		.DATA_WIDTH_B(18),
-		// DOA_REG/DOB_REG: Optional output register (0 or 1)
-		.DOA_REG(0),
-		.DOB_REG(0),
-		// EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
-		.EN_RSTRAM_A("TRUE"),
-		.EN_RSTRAM_B("TRUE"),
-		// INIT_A/INIT_B: Initial values on output port
-//		.INIT_A(36’h000000000),
-//		.INIT_B(36’h000000000),
-		// INIT_FILE: Optional file used to specify initial RAM contents
-		//.INIT_FILE("NONE"),
-		.INIT_FILE(INIT_FILENAME),
-		// RSTTYPE: "SYNC" or "ASYNC"
-		.RSTTYPE("SYNC"),
-		// RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR"
-		.RST_PRIORITY_A("CE"),
-		.RST_PRIORITY_B("CE"),
-		// SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE"
-		.SIM_COLLISION_CHECK("ALL"),
-		// SIM_DEVICE: Must be set to "SPARTAN6" for proper simulation behavior
-		.SIM_DEVICE("SPARTAN6"),
-		// SRVAL_A/SRVAL_B: Set/Reset value for RAM output
-//		.SRVAL_A(36’h000000000),
-//		.SRVAL_B(36’h000000000),
-		// WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE"
-		.WRITE_MODE_A("WRITE_FIRST"),
-		.WRITE_MODE_B("WRITE_FIRST")
-	) RAMB16BWER_inst (
-		// Port A Data: 32-bit (each) output: Port A data
-		.DOA(), // 32-bit output: A port data output
-		.DOPA(), // 4-bit output: A port parity output
-		// Port B Data: 32-bit (each) output: Port B data
-		.DOB(data_out_32), // 32-bit output: B port data output
-		.DOPB(), // 4-bit output: B port parity output
-		// Port A Address/Control Signals: 14-bit (each) input: Port A address and control signals
-		.ADDRA(write_address_14), // 14-bit input: A port address input
-		.CLKA(write_clock), // 1-bit input: A port clock input
-		.ENA(1'b1), // 1-bit input: A port enable input
-		.REGCEA(1'b0), // 1-bit input: A port register clock enable input
-		.RSTA(reset), // 1-bit input: A port register set/reset input
-		.WEA(write_enable_4), // 4-bit input: Port A byte-wide write enable input
-		// Port A Data: 32-bit (each) input: Port A data
-		.DIA(data_in_32), // 32-bit input: A port data input
-		.DIPA(4'h0), // 4-bit input: A port parity input
-		// Port B Address/Control Signals: 14-bit (each) input: Port B address and control signals
-		.ADDRB(read_address_14), // 14-bit input: B port address input
-		.CLKB(read_clock), // 1-bit input: B port clock input
-		.ENB(read_enable), // 1-bit input: B port enable input
-		.REGCEB(1'b0), // 1-bit input: B port register clock enable input
-		.RSTB(1'b0), // 1-bit input: B port register set/reset input
-		.WEB(4'h0), // 4-bit input: Port B byte-wide write enable input
-		// Port B Data: 32-bit (each) input: Port B data
-		.DIB(32'd0), // 32-bit input: B port data input
-		.DIPB(4'h0) // 4-bit input: B port parity input
-	);
-endmodule
-
-// RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
-module RAM_s6_2k_8bit #(
-	parameter INIT_FILENAME = "NONE"
-) (
-	input read_clock,
-	input write_clock,
-	input reset,
-	input [7:0] data_in,
-	output [7:0] data_out,
-	input [10:0] write_address,
-	input [10:0] read_address,
-	input write_enable,
-	input read_enable
-);
-	wire [31:0] data_in_32;
-	assign data_in_32 = { 24'h000000, data_in };
-	wire [31:0] data_out_32;
-	assign data_out = data_out_32[7:0];
-	wire [13:0] write_address_14;
-	assign write_address_14 = { write_address, 3'b000 };
-	wire [13:0] read_address_14;
-	assign read_address_14 = { read_address, 3'b000 };
-	wire [3:0] write_enable_4;
-	assign write_enable_4 = { write_enable, write_enable, write_enable, write_enable };
-	RAMB16BWER #(
-		// DATA_WIDTH_A/DATA_WIDTH_B: 0, 1, 2, 4, 9, 18, or 36
-		.DATA_WIDTH_A(9),
-		.DATA_WIDTH_B(9),
-		// DOA_REG/DOB_REG: Optional output register (0 or 1)
-		.DOA_REG(0),
-		.DOB_REG(0),
-		// EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
-		.EN_RSTRAM_A("TRUE"),
-		.EN_RSTRAM_B("TRUE"),
-		// INIT_A/INIT_B: Initial values on output port
-//		.INIT_A(36’h000000000),
-//		.INIT_B(36’h000000000),
-		// INIT_FILE: Optional file used to specify initial RAM contents
-		//.INIT_FILE("NONE"),
-		.INIT_FILE(INIT_FILENAME),
-		// RSTTYPE: "SYNC" or "ASYNC"
-		.RSTTYPE("SYNC"),
-		// RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR"
-		.RST_PRIORITY_A("CE"),
-		.RST_PRIORITY_B("CE"),
-		// SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE"
-		.SIM_COLLISION_CHECK("ALL"),
-		// SIM_DEVICE: Must be set to "SPARTAN6" for proper simulation behavior
-		.SIM_DEVICE("SPARTAN6"),
-		// SRVAL_A/SRVAL_B: Set/Reset value for RAM output
-//		.SRVAL_A(36’h000000000),
-//		.SRVAL_B(36’h000000000),
-		// WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE"
-		.WRITE_MODE_A("WRITE_FIRST"),
-		.WRITE_MODE_B("WRITE_FIRST")
-	) RAMB16BWER_inst (
-		// Port A Data: 32-bit (each) output: Port A data
-		.DOA(), // 32-bit output: A port data output
-		.DOPA(), // 4-bit output: A port parity output
-		// Port B Data: 32-bit (each) output: Port B data
-		.DOB(data_out_32), // 32-bit output: B port data output
-		.DOPB(), // 4-bit output: B port parity output
-		// Port A Address/Control Signals: 14-bit (each) input: Port A address and control signals
-		.ADDRA(write_address_14), // 14-bit input: A port address input
-		.CLKA(write_clock), // 1-bit input: A port clock input
-		.ENA(1'b1), // 1-bit input: A port enable input
-		.REGCEA(1'b0), // 1-bit input: A port register clock enable input
-		.RSTA(reset), // 1-bit input: A port register set/reset input
-		.WEA(write_enable_4), // 4-bit input: Port A byte-wide write enable input
-		// Port A Data: 32-bit (each) input: Port A data
-		.DIA(data_in_32), // 32-bit input: A port data input
-		.DIPA(4'h0), // 4-bit input: A port parity input
-		// Port B Address/Control Signals: 14-bit (each) input: Port B address and control signals
-		.ADDRB(read_address_14), // 14-bit input: B port address input
-		.CLKB(read_clock), // 1-bit input: B port clock input
-		.ENB(read_enable), // 1-bit input: B port enable input
-		.REGCEB(1'b0), // 1-bit input: B port register clock enable input
-		.RSTB(1'b0), // 1-bit input: B port register set/reset input
-		.WEB(4'h0), // 4-bit input: Port B byte-wide write enable input
-		// Port B Data: 32-bit (each) input: Port B data
-		.DIB(32'd0), // 32-bit input: B port data input
-		.DIPB(4'h0) // 4-bit input: B port parity input
-	);
 endmodule
 
 // RAMB8BWER 8k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
@@ -848,87 +679,6 @@ module RAM_s6_1k_8bit (
 		.DOPADOP(), .DOPBDOP(), // 2 bits output: parity
 		.REGCEA(1'b0), .REGCEBREGCE(1'b0), // 1 bit input: register enable
 		.RSTA(reset), .RSTBRST(1'b0) // 1 bit input: reset
-	);
-endmodule
-
-// RAMB16BWER 16k-bit dual-port memory (instantiation example from spartan6_hdl.pdf from xilinx)
-module RAM_s6_512_32bit #(
-	parameter INIT_FILENAME = "NONE"
-) (
-	input read_clock,
-	input write_clock,
-	input reset,
-	input [31:0] data_in,
-	output [31:0] data_out,
-	input [8:0] write_address,
-	input [8:0] read_address,
-	input write_enable,
-	input read_enable
-);
-	wire [13:0] write_address_14;
-	assign write_address_14 = { write_address, 5'b00000 };
-	wire [13:0] read_address_14;
-	assign read_address_14 = { read_address, 5'b00000 };
-	wire [3:0] write_enable_4;
-	assign write_enable_4 = { write_enable, write_enable, write_enable, write_enable };
-	RAMB16BWER #(
-		// DATA_WIDTH_A/DATA_WIDTH_B: 0, 1, 2, 4, 9, 18, or 36
-		.DATA_WIDTH_A(36),
-		.DATA_WIDTH_B(36),
-		// DOA_REG/DOB_REG: Optional output register (0 or 1)
-		.DOA_REG(0),
-		.DOB_REG(0),
-		// EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
-		.EN_RSTRAM_A("TRUE"),
-		.EN_RSTRAM_B("TRUE"),
-		// INIT_A/INIT_B: Initial values on output port
-//		.INIT_A(36’h000000000),
-//		.INIT_B(36’h000000000),
-		// INIT_FILE: Optional file used to specify initial RAM contents
-		//.INIT_FILE("NONE"),
-		.INIT_FILE(INIT_FILENAME),
-		// RSTTYPE: "SYNC" or "ASYNC"
-		.RSTTYPE("SYNC"),
-		// RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR"
-		.RST_PRIORITY_A("CE"),
-		.RST_PRIORITY_B("CE"),
-		// SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE"
-		.SIM_COLLISION_CHECK("ALL"),
-		// SIM_DEVICE: Must be set to "SPARTAN6" for proper simulation behavior
-		.SIM_DEVICE("SPARTAN6"),
-		// SRVAL_A/SRVAL_B: Set/Reset value for RAM output
-//		.SRVAL_A(36’h000000000),
-//		.SRVAL_B(36’h000000000),
-		// WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE"
-		.WRITE_MODE_A("WRITE_FIRST"),
-		.WRITE_MODE_B("WRITE_FIRST")
-	) RAMB16BWER_inst (
-		// Port A Data: 32-bit (each) output: Port A data
-		.DOA(), // 32-bit output: A port data output
-		.DOPA(), // 4-bit output: A port parity output
-		// Port B Data: 32-bit (each) output: Port B data
-		.DOB(data_out), // 32-bit output: B port data output
-		.DOPB(), // 4-bit output: B port parity output
-		// Port A Address/Control Signals: 14-bit (each) input: Port A address and control signals
-		.ADDRA(write_address_14), // 14-bit input: A port address input
-		.CLKA(write_clock), // 1-bit input: A port clock input
-		.ENA(1'b1), // 1-bit input: A port enable input
-		.REGCEA(1'b0), // 1-bit input: A port register clock enable input
-		.RSTA(reset), // 1-bit input: A port register set/reset input
-		.WEA(write_enable_4), // 4-bit input: Port A byte-wide write enable input
-		// Port A Data: 32-bit (each) input: Port A data
-		.DIA(data_in), // 32-bit input: A port data input
-		.DIPA(4'h0), // 4-bit input: A port parity input
-		// Port B Address/Control Signals: 14-bit (each) input: Port B address and control signals
-		.ADDRB(read_address_14), // 14-bit input: B port address input
-		.CLKB(read_clock), // 1-bit input: B port clock input
-		.ENB(read_enable), // 1-bit input: B port enable input
-		.REGCEB(1'b0), // 1-bit input: B port register clock enable input
-		.RSTB(1'b0), // 1-bit input: B port register set/reset input
-		.WEB(4'h0), // 4-bit input: Port B byte-wide write enable input
-		// Port B Data: 32-bit (each) input: Port B data
-		.DIB(32'd0), // 32-bit input: B port data input
-		.DIPB(4'h0) // 4-bit input: B port parity input
 	);
 endmodule
 
