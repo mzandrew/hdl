@@ -73,10 +73,10 @@ module fifo_single_clock #(
 		end
 	end
 	assign data_out = mem[read_address];
-	assign full  = (count == MAX_COUNT) ? 1 : 0;
-	assign empty = (count == MIN_COUNT) ? 1 : 0;
-	assign almost_full  = (count == MAX_COUNT-1) ? 1 : 0;
-	assign almost_empty = (count == MIN_COUNT+1) ? 1 : 0;
+	assign full  = (count == MAX_COUNT) ? 1'b1 : 1'b0;
+	assign empty = (count == MIN_COUNT) ? 1'b1 : 1'b0;
+	assign almost_full  = (count == MAX_COUNT-1) ? 1'b1 : 1'b0;
+	assign almost_empty = (count == MIN_COUNT+1) ? 1'b1 : 1'b0;
 	assign full_or_almost_full   = full  || almost_full;
 	assign empty_or_almost_empty = empty || almost_empty;
 endmodule
