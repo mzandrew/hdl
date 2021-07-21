@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-17 by mza
+// last updated 2021-07-21 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -194,7 +194,7 @@ module top #(
 			.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
 	end
 	wire [2:0] rot_pipeline;
-	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 7;
+	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 16;
 	localparam PADDING = 16 - LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE;
 	wire [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] count [3:0];
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] previous_count [3:0];
@@ -280,7 +280,7 @@ module top #(
 //	bitslip #(.WIDTH(8)) bso2 (.clock(word_clock1), .bitslip(bitslip_oserdes1_again), .data_in(oserdes_word1_buffer_mid), .data_out(oserdes_word1_buffer_delayed));
 	//pipeline #(.WIDTH(8), .DEPTH(DELAY)) canoes (.clock(word_clock1), .in(sync_out_word1_buffer), .out(sync_out_word1_buffer1));
 	wire pre_coax_4;
-	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL"), .PINTYPE3("n"), .PHASE45(0)) mylei6 (
+	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL"), .PINTYPE3("n"), .PHASE45(0.0)) mylei6 (
 		.clock_in(clock50), .reset(reset50), .word_clock0123_out(word_clock1), .locked(pll_oserdes_locked),
 		.word_clock45_sel(word_clock_sel[1:0]), .word_clock45_out(word_clock0),
 		.word0_in(oserdes_word1_buffer_delayed), .word1_in(oserdes_word1_buffer), .word2_in(oserdes_word1_buffer), .word3_in(iserdes_word_buffer_delayed),

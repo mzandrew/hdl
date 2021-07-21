@@ -1,4 +1,4 @@
-// last updated 2021-07-20 by mza
+// last updated 2021-07-21 by mza
 
 `ifndef FIFO_LIB
 `define FIFO_LIB
@@ -28,7 +28,7 @@ module fifo_single_clock_using_bram #(
 	reg [RAM_ADDRESS_DEPTH-1:0] read_address = 0;
 	localparam MIN_COUNT = 1;
 	localparam MAX_COUNT = MIN_COUNT + DEPTH;
-	reg [DEPTH:0] count = MIN_COUNT; // 1 extra bit
+	reg [LOG2_OF_DEPTH:0] count = MIN_COUNT; // 1 extra bit
 	reg [31:0] write_error_count = 0;
 	reg [31:0] read_error_count = 0;
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};
@@ -85,7 +85,7 @@ module fifo_single_clock #(
 	reg [DATA_WIDTH-1:0] mem [DEPTH-1:0];
 	localparam MIN_COUNT = 1;
 	localparam MAX_COUNT = MIN_COUNT + DEPTH;
-	reg [DEPTH:0] count = MIN_COUNT; // 1 extra bit
+	reg [LOG2_OF_DEPTH:0] count = MIN_COUNT; // 1 extra bit
 	reg [31:0] write_error_count = 0;
 	reg [31:0] read_error_count = 0;
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};

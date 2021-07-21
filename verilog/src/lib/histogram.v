@@ -1,5 +1,5 @@
 // written 2021-07-14 by mza
-// last updated 2021-07-20 by mza
+// last updated 2021-07-21 by mza
 
 `ifndef HISTOGRAM_LIB
 `define HISTOGRAM_LIB
@@ -9,7 +9,6 @@
 `include "generic.v"
 
 // takes 11 us @ 250 MHz (DATA_WIDTH=8; LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE=5)
-// doesn't compile past a LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE of 7 for some reason (on an lx9 anyway)
 module histogram_using_block_memory #(
 	parameter DATA_WIDTH = 4,
 	parameter LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 4
@@ -316,7 +315,7 @@ module histogram #(
 							result_valid <= 1;
 						end
 					end else begin
-						if (count[index[i]]<count[j]) begin
+						if (count[index[i]]<count[j]) begin // replacing this comparison with something more like temp<count[j] would probably be significantly more efficient on LUTs
 							index[i] <= j;
 						end
 						if (j!=MAX_INDEX) begin
