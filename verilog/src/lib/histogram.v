@@ -1,5 +1,5 @@
 // written 2021-07-14 by mza
-// last updated 2021-07-17 by mza
+// last updated 2021-07-20 by mza
 
 `ifndef HISTOGRAM_LIB
 `define HISTOGRAM_LIB
@@ -65,7 +65,10 @@ module histogram_using_block_memory #(
 	assign ram_write_enable = adding_not_comparing ? adding_ram_write_enable : comparing_write_enable;
 //	if (8<LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE) begin
 	assign ram_data_in      = adding_not_comparing ? count : {RAM_DATA_WIDTH{1'b0}} ;
-	fifo_single_clock #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (.clock(clock), .reset(reset),
+//	fifo_single_clock #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (.clock(clock), .reset(reset),
+//		.data_in(data_in), .write_enable(should_keep_sampling), .full(full), .almost_full(), .full_or_almost_full(),
+//		.data_out(data_out_from_fifo), .read_enable(fifo_read_enable), .empty(), .almost_empty(), .empty_or_almost_empty());
+	fifo_single_clock_using_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (.clock(clock), .reset(reset),
 		.data_in(data_in), .write_enable(should_keep_sampling), .full(full), .almost_full(), .full_or_almost_full(),
 		.data_out(data_out_from_fifo), .read_enable(fifo_read_enable), .empty(), .almost_empty(), .empty_or_almost_empty());
 //	RAM_s6_2k_8bit mem (.reset(reset),
