@@ -30,15 +30,16 @@ module histogram #(
 	output [DATA_WIDTH-1:0] result03,
 	output reg max_count_reached = 0,
 	output reg adding_finished = 0,
-	output reg result_valid = 0
+	output reg result_valid = 0,
+	output [31:0] error_count
 );
 	localparam MAX_INDEX = (1<<DATA_WIDTH) - 1;
 	localparam MAXIMUM_SAMPLE_NUMBER = (1<<LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE) - 1;
 	localparam LOG2_OF_NUMBER_OF_RESULTS = 2;
 	localparam LAST_RESULT = (1<<LOG2_OF_NUMBER_OF_RESULTS) - 1;
 	//localparam RAM_DATA_WIDTH = LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE < 8 ? 8 : 16;
-	localparam RAM_DATA_WIDTH = USE_BLOCK_MEMORY ? 16 : LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE;
-	localparam RAM_ADDRESS_DEPTH = USE_BLOCK_MEMORY ? 10 : DATA_WIDTH;
+	localparam RAM_DATA_WIDTH = USE_BLOCK_MEMORY ? 32 : LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE;
+	localparam RAM_ADDRESS_DEPTH = USE_BLOCK_MEMORY ? 9 : DATA_WIDTH;
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] count_copy [LAST_RESULT:0];
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] sample_counter = 0;
 	reg [LAST_RESULT:0] i = 0; // i=result #
@@ -70,11 +71,12 @@ module histogram #(
 //	fifo_single_clock #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (.clock(clock), .reset(reset),
 //		.data_in(data_in), .write_enable(should_keep_sampling), .full(full), .almost_full(), .full_or_almost_full(),
 //		.data_out(data_out_from_fifo), .read_enable(fifo_read_enable), .empty(), .almost_empty(), .empty_or_almost_empty());
-	fifo_single_clock_using_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (.clock(clock), .reset(reset),
+	fifo_single_clock_using_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (
+		.clock(clock), .reset(reset), .error_count(error_count),
 		.data_in(data_in), .write_enable(should_keep_sampling), .full(full), .almost_full(), .full_or_almost_full(),
 		.data_out(data_out_from_fifo), .read_enable(fifo_read_enable), .empty(), .almost_empty(), .empty_or_almost_empty());
 	if (USE_BLOCK_MEMORY) begin
-		RAM_s6_primitive #(.DATA_WIDTH_A(16), .DATA_WIDTH_B(16)) mem (.reset(reset),
+		RAM_s6_primitive #(.DATA_WIDTH_A(RAM_DATA_WIDTH), .DATA_WIDTH_B(RAM_DATA_WIDTH)) mem (.reset(reset),
 			.write_clock(clock), .write_address(ram_write_address), .data_in(ram_data_in), .write_enable(ram_write_enable),
 			.read_clock(clock), .read_address(ram_read_address), .read_enable(1'b1), .data_out(data_out_from_ram));
 	end else begin
