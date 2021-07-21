@@ -1,5 +1,5 @@
 // updated 2020-10-02 by mza
-// last updated 2021-07-17 by mza
+// last updated 2021-07-20 by mza
 
 `ifndef RAM8_LIB
 `define RAM8_LIB
@@ -626,12 +626,36 @@ module RAM_s6_16k_8bit (
 		.out4(write_enable_array[4]), .out5(write_enable_array[5]), .out6(write_enable_array[6]), .out7(write_enable_array[7]));
 endmodule
 
+// root-scope functions can not exist in verilog-2001
+// so just use "DATA_WIDTH_A==32 ? 36 : DATA_WIDTH_A==16 ? 18 : DATA_WIDTH_A==8 ? 9 : DATA_WIDTH_A" or somesuch
+//function integer block_memory_parity_bits_but_only_sometimes (
+//	input integer DATA_WIDTH
+//);
+//	if (DATA_WIDTH==0) begin
+//		block_memory_parity_bits_but_only_sometimes = 0;
+//	end else if (DATA_WIDTH==1) begin
+//		block_memory_parity_bits_but_only_sometimes = 1;
+//	end else if (DATA_WIDTH==2) begin
+//		block_memory_parity_bits_but_only_sometimes = 2;
+//	end else if (DATA_WIDTH==4) begin
+//		block_memory_parity_bits_but_only_sometimes = 4;
+//	end else if (DATA_WIDTH==8) begin
+//		block_memory_parity_bits_but_only_sometimes = 9;
+//	end else if (DATA_WIDTH==16) begin
+//		block_memory_parity_bits_but_only_sometimes = 18;
+//	end else if (DATA_WIDTH==32) begin
+//		block_memory_parity_bits_but_only_sometimes = 36;
+//	end else begin
+//		// assert!
+//	end
+//endfunction
+
 // RAMB16BWER 16k-bit dual-port memory (modified from instantiation example from spartan6_hdl.pdf from xilinx)
 module RAM_s6_primitive #(
 	parameter DATA_WIDTH_A = 16,
 	parameter DATA_WIDTH_B = 16,
-	parameter PRIMITIVE_DATA_WIDTH_A = 40,
-	parameter PRIMITIVE_DATA_WIDTH_B = 40,
+	parameter PRIMITIVE_DATA_WIDTH_A = DATA_WIDTH_A==32 ? 36 : DATA_WIDTH_A==16 ? 18 : DATA_WIDTH_A==8 ? 9 : DATA_WIDTH_A,
+	parameter PRIMITIVE_DATA_WIDTH_B = DATA_WIDTH_B==32 ? 36 : DATA_WIDTH_B==16 ? 18 : DATA_WIDTH_B==8 ? 9 : DATA_WIDTH_B,
 	parameter PRIMITIVE_ADDRESS_DEPTH = 14,
 	parameter ADDRESS_DEPTH_A = PRIMITIVE_ADDRESS_DEPTH - $clog2(DATA_WIDTH_A),
 	parameter ADDRESS_DEPTH_B = PRIMITIVE_ADDRESS_DEPTH - $clog2(DATA_WIDTH_B),
@@ -657,40 +681,6 @@ module RAM_s6_primitive #(
 	assign read_address_14 = { read_address, {PRIMITIVE_ADDRESS_DEPTH-ADDRESS_DEPTH_B{1'b0}} };
 	wire [3:0] write_enable_4;
 	assign write_enable_4 = { write_enable, write_enable, write_enable, write_enable };
-	if (DATA_WIDTH_A==0) begin
-		defparam PRIMITIVE_DATA_WIDTH_A = 0;
-	end else if (DATA_WIDTH_A==1) begin
-		defparam PRIMITIVE_DATA_WIDTH_A = 1;
-	end else if (DATA_WIDTH_A==2) begin
-		defparam PRIMITIVE_DATA_WIDTH_A = 2;
-	end else if (DATA_WIDTH_A==4) begin
-		defparam PRIMITIVE_DATA_WIDTH_A = 4;
-	end else if (DATA_WIDTH_A==8) begin
-		defparam PRIMITIVE_DATA_WIDTH_A = 9;
-	end else if (DATA_WIDTH_A==16) begin
-		defparam PRIMITIVE_DATA_WIDTH_A = 18;
-	end else if (DATA_WIDTH_A==32) begin
-		defparam PRIMITIVE_DATA_WIDTH_A = 36;
-	end else begin
-		// assert!
-	end
-	if (DATA_WIDTH_B==0) begin
-		defparam PRIMITIVE_DATA_WIDTH_B = 0;
-	end else if (DATA_WIDTH_B==1) begin
-		defparam PRIMITIVE_DATA_WIDTH_B = 1;
-	end else if (DATA_WIDTH_B==2) begin
-		defparam PRIMITIVE_DATA_WIDTH_B = 2;
-	end else if (DATA_WIDTH_B==4) begin
-		defparam PRIMITIVE_DATA_WIDTH_B = 4;
-	end else if (DATA_WIDTH_B==8) begin
-		defparam PRIMITIVE_DATA_WIDTH_B = 9;
-	end else if (DATA_WIDTH_B==16) begin
-		defparam PRIMITIVE_DATA_WIDTH_B = 18;
-	end else if (DATA_WIDTH_B==32) begin
-		defparam PRIMITIVE_DATA_WIDTH_B = 36;
-	end else begin
-		// assert!
-	end
 	RAMB16BWER #(
 		// DATA_WIDTH_A/DATA_WIDTH_B: 0, 1, 2, 4, 9, 18, or 36
 		.DATA_WIDTH_A(PRIMITIVE_DATA_WIDTH_A), // (TDP) 0, 1, 2, 4, 9, 18, or (SDP) 36
