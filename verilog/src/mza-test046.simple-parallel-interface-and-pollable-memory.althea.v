@@ -194,32 +194,35 @@ module top #(
 			.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
 	end
 	wire [2:0] rot_pipeline;
-	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 16;
-	localparam PADDING = 16 - LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE;
+	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 12;
+	localparam PADDING = 24 - LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE;
 	wire [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] count [3:0];
+	wire [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] pipelined_count [3:0];
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] previous_count [3:0];
 	wire [OSERDES_DATA_WIDTH-1:0] result [3:0];
+	wire [OSERDES_DATA_WIDTH-1:0] pipelined_result [3:0];
 	reg [OSERDES_DATA_WIDTH-1:0] previous_result [3:0];
 	wire max_count_reached;
 	wire adding_finished;
 	wire result_valid;
 	wire [3:0] histogram_status4 = { 1'b0, result_valid, adding_finished, max_count_reached };
+	wire [31:0] histogram_error_count;
 	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
 	assign bank1[1]  = { oserdes_word_delayed, 8'd0, oserdes_word1_buffer, oserdes_word1_buffer_delayed };
 	assign bank1[2]  = { iserdes_word, 8'd0, iserdes_word_buffer, iserdes_word_buffer_delayed };
 	assign bank1[3]  = hdrb_read_errors;
 	assign bank1[4]  = hdrb_write_errors;
 	assign bank1[5]  = hdrb_address_errors;
-	assign bank1[6]  = { 8'h0, histogram_status4, 4'd0, status4, status8 };
-	assign bank1[7]  = { 29'd0, rot_pipeline };
-	assign bank1[8]  = { {PADDING{1'b0}}, previous_count[0], {16-OSERDES_DATA_WIDTH{1'b0}}, previous_result[0] };
-	assign bank1[9]  = { {PADDING{1'b0}}, previous_count[1], {16-OSERDES_DATA_WIDTH{1'b0}}, previous_result[1] };
-	assign bank1[10] = { {PADDING{1'b0}}, previous_count[2], {16-OSERDES_DATA_WIDTH{1'b0}}, previous_result[2] };
-	assign bank1[11] = { {PADDING{1'b0}}, previous_count[3], {16-OSERDES_DATA_WIDTH{1'b0}}, previous_result[3] };
-	assign bank1[12] = { {PADDING{1'b0}}, count[0], {16-OSERDES_DATA_WIDTH{1'b0}}, result[0] };
-	assign bank1[13] = { {PADDING{1'b0}}, count[1], {16-OSERDES_DATA_WIDTH{1'b0}}, result[1] };
-	assign bank1[14] = { {PADDING{1'b0}}, count[2], {16-OSERDES_DATA_WIDTH{1'b0}}, result[2] };
-	assign bank1[15] = { {PADDING{1'b0}}, count[3], {16-OSERDES_DATA_WIDTH{1'b0}}, result[3] };
+	assign bank1[6]  = { 1'd0, rot_pipeline, 4'h0, histogram_status4, 4'd0, status4, status8 };
+	assign bank1[7]  = histogram_error_count;
+	assign bank1[8]  = { {PADDING{1'b0}}, previous_count[0], previous_result[0] };
+	assign bank1[9]  = { {PADDING{1'b0}}, previous_count[1], previous_result[1] };
+	assign bank1[10] = { {PADDING{1'b0}}, previous_count[2], previous_result[2] };
+	assign bank1[11] = { {PADDING{1'b0}}, previous_count[3], previous_result[3] };
+	assign bank1[12] = { {PADDING{1'b0}},          count[0],          result[0] };
+	assign bank1[13] = { {PADDING{1'b0}},          count[1],          result[1] };
+	assign bank1[14] = { {PADDING{1'b0}},          count[2],          result[2] };
+	assign bank1[15] = { {PADDING{1'b0}},          count[3],          result[3] };
 	wire  [2:0] bitslip_iserdes           = bank2[0][2:0];
 	wire  [2:0] bitslip_oserdes1          = bank2[1][2:0];
 //	wire  [2:0] bitslip_oserdes1_again    = bank2[2][2:0];
@@ -232,8 +235,16 @@ module top #(
 	wire        enable_histogram_sampling = bank2[8][0];
 	wire        clear_histogram_results   = bank2[8][1];
 	pipeline #(.WIDTH(8), .DEPTH(3)) kings (.clock(word_clock0), .in(iserdes_word_buffer), .out(iserdes_word_buffer0));
-	localparam RESULT_VALID_PIPELINE_PICKOFF = 4;
+	localparam RESULT_VALID_PIPELINE_PICKOFF = 1;
 	reg [RESULT_VALID_PIPELINE_PICKOFF:0] result_valid_pipeline = 0;
+	pipeline #(.WIDTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE), .DEPTH(RESULT_VALID_PIPELINE_PICKOFF+1)) kongs0 (.clock(word_clock0), .in(count[0]), .out(pipelined_count[0]));
+	pipeline #(.WIDTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE), .DEPTH(RESULT_VALID_PIPELINE_PICKOFF+1)) kongs1 (.clock(word_clock0), .in(count[1]), .out(pipelined_count[1]));
+	pipeline #(.WIDTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE), .DEPTH(RESULT_VALID_PIPELINE_PICKOFF+1)) kongs2 (.clock(word_clock0), .in(count[2]), .out(pipelined_count[2]));
+	pipeline #(.WIDTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE), .DEPTH(RESULT_VALID_PIPELINE_PICKOFF+1)) kongs3 (.clock(word_clock0), .in(count[3]), .out(pipelined_count[3]));
+	pipeline #(.WIDTH(OSERDES_DATA_WIDTH), .DEPTH(RESULT_VALID_PIPELINE_PICKOFF+1)) mothra0 (.clock(word_clock0), .in(result[0]), .out(pipelined_result[0]));
+	pipeline #(.WIDTH(OSERDES_DATA_WIDTH), .DEPTH(RESULT_VALID_PIPELINE_PICKOFF+1)) mothra1 (.clock(word_clock0), .in(result[1]), .out(pipelined_result[1]));
+	pipeline #(.WIDTH(OSERDES_DATA_WIDTH), .DEPTH(RESULT_VALID_PIPELINE_PICKOFF+1)) mothra2 (.clock(word_clock0), .in(result[2]), .out(pipelined_result[2]));
+	pipeline #(.WIDTH(OSERDES_DATA_WIDTH), .DEPTH(RESULT_VALID_PIPELINE_PICKOFF+1)) mothra3 (.clock(word_clock0), .in(result[3]), .out(pipelined_result[3]));
 	for (i=0; i<4; i=i+1) begin : previous_histogram
 		always @(posedge word_clock0) begin
 			if (reset_word0) begin
@@ -241,8 +252,8 @@ module top #(
 				previous_result[i] <= 0;
 			end else begin
 				if (result_valid_pipeline[RESULT_VALID_PIPELINE_PICKOFF -: 2]==2'b10) begin
-					previous_count[i] <= count[i];
-					previous_result[i] <= result[i];
+					previous_count[i] <= pipelined_count[i];
+					previous_result[i] <= pipelined_result[i];
 				end
 			end
 		end
@@ -260,7 +271,7 @@ module top #(
 		.clock(word_clock0), .reset(reset_word0), .clear_results(clear_histogram_results), .data_in(iserdes_word_buffer0), .sample(enable_histogram_sampling),
 		.result00(result[0]), .result01(result[1]), .result02(result[2]), .result03(result[3]),
 		.count00(count[0]), .count01(count[1]), .count02(count[2]), .count03(count[3]),
-		.max_count_reached(max_count_reached), .adding_finished(adding_finished), .result_valid(result_valid));
+		.max_count_reached(max_count_reached), .adding_finished(adding_finished), .result_valid(result_valid), .error_count(histogram_error_count));
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
 		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
 	end
