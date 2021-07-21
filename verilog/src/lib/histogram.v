@@ -8,10 +8,13 @@
 `include "fifo.v"
 `include "generic.v"
 
-// takes 11 us @ 250 MHz (DATA_WIDTH=8; LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE=5)
-module histogram_using_block_memory #(
+// takes 11 us @ 250 MHz in simulation (DATA_WIDTH=8; LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE=5)
+// with USE_BLOCK_MEMORY=1, it uses 40% of slices (DATA_WIDTH=8; LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE=16) and compiles quickly
+// with USE_BLOCK_MEMORY=0, LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE must be no more than 4 or 5 and it still takes a while to compile...
+module histogram #(
 	parameter DATA_WIDTH = 4,
-	parameter LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 4
+	parameter LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 4,
+	parameter USE_BLOCK_MEMORY = 1
 ) (
 	input reset, clock,
 	input sample,
@@ -34,8 +37,8 @@ module histogram_using_block_memory #(
 	localparam LOG2_OF_NUMBER_OF_RESULTS = 2;
 	localparam LAST_RESULT = (1<<LOG2_OF_NUMBER_OF_RESULTS) - 1;
 	//localparam RAM_DATA_WIDTH = LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE < 8 ? 8 : 16;
-	localparam RAM_DATA_WIDTH = 16;
-	localparam RAM_ADDRESS_DEPTH = 10;
+	localparam RAM_DATA_WIDTH = USE_BLOCK_MEMORY ? 16 : LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE;
+	localparam RAM_ADDRESS_DEPTH = USE_BLOCK_MEMORY ? 10 : DATA_WIDTH;
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] count_copy [LAST_RESULT:0];
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] sample_counter = 0;
 	reg [LAST_RESULT:0] i = 0; // i=result #
@@ -70,12 +73,22 @@ module histogram_using_block_memory #(
 	fifo_single_clock_using_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (.clock(clock), .reset(reset),
 		.data_in(data_in), .write_enable(should_keep_sampling), .full(full), .almost_full(), .full_or_almost_full(),
 		.data_out(data_out_from_fifo), .read_enable(fifo_read_enable), .empty(), .almost_empty(), .empty_or_almost_empty());
-//	RAM_s6_2k_8bit mem (.reset(reset),
-//		.write_clock(clock), .write_address(ram_write_address), .data_in(ram_data_in), .write_enable(ram_write_enable),
-//		.read_clock(clock), .read_address(ram_read_address), .read_enable(1'b1), .data_out(data_out_from_ram));
-	RAM_s6_primitive #(.DATA_WIDTH_A(16), .DATA_WIDTH_B(16)) mem (.reset(reset),
-		.write_clock(clock), .write_address(ram_write_address), .data_in(ram_data_in), .write_enable(ram_write_enable),
-		.read_clock(clock), .read_address(ram_read_address), .read_enable(1'b1), .data_out(data_out_from_ram));
+	if (USE_BLOCK_MEMORY) begin
+		RAM_s6_primitive #(.DATA_WIDTH_A(16), .DATA_WIDTH_B(16)) mem (.reset(reset),
+			.write_clock(clock), .write_address(ram_write_address), .data_in(ram_data_in), .write_enable(ram_write_enable),
+			.read_clock(clock), .read_address(ram_read_address), .read_enable(1'b1), .data_out(data_out_from_ram));
+	end else begin
+		reg [RAM_ADDRESS_DEPTH-1:0] mem [(1<<RAM_ADDRESS_DEPTH)-1:0];
+		always @(posedge clock) begin
+			if (reset || clear_results) begin
+			end else begin
+				if (ram_write_enable) begin
+					mem[ram_write_address] <= ram_data_in;
+				end
+			end
+		end
+		assign data_out_from_ram = mem[ram_read_address];
+	end
 	always @(posedge clock) begin
 		if (reset || clear_results) begin
 			fifo_read_enable <= 0;
@@ -225,8 +238,8 @@ endmodule
 // don't go for more than LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE=5 when using this non-block-ram version (on an lx9 anyway)
 // 8 uses up 92% of slice LUTs, fails timing by 78 ns and can't produce a static timing report; seems to work on hardware
 // 6 uses up 72% of slice LUTs, fails timing by 18 ns, but shows a lot of count->index[i]/j->index/index->index timing failures
-// 5 uses up 56% of slice LUTs, passes timing
-module histogram #(
+// 5 uses up 56% of slice LUTs, passes timing sometimes (79% occupied slices)
+module histogram_original #(
 	parameter DATA_WIDTH = 4,
 	parameter LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 4
 ) (
@@ -243,6 +256,7 @@ module histogram #(
 	output [DATA_WIDTH-1:0] result02,
 	output [DATA_WIDTH-1:0] result03,
 	output reg max_count_reached = 0,
+	output reg adding_finished = 0, // dummy output for compatibility with above module
 	output reg result_valid = 0
 );
 	localparam MAX_INDEX = (1<<DATA_WIDTH) - 1;

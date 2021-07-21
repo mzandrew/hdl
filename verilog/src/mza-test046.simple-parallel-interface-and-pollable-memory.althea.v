@@ -254,7 +254,9 @@ module top #(
 			result_valid_pipeline <= { result_valid_pipeline[RESULT_VALID_PIPELINE_PICKOFF-1:0], result_valid };
 		end
 	end
-	histogram_using_block_memory #(.DATA_WIDTH(OSERDES_DATA_WIDTH), .LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) h1n1 (
+	histogram #(.DATA_WIDTH(OSERDES_DATA_WIDTH), .LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE), .USE_BLOCK_MEMORY(1)) h1n1 (
+	//histogram #(.DATA_WIDTH(OSERDES_DATA_WIDTH), .LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE), .USE_BLOCK_MEMORY(0)) h1n1 (
+	//histogram_original #(.DATA_WIDTH(OSERDES_DATA_WIDTH), .LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) h1n1 (
 		.clock(word_clock0), .reset(reset_word0), .clear_results(clear_histogram_results), .data_in(iserdes_word_buffer0), .sample(enable_histogram_sampling),
 		.result00(result[0]), .result01(result[1]), .result02(result[2]), .result03(result[3]),
 		.count00(count[0]), .count01(count[1]), .count02(count[2]), .count03(count[3]),
