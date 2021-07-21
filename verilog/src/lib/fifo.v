@@ -22,7 +22,8 @@ module fifo_single_clock_using_bram #(
 	input write_enable,
 	output almost_empty, empty, empty_or_almost_empty,
 	input read_enable,
-	output [DATA_WIDTH-1:0] data_out
+	output [DATA_WIDTH-1:0] data_out,
+	output [31:0] error_count
 );
 	reg [RAM_ADDRESS_DEPTH-1:0] write_address = 0;
 	reg [RAM_ADDRESS_DEPTH-1:0] read_address = 0;
@@ -31,6 +32,8 @@ module fifo_single_clock_using_bram #(
 	reg [LOG2_OF_DEPTH:0] count = MIN_COUNT; // 1 extra bit
 	reg [31:0] write_error_count = 0;
 	reg [31:0] read_error_count = 0;
+	reg [31:0] other_error_count = 0;
+	assign error_count = write_error_count + read_error_count + other_error_count;
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};
 	wire ram_write_enable = write_enable && ((~full) || (read_enable && full));
 	RAM_s6_primitive #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH)) mem (.reset(reset),
@@ -43,16 +46,18 @@ module fifo_single_clock_using_bram #(
 			count <= MIN_COUNT;
 			write_error_count <= 0;
 			read_error_count <= 0;
+			other_error_count <= 0;
 		end else begin
 			casez (rwef)
 				4'b100? : begin read_address <= read_address + 1'd1; count <= count - 1'd1; end
-				4'b101? : begin end // no data to read
+				4'b101? : begin read_error_count <= read_error_count + 1'd1; end // no data to read
 				4'b01?0 : begin write_address <= write_address + 1'd1; count <= count + 1'd1; end
-				4'b01?1 : begin end // no more room
+				4'b01?1 : begin write_error_count <= write_error_count + 1'd1; end // no more room to write
 				4'b1100 : begin write_address <= write_address + 1'd1; read_address <= read_address + 1'd1; end
 				4'b1110 : begin write_address <= write_address + 1'd1; count <= count + 1'd1; end
 				4'b1101 : begin read_address <= read_address + 1'd1; count <= count - 1'd1; end
-				default : begin end
+				4'b00?? : begin end // idle
+				default : begin other_error_count <= other_error_count + 1'd1; end
 			endcase
 		end
 	end
