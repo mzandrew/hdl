@@ -6,10 +6,10 @@
 `include "generic.v"
 `include "RAM8.v"
 
-//	fifo_single_clock_using_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(clock), .reset(reset),
+//	fifo_single_clock_using_single_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(clock), .reset(reset),
 //		.data_in(data_in), .write_enable(write_enable), .full(full), .almost_full(almost_full), .full_or_almost_full(full_or_almost_full),
 //		.data_out(data_out), .read_enable(read_enable), .empty(empty), .almost_empty(almost_empty), .empty_or_almost_empty(empty_or_almost_empty));
-module fifo_single_clock_using_bram #(
+module fifo_single_clock_using_single_bram #(
 	parameter DATA_WIDTH = 8,
 	parameter LOG2_OF_DEPTH = 4,
 	parameter PRIMITIVE_ADDRESS_DEPTH = 14,
@@ -147,7 +147,7 @@ module fifo_single_clock_tb;
 			.data_in(data_in), .write_enable(write_enable), .full(full), .almost_full(almost_full), .full_or_almost_full(full_or_almost_full),
 			.data_out(data_out), .read_enable(read_enable), .empty(empty), .almost_empty(almost_empty), .empty_or_almost_empty(empty_or_almost_empty));
 	end else begin
-		fifo_single_clock_using_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(clock), .reset(reset),
+		fifo_single_clock_using_single_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(clock), .reset(reset),
 			.data_in(data_in), .write_enable(write_enable), .full(full), .almost_full(almost_full), .full_or_almost_full(full_or_almost_full),
 			.data_out(data_out), .read_enable(read_enable), .empty(empty), .almost_empty(almost_empty), .empty_or_almost_empty(empty_or_almost_empty));
 	end
