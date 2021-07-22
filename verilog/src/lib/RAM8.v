@@ -4,6 +4,8 @@
 `ifndef RAM8_LIB
 `define RAM8_LIB
 
+`define LOG2_OF_BASE_BLOCK_MEMORY_SIZE 14
+
 `include "generic.v"
 
 // modified from MemoryUsageGuideforiCE40Devices.pdf
@@ -656,9 +658,8 @@ module RAM_s6_primitive #(
 	parameter DATA_WIDTH_B = 16,
 	parameter PRIMITIVE_DATA_WIDTH_A = DATA_WIDTH_A==32 ? 36 : DATA_WIDTH_A==16 ? 18 : DATA_WIDTH_A==8 ? 9 : DATA_WIDTH_A,
 	parameter PRIMITIVE_DATA_WIDTH_B = DATA_WIDTH_B==32 ? 36 : DATA_WIDTH_B==16 ? 18 : DATA_WIDTH_B==8 ? 9 : DATA_WIDTH_B,
-	parameter PRIMITIVE_ADDRESS_DEPTH = 14,
-	parameter ADDRESS_DEPTH_A = PRIMITIVE_ADDRESS_DEPTH - $clog2(DATA_WIDTH_A),
-	parameter ADDRESS_DEPTH_B = PRIMITIVE_ADDRESS_DEPTH - $clog2(DATA_WIDTH_B),
+	parameter ADDRESS_DEPTH_A = `LOG2_OF_BASE_BLOCK_MEMORY_SIZE - $clog2(DATA_WIDTH_A),
+	parameter ADDRESS_DEPTH_B = `LOG2_OF_BASE_BLOCK_MEMORY_SIZE - $clog2(DATA_WIDTH_B),
 	parameter INIT_FILENAME = "NONE"
 ) (
 	input reset,
@@ -675,10 +676,10 @@ module RAM_s6_primitive #(
 	assign data_in_32 = { {32-DATA_WIDTH_A{1'b0}}, data_in };
 	wire [31:0] data_out_32;
 	assign data_out = data_out_32[DATA_WIDTH_B-1:0];
-	wire [PRIMITIVE_ADDRESS_DEPTH-1:0] write_address_14;
-	assign write_address_14 = { write_address, {PRIMITIVE_ADDRESS_DEPTH-ADDRESS_DEPTH_A{1'b0}} };
-	wire [PRIMITIVE_ADDRESS_DEPTH-1:0] read_address_14;
-	assign read_address_14 = { read_address, {PRIMITIVE_ADDRESS_DEPTH-ADDRESS_DEPTH_B{1'b0}} };
+	wire [`LOG2_OF_BASE_BLOCK_MEMORY_SIZE-1:0] write_address_14;
+	assign write_address_14 = { write_address, {`LOG2_OF_BASE_BLOCK_MEMORY_SIZE-ADDRESS_DEPTH_A{1'b0}} };
+	wire [`LOG2_OF_BASE_BLOCK_MEMORY_SIZE-1:0] read_address_14;
+	assign read_address_14 = { read_address, {`LOG2_OF_BASE_BLOCK_MEMORY_SIZE-ADDRESS_DEPTH_B{1'b0}} };
 	wire [3:0] write_enable_4;
 	assign write_enable_4 = { write_enable, write_enable, write_enable, write_enable };
 	RAMB16BWER #(
