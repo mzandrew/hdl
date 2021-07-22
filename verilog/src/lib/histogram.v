@@ -17,6 +17,7 @@ module histogram #(
 	parameter TESTBENCH = 0,
 	parameter PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO = TESTBENCH ? 2 : LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE + $clog2(DATA_WIDTH) - `LOG2_OF_BASE_BLOCK_MEMORY_SIZE,
 	parameter LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO = PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO < 0 ? 0 : PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO,
+	parameter LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE_IN_ONE_BURST = LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE - LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO,
 	parameter USE_BLOCK_MEMORY = 1
 ) (
 	input reset, clock,
@@ -39,7 +40,7 @@ module histogram #(
 	output [31:0] error_count
 );
 	localparam MAX_INDEX = (1<<DATA_WIDTH) - 1;
-	localparam MAXIMUM_SAMPLE_NUMBER = (1<<LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE) - 1;
+	localparam MAXIMUM_SAMPLE_NUMBER = (1<<LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE_IN_ONE_BURST) - 1;
 	localparam LOG2_OF_NUMBER_OF_RESULTS = 2;
 	localparam LAST_RESULT = (1<<LOG2_OF_NUMBER_OF_RESULTS) - 1;
 	//localparam RAM_DATA_WIDTH = LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE < 8 ? 8 : 16;
@@ -47,7 +48,7 @@ module histogram #(
 	localparam RAM_ADDRESS_DEPTH = USE_BLOCK_MEMORY ? 9 : DATA_WIDTH;
 	localparam LAST_FIFO_FILL_NUMBER = (1<<LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO) - 1;
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] count_copy [LAST_RESULT:0];
-	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] sample_counter = 0;
+	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE_IN_ONE_BURST-1:0] sample_counter = 0;
 	reg [LAST_RESULT:0] i = 0; // i=result #
 	reg [RAM_DATA_WIDTH-1:0] max_so_far = 0; // max_so_far=one of the counts
 	reg [DATA_WIDTH-1:0] j = 0; // j=index of count to compare against
@@ -74,7 +75,7 @@ module histogram #(
 	assign ram_write_enable = adding_not_comparing ? adding_ram_write_enable : comparing_write_enable;
 //	if (8<LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE) begin
 	assign ram_data_in      = adding_not_comparing ? count : {RAM_DATA_WIDTH{1'b0}} ;
-	fifo_single_clock_using_single_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (
+	fifo_single_clock_using_single_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE_IN_ONE_BURST)) fsc (
 		.clock(clock), .reset(reset), .error_count(error_count),
 		.data_in(data_in), .write_enable(should_keep_sampling), .full(), .almost_full(), .full_or_almost_full(fifo_full),
 		.data_out(data_out_from_fifo), .read_enable(fifo_read_enable), .empty(), .almost_empty(), .empty_or_almost_empty());

@@ -209,6 +209,8 @@ module top #(
 	wire max_count_reached;
 	wire adding_finished;
 	wire result_valid;
+	assign coax[1] = partial_count_reached;
+	assign coax[2] = max_count_reached;
 	wire [3:0] histogram_status4 = { result_valid, adding_finished, max_count_reached, partial_count_reached };
 	wire [31:0] histogram_error_count;
 	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
@@ -308,8 +310,8 @@ module top #(
 		.D4_out(coax[0]), .D5_out(coax[3]),
 		.iserdes_bit_input(single_ended_right[3]), .iserdes_word_out(iserdes_word));
 	assign coax[4] = pre_coax_4; // -38 ps (sigma 16 ps) 15.png
-	ddr mario1 (.clock(word_clock1), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[2]));
-	ddr mario2 (.clock(word_clock0), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[1]));
+	//ddr mario1 (.clock(word_clock1), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[2]));
+	//ddr mario2 (.clock(word_clock0), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[1]));
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
 		assign coax[5] = write_strobe[0];
