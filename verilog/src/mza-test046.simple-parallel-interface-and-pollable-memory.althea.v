@@ -202,10 +202,11 @@ module top #(
 	wire [OSERDES_DATA_WIDTH-1:0] result [3:0];
 	wire [OSERDES_DATA_WIDTH-1:0] pipelined_result [3:0];
 	reg [OSERDES_DATA_WIDTH-1:0] previous_result [3:0];
+	wire partial_count_reached;
 	wire max_count_reached;
 	wire adding_finished;
 	wire result_valid;
-	wire [3:0] histogram_status4 = { 1'b0, result_valid, adding_finished, max_count_reached };
+	wire [3:0] histogram_status4 = { result_valid, adding_finished, max_count_reached, partial_count_reached };
 	wire [31:0] histogram_error_count;
 	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
 	assign bank1[1]  = { oserdes_word_delayed, 8'd0, oserdes_word1_buffer, oserdes_word1_buffer_delayed };
@@ -271,7 +272,7 @@ module top #(
 		.clock(word_clock0), .reset(reset_word0), .clear_results(clear_histogram_results), .data_in(iserdes_word_buffer0), .sample(enable_histogram_sampling),
 		.result00(result[0]), .result01(result[1]), .result02(result[2]), .result03(result[3]),
 		.count00(count[0]), .count01(count[1]), .count02(count[2]), .count03(count[3]),
-		.max_count_reached(max_count_reached), .adding_finished(adding_finished), .result_valid(result_valid), .error_count(histogram_error_count));
+		.partial_count_reached(partial_count_reached), .max_count_reached(max_count_reached), .adding_finished(adding_finished), .result_valid(result_valid), .error_count(histogram_error_count));
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
 		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
 	end

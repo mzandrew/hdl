@@ -14,6 +14,10 @@
 module histogram #(
 	parameter DATA_WIDTH = 4,
 	parameter LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 4,
+	parameter TESTBENCH = 0,
+	parameter PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO = TESTBENCH ? 2 : LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE + $clog2(DATA_WIDTH) - `LOG2_OF_BASE_BLOCK_MEMORY_SIZE,
+	parameter LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO = PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO < 0 ? 0 : PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO,
+	parameter LAST_FIFO_FILL_NUMBER = (1<<LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO) - 1,
 	parameter USE_BLOCK_MEMORY = 1
 ) (
 	input reset, clock,
@@ -28,6 +32,7 @@ module histogram #(
 	output [DATA_WIDTH-1:0] result01,
 	output [DATA_WIDTH-1:0] result02,
 	output [DATA_WIDTH-1:0] result03,
+	output reg partial_count_reached = 0,
 	output reg max_count_reached = 0,
 	output reg adding_finished = 0,
 	output reg result_valid = 0,
@@ -54,8 +59,9 @@ module histogram #(
 	reg adding_ram_write_enable = 0;
 	reg comparing_ram_write_enable = 0;
 	wire ram_write_enable;
-	wire full;
-	wire should_keep_sampling = sample && (~max_count_reached);
+	wire fifo_full;
+	reg [LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO-1:0] fifo_fill_counter = 0;
+	wire should_keep_sampling = sample && (~partial_count_reached);
 	wire [RAM_DATA_WIDTH-1:0] ram_data_in;
 	wire [RAM_DATA_WIDTH-1:0] data_out_from_ram;
 	reg [2:0] adding_state = 0;
@@ -68,12 +74,9 @@ module histogram #(
 	assign ram_write_enable = adding_not_comparing ? adding_ram_write_enable : comparing_write_enable;
 //	if (8<LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE) begin
 	assign ram_data_in      = adding_not_comparing ? count : {RAM_DATA_WIDTH{1'b0}} ;
-//	fifo_single_clock #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (.clock(clock), .reset(reset),
-//		.data_in(data_in), .write_enable(should_keep_sampling), .full(full), .almost_full(), .full_or_almost_full(),
-//		.data_out(data_out_from_fifo), .read_enable(fifo_read_enable), .empty(), .almost_empty(), .empty_or_almost_empty());
 	fifo_single_clock_using_single_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (
 		.clock(clock), .reset(reset), .error_count(error_count),
-		.data_in(data_in), .write_enable(should_keep_sampling), .full(full), .almost_full(), .full_or_almost_full(),
+		.data_in(data_in), .write_enable(should_keep_sampling), .full(fifo_full), .almost_full(), .full_or_almost_full(),
 		.data_out(data_out_from_fifo), .read_enable(fifo_read_enable), .empty(), .almost_empty(), .empty_or_almost_empty());
 	if (USE_BLOCK_MEMORY) begin
 		RAM_s6_primitive #(.DATA_WIDTH_A(RAM_DATA_WIDTH), .DATA_WIDTH_B(RAM_DATA_WIDTH)) mem (.reset(reset),
@@ -101,47 +104,61 @@ module histogram #(
 			max_count_reached <= 0;
 			previous_data_out_from_fifo <= 0;
 			adding_finished <= 0;
+			partial_count_reached <= 0;
+			fifo_fill_counter <= 0;
 		end else begin
 			if (~result_valid) begin
 				if (~adding_finished) begin
-					if (max_count_reached) begin // count up hits
+					if (partial_count_reached) begin // count up hits
 						case (adding_state) // read (new data and old count for that new data), modify (increment), write
 							3'd0    : begin // wait for other state machine to clear ram
 								if (adding_not_comparing) begin
 									adding_state <= 3'd1;
-									fifo_read_enable <= 1; // get ready for the first one
 								end
 							end
 							3'd1    : begin
+								fifo_read_enable <= 1; // get ready for the next one
+								adding_state <= 3'd2;
+							end
+							3'd2    : begin
 								// grab the next new data word from the fifo, which is the read address for the ram
 								fifo_read_enable <= 0;
 								count <= data_out_from_ram; // fetch the associated count for that data word
 								previous_data_out_from_fifo <= data_out_from_fifo; // hold on to the old data word which is the write_address for our result
-								adding_state <= 3'd2;
-							end
-							3'd2    : begin
-								count <= count + 3'd1;
-								adding_ram_write_enable <= 1; // get ready to store the result
 								adding_state <= 3'd3;
 							end
 							3'd3    : begin
-								adding_ram_write_enable <= 0;
+								count <= count + 3'd1;
+								adding_ram_write_enable <= 1; // get ready to store the result
 								adding_state <= 3'd4;
 							end
+							3'd4    : begin
+								adding_ram_write_enable <= 0;
+								adding_state <= 3'd5;
+							end
 							default : begin // get ready to do it again or be done adding
-								fifo_read_enable <= 1; // get ready for the next one
 								if (sample_counter!=MAXIMUM_SAMPLE_NUMBER) begin
 									sample_counter <= sample_counter + 1'd1;
 								end else begin
-									adding_finished <= 1;
+									if (max_count_reached) begin
+										adding_finished <= 1;
+									end else begin
+										partial_count_reached <= 0;
+										sample_counter <= 0;
+									end
 									fifo_read_enable <= 0;
 								end
 								adding_state <= 3'd1;
 							end
 						endcase
 					end
-					if (full) begin
-						max_count_reached <= 1;
+					if (fifo_full && ~partial_count_reached) begin
+						partial_count_reached <= 1;
+						if (fifo_fill_counter!=LAST_FIFO_FILL_NUMBER) begin
+							fifo_fill_counter <= fifo_fill_counter + 1'd1;
+						end else begin
+							max_count_reached <= 1;
+						end
 					end
 				end
 			end
@@ -356,7 +373,7 @@ endmodule
 
 module histogram_tb;
 	localparam DATA_WIDTH = 8;
-	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 5;
+	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 4;
 	wire clock;
 	reg reset = 1;
 	reg clear_results = 0;
@@ -370,68 +387,118 @@ module histogram_tb;
 	wire [DATA_WIDTH-1:0] result01;
 	wire [DATA_WIDTH-1:0] result02;
 	wire [DATA_WIDTH-1:0] result03;
+	wire partial_count_reached;
 	wire max_count_reached;
 	wire adding_finished;
 	wire result_valid;
+	wire [31:0] histogram_error_count;
 	if (0) begin
-		histogram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) h1n1 (
+		histogram_original #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) h1n1 (
 			.clock(clock), .reset(reset), .clear_results(clear_results), .data_in(data_in), .sample(sample),
 			.result00(result00), .result01(result01), .result02(result02), .result03(result03),
 			.count00(count00), .count01(count01), .count02(count02), .count03(count03),
 			.max_count_reached(max_count_reached), .adding_finished(adding_finished), .result_valid(result_valid));
 	end else begin
-		histogram_using_block_memory #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) h1n1 (
+		histogram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE), .USE_BLOCK_MEMORY(0), .TESTBENCH(1)) h1n1 (
 			.clock(clock), .reset(reset), .clear_results(clear_results), .data_in(data_in), .sample(sample),
 			.result00(result00), .result01(result01), .result02(result02), .result03(result03),
 			.count00(count00), .count01(count01), .count02(count02), .count03(count03),
-			.max_count_reached(max_count_reached), .result_valid(result_valid));
+			.partial_count_reached(partial_count_reached), .max_count_reached(max_count_reached), .adding_finished(adding_finished), .result_valid(result_valid), .error_count(histogram_error_count));
 	end
 	initial begin
 		#100; reset <= 0;
-		#40; data_in <= 8'h01; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h02; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h04; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h20; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
-		#40;
-		#40; data_in <= 8'h02; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h04; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h20; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h80; #4; sample <= 1; #4; sample <= 0;
-		#40;
-		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h08; #4; sample <= 1; #4; sample <= 0;
-		#40;
-		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h40; #4; sample <= 1; #4; sample <= 0;
-		#40;
-		#40; data_in <= 8'h33; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h33; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h33; #4; sample <= 1; #4; sample <= 0;
-		#40;
-		#40; data_in <= 8'h55; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'haa; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h99; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h44; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h11; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h99; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h51; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h38; #4; sample <= 1; #4; sample <= 0;
-		#40; data_in <= 8'h83; #4; sample <= 1; #4; sample <= 0;
-		#9000;
-		#100; clear_results <= 1; #4; clear_results <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h15; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h22; #4; sample <= 1; #4; sample <= 0;
+		#80; @(negedge partial_count_reached); #80;
+		#20; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h10; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h06; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h06; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h06; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h06; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h06; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h06; #4; sample <= 1; #4; sample <= 0;
+		#80; @(negedge partial_count_reached); #80;
+		sample <= 1;
+		data_in <= 8'h13;
+		#(4*13);
+		data_in <= 8'h93;
+		#(4*3);
+		sample <= 0;
+		#80; @(negedge partial_count_reached); #80;
+		#20; data_in <= 8'h55; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'haa; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h99; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h44; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h11; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h11; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h51; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h83; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h55; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'haa; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h38; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h44; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h51; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h38; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h83; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h55; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'haa; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h99; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h44; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h11; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h99; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h51; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h38; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h83; #4; sample <= 1; #4; sample <= 0;
+		#20;
+		#20; data_in <= 8'd23; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd29; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd31; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd37; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd41; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd43; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd47; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd53; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd59; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd61; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd67; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd71; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd73; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd79; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd83; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd89; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'd97; #4; sample <= 1; #4; sample <= 0;
+		#20;
+		#20; data_in <= 8'h84; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h85; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h86; #4; sample <= 1; #4; sample <= 0;
+		#20; data_in <= 8'h87; #4; sample <= 1; #4; sample <= 0;
+		#20;
+		#20; @(posedge result_valid);
+		#20;
+		#1000; clear_results <= 1; #4; clear_results <= 0;
 		#1000;
 		#100; $finish;
 	end
