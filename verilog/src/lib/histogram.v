@@ -1,5 +1,5 @@
 // written 2021-07-14 by mza
-// last updated 2021-07-21 by mza
+// last updated 2021-07-22 by mza
 
 `ifndef HISTOGRAM_LIB
 `define HISTOGRAM_LIB
@@ -17,7 +17,6 @@ module histogram #(
 	parameter TESTBENCH = 0,
 	parameter PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO = TESTBENCH ? 2 : LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE + $clog2(DATA_WIDTH) - `LOG2_OF_BASE_BLOCK_MEMORY_SIZE,
 	parameter LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO = PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO < 0 ? 0 : PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO,
-	parameter LAST_FIFO_FILL_NUMBER = (1<<LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO) - 1,
 	parameter USE_BLOCK_MEMORY = 1
 ) (
 	input reset, clock,
@@ -32,6 +31,7 @@ module histogram #(
 	output [DATA_WIDTH-1:0] result01,
 	output [DATA_WIDTH-1:0] result02,
 	output [DATA_WIDTH-1:0] result03,
+	output reg [LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO-1:0] capture_completion = 0,
 	output reg partial_count_reached = 0,
 	output reg max_count_reached = 0,
 	output reg adding_finished = 0,
@@ -45,6 +45,7 @@ module histogram #(
 	//localparam RAM_DATA_WIDTH = LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE < 8 ? 8 : 16;
 	localparam RAM_DATA_WIDTH = USE_BLOCK_MEMORY ? 32 : LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE;
 	localparam RAM_ADDRESS_DEPTH = USE_BLOCK_MEMORY ? 9 : DATA_WIDTH;
+	localparam LAST_FIFO_FILL_NUMBER = (1<<LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO) - 1;
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] count_copy [LAST_RESULT:0];
 	reg [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] sample_counter = 0;
 	reg [LAST_RESULT:0] i = 0; // i=result #
@@ -60,7 +61,6 @@ module histogram #(
 	reg comparing_ram_write_enable = 0;
 	wire ram_write_enable;
 	wire fifo_full;
-	reg [LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO-1:0] fifo_fill_counter = 0;
 	wire should_keep_sampling = sample && (~partial_count_reached);
 	wire [RAM_DATA_WIDTH-1:0] ram_data_in;
 	wire [RAM_DATA_WIDTH-1:0] data_out_from_ram;
@@ -76,7 +76,7 @@ module histogram #(
 	assign ram_data_in      = adding_not_comparing ? count : {RAM_DATA_WIDTH{1'b0}} ;
 	fifo_single_clock_using_single_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE)) fsc (
 		.clock(clock), .reset(reset), .error_count(error_count),
-		.data_in(data_in), .write_enable(should_keep_sampling), .full(fifo_full), .almost_full(), .full_or_almost_full(),
+		.data_in(data_in), .write_enable(should_keep_sampling), .full(), .almost_full(), .full_or_almost_full(fifo_full),
 		.data_out(data_out_from_fifo), .read_enable(fifo_read_enable), .empty(), .almost_empty(), .empty_or_almost_empty());
 	if (USE_BLOCK_MEMORY) begin
 		RAM_s6_primitive #(.DATA_WIDTH_A(RAM_DATA_WIDTH), .DATA_WIDTH_B(RAM_DATA_WIDTH)) mem (.reset(reset),
@@ -105,7 +105,7 @@ module histogram #(
 			previous_data_out_from_fifo <= 0;
 			adding_finished <= 0;
 			partial_count_reached <= 0;
-			fifo_fill_counter <= 0;
+			capture_completion <= 0;
 		end else begin
 			if (~result_valid) begin
 				if (~adding_finished) begin
@@ -154,8 +154,8 @@ module histogram #(
 					end
 					if (fifo_full && ~partial_count_reached) begin
 						partial_count_reached <= 1;
-						if (fifo_fill_counter!=LAST_FIFO_FILL_NUMBER) begin
-							fifo_fill_counter <= fifo_fill_counter + 1'd1;
+						if (capture_completion!=LAST_FIFO_FILL_NUMBER) begin
+							capture_completion <= capture_completion + 1'd1;
 						end else begin
 							max_count_reached <= 1;
 						end
