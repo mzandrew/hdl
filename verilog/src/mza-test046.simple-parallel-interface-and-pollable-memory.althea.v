@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-21 by mza
+// last updated 2021-07-22 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -194,7 +194,9 @@ module top #(
 			.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
 	end
 	wire [2:0] rot_pipeline;
-	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 12;
+	localparam LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 24;
+	localparam PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO = TESTBENCH ? 2 : LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE + LOG2_OF_OSERDES_DATA_WIDTH - `LOG2_OF_BASE_BLOCK_MEMORY_SIZE;
+	localparam LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO = PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO < 0 ? 0 : PRELIMINARY_LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO;
 	localparam PADDING = 24 - LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE;
 	wire [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] count [3:0];
 	wire [LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE-1:0] pipelined_count [3:0];
@@ -202,6 +204,7 @@ module top #(
 	wire [OSERDES_DATA_WIDTH-1:0] result [3:0];
 	wire [OSERDES_DATA_WIDTH-1:0] pipelined_result [3:0];
 	reg [OSERDES_DATA_WIDTH-1:0] previous_result [3:0];
+	wire [LOG2_OF_NUMBER_OF_TIMES_TO_FILL_FIFO-1:0] capture_completion;
 	wire partial_count_reached;
 	wire max_count_reached;
 	wire adding_finished;
@@ -214,7 +217,7 @@ module top #(
 	assign bank1[3]  = hdrb_read_errors;
 	assign bank1[4]  = hdrb_write_errors;
 	assign bank1[5]  = hdrb_address_errors;
-	assign bank1[6]  = { 1'd0, rot_pipeline, 4'h0, histogram_status4, 4'd0, status4, status8 };
+	assign bank1[6]  = { capture_completion, histogram_status4, 1'd0, rot_pipeline, status4, status8 };
 	assign bank1[7]  = histogram_error_count;
 	assign bank1[8]  = { {PADDING{1'b0}}, previous_count[0], previous_result[0] };
 	assign bank1[9]  = { {PADDING{1'b0}}, previous_count[1], previous_result[1] };
@@ -272,7 +275,8 @@ module top #(
 		.clock(word_clock0), .reset(reset_word0), .clear_results(clear_histogram_results), .data_in(iserdes_word_buffer0), .sample(enable_histogram_sampling),
 		.result00(result[0]), .result01(result[1]), .result02(result[2]), .result03(result[3]),
 		.count00(count[0]), .count01(count[1]), .count02(count[2]), .count03(count[3]),
-		.partial_count_reached(partial_count_reached), .max_count_reached(max_count_reached), .adding_finished(adding_finished), .result_valid(result_valid), .error_count(histogram_error_count));
+		.capture_completion(capture_completion), .partial_count_reached(partial_count_reached), .max_count_reached(max_count_reached),
+		.adding_finished(adding_finished), .result_valid(result_valid), .error_count(histogram_error_count));
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
 		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
 	end
