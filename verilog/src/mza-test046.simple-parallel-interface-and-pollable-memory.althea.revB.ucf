@@ -1,7 +1,7 @@
 # written 2020-10-01 by mza
 # based off of mza-test044.simple-parallel-interface-and-pollable-memory.althea.ucf
 # for an althea revB
-# last updated 2021-07-14 by mza
+# last updated 2021-07-22 by mza
 
 # 50 MHz local oscillator:
 net clock50_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK50+
@@ -34,12 +34,12 @@ net e_n loc=p133 | iostandard=lvcmos33; # E- bank0 TL
 net e_p loc=p134 | iostandard=lvcmos33; # E+ bank0 TL
 
 # third column, on left side of board
-net z loc=p17  | iostandard=lvcmos33; # Z bank3 TL
-net y loc=p15  | iostandard=lvcmos33; # Y bank3 TL
-net x loc=p12  | iostandard=lvcmos33; # X bank3 TL
-net w loc=p10  | iostandard=lvcmos33; # W bank3 TL
+net z loc=p17  | iostandard=lvcmos33; # Z bank3 TL - this conflicts with led<4> in cascaded serdes mode
+net y loc=p15  | iostandard=lvcmos33; # Y bank3 TL - this conflicts with led<5> in cascaded serdes mode
+net x loc=p12  | iostandard=lvcmos33; # X bank3 TL - this conflicts with led<6> in cascaded serdes mode
+net w loc=p10  | iostandard=lvcmos33; # W bank3 TL - this conflicts with led<7> in cascaded serdes mode
 net v loc=p8   | iostandard=lvcmos33; # V bank3 TL
-net u loc=p2   | iostandard=lvcmos33; # U bank3 TL
+net u loc=p2   | iostandard=lvcmos33; # U bank3 TL - this conflicts with button in cascaded serdes mode
 
 # first column, closest to FPGA on right side of board
 net m_p loc=p58  | iostandard=lvcmos33; # M+ bank2 BR
@@ -58,12 +58,12 @@ net h_p loc=p44  | iostandard=lvcmos33; # H+ bank2 BL
 net h_n loc=p43  | iostandard=lvcmos33; # H- bank2 BL
 
 # third column, on right side of board
-net n loc=p30  | iostandard=lvcmos33; # N bank3 TL
+net n loc=p30  | iostandard=lvcmos33; # N bank3 TL - this conflicts with led<0> in cascaded serdes mode
 net p loc=p35  | iostandard=lvcmos33; # P bank3 TL - this conflicts with using coax[5] in cascaded serdes mode
 net q loc=p33  | iostandard=lvcmos33; # Q bank3 TL
-net r loc=p27  | iostandard=lvcmos33; # R bank3 TL
-net s loc=p24  | iostandard=lvcmos33; # S bank3 TL
-net t loc=p22  | iostandard=lvcmos33; # T bank3 TL
+net r loc=p27  | iostandard=lvcmos33; # R bank3 TL - this conflicts with led<1> in cascaded serdes mode
+net s loc=p24  | iostandard=lvcmos33; # S bank3 TL - this conflicts with led<2> in cascaded serdes mode
+net t loc=p22  | iostandard=lvcmos33; # T bank3 TL - this conflicts with led<3> in cascaded serdes mode
 
 # raspberry pi 40pin headers, general purpose IO:
 net rpi_gpio2_i2c1_sda  loc=p138 | iostandard=lvcmos33 | drive = 4; # bank0 broadcom i2c peripheral
@@ -103,23 +103,24 @@ net rot<2> loc=p67 | iostandard=lvcmos33 | pullup; # rot_4 bank2
 #net rot<3> loc=p62 | iostandard=lvcmos33 | pullup; # rot_8 bank2
 
 # momentary pushbutton, normally open:
-net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3
+net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3 - this conflicts with u in cascaded serdes mode
 
 # array of 8 LEDs:
-net led<0> loc=p29 | iostandard=lvcmos33 | drive = 2;
-net led<1> loc=p26 | iostandard=lvcmos33 | drive = 2;
-net led<2> loc=p23 | iostandard=lvcmos33 | drive = 2;
-net led<3> loc=p21 | iostandard=lvcmos33 | drive = 2;
-net led<4> loc=p16 | iostandard=lvcmos33 | drive = 2;
-net led<5> loc=p14 | iostandard=lvcmos33 | drive = 2;
-net led<6> loc=p11 | iostandard=lvcmos33 | drive = 2;
-net led<7> loc=p9  | iostandard=lvcmos33 | drive = 2;
+net led<0> loc=p29 | iostandard=lvcmos33 | drive = 2; # - this conflicts with n in cascaded serdes mode
+#net led<1> loc=p26 | iostandard=lvcmos33 | drive = 2; # - this conflicts with r in cascaded serdes mode
+net led<1> loc=p32 | iostandard=lvcmos33 | drive = 2; # - this is not connected to an led (for when we need to use r in cascaded serdes mode)
+net led<2> loc=p23 | iostandard=lvcmos33 | drive = 2; # - this conflicts with s in cascaded serdes mode
+net led<3> loc=p21 | iostandard=lvcmos33 | drive = 2; # - this conflicts with t in cascaded serdes mode
+net led<4> loc=p16 | iostandard=lvcmos33 | drive = 2; # - this conflicts with z in cascaded serdes mode
+net led<5> loc=p14 | iostandard=lvcmos33 | drive = 2; # - this conflicts with y in cascaded serdes mode
+net led<6> loc=p11 | iostandard=lvcmos33 | drive = 2; # - this conflicts with x in cascaded serdes mode
+net led<7> loc=p9  | iostandard=lvcmos33 | drive = 2; # - this conflicts with w in cascaded serdes mode
 
 # 4 more LEDs, one next to each of the first 4 coax connectors:
-net coax_led<0> loc=p98  | iostandard=lvcmos33;
-net coax_led<1> loc=p94  | iostandard=lvcmos33;
-net coax_led<2> loc=p92  | iostandard=lvcmos33;
-net coax_led<3> loc=p88  | iostandard=lvcmos33;
+net coax_led<0> loc=p98  | iostandard=lvcmos33; #
+net coax_led<1> loc=p94  | iostandard=lvcmos33; #
+net coax_led<2> loc=p92  | iostandard=lvcmos33; #
+net coax_led<3> loc=p88  | iostandard=lvcmos33; #
 
 net coax<0> loc=p105 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
 net coax<1> loc=p102 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1

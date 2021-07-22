@@ -209,8 +209,11 @@ module top #(
 	wire max_count_reached;
 	wire adding_finished;
 	wire result_valid;
+	//assign coax[0] = partial_count_reached;
+	//assign coax[1] = max_count_reached;
 	assign coax[1] = partial_count_reached;
-	assign coax[2] = max_count_reached;
+	assign coax[2] = adding_finished;
+	assign coax[3] = result_valid;
 	wire [3:0] histogram_status4 = { result_valid, adding_finished, max_count_reached, partial_count_reached };
 	wire [31:0] histogram_error_count;
 	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
@@ -307,7 +310,8 @@ module top #(
 		.word4_in(oserdes_word_delayed), .word5_in(sync_out_word_delayed),
 		.D0_out(pre_coax_4), .D1_out(single_ended_left[1]), .D2_out(single_ended_right[2]), .D3_out(coax[5]),
 		//.D0_out(pre_coax_4), .D1_out(single_ended_left[1]), .D2_out(), .D3_out(coax[5]),
-		.D4_out(coax[0]), .D5_out(coax[3]),
+		//.D4_out(coax[0]), .D5_out(coax[3]),
+		.D4_out(coax[0]), .D5_out(),
 		.iserdes_bit_input(single_ended_right[3]), .iserdes_word_out(iserdes_word));
 	assign coax[4] = pre_coax_4; // -38 ps (sigma 16 ps) 15.png
 	//ddr mario1 (.clock(word_clock1), .reset(reset), .data0_in(1'b0), .data1_in(1'b1), .data_out(coax[2]));
@@ -356,7 +360,7 @@ module top #(
 	assign status8[2] = read;
 	assign status8[1] = enable;
 	assign status8[0] = register_select;
-	if (0) begin
+	if (1) begin
 //		assign led = status8;
 		cdc_pipeline #(.WIDTH(8), .DEPTH(2)) blinx (.clock(clock50), .in(status8), .out(led));
 	end
@@ -694,7 +698,7 @@ module myalthea (
 	// other IOs:
 	input button, // reset
 	output [3:0] coax_led,
-//	output [7:0] led,
+	output [7:0] led,
 	input [2:0] rot
 );
 	localparam BUS_WIDTH = 16;
@@ -705,7 +709,7 @@ module myalthea (
 	wire clock10 = 0;
 	wire [3:0] internal_coax_led;
 	wire [7:0] internal_led;
-//	assign led = internal_led;
+	assign led = internal_led;
 	assign coax_led = internal_coax_led;
 	top #(
 		.TESTBENCH(0),
