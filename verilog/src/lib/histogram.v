@@ -11,6 +11,9 @@
 // takes 11 us @ 250 MHz in simulation (DATA_WIDTH=8; LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE=5)
 // with USE_BLOCK_MEMORY=1, it uses 40% of slices (DATA_WIDTH=8; LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE=16) and compiles quickly
 // with USE_BLOCK_MEMORY=0, LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE must be no more than 4 or 5 and it still takes a while to compile...
+// takes 16.384 us to capture each burst (filling an 11-bit fifo) @ 125 MHz
+// takes ~84 us to add up the hits
+// takes ~8 us to do comparisons and find the top 4 results
 module histogram #(
 	parameter DATA_WIDTH = 4,
 	parameter LOG2_OF_NUMBER_OF_SAMPLES_TO_ACQUIRE = 4,
