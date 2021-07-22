@@ -1,4 +1,4 @@
-// last updated 2021-07-21 by mza
+// last updated 2021-07-22 by mza
 
 `ifndef FIFO_LIB
 `define FIFO_LIB
@@ -33,7 +33,8 @@ module fifo_single_clock_using_single_bram #(
 	reg [31:0] write_error_count = 0;
 	reg [31:0] read_error_count = 0;
 	reg [31:0] other_error_count = 0;
-	assign error_count = write_error_count + read_error_count + other_error_count;
+	//assign error_count = write_error_count + read_error_count + other_error_count;
+	assign error_count = { 8'd0, write_error_count[7:0], read_error_count[7:0], other_error_count[7:0] };
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};
 	wire ram_write_enable = write_enable && ((~full) || (read_enable && full));
 	RAM_s6_primitive #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH)) mem (.reset(reset),
