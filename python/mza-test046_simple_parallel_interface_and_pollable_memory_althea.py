@@ -142,7 +142,7 @@ if 1:
 #	for i in range(8):
 		print(hex(readback[i], 8))
 
-if 1:
+if 0:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
 	#values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
 	#values = [ 0 for a in range(2**14) ]
@@ -202,10 +202,10 @@ if 0:
 
 from function_generator_DAC import *
 
-if 0:
+if 1:
 	clear_DAC_waveform()
 
-if 0:
+if 1:
 	test_function_generator_DAC_1() # everything
 
 if 0:
