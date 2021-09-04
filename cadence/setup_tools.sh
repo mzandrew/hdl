@@ -38,7 +38,8 @@ TEMPUS=tempus/tempus
 
 # the OA version that we use
 #OA_VERSION="22.60.s011"
-OA_VERSION="22.60.052"
+#OA_VERSION="22.60.052"
+declare OA_VERSION=$(cd /opt/cadence/tempus/tempus; ls -1d oa_v* | sed -e "s,oa_v,,")
 
 # the ROOT directory where we store the Cadence tools
 export CADENCE_ROOT=/opt/cadence
