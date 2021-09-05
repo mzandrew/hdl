@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2020-05-29 by mza
+// last updated 2021-09-05 by mza
 
 `define SCROD_revA3
 
@@ -83,10 +83,15 @@ module mza_test020_serdes_pll (
 	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
 	reg [1:0] token = 0;
 	reg [2:0] trigger_stream = 0;
-	localparam first  = 8'b11110000;
-	localparam second = 8'b10000001;
-	localparam third  = 8'b10001000;
-	localparam forth  = 8'b10101010;
+	//localparam first  = 8'b11110000;
+	//localparam second = 8'b10000001;
+	//localparam third  = 8'b10001000;
+	//localparam forth  = 8'b10101010;
+	localparam first  = 8'b11111111;
+	localparam second = 8'b11111100;
+	localparam third  = 8'b11110000;
+	localparam forth  = 8'b11000000;
+	localparam long_mode = 1;
 	always @(posedge clock) begin
 		if (reset2) begin
 			token <= 2'b00;
@@ -110,6 +115,32 @@ module mza_test020_serdes_pll (
 					word <= forth;
 				end
 			end
+		end else if (long_mode) begin
+			if (counter[pickoff:0]==0) begin
+				word <= first;
+			end else if (counter[pickoff:0]==1) begin
+				word <= second;
+			end else if (counter[pickoff:0]==2) begin
+				word <= third;
+			end else if (counter[pickoff:0]==3) begin
+				word <= forth;
+			end else if (counter[pickoff:0]==4) begin
+				word <= first;
+			end else if (counter[pickoff:0]==5) begin
+				word <= second;
+			end else if (counter[pickoff:0]==6) begin
+				word <= third;
+			end else if (counter[pickoff:0]==7) begin
+				word <= forth;
+//			end else if (counter[pickoff:0]==8) begin
+//				word <= first;
+//			end else if (counter[pickoff:0]==9) begin
+//				word <= second;
+//			end else if (counter[pickoff:0]==10) begin
+//				word <= third;
+//			end else if (counter[pickoff:0]==11) begin
+//				word <= forth;
+			end
 		end else if (trigger_stream==3'b001) begin
 			if (token==2'b00) begin
 				sync <= 1;
@@ -131,6 +162,11 @@ module mza_test020_serdes_pll (
 		trigger_stream <= { trigger_stream[1:0], trigger_input };
 		counter <= counter + 1;
 	end
-	oserdes_pll #(.WIDTH(WIDTH)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked(led_b));
+	oserdes_pll #(
+		.BIT_DEPTH(WIDTH), .CLKIN_PERIOD(6.4), .PLLD(5), .PLLX(32) // 156.25 -> 1000
+		) difficult_pll (
+		.reset(reset1), .clock_in(other_clock), .word_clock_out(clock),
+		.serializer_clock_out(IOCLK0), .serializer_strobe_out(IOCE), .locked(led_b)
+		);
 endmodule
 

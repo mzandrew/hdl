@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2020-05-29 by mza
+// last updated 2021-09-05 by mza
 
 `define SCROD_revA3
 
@@ -97,6 +97,11 @@ module mza_test021_serdes_pll_bram (
 		end
 		counter <= counter + 1;
 	end
-	oserdes_pll #(.WIDTH(WIDTH)) difficult_pll (.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), .serializer_clock_out(IOCLK0), .serializer_strobe_output(IOCE), .locked(led_b));
+	oserdes_pll #(
+		.BIT_DEPTH(WIDTH), .CLKIN_PERIOD(6.4), .PLLD(5), .PLLX(32) // 156.25 -> 1000
+		) difficult_pll (
+		.reset(reset1), .clock_in(other_clock), .word_clock_out(clock),
+		.serializer_clock_out(IOCLK0), .serializer_strobe_out(IOCE), .locked(led_b)
+		);
 endmodule
 
