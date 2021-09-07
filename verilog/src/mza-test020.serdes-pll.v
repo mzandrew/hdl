@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2021-09-05 by mza
+// last updated 2021-09-06 by mza
 
 `define SCROD_revA3
 
@@ -81,20 +81,20 @@ module mza_test020_serdes_pll (
 	end
 	wire trigger_input;
 	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
-	reg [1:0] token = 0;
+	reg [2:0] token = 0;
 	reg [2:0] trigger_stream = 0;
 	//localparam first  = 8'b11110000;
 	//localparam second = 8'b10000001;
 	//localparam third  = 8'b10001000;
 	//localparam forth  = 8'b10101010;
-	localparam first  = 8'b11111111;
-	localparam second = 8'b11111100;
-	localparam third  = 8'b11110000;
-	localparam forth  = 8'b11000000;
+	localparam all_ones = 8'b11111111;
+	wire [7:0] pattern [15:0] = {
+		8'b11111111, 8'b11111110, 8'b11111100, 8'b11111000,
+		8'b11110000, 8'b11100000, 8'b11000000, 8'b10000000 };
 	localparam long_mode = 1;
 	always @(posedge clock) begin
 		if (reset2) begin
-			token <= 2'b00;
+			token <= 0;
 			trigger_stream <= 0;
 			if (counter[10]) begin
 				reset2 <= 0;
@@ -103,60 +103,71 @@ module mza_test020_serdes_pll (
 		word <= 8'b00000000;
 		if (self_triggered_mode_switch) begin
 			if (counter[pickoff:0]==0) begin
-				         if (counter[pickoff+2:pickoff+1]==2'b00) begin
+				         if (counter[pickoff+3:pickoff+1]==3'd0) begin
 					sync <= 1;
-					word <= first;
-				end else if (counter[pickoff+2:pickoff+1]==2'b01) begin
+					word <= pattern[0];
+				end else if (counter[pickoff+3:pickoff+1]==3'd1) begin
 					sync <= 0;
-					word <= second;
-				end else if (counter[pickoff+2:pickoff+1]==2'b10) begin
-					word <= third;
-				end else if (counter[pickoff+2:pickoff+1]==2'b11) begin
-					word <= forth;
+					word <= pattern[1];
+				end else if (counter[pickoff+3:pickoff+1]==3'd2) begin
+					word <= pattern[2];
+				end else if (counter[pickoff+3:pickoff+1]==3'd3) begin
+					word <= pattern[3];
+				end else if (counter[pickoff+3:pickoff+1]==3'd4) begin
+					word <= pattern[4];
+				end else if (counter[pickoff+3:pickoff+1]==3'd5) begin
+					word <= pattern[5];
+				end else if (counter[pickoff+3:pickoff+1]==3'd6) begin
+					word <= pattern[6];
+				end else if (counter[pickoff+3:pickoff+1]==3'd7) begin
+					word <= pattern[7];
 				end
 			end
 		end else if (long_mode) begin
 			if (counter[pickoff:0]==0) begin
-				word <= first;
+				word <= all_ones;
 			end else if (counter[pickoff:0]==1) begin
-				word <= second;
+				word <= all_ones;
 			end else if (counter[pickoff:0]==2) begin
-				word <= third;
+				word <= all_ones;
 			end else if (counter[pickoff:0]==3) begin
-				word <= forth;
+				word <= all_ones;
 			end else if (counter[pickoff:0]==4) begin
-				word <= first;
+				word <= all_ones;
 			end else if (counter[pickoff:0]==5) begin
-				word <= second;
+				word <= all_ones;
 			end else if (counter[pickoff:0]==6) begin
-				word <= third;
+				word <= all_ones;
 			end else if (counter[pickoff:0]==7) begin
-				word <= forth;
-//			end else if (counter[pickoff:0]==8) begin
-//				word <= first;
-//			end else if (counter[pickoff:0]==9) begin
-//				word <= second;
-//			end else if (counter[pickoff:0]==10) begin
-//				word <= third;
-//			end else if (counter[pickoff:0]==11) begin
-//				word <= forth;
+				word <= all_ones;
 			end
 		end else if (trigger_stream==3'b001) begin
-			if (token==2'b00) begin
+			if (token==3'd0) begin
 				sync <= 1;
-				word <= first;
-				token <= 2'b01;
-			end else if (token==2'b01) begin
+				word <= pattern[0];
+				token <= 3'd1;
+			end else if (token==3'd1) begin
 				sync <= 0;
-				word <= second;
-				token <= 2'b10;
-			end else if (token==2'b10) begin
-				word <= third;
-				token <= 2'b11;
-			//end else if (token==2'b11) begin
+				word <= pattern[1];
+				token <= 3'd2;
+			end else if (token==3'd2) begin
+				word <= pattern[2];
+				token <= 3'd3;
+			end else if (token==3'd3) begin
+				word <= pattern[3];
+				token <= 3'd4;
+			end else if (token==3'd4) begin
+				word <= pattern[4];
+				token <= 3'd5;
+			end else if (token==3'd5) begin
+				word <= pattern[5];
+				token <= 3'd6;
+			end else if (token==3'd6) begin
+				word <= pattern[6];
+				token <= 3'd7;
 			end else begin
-				word <= forth;
-				token <= 2'b00;
+				word <= pattern[7];
+				token <= 3'd0;
 			end
 		end
 		trigger_stream <= { trigger_stream[1:0], trigger_input };
