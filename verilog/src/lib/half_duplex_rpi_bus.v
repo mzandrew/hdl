@@ -1,6 +1,6 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-07-14 by mza
+// last updated 2021-10-20 by mza
 
 module half_duplex_rpi_bus #(
 	parameter BUS_WIDTH = 16,
@@ -12,6 +12,7 @@ module half_duplex_rpi_bus #(
 	parameter BANK_ADDRESS_DEPTH = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD,
 	parameter LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD - BANK_ADDRESS_DEPTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
+	parameter ERROR_COUNT_PICKOFF = 7,
 	parameter ANTI_META = 3, // a lot of these state machines check against something[PICKOFF:PICKOFF-1]==2'b00, so we need at least 3 here
 	parameter GAP = 0,
 	parameter EXTRA_PICKOFF = 0
@@ -27,9 +28,9 @@ module half_duplex_rpi_bus #(
 	output [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] write_data_word,
 	input [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word,
 	output reg [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_reg = 0,
-	output reg [31:0] read_errors = 0,
-	output reg [31:0] write_errors = 0,
-	output reg [31:0] address_errors = 0,
+	output reg [ERROR_COUNT_PICKOFF:0] read_errors = 0,
+	output reg [ERROR_COUNT_PICKOFF:0] write_errors = 0,
+	output reg [ERROR_COUNT_PICKOFF:0] address_errors = 0,
 	output [LOG2_OF_NUMBER_OF_BANKS-1:0] bank
 );
 	localparam OTHER_PICKOFF                    = ANTI_META + EXTRA_PICKOFF;

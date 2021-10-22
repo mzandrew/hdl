@@ -1,7 +1,7 @@
 // written 2020-10-01 by mza
 // based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
 // based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-22 by mza
+// last updated 2021-10-20 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -50,6 +50,7 @@ module top #(
 	output [3:0] coax_led,
 	output [7:0] led
 );
+	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [3:0] status4;
 	wire [7:0] status8;
 	genvar i;
@@ -87,9 +88,9 @@ module top #(
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [NUMBER_OF_BANKS-1:0];
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] bank;
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe;
-	wire [31:0] hdrb_read_errors;
-	wire [31:0] hdrb_write_errors;
-	wire [31:0] hdrb_address_errors;
+	wire [ERROR_COUNT_PICKOFF:0] hdrb_read_errors;
+	wire [ERROR_COUNT_PICKOFF:0] hdrb_write_errors;
+	wire [ERROR_COUNT_PICKOFF:0] hdrb_address_errors;
 	half_duplex_rpi_bus #(
 		.BUS_WIDTH(BUS_WIDTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
@@ -222,7 +223,7 @@ module top #(
 	assign bank1[3]  = hdrb_read_errors;
 	assign bank1[4]  = hdrb_write_errors;
 	assign bank1[5]  = hdrb_address_errors;
-	assign bank1[6]  = { capture_completion, histogram_status4, 1'd0, rot_pipeline, status4, status8 };
+	assign bank1[6]  = { capture_completion, histogram_status4, rot_pipeline, status4, status8 };
 	assign bank1[7]  = histogram_error_count;
 	assign bank1[8]  = { {PADDING{1'b0}}, previous_count[0], previous_result[0] };
 	assign bank1[9]  = { {PADDING{1'b0}}, previous_count[1], previous_result[1] };
@@ -681,7 +682,6 @@ module myalthea (
 	input rpi_gpio3_i2c1_scl, // register_select
 	input rpi_gpio4_gpclk0, // enable
 	input rpi_gpio5, // read
-	input rpi_gpio26, // spare
 	// 16 bit bus:
 	inout rpi_gpio6_gpclk2, rpi_gpio7_spi_ce1, rpi_gpio8_spi_ce0, rpi_gpio9_spi_miso,
 	inout rpi_gpio10_spi_mosi, rpi_gpio11_spi_sclk, rpi_gpio12, rpi_gpio13,

@@ -2,9 +2,10 @@
 
 declare list=""
 #list="$list 2013pi1-idlab"
-list="$list 2017pi2-idlab"
+#list="$list 2017pi2-idlab"
 #list="$list 2018pi2-idlab"
 #list="$list 2018pi3-idlab-xrm"
+list="$list 2021pi0w-idlab"
 
 for each in $list; do
 	echo "$each"
