@@ -169,12 +169,12 @@ module top #(
 				.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[0]));
 		end
 	end else begin
-	for (i=3; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
-		assign read_data_word[i] = 0;
-	end
-	for (i=1; i<NUMBER_OF_BANKS; i=i+1) begin : banksfake
-		assign potential_oserdes_word[i] = 0;
-	end
+		for (i=3; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
+			assign read_data_word[i] = 0;
+		end
+		for (i=1; i<NUMBER_OF_BANKS; i=i+1) begin : banksfake
+			assign potential_oserdes_word[i] = 0;
+		end
 		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank0 (.reset(reset_word0),
 			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
 			.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[0]));
