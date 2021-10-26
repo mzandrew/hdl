@@ -80,8 +80,18 @@ module top #(
 //	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
 	// ----------------------------------------------------------------------
 	wire reset100;
-	wire clock100;
-	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
+	if (0) begin
+		IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
+	end else begin
+		wire clock100_raw1;
+		IBUFGDS mybuf_raw1 (.I(clock100_p), .IB(clock100_n), .O(clock100_raw1));
+		wire clock100_raw2;
+		wire clock100_locked;
+		simpledcm_CLKGEN #(.MULTIPLY(10), .DIVIDE(10), .PERIOD(10.0)) mydcm_100 (.clockin(clock100_raw1), .reset(reset), .clockout(clock100_raw2), .clockout180(), .locked(clock100_locked)); // 100->100
+//		reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(clock100_locked), .clock_input(clock100), .reset_output(reset100_raw1));
+		wire clock100;
+		BUFG mybuf_raw2 (.I(clock100_raw2), .O(clock100));
+	end
 	wire word_clock;
 	wire word_clock2;
 	wire word_clock3;
@@ -700,7 +710,7 @@ endmodule
 module myalthea #(
 	parameter LEFT_DAC_OUTER = 0,
 	parameter RIGHT_DAC_OUTER = 0,
-	parameter LEFT_DAC_INNER = 0,
+	parameter LEFT_DAC_INNER = 1,
 	parameter RIGHT_DAC_INNER = 1
 ) (
 	input clock100_p, clock100_n,
