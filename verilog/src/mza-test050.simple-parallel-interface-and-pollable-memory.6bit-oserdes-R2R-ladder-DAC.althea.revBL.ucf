@@ -1,7 +1,7 @@
 # written 2020-10-05 by mza
 # based off of mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.ucf
 # for an althea revBL
-# last updated 2021-10-22 by mza
+# last updated 2021-10-26 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
@@ -132,7 +132,7 @@ net coax<5> loc=p33  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3 -
 
 net "button" tig;
 net "rot<?>" tig;
-net "althea/word_clock_sel<?>" tig;
+#net "althea/word_clock_sel<?>" tig;
 #net "led<?>" tig;
 net "coax_led<?>" tig;
 net "*cdc*" tig;
