@@ -1,17 +1,18 @@
 `timescale 1ns / 1ps
 // written 2020-04-01 by mza
-// last updated 2021-07-17 by mza
+// last updated 2021-10-25 by mza
 
 module sequencer_sync #(
 	parameter ADDRESS_DEPTH_OSERDES = 16,
-	parameter LOG2_OF_OSERDES_DATA_WIDTH = 3
+	parameter LOG2_OF_OSERDES_DATA_WIDTH = 3,
+	parameter SYNC_OUT_STREAM_PICKOFF = 2
 ) (
 	input clock, reset,
 	input sync_read_address,
 	input [31:0] start_sample, // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
 	input [31:0] end_sample, // in samples (1ns each @ 1 GHz sample rate), but 3 LSBs are ignored due to cascaded 8-bit oserdes
 	output reg [ADDRESS_DEPTH_OSERDES-1:0] read_address = 0, // in 8-bit words
-	output reg [3:0] sync_out_stream = 0,
+	output reg [SYNC_OUT_STREAM_PICKOFF:0] sync_out_stream = 0,
 	output [7:0] sync_out_word
 );
 	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 14'd4095; // in 8-bit words
@@ -30,7 +31,7 @@ module sequencer_sync #(
 			end else begin
 				read_address <= read_address + 1'b1;
 			end
-			sync_out_stream <= { sync_out_stream[2:0], sync_out_raw };
+			sync_out_stream <= { sync_out_stream[SYNC_OUT_STREAM_PICKOFF-1:0], sync_out_raw };
 		end
 	end
 	assign sync_out_word = { sync_out_stream[1], 7'b0 };
