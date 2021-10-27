@@ -150,7 +150,8 @@ module top #(
 	for (i=1; i<NUMBER_OF_BANKS; i=i+1) begin : banksfake
 		assign potential_oserdes_word[i] = 0;
 	end
-	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock), .reset(reset_word),
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
+		//.reset(reset_word),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
 		.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
 		.data_in_b_4(bank1[4]),  .data_in_b_5(bank1[5]),  .data_in_b_6(bank1[6]),  .data_in_b_7(bank1[7]),
@@ -342,22 +343,27 @@ module top #(
 		assign coax_led = { 1'b0, adc_bit[2:0] };
 	end
 	// ----------------------------------------------------------------------
-	assign status4[3] = ~pll_oserdes_locked;
-	assign status4[2] = ~pll_oserdes_locked_right_outer;
-	assign status4[1] = ~pll_oserdes_locked_left_outer;
-	assign status4[0] = enable;
+	if (1) begin
+		assign status4 = 0;
+		assign status8 = 0;
+	end else begin
+		assign status4[3] = ~pll_oserdes_locked;
+		assign status4[2] = ~pll_oserdes_locked_right_outer;
+		assign status4[1] = ~pll_oserdes_locked_left_outer;
+		assign status4[0] = enable;
+		assign status8[7] = ~pll_oserdes_locked;
+		assign status8[6] = ~pll_oserdes_locked_right_inner;
+		assign status8[5] = ~pll_oserdes_locked_left_inner;
+		assign status8[4] = enable;
+		assign status8[3] = ~pll_oserdes_locked;
+		assign status8[2] = ~pll_oserdes_locked_right_outer;
+		assign status8[1] = ~pll_oserdes_locked_left_outer;
+		assign status8[0] = enable;
+	end
 	assign coax_led = status4;
-	assign status8[7] = ~pll_oserdes_locked;
-	assign status8[6] = ~pll_oserdes_locked_right_inner;
-	assign status8[5] = ~pll_oserdes_locked_left_inner;
-	assign status8[4] = enable;
 //	if (0==LEFT_DAC_OUTER) begin
 //		assign led[7:4] = status8[7:4];
 //	end
-	assign status8[3] = ~pll_oserdes_locked;
-	assign status8[2] = ~pll_oserdes_locked_right_outer;
-	assign status8[1] = ~pll_oserdes_locked_left_outer;
-	assign status8[0] = enable;
 //	if (0==RIGHT_DAC_OUTER) begin
 //		assign led[3:0] = status8[3:0];
 //	end
@@ -671,7 +677,7 @@ endmodule
 
 module myalthea #(
 	parameter LEFT_DAC_OUTER = 0,
-	parameter RIGHT_DAC_OUTER = 0,
+	parameter RIGHT_DAC_OUTER = 1,
 	parameter LEFT_DAC_INNER = 0,
 	parameter RIGHT_DAC_INNER = 1
 ) (
