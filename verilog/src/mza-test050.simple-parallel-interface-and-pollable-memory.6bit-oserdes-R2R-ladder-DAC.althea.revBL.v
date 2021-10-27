@@ -73,12 +73,8 @@ module top #(
 		IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 		reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock100), .reset_output(reset100));
 	end else begin
-		wire clock100_raw1;
-		IBUFGDS mybuf_raw1 (.I(clock100_p), .IB(clock100_n), .O(clock100_raw1));
-		wire clock100_raw2;
 		wire clock100_locked;
-		simpledcm_CLKGEN #(.MULTIPLY(10), .DIVIDE(10), .PERIOD(10.0)) mydcm_100 (.clockin(clock100_raw1), .reset(reset), .clockout(clock100_raw2), .clockout180(), .locked(clock100_locked)); // 100->100
-		BUFG mybuf_raw2 (.I(clock100_raw2), .O(clock100));
+		dummy_dcm_diff_input lollipop (.clock_p(clock100_p), .clock_n(clock100_n), .reset(reset), .clock_out(clock100), .clock_locked(clock100_locked));
 		reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(clock100_locked), .clock_input(clock100), .reset_output(reset100));
 	end
 	wire word_clock;
