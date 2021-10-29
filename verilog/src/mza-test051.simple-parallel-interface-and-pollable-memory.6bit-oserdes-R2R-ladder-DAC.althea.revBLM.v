@@ -28,6 +28,7 @@ module top #(
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter RIGHT_DAC_OUTER = 1,
 	parameter LEFT_DAC_OUTER = 1,
+	parameter LEFT_DAC_ROTATED = 0,
 	parameter RIGHT_DAC_INNER = 1,
 	parameter LEFT_DAC_INNER = 1,
 	parameter TESTBENCH = 0,
@@ -251,19 +252,27 @@ module top #(
 		assign pll_oserdes_locked_right_inner = 1;
 	end
 	if (1==LEFT_DAC_OUTER) begin
-		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei6l (
-			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock_left_outer), .locked(pll_oserdes_locked_left_outer),
-			.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
-			.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
-			.word1_in(oserdes_word_for_DACbit[3]), .word0_in(oserdes_word_for_DACbit[2]),
-			// for the case of the DAC board's outputs facing the same direction as the coax[0-3] outputs:
-			//.D5_out(single_ended_left[5]), .D4_out(single_ended_left[4]),
-			//.D3_out(single_ended_left[3]), .D2_out(single_ended_left[2]),
-			//.D1_out(single_ended_left[1]), .D0_out(single_ended_left[0]));
+		if (1==LEFT_DAC_ROTATED) begin
 			// for the case of the DAC board's outputs facing the opposite direction as the coax[0-3] outputs (the rotated case):
-			.D5_out(single_ended_left[0]), .D4_out(single_ended_left[1]),
-			.D3_out(single_ended_left[2]), .D2_out(single_ended_left[3]),
-			.D1_out(single_ended_left[4]), .D0_out(single_ended_left[5]));
+			ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei6l (
+				.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock_left_outer), .locked(pll_oserdes_locked_left_outer),
+				.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
+				.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
+				.word1_in(oserdes_word_for_DACbit[3]), .word0_in(oserdes_word_for_DACbit[2]),
+				.D5_out(single_ended_left[0]), .D4_out(single_ended_left[1]),
+				.D3_out(single_ended_left[2]), .D2_out(single_ended_left[3]),
+				.D1_out(single_ended_left[4]), .D0_out(single_ended_left[5]));
+		end else begin
+			// for the case of the DAC board's outputs facing the same direction as the coax[0-3] outputs:
+			ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei6l (
+				.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock_left_outer), .locked(pll_oserdes_locked_left_outer),
+				.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
+				.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
+				.word1_in(oserdes_word_for_DACbit[3]), .word0_in(oserdes_word_for_DACbit[2]),
+				.D5_out(single_ended_left[5]), .D4_out(single_ended_left[4]),
+				.D3_out(single_ended_left[3]), .D2_out(single_ended_left[2]),
+				.D1_out(single_ended_left[1]), .D0_out(single_ended_left[0]));
+		end
 		assign reset = 0;
 	end else begin
 		for (i=0; i<6; i=i+1) begin : single_ended_array_left
@@ -678,6 +687,7 @@ endmodule
 module myalthea #(
 	parameter LEFT_DAC_OUTER = 0,
 	parameter RIGHT_DAC_OUTER = 1,
+	parameter LEFT_DAC_ROTATED = 0,
 	parameter LEFT_DAC_INNER = 0,
 	parameter RIGHT_DAC_INNER = 1
 ) (
@@ -719,6 +729,7 @@ module myalthea #(
 	assign coax_led = internal_coax_led;
 	top #(
 		.LEFT_DAC_OUTER(LEFT_DAC_OUTER), .RIGHT_DAC_OUTER(RIGHT_DAC_OUTER),
+		.LEFT_DAC_ROTATED(LEFT_DAC_ROTATED),
 		.LEFT_DAC_INNER(LEFT_DAC_INNER), .RIGHT_DAC_INNER(RIGHT_DAC_INNER),
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
