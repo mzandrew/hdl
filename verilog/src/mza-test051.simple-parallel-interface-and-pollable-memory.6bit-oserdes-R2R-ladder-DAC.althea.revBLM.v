@@ -685,11 +685,11 @@ module top_tb;
 endmodule
 
 module myalthea #(
-	parameter LEFT_DAC_OUTER = 0,
+	parameter LEFT_DAC_OUTER = 1,
 	parameter RIGHT_DAC_OUTER = 1,
 	parameter LEFT_DAC_ROTATED = 0,
 	parameter LEFT_DAC_INNER = 0,
-	parameter RIGHT_DAC_INNER = 1
+	parameter RIGHT_DAC_INNER = 0
 ) (
 	input clock100_p, clock100_n,
 	inout [5:0] coax,
