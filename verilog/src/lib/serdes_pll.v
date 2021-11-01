@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2021-10-29 by mza
+// last updated 2021-11-01 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -731,6 +731,7 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2 #(
 	parameter PINTYPE_A04 = "p",
 	parameter PINTYPE_A05 = "p",
 	parameter PINTYPE_A06 = "p",
+	parameter SPECIAL_A06 = "A",
 	parameter PINTYPE_A07 = "p",
 	parameter PINTYPE_A08 = "p",
 	parameter PINTYPE_A09 = "p",
@@ -792,7 +793,11 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2 #(
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A03)) mylei_A03 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A03_in), .bit_out(A03_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A04)) mylei_A04 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A04_in), .bit_out(A04_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A05)) mylei_A05 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A05_in), .bit_out(A05_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A06)) mylei_A06 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A06_in), .bit_out(A06_out));
+	if ("A"==SPECIAL_A06) begin
+		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A06)) mylei_A06 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A06_in), .bit_out(A06_out));
+	end else begin
+		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A06)) mylei_A06 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_A06_in), .bit_out(A06_out)); // special case for a06 being on a different bank from a11-a07
+	end
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A07)) mylei_A07 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A07_in), .bit_out(A07_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A08)) mylei_A08 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A08_in), .bit_out(A08_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A09)) mylei_A09 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A09_in), .bit_out(A09_out));
