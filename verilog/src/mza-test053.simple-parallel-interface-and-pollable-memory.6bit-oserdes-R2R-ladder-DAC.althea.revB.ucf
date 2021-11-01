@@ -103,7 +103,7 @@ net rpi_gpio21          loc=p84  | iostandard=lvcmos33 | drive = 4 | slew = slow
 #net rot<3> loc=p62 | iostandard=lvcmos33 | pullup; # rot_8 bank2
 
 # momentary pushbutton, normally open:
-net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3 - this conflicts with u in cascaded serdes mode
+#net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3 - this conflicts with u in cascaded serdes mode
 
 # array of 8 LEDs:
 net led<0> loc=p29 | iostandard=lvcmos33 | drive = 2 | slew = slow; # - this conflicts with n in cascaded serdes mode
@@ -122,14 +122,14 @@ net coax_led<1> loc=p94  | iostandard=lvcmos33 | drive = 2 | slew = slow; #
 net coax_led<2> loc=p92  | iostandard=lvcmos33 | drive = 2 | slew = slow; #
 net coax_led<3> loc=p88  | iostandard=lvcmos33 | drive = 2 | slew = slow; #
 
-net coax<0> loc=p105 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
-net coax<1> loc=p102 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
-net coax<2> loc=p79  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
-net coax<3> loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
-net coax<4> loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3
+net coax0 loc=p105 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
+#net coax<1> loc=p102 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
+#net coax<2> loc=p79  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
+net coax3 loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
+net coax4 loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3
 #net coax<5> loc=p34  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3; on an _n pin - this conflicts with using p in cascaded serdes mode
 
-net "button" tig;
+#net "button" tig;
 #net "rot<?>" tig;
 #net "althea/word_clock_sel<?>" tig;
 #net "led<?>" tig;
