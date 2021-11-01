@@ -1,6 +1,6 @@
 // written 2021-10-13 by mza
 // based on mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBLM.v
-// last updated 2021-10-29 by mza
+// last updated 2021-11-01 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -221,7 +221,7 @@ module top #(
 	wire [31:0] end_sample                = bank2[7][31:0];
 	ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1)) orama (
 		.clock_in(clock100), .reset(reset100),
-		.word_A11_in(oserdes_word_for_DACbit[7]), .word_A10_in(oserdes_word_for_DACbit[6]), .word_A09_in(oserdes_word_for_DACbit[5]), .word_A08_in(oserdes_word_for_DACbit[4]), .word_A07_in(oserdes_word_for_DACbit[3]), .word_A06_in(sync_out_word),
+		.word_A11_in(oserdes_word_for_DACbit[7]), .word_A10_in(oserdes_word_for_DACbit[6]), .word_A09_in(oserdes_word_for_DACbit[5]), .word_A08_in(oserdes_word_for_DACbit[4]), .word_A07_in(oserdes_word_for_DACbit[3]), .word_A06_in(oserdes_word_for_DACbit[2]),
 		.word_A05_in(oserdes_word_for_DACbit[7]), .word_A04_in(oserdes_word_for_DACbit[6]), .word_A03_in(oserdes_word_for_DACbit[5]), .word_A02_in(oserdes_word_for_DACbit[4]), .word_A01_in(oserdes_word_for_DACbit[3]), .word_A00_in(oserdes_word_for_DACbit[2]),
 		.word_B5_in(oserdes_word_for_DACbit[7]), .word_B4_in(oserdes_word_for_DACbit[6]), .word_B3_in(oserdes_word_for_DACbit[5]), .word_B2_in(oserdes_word_for_DACbit[4]), .word_B1_in(oserdes_word_for_DACbit[3]), .word_B0_in(oserdes_word_for_DACbit[2]),
 		.word_C5_in(oserdes_word_for_DACbit[7]), .word_C4_in(oserdes_word_for_DACbit[6]), .word_C3_in(oserdes_word_for_DACbit[5]), .word_C2_in(oserdes_word_for_DACbit[4]), .word_C1_in(oserdes_word_for_DACbit[3]), .word_C0_in(oserdes_word_for_DACbit[2]),
@@ -236,84 +236,7 @@ module top #(
 		.E1_out(coax[5]), .E0_out(coax[4]),
 		.locked(pll_oserdes_locked)
 	);
-	assign single_ended_right[0] = 0;
-//	if (1==RIGHT_DAC_OUTER) begin
-//		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei6r (
-//			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock_right_outer), .locked(pll_oserdes_locked_right_outer),
-//			.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
-//			.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
-//			.word1_in(oserdes_word_for_DACbit[3]), .word0_in(sync_out_word),
-//			.D5_out(single_ended_right[5]), .D4_out(single_ended_right[4]),
-//			.D3_out(single_ended_right[3]), .D2_out(single_ended_right[2]),
-//			.D1_out(single_ended_right[1]), .D0_out(coax[4]));
-//		assign single_ended_right[0] = 0;
-//	end else begin
-//		for (i=0; i<6; i=i+1) begin : single_ended_array_right
-//			assign single_ended_right[i] = 0;
-//		end
-//		assign pll_oserdes_locked_right_outer = 1;
-//		assign coax[4] = 0;
-//	end
-//	if (1==RIGHT_DAC_INNER) begin
-//		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei6rdual (
-//			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock_right_inner), .locked(pll_oserdes_locked_right_inner),
-//			.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
-//			.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
-//			.word1_in(oserdes_word_for_DACbit[3]), .word0_in(oserdes_word_for_DACbit[2]),
-//			.D5_out(diff_pair_right_p[5]), .D4_out(diff_pair_right_p[4]),
-//			.D3_out(diff_pair_right_p[3]), .D2_out(diff_pair_right_p[2]),
-//			.D1_out(diff_pair_right_p[1]), .D0_out(diff_pair_right_p[0]));
-//	end else begin
-//		for (i=0; i<6; i=i+1) begin : diff_pair_pr
-//			assign diff_pair_right_p[i] = dpr;
-//		end
-//		assign pll_oserdes_locked_right_inner = 1;
-//	end
-//	if (1==LEFT_DAC_OUTER) begin
-//		if (1==LEFT_DAC_ROTATED) begin
-//			// for the case of the DAC board's outputs facing the opposite direction as the coax[0-3] outputs (the rotated case):
-//			ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei6l (
-//				.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock_left_outer), .locked(pll_oserdes_locked_left_outer),
-//				.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
-//				.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
-//				.word1_in(oserdes_word_for_DACbit[3]), .word0_in(oserdes_word_for_DACbit[2]),
-//				.D5_out(single_ended_left[0]), .D4_out(single_ended_left[1]),
-//				.D3_out(single_ended_left[2]), .D2_out(single_ended_left[3]),
-//				.D1_out(single_ended_left[4]), .D0_out(single_ended_left[5]));
-//		end else begin
-//			// for the case of the DAC board's outputs facing the same direction as the coax[0-3] outputs:
-//			ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei6l (
-//				.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock_left_outer), .locked(pll_oserdes_locked_left_outer),
-//				.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
-//				.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
-//				.word1_in(oserdes_word_for_DACbit[3]), .word0_in(oserdes_word_for_DACbit[2]),
-//				.D5_out(single_ended_left[5]), .D4_out(single_ended_left[4]),
-//				.D3_out(single_ended_left[3]), .D2_out(single_ended_left[2]),
-//				.D1_out(single_ended_left[1]), .D0_out(single_ended_left[0]));
-//		end
-//		assign reset = 0;
-//	end else begin
-//		for (i=0; i<6; i=i+1) begin : single_ended_array_left
-//			assign single_ended_left[i] = 0;
-//		end
-//		assign pll_oserdes_locked_left_outer = 1;
-//		assign reset = ~button;
-//	end
-//	if (1==LEFT_DAC_INNER) begin
-//		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei6ldual (
-//			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock_left_inner), .locked(pll_oserdes_locked_left_inner),
-//			.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
-//			.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
-//			.word1_in(oserdes_word_for_DACbit[3]), .word0_in(oserdes_word_for_DACbit[2]),
-//			.D5_out(diff_pair_left_p[5]), .D4_out(diff_pair_left_p[4]),
-//			.D3_out(diff_pair_left_p[3]), .D2_out(diff_pair_left_p[2]),
-//			.D1_out(diff_pair_left_p[1]), .D0_out(diff_pair_left_p[0]));
-//	end else begin
-//		for (i=0; i<6; i=i+1) begin : diff_pair_pl
-//			assign diff_pair_left_p[i] = dpl;
-//		end
-//		assign pll_oserdes_locked_left_inner = 1;
-//	end
+	assign single_ended_right[0] = 0; // because t is on a different bank/bufpll from n-s on althea revBLM
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
 		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
 	end
