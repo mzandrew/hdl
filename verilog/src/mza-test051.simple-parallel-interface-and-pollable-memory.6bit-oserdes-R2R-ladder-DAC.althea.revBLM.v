@@ -218,26 +218,49 @@ module top #(
 	wire  [7:0] train_oserdes_pattern     = bank2[5][7:0];
 	wire [31:0] start_sample              = bank2[6][31:0];
 	wire [31:0] end_sample                = bank2[7][31:0];
-	ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
-		.SPECIAL_A06("B"),
-		.PINTYPE_C5("n"), .PINTYPE_C4("n"), .PINTYPE_C3("n"), .PINTYPE_C2("n"), .PINTYPE_C1("n"), .PINTYPE_C0("n")
-	) orama (
-		.clock_in(clock100), .reset(reset100),
-		.word_A11_in(oserdes_word_for_DACbit[7]), .word_A10_in(oserdes_word_for_DACbit[6]), .word_A09_in(oserdes_word_for_DACbit[5]), .word_A08_in(oserdes_word_for_DACbit[4]), .word_A07_in(oserdes_word_for_DACbit[3]), .word_A06_in(oserdes_word_for_DACbit[2]),
-		.word_A05_in(oserdes_word_for_DACbit[7]), .word_A04_in(oserdes_word_for_DACbit[6]), .word_A03_in(oserdes_word_for_DACbit[5]), .word_A02_in(oserdes_word_for_DACbit[4]), .word_A01_in(oserdes_word_for_DACbit[3]), .word_A00_in(oserdes_word_for_DACbit[2]),
-		.word_B5_in(oserdes_word_for_DACbit[7]), .word_B4_in(oserdes_word_for_DACbit[6]), .word_B3_in(oserdes_word_for_DACbit[5]), .word_B2_in(oserdes_word_for_DACbit[4]), .word_B1_in(oserdes_word_for_DACbit[3]), .word_B0_in(oserdes_word_for_DACbit[2]),
-		.word_C5_in(oserdes_word_for_DACbit[7]), .word_C4_in(oserdes_word_for_DACbit[6]), .word_C3_in(oserdes_word_for_DACbit[5]), .word_C2_in(oserdes_word_for_DACbit[4]), .word_C1_in(oserdes_word_for_DACbit[3]), .word_C0_in(oserdes_word_for_DACbit[2]),
-		.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
-		.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
-		.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
-		.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(single_ended_right[0]),
-		.A05_out(single_ended_left[5]), .A04_out(single_ended_left[4]), .A03_out(single_ended_left[3]), .A02_out(single_ended_left[2]), .A01_out(single_ended_left[1]), .A00_out(single_ended_left[0]),
-		.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
-		.C5_out(diff_pair_left[5]), .C4_out(diff_pair_left[4]), .C3_out(diff_pair_left[3]), .C2_out(diff_pair_left[2]), .C1_out(diff_pair_left[1]), .C0_out(diff_pair_left[0]),
-		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
-		.E1_out(coax[5]), .E0_out(coax[4]),
-		.locked(pll_oserdes_locked)
-	);
+	if (1==LEFT_DAC_ROTATED) begin
+		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
+			.SPECIAL_A06("B"),
+			.PINTYPE_C5("n"), .PINTYPE_C4("n"), .PINTYPE_C3("n"), .PINTYPE_C2("n"), .PINTYPE_C1("n"), .PINTYPE_C0("n")
+		) orama (
+			.clock_in(clock100), .reset(reset100),
+			.word_A11_in(oserdes_word_for_DACbit[7]), .word_A10_in(oserdes_word_for_DACbit[6]), .word_A09_in(oserdes_word_for_DACbit[5]), .word_A08_in(oserdes_word_for_DACbit[4]), .word_A07_in(oserdes_word_for_DACbit[3]), .word_A06_in(oserdes_word_for_DACbit[2]),
+			.word_A05_in(oserdes_word_for_DACbit[7]), .word_A04_in(oserdes_word_for_DACbit[6]), .word_A03_in(oserdes_word_for_DACbit[5]), .word_A02_in(oserdes_word_for_DACbit[4]), .word_A01_in(oserdes_word_for_DACbit[3]), .word_A00_in(oserdes_word_for_DACbit[2]),
+			.word_B5_in(oserdes_word_for_DACbit[7]), .word_B4_in(oserdes_word_for_DACbit[6]), .word_B3_in(oserdes_word_for_DACbit[5]), .word_B2_in(oserdes_word_for_DACbit[4]), .word_B1_in(oserdes_word_for_DACbit[3]), .word_B0_in(oserdes_word_for_DACbit[2]),
+			.word_C5_in(oserdes_word_for_DACbit[7]), .word_C4_in(oserdes_word_for_DACbit[6]), .word_C3_in(oserdes_word_for_DACbit[5]), .word_C2_in(oserdes_word_for_DACbit[4]), .word_C1_in(oserdes_word_for_DACbit[3]), .word_C0_in(oserdes_word_for_DACbit[2]),
+			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
+			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
+			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
+			.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(single_ended_right[0]),
+			.A05_out(single_ended_left[0]), .A04_out(single_ended_left[1]), .A03_out(single_ended_left[2]), .A02_out(single_ended_left[3]), .A01_out(single_ended_left[4]), .A00_out(single_ended_left[5]),
+			.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
+			.C5_out(diff_pair_left[0]), .C4_out(diff_pair_left[1]), .C3_out(diff_pair_left[2]), .C2_out(diff_pair_left[3]), .C1_out(diff_pair_left[4]), .C0_out(diff_pair_left[5]),
+			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
+			.E1_out(coax[5]), .E0_out(coax[4]),
+			.locked(pll_oserdes_locked)
+		);
+	end else begin
+		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
+			.SPECIAL_A06("B"),
+			.PINTYPE_C5("n"), .PINTYPE_C4("n"), .PINTYPE_C3("n"), .PINTYPE_C2("n"), .PINTYPE_C1("n"), .PINTYPE_C0("n")
+		) orama (
+			.clock_in(clock100), .reset(reset100),
+			.word_A11_in(oserdes_word_for_DACbit[7]), .word_A10_in(oserdes_word_for_DACbit[6]), .word_A09_in(oserdes_word_for_DACbit[5]), .word_A08_in(oserdes_word_for_DACbit[4]), .word_A07_in(oserdes_word_for_DACbit[3]), .word_A06_in(oserdes_word_for_DACbit[2]),
+			.word_A05_in(oserdes_word_for_DACbit[7]), .word_A04_in(oserdes_word_for_DACbit[6]), .word_A03_in(oserdes_word_for_DACbit[5]), .word_A02_in(oserdes_word_for_DACbit[4]), .word_A01_in(oserdes_word_for_DACbit[3]), .word_A00_in(oserdes_word_for_DACbit[2]),
+			.word_B5_in(oserdes_word_for_DACbit[7]), .word_B4_in(oserdes_word_for_DACbit[6]), .word_B3_in(oserdes_word_for_DACbit[5]), .word_B2_in(oserdes_word_for_DACbit[4]), .word_B1_in(oserdes_word_for_DACbit[3]), .word_B0_in(oserdes_word_for_DACbit[2]),
+			.word_C5_in(oserdes_word_for_DACbit[7]), .word_C4_in(oserdes_word_for_DACbit[6]), .word_C3_in(oserdes_word_for_DACbit[5]), .word_C2_in(oserdes_word_for_DACbit[4]), .word_C1_in(oserdes_word_for_DACbit[3]), .word_C0_in(oserdes_word_for_DACbit[2]),
+			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
+			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
+			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
+			.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(single_ended_right[0]),
+			.A05_out(single_ended_left[5]), .A04_out(single_ended_left[4]), .A03_out(single_ended_left[3]), .A02_out(single_ended_left[2]), .A01_out(single_ended_left[1]), .A00_out(single_ended_left[0]),
+			.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
+			.C5_out(diff_pair_left[5]), .C4_out(diff_pair_left[4]), .C3_out(diff_pair_left[3]), .C2_out(diff_pair_left[2]), .C1_out(diff_pair_left[1]), .C0_out(diff_pair_left[0]),
+			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
+			.E1_out(coax[5]), .E0_out(coax[4]),
+			.locked(pll_oserdes_locked)
+		);
+	end
 //	assign single_ended_right[0] = 0; // because t is on a different bank/bufpll from n-s on althea revBLM
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
 		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
