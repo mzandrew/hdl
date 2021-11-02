@@ -260,10 +260,11 @@ module top #(
 			.locked(pll_oserdes_locked)
 		);
 	end
-//	assign single_ended_right[0] = 0; // because t is on a different bank/bufpll from n-s on althea revBLM
+
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
 		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
 	end
+//	assign single_ended_right[0] = 0; // because t is on a different bank/bufpll from n-s on althea revBLM
 	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH), .SYNC_OUT_STREAM_PICKOFF(SYNC_OUT_STREAM_PICKOFF)) ss (.clock(word_clock), .reset(reset_word), .sync_read_address(sync_read_address), .start_sample(start_sample), .end_sample(end_sample), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
@@ -671,7 +672,7 @@ module myalthea #(
 	// diff-pair IOs (toupee connectors):
 //	a_p, b_p, c_p, d_p, e_p, f_p, // rotated
 	g_p, h_p, j_p, k_p, l_p, m_p,
-	a_n, b_n, c_n, d_n, e_n, f_n, // flipped 
+	a_n, b_n, c_n, d_n, e_n, f_n, // flipped
 //	g_n, h_n, j_n, k_n, l_n, m_n, 
 	// single-ended IOs (toupee connectors):
 	n, p, q, r, s, t,

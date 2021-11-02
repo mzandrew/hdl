@@ -18,74 +18,74 @@ timespec "ts_clock50_p" = period "tnm_clock50_p" 20.0 ns high 50%; # 50 MHz
 #timespec "ts_ftsw_p" = period "ftsw_p" 7.8 ns high 50%; # 128.205 MHz
 
 # first column, closest to FPGA on left side of board
-net a_n loc=p116 | iostandard=lvcmos33 | drive =  4 | slew = slow; # A- bank0 TR
-net a_p loc=p117 | iostandard=lvcmos33 | drive = 24 | slew = fast; # A+ bank0 TR
-net c_n loc=p131 | iostandard=lvcmos33 | drive =  4 | slew = slow; # C- bank0 TR
-net c_p loc=p132 | iostandard=lvcmos33 | drive = 24 | slew = fast; # C+ bank0 TR
-net d_n loc=p139 | iostandard=lvcmos33 | drive =  4 | slew = slow; # D- bank0 TR
-net d_p loc=p140 | iostandard=lvcmos33 | drive = 24 | slew = fast; # D+ bank0 TR
-net f_n loc=p141 | iostandard=lvcmos33 | drive =  4 | slew = slow; # F- bank0 TL
-net f_p loc=p142 | iostandard=lvcmos33 | drive = 24 | slew = fast; # F+ bank0 TL
+net a_n loc=p116 | iostandard=lvttl | drive = 24 | slew = fast; # A- bank0 TR
+net a_p loc=p117 | iostandard=lvttl | drive = 24 | slew = fast; # A+ bank0 TR
+net c_n loc=p131 | iostandard=lvttl | drive = 24 | slew = fast; # C- bank0 TR
+net c_p loc=p132 | iostandard=lvttl | drive = 24 | slew = fast; # C+ bank0 TR
+net d_n loc=p139 | iostandard=lvttl | drive = 24 | slew = fast; # D- bank0 TR
+net d_p loc=p140 | iostandard=lvttl | drive = 24 | slew = fast; # D+ bank0 TR
+net f_n loc=p141 | iostandard=lvttl | drive = 24 | slew = fast; # F- bank0 TL
+net f_p loc=p142 | iostandard=lvttl | drive = 24 | slew = fast; # F+ bank0 TL
 
 # middle column, on left side of board
-net b_n loc=p123 | iostandard=lvcmos33 | drive =  4 | slew = slow; # B- bank0 TR
-net b_p loc=p124 | iostandard=lvcmos33 | drive = 24 | slew = fast; # B+ bank0 TR
-net e_n loc=p133 | iostandard=lvcmos33 | drive =  4 | slew = slow; # E- bank0 TL
-net e_p loc=p134 | iostandard=lvcmos33 | drive = 24 | slew = fast; # E+ bank0 TL
+net b_n loc=p123 | iostandard=lvttl | drive = 24 | slew = fast; # B- bank0 TR
+net b_p loc=p124 | iostandard=lvttl | drive = 24 | slew = fast; # B+ bank0 TR
+net e_n loc=p133 | iostandard=lvttl | drive = 24 | slew = fast; # E- bank0 TL
+net e_p loc=p134 | iostandard=lvttl | drive = 24 | slew = fast; # E+ bank0 TL
 
 # third column, on left side of board
-net z loc=p17  | iostandard=lvcmos33 | drive = 24 | slew = fast; # Z bank3 TL - this conflicts with led<4> in cascaded serdes mode
-net y loc=p15  | iostandard=lvcmos33 | drive = 24 | slew = fast; # Y bank3 TL - this conflicts with led<5> in cascaded serdes mode
-net x loc=p12  | iostandard=lvcmos33 | drive = 24 | slew = fast; # X bank3 TL - this conflicts with led<6> in cascaded serdes mode
-net w loc=p10  | iostandard=lvcmos33 | drive = 24 | slew = fast; # W bank3 TL - this conflicts with led<7> in cascaded serdes mode
-net v loc=p8   | iostandard=lvcmos33 | drive = 24 | slew = fast; # V bank3 TL
-net u loc=p2   | iostandard=lvcmos33 | drive = 24 | slew = fast; # U bank3 TL - this conflicts with button in cascaded serdes mode
+net z loc=p17  | iostandard=lvttl | drive = 24 | slew = fast; # Z bank3 TL - conflicts with led<4> when using cascaded serdes
+net y loc=p15  | iostandard=lvttl | drive = 24 | slew = fast; # Y bank3 TL - conflicts with led<5> when using cascaded serdes
+net x loc=p12  | iostandard=lvttl | drive = 24 | slew = fast; # X bank3 TL - conflicts with led<6> when using cascaded serdes
+net w loc=p10  | iostandard=lvttl | drive = 24 | slew = fast; # W bank3 TL - conflicts with led<7> when using cascaded serdes
+net v loc=p8   | iostandard=lvttl | drive = 24 | slew = fast; # V bank3 TL - conflicts with rot<1> when using cascaded serdes
+net u loc=p2   | iostandard=lvttl | drive = 24 | slew = fast; # U bank3 TL - conflicts with button when using cascaded serdes
 
 # first column, closest to FPGA on right side of board
-net m_p loc=p58  | iostandard=lvcmos33 | drive = 24 | slew = fast; # M+ bank2 BR
-net m_n loc=p57  | iostandard=lvcmos33 | drive =  4 | slew = slow; # M- bank2 BR
-net l_p loc=p48  | iostandard=lvcmos33 | drive = 24 | slew = fast; # L+ bank2 BR
-net l_n loc=p47  | iostandard=lvcmos33 | drive =  4 | slew = slow; # L- bank2 BR
-net j_p loc=p46  | iostandard=lvcmos33 | drive = 24 | slew = fast; # J+ bank2 BL
-net j_n loc=p45  | iostandard=lvcmos33 | drive =  4 | slew = slow; # J- bank2 BL
-net g_p loc=p41  | iostandard=lvcmos33 | drive = 24 | slew = fast; # G+ bank2 BL
-net g_n loc=p40  | iostandard=lvcmos33 | drive =  4 | slew = slow; # G- bank2 BL
+net m_p loc=p58  | iostandard=lvttl | drive = 24 | slew = fast; # M+ bank2 BR
+net m_n loc=p57  | iostandard=lvttl | drive = 24 | slew = fast; # M- bank2 BR
+net l_p loc=p48  | iostandard=lvttl | drive = 24 | slew = fast; # L+ bank2 BR
+net l_n loc=p47  | iostandard=lvttl | drive = 24 | slew = fast; # L- bank2 BR
+net j_p loc=p46  | iostandard=lvttl | drive = 24 | slew = fast; # J+ bank2 BL
+net j_n loc=p45  | iostandard=lvttl | drive = 24 | slew = fast; # J- bank2 BL
+net g_p loc=p41  | iostandard=lvttl | drive = 24 | slew = fast; # G+ bank2 BL
+net g_n loc=p40  | iostandard=lvttl | drive = 24 | slew = fast; # G- bank2 BL
 
 # middle column, on right side of board
-net k_p loc=p56  | iostandard=lvcmos33 | drive = 24 | slew = fast; # K+ bank2 BR
-net k_n loc=p55  | iostandard=lvcmos33 | drive =  4 | slew = slow; # K- bank2 BR
-net h_p loc=p44  | iostandard=lvcmos33 | drive = 24 | slew = fast; # H+ bank2 BL
-net h_n loc=p43  | iostandard=lvcmos33 | drive =  4 | slew = slow; # H- bank2 BL
+net k_p loc=p56  | iostandard=lvttl | drive = 24 | slew = fast; # K+ bank2 BR
+net k_n loc=p55  | iostandard=lvttl | drive = 24 | slew = fast; # K- bank2 BR
+net h_p loc=p44  | iostandard=lvttl | drive = 24 | slew = fast; # H+ bank2 BL
+net h_n loc=p43  | iostandard=lvttl | drive = 24 | slew = fast; # H- bank2 BL
 
 # third column, on right side of board
-net n loc=p30  | iostandard=lvcmos33 | drive = 24 | slew = fast; # N bank3 TL - this conflicts with led<0> in cascaded serdes mode
-net p loc=p35  | iostandard=lvcmos33 | drive = 24 | slew = fast; # P bank3 TL - this conflicts with using coax[5] in cascaded serdes mode
-net q loc=p33  | iostandard=lvcmos33 | drive = 24 | slew = fast; # Q bank3 TL
-net r loc=p27  | iostandard=lvcmos33 | drive = 24 | slew = fast; # R bank3 TL - this conflicts with led<1> in cascaded serdes mode
-net s loc=p24  | iostandard=lvcmos33 | drive = 24 | slew = fast; # S bank3 TL - this conflicts with led<2> in cascaded serdes mode
-net t loc=p22  | iostandard=lvcmos33 | drive = 24 | slew = fast; # T bank3 TL - this conflicts with led<3> in cascaded serdes mode
+net n loc=p30  | iostandard=lvttl | drive = 24 | slew = fast; # N bank3 TL - this conflicts with led<0> in cascaded serdes mode
+net p loc=p35  | iostandard=lvttl | drive = 24 | slew = fast; # P bank3 TL - this conflicts with using coax[5] in cascaded serdes mode
+net q loc=p33  | iostandard=lvttl | drive = 24 | slew = fast; # Q bank3 TL
+net r loc=p27  | iostandard=lvttl | drive = 24 | slew = fast; # R bank3 TL - this conflicts with led<1> in cascaded serdes mode
+net s loc=p24  | iostandard=lvttl | drive = 24 | slew = fast; # S bank3 TL - this conflicts with led<2> in cascaded serdes mode
+net t loc=p22  | iostandard=lvttl | drive = 24 | slew = fast; # T bank3 TL - this conflicts with led<3> in cascaded serdes mode
 
 # raspberry pi 40pin headers, general purpose IO:
-net rpi_gpio2_i2c1_sda  loc=p138 | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank0 broadcom i2c peripheral
-net rpi_gpio3_i2c1_scl  loc=p137 | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank0 broadcom i2c peripheral
-net rpi_gpio4_gpclk0    loc=p95  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank1 broadcom gpclk peripheral
-net rpi_gpio5           loc=p66  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank2
-net rpi_gpio6_gpclk2    loc=p51  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank2 broadcom gpclk peripheral
-net rpi_gpio7_spi_ce1   loc=p80  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank1 broadcom spi peripheral
-net rpi_gpio8_spi_ce0   loc=p82  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank1 broadcom spi peripheral
-net rpi_gpio9_spi_miso  loc=p112 | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank0 broadcom spi peripheral
-net rpi_gpio10_spi_mosi loc=p111 | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank0 broadcom spi peripheral
-net rpi_gpio11_spi_sclk loc=p93  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank1 broadcom spi peripheral
-net rpi_gpio12          loc=p78  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank1
-net rpi_gpio13          loc=p61  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank2
-net rpi_gpio14          loc=p87  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank1
-net rpi_gpio15          loc=p118 | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank0
-net rpi_gpio16          loc=p59  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank2
-net rpi_gpio17          loc=p101 | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank1
-net rpi_gpio18          loc=p115 | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank0
-net rpi_gpio19          loc=p85  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank1
-net rpi_gpio20          loc=p83  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank1
-net rpi_gpio21          loc=p84  | iostandard=lvcmos33 | drive = 4 | slew = slow; # bank1
+net rpi_gpio2_i2c1_sda  loc=p138 | iostandard=lvttl | drive = 4 | slew = slow; # bank0 broadcom i2c peripheral
+net rpi_gpio3_i2c1_scl  loc=p137 | iostandard=lvttl | drive = 4 | slew = slow; # bank0 broadcom i2c peripheral
+net rpi_gpio4_gpclk0    loc=p95  | iostandard=lvttl | drive = 4 | slew = slow; # bank1 broadcom gpclk peripheral
+net rpi_gpio5           loc=p66  | iostandard=lvttl | drive = 4 | slew = slow; # bank2
+net rpi_gpio6_gpclk2    loc=p51  | iostandard=lvttl | drive = 4 | slew = slow; # bank2 broadcom gpclk peripheral
+net rpi_gpio7_spi_ce1   loc=p80  | iostandard=lvttl | drive = 4 | slew = slow; # bank1 broadcom spi peripheral
+net rpi_gpio8_spi_ce0   loc=p82  | iostandard=lvttl | drive = 4 | slew = slow; # bank1 broadcom spi peripheral
+net rpi_gpio9_spi_miso  loc=p112 | iostandard=lvttl | drive = 4 | slew = slow; # bank0 broadcom spi peripheral
+net rpi_gpio10_spi_mosi loc=p111 | iostandard=lvttl | drive = 4 | slew = slow; # bank0 broadcom spi peripheral
+net rpi_gpio11_spi_sclk loc=p93  | iostandard=lvttl | drive = 4 | slew = slow; # bank1 broadcom spi peripheral
+net rpi_gpio12          loc=p78  | iostandard=lvttl | drive = 4 | slew = slow; # bank1
+net rpi_gpio13          loc=p61  | iostandard=lvttl | drive = 4 | slew = slow; # bank2
+net rpi_gpio14          loc=p87  | iostandard=lvttl | drive = 4 | slew = slow; # bank1
+net rpi_gpio15          loc=p118 | iostandard=lvttl | drive = 4 | slew = slow; # bank0
+net rpi_gpio16          loc=p59  | iostandard=lvttl | drive = 4 | slew = slow; # bank2
+net rpi_gpio17          loc=p101 | iostandard=lvttl | drive = 4 | slew = slow; # bank1
+net rpi_gpio18          loc=p115 | iostandard=lvttl | drive = 4 | slew = slow; # bank0
+net rpi_gpio19          loc=p85  | iostandard=lvttl | drive = 4 | slew = slow; # bank1
+net rpi_gpio20          loc=p83  | iostandard=lvttl | drive = 4 | slew = slow; # bank1
+net rpi_gpio21          loc=p84  | iostandard=lvttl | drive = 4 | slew = slow; # bank1
 #net rpi_gpio22                                                   ; # used for jtag (TMS)
 #net rpi_gpio23                                                   ; # used for jtag (TCK)
 #net rpi_gpio24                                                   ; # used for jtag (TDO)
@@ -97,37 +97,39 @@ net rpi_gpio21          loc=p84  | iostandard=lvcmos33 | drive = 4 | slew = slow
 #timespec "ts_clock10" = period "tnm_clock10" 100.0 ns high 50%; # 10 MHz
 
 # hexadecimal rotary encoder:
-#net rot<0> loc=p74 | iostandard=lvcmos33 | pullup; # rot_1 bank1
-#net rot<1> loc=p50 | iostandard=lvcmos33 | pullup; # rot_2 bank2
-#net rot<2> loc=p67 | iostandard=lvcmos33 | pullup; # rot_4 bank2
-#net rot<3> loc=p62 | iostandard=lvcmos33 | pullup; # rot_8 bank2
+#net rot<0> loc=p74 | iostandard=lvttl | pullup; # rot_1 bank1
+#net rot<1> loc=p50 | iostandard=lvttl | pullup; # rot_2 bank2
+#net rot<2> loc=p67 | iostandard=lvttl | pullup; # rot_4 bank2
+#net rot<3> loc=p62 | iostandard=lvttl | pullup; # rot_8 bank2
 
 # momentary pushbutton, normally open:
-#net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3 - this conflicts with u in cascaded serdes mode
+#net button loc=p1 | iostandard=lvttl | pullup; # bank3 - this conflicts with u in cascaded serdes mode
 
 # array of 8 LEDs:
-net led<0> loc=p29 | iostandard=lvcmos33 | drive = 2 | slew = slow; # - this conflicts with n in cascaded serdes mode
-#net led<1> loc=p26 | iostandard=lvcmos33 | drive = 2 | slew = slow; # - this conflicts with r in cascaded serdes mode
-net led<1> loc=p32 | iostandard=lvcmos33 | drive = 2 | slew = slow; # - this is not connected to an led (for when we need to use r in cascaded serdes mode)
-net led<2> loc=p23 | iostandard=lvcmos33 | drive = 2 | slew = slow; # - this conflicts with s in cascaded serdes mode
-net led<3> loc=p21 | iostandard=lvcmos33 | drive = 2 | slew = slow; # - this conflicts with t in cascaded serdes mode
-net led<4> loc=p16 | iostandard=lvcmos33 | drive = 2 | slew = slow; # - this conflicts with z in cascaded serdes mode
-net led<5> loc=p14 | iostandard=lvcmos33 | drive = 2 | slew = slow; # - this conflicts with y in cascaded serdes mode
-net led<6> loc=p11 | iostandard=lvcmos33 | drive = 2 | slew = slow; # - this conflicts with x in cascaded serdes mode
-net led<7> loc=p9  | iostandard=lvcmos33 | drive = 2 | slew = slow; # - this conflicts with w in cascaded serdes mode
+# available when LEFT_DAC mode is used:
+net led<0> loc=p29 | iostandard=lvttl | drive = 2 | slew = slow; # - this conflicts with n in cascaded serdes mode
+#net led<1> loc=p26 | iostandard=lvttl | drive = 2 | slew = slow; # - this conflicts with r in cascaded serdes mode
+net led<1> loc=p32 | iostandard=lvttl | drive = 2 | slew = slow; # - this is not connected to an led (for when we need to use r in cascaded serdes mode)
+net led<2> loc=p23 | iostandard=lvttl | drive = 2 | slew = slow; # - this conflicts with s in cascaded serdes mode
+net led<3> loc=p21 | iostandard=lvttl | drive = 2 | slew = slow; # - this conflicts with t in cascaded serdes mode
+# available when RIGHT_DAC mode is used:
+net led<4> loc=p16 | iostandard=lvttl | drive = 2 | slew = slow; # - this conflicts with z in cascaded serdes mode
+net led<5> loc=p14 | iostandard=lvttl | drive = 2 | slew = slow; # - this conflicts with y in cascaded serdes mode
+net led<6> loc=p11 | iostandard=lvttl | drive = 2 | slew = slow; # - this conflicts with x in cascaded serdes mode
+net led<7> loc=p9  | iostandard=lvttl | drive = 2 | slew = slow; # - this conflicts with w in cascaded serdes mode
 
 # 4 more LEDs, one next to each of the first 4 coax connectors:
-net coax_led<0> loc=p98  | iostandard=lvcmos33 | drive = 2 | slew = slow; #
-net coax_led<1> loc=p94  | iostandard=lvcmos33 | drive = 2 | slew = slow; #
-net coax_led<2> loc=p92  | iostandard=lvcmos33 | drive = 2 | slew = slow; #
-net coax_led<3> loc=p88  | iostandard=lvcmos33 | drive = 2 | slew = slow; #
+net coax_led<0> loc=p98  | iostandard=lvttl | drive = 2 | slew = slow; #
+net coax_led<1> loc=p94  | iostandard=lvttl | drive = 2 | slew = slow; #
+net coax_led<2> loc=p92  | iostandard=lvttl | drive = 2 | slew = slow; #
+net coax_led<3> loc=p88  | iostandard=lvttl | drive = 2 | slew = slow; #
 
-net coax0 loc=p105 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
-#net coax<1> loc=p102 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
-#net coax<2> loc=p79  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
-net coax3 loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
-net coax4 loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3
-#net coax<5> loc=p34  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3; on an _n pin - this conflicts with using p in cascaded serdes mode
+net coax0 loc=p105 | iostandard=lvttl | drive = 24 | slew = fast; # bank1
+#net coax<1> loc=p102 | iostandard=lvttl | drive = 24 | slew = fast; # bank1
+#net coax<2> loc=p79  | iostandard=lvttl | drive = 24 | slew = fast; # bank1
+net coax3 loc=p75  | iostandard=lvttl | drive = 24 | slew = fast; # bank1
+net coax4 loc=p6   | iostandard=lvttl | drive = 24 | slew = fast; # bank3
+#net coax<5> loc=p34  | iostandard=lvttl | drive = 24 | slew = fast; # bank3; on an _n pin - this conflicts with using p in cascaded serdes mode
 
 #net "button" tig;
 #net "rot<?>" tig;

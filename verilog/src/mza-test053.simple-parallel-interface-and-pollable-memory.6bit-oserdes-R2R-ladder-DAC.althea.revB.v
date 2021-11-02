@@ -1,6 +1,6 @@
 // written 2021-10-13 by mza
 // based on mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBLM.v
-// last updated 2021-11-01 by mza
+// last updated 2021-11-02 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -45,8 +45,7 @@ module top #(
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
 	output ack_valid,
-	output [5:0] diff_pair_left_p,
-//	output [5:0] diff_pair_left_n,
+	output [5:0] diff_pair_left,
 	output [5:0] diff_pair_right_p,
 //	output [5:0] diff_pair_right_n,
 	output [5:0] single_ended_left,
@@ -130,12 +129,12 @@ module top #(
 	wire [OSERDES_DATA_WIDTH-1:0] potential_oserdes_word [NUMBER_OF_BANKS-1:0];
 	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [NUMBER_OF_BANKS-1:0];
 	wire [63:0] oserdes_word64;
-	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word_for_DACbit [7:0];
+	wire [OSERDES_DATA_WIDTH-1:0] DACbit [7:0];
 	for (i=0; i<8; i=i+1) begin : oserdes_bit_mapping
 		// bit0 -> 56, 48, 40, 32, 24, 16, 8, 0
 		// bit7 -> 63, 55, 47, 39, 31, 23, 15, 7
-		assign oserdes_word_for_DACbit[i] = { oserdes_word64[8*7+i], oserdes_word64[8*6+i], oserdes_word64[8*5+i], oserdes_word64[8*4+i],
-		                                      oserdes_word64[8*3+i], oserdes_word64[8*2+i], oserdes_word64[8*1+i], oserdes_word64[8*0+i] };
+		assign DACbit[i] = { oserdes_word64[8*7+i], oserdes_word64[8*6+i], oserdes_word64[8*5+i], oserdes_word64[8*4+i],
+		                     oserdes_word64[8*3+i], oserdes_word64[8*2+i], oserdes_word64[8*1+i], oserdes_word64[8*0+i] };
 	end
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 	wire [31:0] bank1 [15:0];
@@ -155,7 +154,7 @@ module top #(
 	for (i=3; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
 		assign read_data_word[i] = 0;
 	end
-	assign potential_oserdes_word[0] = oserdes_word_for_DACbit[7];
+	assign potential_oserdes_word[0] = DACbit[7];
 	for (i=1; i<NUMBER_OF_BANKS; i=i+1) begin : banksfake
 		assign potential_oserdes_word[i] = 0;
 	end
@@ -189,7 +188,7 @@ module top #(
 	end else begin
 		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei4 (
 			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock), .locked(pll_oserdes_locked_other),
-			.word3_in(oserdes_word_for_DACbit[7]), .word2_in(oserdes_word_for_DACbit[6]), .word1_in(oserdes_word_for_DACbit[5]), .word0_in(oserdes_word_for_DACbit[4]),
+			.word3_in(DACbit[7]), .word2_in(DACbit[6]), .word1_in(DACbit[5]), .word0_in(DACbit[4]),
 			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
 	end
 //	assign pll_oserdes_locked = pll_oserdes_locked_other && pll_oserdes_locked_right_outer && pll_oserdes_locked_left_outer && pll_oserdes_locked_right_inner && pll_oserdes_locked_left_inner;
@@ -227,29 +226,53 @@ module top #(
 	wire  [7:0] train_oserdes_pattern     = bank2[5][7:0];
 	wire [31:0] start_sample              = bank2[6][31:0];
 	wire [31:0] end_sample                = bank2[7][31:0];
-	ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1)) orama (
-		.clock_in(clock100), .reset(reset100),
-		.word_A11_in(oserdes_word_for_DACbit[7]), .word_A10_in(oserdes_word_for_DACbit[6]), .word_A09_in(oserdes_word_for_DACbit[5]), .word_A08_in(oserdes_word_for_DACbit[4]), .word_A07_in(oserdes_word_for_DACbit[3]), .word_A06_in(oserdes_word_for_DACbit[2]),
-		.word_A05_in(oserdes_word_for_DACbit[7]), .word_A04_in(oserdes_word_for_DACbit[6]), .word_A03_in(oserdes_word_for_DACbit[5]), .word_A02_in(oserdes_word_for_DACbit[4]), .word_A01_in(oserdes_word_for_DACbit[3]), .word_A00_in(oserdes_word_for_DACbit[2]),
-		.word_B5_in(oserdes_word_for_DACbit[7]), .word_B4_in(oserdes_word_for_DACbit[6]), .word_B3_in(oserdes_word_for_DACbit[5]), .word_B2_in(oserdes_word_for_DACbit[4]), .word_B1_in(oserdes_word_for_DACbit[3]), .word_B0_in(oserdes_word_for_DACbit[2]),
-		.word_C5_in(oserdes_word_for_DACbit[7]), .word_C4_in(oserdes_word_for_DACbit[6]), .word_C3_in(oserdes_word_for_DACbit[5]), .word_C2_in(oserdes_word_for_DACbit[4]), .word_C1_in(oserdes_word_for_DACbit[3]), .word_C0_in(oserdes_word_for_DACbit[2]),
-		.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
-		.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
-		.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
-		.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(single_ended_right[0]),
-		.A05_out(single_ended_left[5]), .A04_out(single_ended_left[4]), .A03_out(single_ended_left[3]), .A02_out(single_ended_left[2]), .A01_out(single_ended_left[1]), .A00_out(single_ended_left[0]),
-		.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
-		.C5_out(diff_pair_left_p[5]), .C4_out(diff_pair_left_p[4]), .C3_out(diff_pair_left_p[3]), .C2_out(diff_pair_left_p[2]), .C1_out(diff_pair_left_p[1]), .C0_out(diff_pair_left_p[0]),
-		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
-		.E1_out(coax[5]), .E0_out(coax[4]),
-		.locked(pll_oserdes_locked)
-	);
-//	assign coax[1] = 0; // because coax[1] is on same pin pair as gpio17 on althea revB
-//	assign coax[2] = 0; // because coax[2] is on same pin pair as gpio12 on althea revB
-//	assign coax[5] = 0; // because coax[5] is on same pin pair as p on althea revB
+	if (1==LEFT_DAC_ROTATED) begin
+		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1)
+		) orama (
+			.clock_in(clock100), .reset(reset100),
+			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
+			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
+			.word_B5_in(DACbit[7]), .word_B4_in(DACbit[6]), .word_B3_in(DACbit[5]), .word_B2_in(DACbit[4]), .word_B1_in(DACbit[3]), .word_B0_in(DACbit[2]),
+			.word_C5_in(DACbit[7]), .word_C4_in(DACbit[6]), .word_C3_in(DACbit[5]), .word_C2_in(DACbit[4]), .word_C1_in(DACbit[3]), .word_C0_in(DACbit[2]),
+			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
+			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
+			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
+			.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(single_ended_right[0]),
+			.A05_out(single_ended_left[0]), .A04_out(single_ended_left[1]), .A03_out(single_ended_left[2]), .A02_out(single_ended_left[3]), .A01_out(single_ended_left[4]), .A00_out(single_ended_left[5]),
+			.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
+			.C5_out(diff_pair_left[0]), .C4_out(diff_pair_left[1]), .C3_out(diff_pair_left[2]), .C2_out(diff_pair_left[3]), .C1_out(diff_pair_left[4]), .C0_out(diff_pair_left[5]),
+			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
+			.E1_out(coax[5]), .E0_out(coax[4]),
+			.locked(pll_oserdes_locked)
+		);
+	end else begin
+		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
+			.PINTYPE_C5("n"), .PINTYPE_C4("n"), .PINTYPE_C3("n"), .PINTYPE_C2("n"), .PINTYPE_C1("n"), .PINTYPE_C0("n")
+		) orama (
+			.clock_in(clock100), .reset(reset100),
+			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
+			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
+			.word_B5_in(DACbit[7]), .word_B4_in(DACbit[6]), .word_B3_in(DACbit[5]), .word_B2_in(DACbit[4]), .word_B1_in(DACbit[3]), .word_B0_in(DACbit[2]),
+			.word_C5_in(DACbit[7]), .word_C4_in(DACbit[6]), .word_C3_in(DACbit[5]), .word_C2_in(DACbit[4]), .word_C1_in(DACbit[3]), .word_C0_in(DACbit[2]),
+			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
+			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
+			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
+			.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(single_ended_right[0]),
+			.A05_out(single_ended_left[5]), .A04_out(single_ended_left[4]), .A03_out(single_ended_left[3]), .A02_out(single_ended_left[2]), .A01_out(single_ended_left[1]), .A00_out(single_ended_left[0]),
+			.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
+			.C5_out(diff_pair_left[5]), .C4_out(diff_pair_left[4]), .C3_out(diff_pair_left[3]), .C2_out(diff_pair_left[2]), .C1_out(diff_pair_left[1]), .C0_out(diff_pair_left[0]),
+			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
+			.E1_out(coax[5]), .E0_out(coax[4]),
+			.locked(pll_oserdes_locked)
+		);
+	end
+
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
 		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
 	end
+//	assign coax[1] = 0; // because coax[1] is on same pin pair as gpio17 on althea revB
+//	assign coax[2] = 0; // because coax[2] is on same pin pair as gpio12 on althea revB
+//	assign coax[5] = 0; // because coax[5] is on same pin pair as p on althea revB
 	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH), .SYNC_OUT_STREAM_PICKOFF(SYNC_OUT_STREAM_PICKOFF)) ss (.clock(word_clock), .reset(reset_word), .sync_read_address(sync_read_address), .start_sample(start_sample), .end_sample(end_sample), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
@@ -657,9 +680,9 @@ module myalthea #(
 	inout rpi_gpio14, rpi_gpio15, rpi_gpio16, rpi_gpio17,
 	inout rpi_gpio18, rpi_gpio19, rpi_gpio20, rpi_gpio21,
 	// diff-pair IOs (toupee connectors):
-	a_p, b_p, c_p, d_p, e_p, f_p, 
-	g_p, h_p, j_p, k_p, l_p, m_p, 
-//	a_n, b_n, c_n, d_n, e_n, f_n, 
+//	a_p, b_p, c_p, d_p, e_p, f_p, // rotated
+	g_p, h_p, j_p, k_p, l_p, m_p,
+	a_n, b_n, c_n, d_n, e_n, f_n, // flipped
 //	g_n, h_n, j_n, k_n, l_n, m_n, 
 	// single-ended IOs (toupee connectors):
 	n, p, q, r, s, t,
@@ -680,6 +703,12 @@ module myalthea #(
 	wire [7:0] internal_led;
 	//assign led = internal_led;
 	assign coax_led = internal_coax_led;
+	wire [5:0] diff_pair_left;
+	if (1==LEFT_DAC_ROTATED) begin
+//		assign { a_p, c_p, d_p, f_p, b_p, e_p } = diff_pair_left; // rotated
+	end else begin
+		assign { a_n, c_n, d_n, f_n, b_n, e_n } = diff_pair_left; // flipped
+	end
 	wire coax5, coax2, coax1;
 	top #(
 		.LEFT_DAC_OUTER(LEFT_DAC_OUTER), .RIGHT_DAC_OUTER(RIGHT_DAC_OUTER),
@@ -699,8 +728,7 @@ module myalthea #(
 			rpi_gpio13, rpi_gpio12, rpi_gpio11_spi_sclk, rpi_gpio10_spi_mosi,
 			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
 		}),
-		.diff_pair_left_p({ a_p, c_p, d_p, f_p, b_p, e_p }),
-//		.diff_pair_left_n({ a_n, c_n, d_n, f_n, b_n, e_n }),
+		.diff_pair_left(diff_pair_left),
 		.diff_pair_right_p({ m_p, k_p, l_p, j_p, h_p, g_p }),
 //		.diff_pair_right_n({ m_n, k_n, l_n, j_n, h_n, g_n }),
 		.single_ended_left({ z, y, x, w, v, u }),
