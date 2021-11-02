@@ -1,6 +1,6 @@
 // written 2021-10-13 by mza
 // based on mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBLM.v
-// last updated 2021-11-01 by mza
+// last updated 2021-11-02 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -45,8 +45,7 @@ module top #(
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
 	output ack_valid,
-	output [5:0] diff_pair_left_p,
-//	output [5:0] diff_pair_left_n,
+	output [5:0] diff_pair_left,
 	output [5:0] diff_pair_right_p,
 //	output [5:0] diff_pair_right_n,
 	output [5:0] single_ended_left,
@@ -219,7 +218,10 @@ module top #(
 	wire  [7:0] train_oserdes_pattern     = bank2[5][7:0];
 	wire [31:0] start_sample              = bank2[6][31:0];
 	wire [31:0] end_sample                = bank2[7][31:0];
-	ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SPECIAL_A06("B")) orama (
+	ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
+		.SPECIAL_A06("B"),
+		.PINTYPE_C5("n"), .PINTYPE_C4("n"), .PINTYPE_C3("n"), .PINTYPE_C2("n"), .PINTYPE_C1("n"), .PINTYPE_C0("n")
+	) orama (
 		.clock_in(clock100), .reset(reset100),
 		.word_A11_in(oserdes_word_for_DACbit[7]), .word_A10_in(oserdes_word_for_DACbit[6]), .word_A09_in(oserdes_word_for_DACbit[5]), .word_A08_in(oserdes_word_for_DACbit[4]), .word_A07_in(oserdes_word_for_DACbit[3]), .word_A06_in(oserdes_word_for_DACbit[2]),
 		.word_A05_in(oserdes_word_for_DACbit[7]), .word_A04_in(oserdes_word_for_DACbit[6]), .word_A03_in(oserdes_word_for_DACbit[5]), .word_A02_in(oserdes_word_for_DACbit[4]), .word_A01_in(oserdes_word_for_DACbit[3]), .word_A00_in(oserdes_word_for_DACbit[2]),
@@ -231,7 +233,7 @@ module top #(
 		.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(single_ended_right[0]),
 		.A05_out(single_ended_left[5]), .A04_out(single_ended_left[4]), .A03_out(single_ended_left[3]), .A02_out(single_ended_left[2]), .A01_out(single_ended_left[1]), .A00_out(single_ended_left[0]),
 		.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
-		.C5_out(diff_pair_left_p[5]), .C4_out(diff_pair_left_p[4]), .C3_out(diff_pair_left_p[3]), .C2_out(diff_pair_left_p[2]), .C1_out(diff_pair_left_p[1]), .C0_out(diff_pair_left_p[0]),
+		.C5_out(diff_pair_left[5]), .C4_out(diff_pair_left[4]), .C3_out(diff_pair_left[3]), .C2_out(diff_pair_left[2]), .C1_out(diff_pair_left[1]), .C0_out(diff_pair_left[0]),
 		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
 		.E1_out(coax[5]), .E0_out(coax[4]),
 		.locked(pll_oserdes_locked)
@@ -645,9 +647,9 @@ module myalthea #(
 	inout rpi_gpio14, rpi_gpio15, rpi_gpio16, rpi_gpio17,
 	inout rpi_gpio18, rpi_gpio19, rpi_gpio20, rpi_gpio21,
 	// diff-pair IOs (toupee connectors):
-	a_p, b_p, c_p, d_p, e_p, f_p, 
-	g_p, h_p, j_p, k_p, l_p, m_p, 
-//	a_n, b_n, c_n, d_n, e_n, f_n, 
+//	a_p, b_p, c_p, d_p, e_p, f_p, // rotated
+	g_p, h_p, j_p, k_p, l_p, m_p,
+	a_n, b_n, c_n, d_n, e_n, f_n, // flipped 
 //	g_n, h_n, j_n, k_n, l_n, m_n, 
 	// single-ended IOs (toupee connectors):
 	n, p, q, r, s, t,
@@ -668,6 +670,12 @@ module myalthea #(
 	wire [7:0] internal_led;
 	//assign led = internal_led;
 	assign coax_led = internal_coax_led;
+	wire [5:0] diff_pair_left;
+	if (1==LEFT_DAC_ROTATED) begin
+//		assign { a_p, c_p, d_p, f_p, b_p, e_p } = diff_pair_left; // rotated
+	end else begin
+		assign { a_n, c_n, d_n, f_n, b_n, e_n } = diff_pair_left; // flipped
+	end
 	top #(
 		.LEFT_DAC_OUTER(LEFT_DAC_OUTER), .RIGHT_DAC_OUTER(RIGHT_DAC_OUTER),
 		.LEFT_DAC_ROTATED(LEFT_DAC_ROTATED),
@@ -686,8 +694,7 @@ module myalthea #(
 			rpi_gpio13, rpi_gpio12, rpi_gpio11_spi_sclk, rpi_gpio10_spi_mosi,
 			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
 		}),
-		.diff_pair_left_p({ a_p, c_p, d_p, f_p, b_p, e_p }),
-//		.diff_pair_left_n({ a_n, c_n, d_n, f_n, b_n, e_n }),
+		.diff_pair_left(diff_pair_left),
 		.diff_pair_right_p({ m_p, k_p, l_p, j_p, h_p, g_p }),
 //		.diff_pair_right_n({ m_n, k_n, l_n, j_n, h_n, g_n }),
 		.single_ended_left({ z, y, x, w, v, u }),

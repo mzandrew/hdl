@@ -5,8 +5,8 @@ declare list=""
 #list="$list 2017pi2-idlab"
 #list="$list 2018pi2-idlab"
 #list="$list 2018pi3-idlab-xrm"
-#list="$list 2021pi0w-idlab"
-list="$list 2021pi0w-idlab-home"
+list="$list 2021pi0w-idlab"
+#list="$list 2021pi0w-idlab-home"
 
 for each in $list; do
 	echo "$each"

@@ -1,7 +1,7 @@
 # written 2021-10-13 by mza
 # based on mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBL.v
 # for an althea revBLM
-# last updated 2021-11-01 by mza
+# last updated 2021-11-02 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
@@ -18,19 +18,19 @@ timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
 #timespec "ts_ftsw_p" = period "ftsw_p" 7.8 ns high 50%; # 128.205 MHz
 
 # first column, closest to FPGA on left side of board
-net a_n loc=p116 | iostandard=lvttl | drive =  4 | slew = slow; # A- bank0 TR
+net a_n loc=p116 | iostandard=lvttl | drive = 24 | slew = fast; # A- bank0 TR
 net a_p loc=p117 | iostandard=lvttl | drive = 24 | slew = fast; # A+ bank0 TR
-net c_n loc=p131 | iostandard=lvttl | drive =  4 | slew = slow; # C- bank0 TR
+net c_n loc=p131 | iostandard=lvttl | drive = 24 | slew = fast; # C- bank0 TR
 net c_p loc=p132 | iostandard=lvttl | drive = 24 | slew = fast; # C+ bank0 TR
-net d_n loc=p139 | iostandard=lvttl | drive =  4 | slew = slow; # D- bank0 TR
+net d_n loc=p139 | iostandard=lvttl | drive = 24 | slew = fast; # D- bank0 TR
 net d_p loc=p140 | iostandard=lvttl | drive = 24 | slew = fast; # D+ bank0 TR
-net f_n loc=p141 | iostandard=lvttl | drive =  4 | slew = slow; # F- bank0 TL
+net f_n loc=p141 | iostandard=lvttl | drive = 24 | slew = fast; # F- bank0 TL
 net f_p loc=p142 | iostandard=lvttl | drive = 24 | slew = fast; # F+ bank0 TL
 
 # middle column, on left side of board
-net b_n loc=p123 | iostandard=lvttl | drive =  4 | slew = slow; # B- bank0 TR
+net b_n loc=p123 | iostandard=lvttl | drive = 24 | slew = fast; # B- bank0 TR
 net b_p loc=p124 | iostandard=lvttl | drive = 24 | slew = fast; # B+ bank0 TR
-net e_n loc=p133 | iostandard=lvttl | drive =  4 | slew = slow; # E- bank0 TL
+net e_n loc=p133 | iostandard=lvttl | drive = 24 | slew = fast; # E- bank0 TL
 net e_p loc=p134 | iostandard=lvttl | drive = 24 | slew = fast; # E+ bank0 TL
 
 # third column, on left side of board
