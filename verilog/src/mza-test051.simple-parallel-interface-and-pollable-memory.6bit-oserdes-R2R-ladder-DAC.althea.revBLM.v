@@ -121,12 +121,12 @@ module top #(
 	wire [OSERDES_DATA_WIDTH-1:0] potential_oserdes_word [NUMBER_OF_BANKS-1:0];
 	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [NUMBER_OF_BANKS-1:0];
 	wire [63:0] oserdes_word64;
-	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word_for_DACbit [7:0];
+	wire [OSERDES_DATA_WIDTH-1:0] DACbit [7:0];
 	for (i=0; i<8; i=i+1) begin : oserdes_bit_mapping
 		// bit0 -> 56, 48, 40, 32, 24, 16, 8, 0
 		// bit7 -> 63, 55, 47, 39, 31, 23, 15, 7
-		assign oserdes_word_for_DACbit[i] = { oserdes_word64[8*7+i], oserdes_word64[8*6+i], oserdes_word64[8*5+i], oserdes_word64[8*4+i],
-		                                      oserdes_word64[8*3+i], oserdes_word64[8*2+i], oserdes_word64[8*1+i], oserdes_word64[8*0+i] };
+		assign DACbit[i] = { oserdes_word64[8*7+i], oserdes_word64[8*6+i], oserdes_word64[8*5+i], oserdes_word64[8*4+i],
+		                     oserdes_word64[8*3+i], oserdes_word64[8*2+i], oserdes_word64[8*1+i], oserdes_word64[8*0+i] };
 	end
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 	wire [31:0] bank1 [15:0];
@@ -146,7 +146,7 @@ module top #(
 	for (i=3; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
 		assign read_data_word[i] = 0;
 	end
-	assign potential_oserdes_word[0] = oserdes_word_for_DACbit[7];
+	assign potential_oserdes_word[0] = DACbit[7];
 	for (i=1; i<NUMBER_OF_BANKS; i=i+1) begin : banksfake
 		assign potential_oserdes_word[i] = 0;
 	end
@@ -180,7 +180,7 @@ module top #(
 	end else begin
 		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei4 (
 			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock), .locked(pll_oserdes_locked_other),
-			.word3_in(oserdes_word_for_DACbit[7]), .word2_in(oserdes_word_for_DACbit[6]), .word1_in(oserdes_word_for_DACbit[5]), .word0_in(oserdes_word_for_DACbit[4]),
+			.word3_in(DACbit[7]), .word2_in(DACbit[6]), .word1_in(DACbit[5]), .word0_in(DACbit[4]),
 			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
 	end
 //	assign pll_oserdes_locked = pll_oserdes_locked_other && pll_oserdes_locked_right_outer && pll_oserdes_locked_left_outer && pll_oserdes_locked_right_inner && pll_oserdes_locked_left_inner;
@@ -223,10 +223,10 @@ module top #(
 			.SPECIAL_A06("B")
 		) orama (
 			.clock_in(clock100), .reset(reset100),
-			.word_A11_in(oserdes_word_for_DACbit[7]), .word_A10_in(oserdes_word_for_DACbit[6]), .word_A09_in(oserdes_word_for_DACbit[5]), .word_A08_in(oserdes_word_for_DACbit[4]), .word_A07_in(oserdes_word_for_DACbit[3]), .word_A06_in(oserdes_word_for_DACbit[2]),
-			.word_A05_in(oserdes_word_for_DACbit[7]), .word_A04_in(oserdes_word_for_DACbit[6]), .word_A03_in(oserdes_word_for_DACbit[5]), .word_A02_in(oserdes_word_for_DACbit[4]), .word_A01_in(oserdes_word_for_DACbit[3]), .word_A00_in(oserdes_word_for_DACbit[2]),
-			.word_B5_in(oserdes_word_for_DACbit[7]), .word_B4_in(oserdes_word_for_DACbit[6]), .word_B3_in(oserdes_word_for_DACbit[5]), .word_B2_in(oserdes_word_for_DACbit[4]), .word_B1_in(oserdes_word_for_DACbit[3]), .word_B0_in(oserdes_word_for_DACbit[2]),
-			.word_C5_in(oserdes_word_for_DACbit[7]), .word_C4_in(oserdes_word_for_DACbit[6]), .word_C3_in(oserdes_word_for_DACbit[5]), .word_C2_in(oserdes_word_for_DACbit[4]), .word_C1_in(oserdes_word_for_DACbit[3]), .word_C0_in(oserdes_word_for_DACbit[2]),
+			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
+			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
+			.word_B5_in(DACbit[7]), .word_B4_in(DACbit[6]), .word_B3_in(DACbit[5]), .word_B2_in(DACbit[4]), .word_B1_in(DACbit[3]), .word_B0_in(DACbit[2]),
+			.word_C5_in(DACbit[7]), .word_C4_in(DACbit[6]), .word_C3_in(DACbit[5]), .word_C2_in(DACbit[4]), .word_C1_in(DACbit[3]), .word_C0_in(DACbit[2]),
 			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
 			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
 			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
@@ -244,10 +244,10 @@ module top #(
 			.PINTYPE_C5("n"), .PINTYPE_C4("n"), .PINTYPE_C3("n"), .PINTYPE_C2("n"), .PINTYPE_C1("n"), .PINTYPE_C0("n")
 		) orama (
 			.clock_in(clock100), .reset(reset100),
-			.word_A11_in(oserdes_word_for_DACbit[7]), .word_A10_in(oserdes_word_for_DACbit[6]), .word_A09_in(oserdes_word_for_DACbit[5]), .word_A08_in(oserdes_word_for_DACbit[4]), .word_A07_in(oserdes_word_for_DACbit[3]), .word_A06_in(oserdes_word_for_DACbit[2]),
-			.word_A05_in(oserdes_word_for_DACbit[7]), .word_A04_in(oserdes_word_for_DACbit[6]), .word_A03_in(oserdes_word_for_DACbit[5]), .word_A02_in(oserdes_word_for_DACbit[4]), .word_A01_in(oserdes_word_for_DACbit[3]), .word_A00_in(oserdes_word_for_DACbit[2]),
-			.word_B5_in(oserdes_word_for_DACbit[7]), .word_B4_in(oserdes_word_for_DACbit[6]), .word_B3_in(oserdes_word_for_DACbit[5]), .word_B2_in(oserdes_word_for_DACbit[4]), .word_B1_in(oserdes_word_for_DACbit[3]), .word_B0_in(oserdes_word_for_DACbit[2]),
-			.word_C5_in(oserdes_word_for_DACbit[7]), .word_C4_in(oserdes_word_for_DACbit[6]), .word_C3_in(oserdes_word_for_DACbit[5]), .word_C2_in(oserdes_word_for_DACbit[4]), .word_C1_in(oserdes_word_for_DACbit[3]), .word_C0_in(oserdes_word_for_DACbit[2]),
+			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
+			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
+			.word_B5_in(DACbit[7]), .word_B4_in(DACbit[6]), .word_B3_in(DACbit[5]), .word_B2_in(DACbit[4]), .word_B1_in(DACbit[3]), .word_B0_in(DACbit[2]),
+			.word_C5_in(DACbit[7]), .word_C4_in(DACbit[6]), .word_C3_in(DACbit[5]), .word_C2_in(DACbit[4]), .word_C1_in(DACbit[3]), .word_C0_in(DACbit[2]),
 			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
 			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
 			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
