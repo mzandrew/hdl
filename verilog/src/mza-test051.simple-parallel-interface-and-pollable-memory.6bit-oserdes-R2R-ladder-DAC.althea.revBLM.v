@@ -220,8 +220,7 @@ module top #(
 	wire [31:0] end_sample                = bank2[7][31:0];
 	if (1==LEFT_DAC_ROTATED) begin
 		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
-			.SPECIAL_A06("B"),
-			.PINTYPE_C5("n"), .PINTYPE_C4("n"), .PINTYPE_C3("n"), .PINTYPE_C2("n"), .PINTYPE_C1("n"), .PINTYPE_C0("n")
+			.SPECIAL_A06("B")
 		) orama (
 			.clock_in(clock100), .reset(reset100),
 			.word_A11_in(oserdes_word_for_DACbit[7]), .word_A10_in(oserdes_word_for_DACbit[6]), .word_A09_in(oserdes_word_for_DACbit[5]), .word_A08_in(oserdes_word_for_DACbit[4]), .word_A07_in(oserdes_word_for_DACbit[3]), .word_A06_in(oserdes_word_for_DACbit[2]),
