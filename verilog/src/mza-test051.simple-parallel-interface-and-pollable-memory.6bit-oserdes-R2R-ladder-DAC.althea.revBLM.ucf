@@ -18,28 +18,28 @@ timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
 #timespec "ts_ftsw_p" = period "ftsw_p" 7.8 ns high 50%; # 128.205 MHz
 
 # first column, closest to FPGA on left side of board
-net a_n loc=p116 | iostandard=lvcmos33 | drive =  4 | slew = slow; # A- bank0 TR
-net a_p loc=p117 | iostandard=lvcmos33 | drive = 24 | slew = fast; # A+ bank0 TR
-net c_n loc=p131 | iostandard=lvcmos33 | drive =  4 | slew = slow; # C- bank0 TR
-net c_p loc=p132 | iostandard=lvcmos33 | drive = 24 | slew = fast; # C+ bank0 TR
-net d_n loc=p139 | iostandard=lvcmos33 | drive =  4 | slew = slow; # D- bank0 TR
-net d_p loc=p140 | iostandard=lvcmos33 | drive = 24 | slew = fast; # D+ bank0 TR
-net f_n loc=p141 | iostandard=lvcmos33 | drive =  4 | slew = slow; # F- bank0 TL
-net f_p loc=p142 | iostandard=lvcmos33 | drive = 24 | slew = fast; # F+ bank0 TL
+net a_n loc=p116 | iostandard=lvttl | drive =  4 | slew = slow; # A- bank0 TR
+net a_p loc=p117 | iostandard=lvttl | drive = 24 | slew = fast; # A+ bank0 TR
+net c_n loc=p131 | iostandard=lvttl | drive =  4 | slew = slow; # C- bank0 TR
+net c_p loc=p132 | iostandard=lvttl | drive = 24 | slew = fast; # C+ bank0 TR
+net d_n loc=p139 | iostandard=lvttl | drive =  4 | slew = slow; # D- bank0 TR
+net d_p loc=p140 | iostandard=lvttl | drive = 24 | slew = fast; # D+ bank0 TR
+net f_n loc=p141 | iostandard=lvttl | drive =  4 | slew = slow; # F- bank0 TL
+net f_p loc=p142 | iostandard=lvttl | drive = 24 | slew = fast; # F+ bank0 TL
 
 # middle column, on left side of board
-net b_n loc=p123 | iostandard=lvcmos33 | drive =  4 | slew = slow; # B- bank0 TR
-net b_p loc=p124 | iostandard=lvcmos33 | drive = 24 | slew = fast; # B+ bank0 TR
-net e_n loc=p133 | iostandard=lvcmos33 | drive =  4 | slew = slow; # E- bank0 TL
-net e_p loc=p134 | iostandard=lvcmos33 | drive = 24 | slew = fast; # E+ bank0 TL
+net b_n loc=p123 | iostandard=lvttl | drive =  4 | slew = slow; # B- bank0 TR
+net b_p loc=p124 | iostandard=lvttl | drive = 24 | slew = fast; # B+ bank0 TR
+net e_n loc=p133 | iostandard=lvttl | drive =  4 | slew = slow; # E- bank0 TL
+net e_p loc=p134 | iostandard=lvttl | drive = 24 | slew = fast; # E+ bank0 TL
 
 # third column, on left side of board
-net z loc=p17  | iostandard=lvcmos33 | drive = 24 | slew = fast; # Z bank3 TL - conflicts with led<4> when using cascaded serdes
-net y loc=p15  | iostandard=lvcmos33 | drive = 24 | slew = fast; # Y bank3 TL - conflicts with led<5> when using cascaded serdes
-net x loc=p12  | iostandard=lvcmos33 | drive = 24 | slew = fast; # X bank3 TL - conflicts with led<6> when using cascaded serdes
-net w loc=p10  | iostandard=lvcmos33 | drive = 24 | slew = fast; # W bank3 TL - conflicts with led<7> when using cascaded serdes
-net v loc=p8   | iostandard=lvcmos33 | drive = 24 | slew = fast; # V bank3 TL - conflicts with rot<1> when using cascaded serdes
-net u loc=p2   | iostandard=lvcmos33 | drive = 24 | slew = fast; # U bank3 TL - conflicts with button when using cascaded serdes
+net z loc=p17  | iostandard=lvttl | drive = 24 | slew = fast; # Z bank3 TL - conflicts with led<4> when using cascaded serdes
+net y loc=p15  | iostandard=lvttl | drive = 24 | slew = fast; # Y bank3 TL - conflicts with led<5> when using cascaded serdes
+net x loc=p12  | iostandard=lvttl | drive = 24 | slew = fast; # X bank3 TL - conflicts with led<6> when using cascaded serdes
+net w loc=p10  | iostandard=lvttl | drive = 24 | slew = fast; # W bank3 TL - conflicts with led<7> when using cascaded serdes
+net v loc=p8   | iostandard=lvttl | drive = 24 | slew = fast; # V bank3 TL - conflicts with rot<1> when using cascaded serdes
+net u loc=p2   | iostandard=lvttl | drive = 24 | slew = fast; # U bank3 TL - conflicts with button when using cascaded serdes
 
 # first column, closest to FPGA on right side of board
 net m_p loc=p58  | iostandard=lvcmos33 | drive = 24 | slew = fast; # M+ bank2 BR
@@ -123,11 +123,11 @@ net coax_led<1> loc=p98  | iostandard=lvcmos33 | drive = 2 | slew = slow; # diff
 net coax_led<2> loc=p92  | iostandard=lvcmos33 | drive = 2 | slew = slow;
 net coax_led<3> loc=p81  | iostandard=lvcmos33 | drive = 2 | slew = slow; # differs from althea revB
 
-net coax<0> loc=p105 | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
-net coax<1> loc=p95  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1 - differs from althea revB
+net coax<0> loc=p105 | iostandard=lvttl | drive = 24 | slew = fast; # bank1
+net coax<1> loc=p95  | iostandard=lvttl | drive = 24 | slew = fast; # bank1 - differs from althea revB
 net coax<2> loc=p85  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1 - differs from althea revB
 net coax<3> loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
-net coax<4> loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3
+net coax<4> loc=p6   | iostandard=lvttl | drive = 24 | slew = fast; # bank3
 net coax<5> loc=p33  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3 - differs from althea revB
 
 #net "button" tig;
