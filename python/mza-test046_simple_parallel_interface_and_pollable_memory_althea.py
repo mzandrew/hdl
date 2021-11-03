@@ -205,7 +205,7 @@ from function_generator_DAC import *
 if 1:
 	clear_DAC_waveform()
 
-if 1:
+if 0:
 	test_function_generator_DAC_1() # everything
 
 if 0:
@@ -231,6 +231,9 @@ if 0:
 
 if 0:
 	test_function_generator_DAC_9(10.0e-9) # double 8ns pulse (1.3V) with some ringing; configurable gap between
+
+if 1:
+	test_function_generator_DAC_11() # single ramp from lowest to highest
 
 if 0:
 	# continuously increases delay between two pulses until a maximum, then restarts
