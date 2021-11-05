@@ -1,6 +1,6 @@
 // written 2021-10-13 by mza
 // based on mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBLM.v
-// last updated 2021-11-02 by mza
+// last updated 2021-11-05 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -178,7 +178,7 @@ module top #(
 		assign word_clock = word_clock_left_inner;
 		assign pll_oserdes_locked_other = 1;
 	end else begin
-		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei4 (
+		ocyrus_quad8 #(.BIT_DEPTH(OSERDES_DATA_WIDTH), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei4 (
 			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock), .locked(pll_oserdes_locked_other),
 			.word3_in(DACbit[7]), .word2_in(DACbit[6]), .word1_in(DACbit[5]), .word0_in(DACbit[4]),
 			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
@@ -219,7 +219,7 @@ module top #(
 	wire [31:0] start_sample              = bank2[6][31:0];
 	wire [31:0] end_sample                = bank2[7][31:0];
 	if (1==LEFT_DAC_ROTATED) begin
-		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
+		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(OSERDES_DATA_WIDTH), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
 			.SPECIAL_A06("B")
 		) orama (
 			.clock_in(clock100), .reset(reset100),
@@ -239,7 +239,7 @@ module top #(
 			.locked(pll_oserdes_locked)
 		);
 	end else begin
-		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
+		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(OSERDES_DATA_WIDTH), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
 			.SPECIAL_A06("B"),
 			.PINTYPE_C5("n"), .PINTYPE_C4("n"), .PINTYPE_C3("n"), .PINTYPE_C2("n"), .PINTYPE_C1("n"), .PINTYPE_C0("n")
 		) orama (
@@ -260,7 +260,6 @@ module top #(
 			.locked(pll_oserdes_locked)
 		);
 	end
-
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
 		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
 	end
@@ -271,7 +270,7 @@ module top #(
 		assign coax[5] = write_strobe[0];
 		assign pll_oserdes_locked_other = 1;
 	end else if (0) begin // to put the oserdes outputs on coax[4] and coax[5]
-		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei2 (
+		ocyrus_double8 #(.BIT_DEPTH(OSERDES_DATA_WIDTH), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei2 (
 			.clock_in(clock100), .reset(reset100), .word_clock_out(),
 			.word1_in(oserdes_word[0]), .D1_out(coax[5]),
 			.word0_in(oserdes_word[0]), .D0_out(coax[4]),
@@ -279,11 +278,11 @@ module top #(
 			.locked(pll_oserdes_locked_other));
 		assign sync_read_address = 0;
 	end else if (0) begin
-		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[5]), .locked(pll_oserdes_locked_other));
+		ocyrus_single8 #(.BIT_DEPTH(OSERDES_DATA_WIDTH), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[5]), .locked(pll_oserdes_locked_other));
 		assign coax[4] = sync_out_stream[SYNC_OUT_STREAM_PICKOFF]; // scope trigger
 		assign sync_read_address = 0;
 	end else if (1) begin
-		//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[4]), .locked(pll_oserdes_locked_other));
+		//ocyrus_single8 #(.BIT_DEPTH(OSERDES_DATA_WIDTH), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[4]), .locked(pll_oserdes_locked_other));
 		//assign sync_read_address = coax[5];
 		assign sync_read_address = 0;
 		//assign coax[5] = sync_out_stream[SYNC_OUT_STREAM_PICKOFF]; // scope trigger
