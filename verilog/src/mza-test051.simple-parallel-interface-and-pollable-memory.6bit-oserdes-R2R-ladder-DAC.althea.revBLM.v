@@ -64,8 +64,6 @@ module top #(
 	wire pll_oserdes_locked_left_outer;
 	wire pll_oserdes_locked_right_inner;
 	wire pll_oserdes_locked_left_inner;
-	wire dpr;
-	wire dpl;
 	// ----------------------------------------------------------------------
 	wire clock100;
 	wire reset100;
@@ -120,17 +118,7 @@ module top #(
 	);
 	wire [OSERDES_DATA_WIDTH-1:0] potential_oserdes_word [NUMBER_OF_BANKS-1:0];
 	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [NUMBER_OF_BANKS-1:0];
-	wire [63:0] oserdes_word64;
-	wire [OSERDES_DATA_WIDTH-1:0] DACbit [7:0];
-	for (i=0; i<8; i=i+1) begin : oserdes_bit_mapping
-		// bit0 -> 56, 48, 40, 32, 24, 16, 8, 0
-		// bit7 -> 63, 55, 47, 39, 31, 23, 15, 7
-		assign DACbit[i] = { oserdes_word64[8*7+i], oserdes_word64[8*6+i], oserdes_word64[8*5+i], oserdes_word64[8*4+i],
-		                     oserdes_word64[8*3+i], oserdes_word64[8*2+i], oserdes_word64[8*1+i], oserdes_word64[8*0+i] };
-	end
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
-	wire [31:0] bank1 [15:0];
-	wire [31:0] bank2 [15:0];
 	wire [31:0] a_c_;
 	wire [31:0] _b_d;
 	RAM_s6_8k_16bit_32bit mem0 (.reset(reset_word),
@@ -139,10 +127,42 @@ module top #(
 	RAM_s6_8k_16bit_32bit mem1 (.reset(reset_word),
 		.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[31:16]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][31:16]),
 		.clock_b(word_clock), .address_b(read_address), .data_out_b(a_c_));
+	wire [63:0] oserdes_word64;
 	assign oserdes_word64[63:48] = a_c_[31:16];
 	assign oserdes_word64[47:32] = _b_d[31:16];
 	assign oserdes_word64[31:16] = a_c_[15:0];
 	assign oserdes_word64[15:0 ] = _b_d[15:0];
+	wire [OSERDES_DATA_WIDTH-1:0] preDACbit [7:0]; // preDACbit[i] is an 8 bit word giving the next 8 timeseries values [7 downto 0] for bit i of the DAC output
+	for (i=0; i<8; i=i+1) begin : preDACbit_mapping
+		// bit0 -> 56, 48, 40, 32, 24, 16, 8, 0
+		// bit7 -> 63, 55, 47, 39, 31, 23, 15, 7
+		assign preDACbit[i] = { oserdes_word64[8*7+i], oserdes_word64[8*6+i], oserdes_word64[8*5+i], oserdes_word64[8*4+i],
+		                        oserdes_word64[8*3+i], oserdes_word64[8*2+i], oserdes_word64[8*1+i], oserdes_word64[8*0+i] };
+	end
+	wire [OSERDES_DATA_WIDTH-1:0] DACvalue [7:0]; // DACvalue[i] for i=7 downto 0 is a timeseries of 8 bit DAC values
+	wire [OSERDES_DATA_WIDTH-1:0] DACvaluePRIME [7:0]; // delayed version of DACvalue
+	for (i=0; i<8; i=i+1) begin : DACvalue_mapping
+		assign DACvalue[i] = {
+			preDACbit[7][i], preDACbit[6][i], preDACbit[5][i], preDACbit[4][i], 
+			preDACbit[3][i], preDACbit[2][i], preDACbit[1][i], preDACbit[0][i] };
+	end
+	wire [OSERDES_DATA_WIDTH-1:0] minuend;
+	wire [OSERDES_DATA_WIDTH-1:0] difference [7:0];
+	localparam DEPTH = 4;
+	for (i=0; i<8; i=i+1) begin : arithmetic_pipeline_mapping
+		arithmetic_pipeline #(.WIDTH(OSERDES_DATA_WIDTH), .DEPTH(DEPTH)) ap (.clock(word_clock), .minuend(minuend), .subtrahend(DACvalue[i]), .difference(difference[i]));
+		pipeline #(.WIDTH(OSERDES_DATA_WIDTH), .DEPTH(DEPTH)) pl (.clock(word_clock), .in(DACvalue[i]), .out(DACvaluePRIME[i]));
+	end
+	wire [OSERDES_DATA_WIDTH-1:0] DACbit [7:0];
+	wire [OSERDES_DATA_WIDTH-1:0] DACbitN [7:0];
+	for (i=0; i<8; i=i+1) begin : DACbit_mapping
+		assign DACbit[i] = {
+			DACvaluePRIME[7][i], DACvaluePRIME[6][i], DACvaluePRIME[5][i], DACvaluePRIME[4][i], 
+			DACvaluePRIME[3][i], DACvaluePRIME[2][i], DACvaluePRIME[1][i], DACvaluePRIME[0][i] };
+		assign DACbitN[i] = {
+			difference[7][i], difference[6][i], difference[5][i], difference[4][i], 
+			difference[3][i], difference[2][i], difference[1][i], difference[0][i] };
+	end
 	for (i=3; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
 		assign read_data_word[i] = 0;
 	end
@@ -150,6 +170,8 @@ module top #(
 	for (i=1; i<NUMBER_OF_BANKS; i=i+1) begin : banksfake
 		assign potential_oserdes_word[i] = 0;
 	end
+	wire [31:0] bank1 [15:0];
+	wire [31:0] bank2 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		//.reset(reset_word),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
@@ -193,8 +215,6 @@ module top #(
 	localparam SYNC_OUT_STREAM_PICKOFF = 2;
 	wire [SYNC_OUT_STREAM_PICKOFF:0] sync_out_stream; // sync_out_stream[2] is usually good
 	wire [7:0] sync_out_word; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
-	assign dpr = 0;
-	assign dpl = 0;
 	wire [7:0] sync_out_word_delayed; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
 //	wire [2:0] rot_pipeline;
 	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
@@ -214,10 +234,12 @@ module top #(
 	assign bank1[14] = 0;
 	assign bank1[15] = 0;
 	(* KEEP = "TRUE" *)
+	assign      minuend                   = bank2[0][7:0];
 	wire        train_oserdes             = bank2[4][0];
 	wire  [7:0] train_oserdes_pattern     = bank2[5][7:0];
 	wire [31:0] start_sample              = bank2[6][31:0];
 	wire [31:0] end_sample                = bank2[7][31:0];
+	assign reset = 0;
 	if (1==LEFT_DAC_ROTATED) begin
 		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(OSERDES_DATA_WIDTH), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
 			.SPECIAL_A06("B")
@@ -225,7 +247,7 @@ module top #(
 			.clock_in(clock100), .reset(reset100),
 			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
 			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
-			.word_B5_in(DACbit[7]), .word_B4_in(DACbit[6]), .word_B3_in(DACbit[5]), .word_B2_in(DACbit[4]), .word_B1_in(DACbit[3]), .word_B0_in(DACbit[2]),
+			.word_B5_in(DACbitN[7]), .word_B4_in(DACbitN[6]), .word_B3_in(DACbitN[5]), .word_B2_in(DACbitN[4]), .word_B1_in(DACbitN[3]), .word_B0_in(DACbitN[2]),
 			.word_C5_in(DACbit[7]), .word_C4_in(DACbit[6]), .word_C3_in(DACbit[5]), .word_C2_in(DACbit[4]), .word_C1_in(DACbit[3]), .word_C0_in(DACbit[2]),
 			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
 			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
@@ -246,7 +268,7 @@ module top #(
 			.clock_in(clock100), .reset(reset100),
 			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
 			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
-			.word_B5_in(DACbit[7]), .word_B4_in(DACbit[6]), .word_B3_in(DACbit[5]), .word_B2_in(DACbit[4]), .word_B1_in(DACbit[3]), .word_B0_in(DACbit[2]),
+			.word_B5_in(DACbitN[7]), .word_B4_in(DACbitN[6]), .word_B3_in(DACbitN[5]), .word_B2_in(DACbitN[4]), .word_B1_in(DACbitN[3]), .word_B0_in(DACbitN[2]),
 			.word_C5_in(DACbit[7]), .word_C4_in(DACbit[6]), .word_C3_in(DACbit[5]), .word_C2_in(DACbit[4]), .word_C1_in(DACbit[3]), .word_C0_in(DACbit[2]),
 			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
 			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),

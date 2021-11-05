@@ -1,5 +1,5 @@
 // written 2019-09-22 by mza
-// last updated 2021-07-12 by mza
+// last updated 2021-11-05 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
@@ -527,6 +527,56 @@ module pipeline #(
 		middle[0] <= in;
 	end
 	assign out = middle[DEPTH-1];
+endmodule
+
+//	arithmetic_pipeline #(.WIDTH(8), .DEPTH(DELAY)) kewalos (.clock(word_clock1), .minuend(8'hff), .subtrahend(oserdes_word1_buffer), .difference(oserdes_word1_buffer_delayed));
+module arithmetic_pipeline #(
+	parameter WIDTH = 8,
+	parameter DEPTH = 4
+//	parameter OPERATION = "SUBTRACT"
+) (
+	input clock,
+	input [WIDTH-1:0] minuend, subtrahend,
+	output [WIDTH-1:0] difference
+);
+	reg [WIDTH-1:0] middle [DEPTH-1:0];
+	reg [WIDTH-1:0] previous_subtrahend;
+	integer i;
+	always @(posedge clock) begin
+		for (i=2; i<DEPTH; i=i+1) begin
+			middle[i] <= middle[i-1];
+		end
+		middle[1] <= middle[0] - previous_subtrahend;
+		middle[0] <= minuend;
+		previous_subtrahend <= subtrahend;
+	end
+	assign difference = middle[DEPTH-1];
+endmodule
+
+module arithmetic_pipeline_tb();
+	localparam WIDTH = 8;
+	localparam DEPTH = 3;
+	localparam FREQUENCY_OF_CLOCK_HZ = 1000000000;
+	localparam STEP_DURATION = 4;
+	wire clock;
+	clock #(.FREQUENCY_OF_CLOCK_HZ(FREQUENCY_OF_CLOCK_HZ)) c (.clock(clock));
+	reg [WIDTH-1:0] minuend = 0;
+	reg [WIDTH-1:0] subtrahend = 0;
+	wire [WIDTH-1:0] difference;
+	initial begin
+		#100; minuend <= 47;
+		#STEP_DURATION; subtrahend <= 11;
+		#STEP_DURATION; subtrahend <= 17;
+		#STEP_DURATION; subtrahend <= 27;
+		#STEP_DURATION; subtrahend <= 37;
+		#STEP_DURATION; subtrahend <= 47;
+		#STEP_DURATION; subtrahend <= 48;
+		#STEP_DURATION; subtrahend <= 49;
+		#100;
+		#STEP_DURATION; minuend <= 53;
+		#100;
+	end
+	arithmetic_pipeline #(.WIDTH(WIDTH), .DEPTH(DEPTH)) ap (.clock(clock), .minuend(minuend), .subtrahend(subtrahend), .difference(difference));
 endmodule
 
 module cdc_pipeline #(
