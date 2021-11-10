@@ -1,6 +1,6 @@
 // written 2021-10-13 by mza
 // based on mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBLM.v
-// last updated 2021-11-05 by mza
+// last updated 2021-11-10 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -248,7 +248,7 @@ module top #(
 			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
 			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
 			.word_B5_in(DACbitN[7]), .word_B4_in(DACbitN[6]), .word_B3_in(DACbitN[5]), .word_B2_in(DACbitN[4]), .word_B1_in(DACbitN[3]), .word_B0_in(DACbitN[2]),
-			.word_C5_in(DACbit[7]), .word_C4_in(DACbit[6]), .word_C3_in(DACbit[5]), .word_C2_in(DACbit[4]), .word_C1_in(DACbit[3]), .word_C0_in(DACbit[2]),
+			.word_C5_in(DACbitN[7]), .word_C4_in(DACbitN[6]), .word_C3_in(DACbitN[5]), .word_C2_in(DACbitN[4]), .word_C1_in(DACbitN[3]), .word_C0_in(DACbitN[2]),
 			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
 			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
 			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
@@ -269,7 +269,7 @@ module top #(
 			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
 			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
 			.word_B5_in(DACbitN[7]), .word_B4_in(DACbitN[6]), .word_B3_in(DACbitN[5]), .word_B2_in(DACbitN[4]), .word_B1_in(DACbitN[3]), .word_B0_in(DACbitN[2]),
-			.word_C5_in(DACbit[7]), .word_C4_in(DACbit[6]), .word_C3_in(DACbit[5]), .word_C2_in(DACbit[4]), .word_C1_in(DACbit[3]), .word_C0_in(DACbit[2]),
+			.word_C5_in(DACbitN[7]), .word_C4_in(DACbitN[6]), .word_C3_in(DACbitN[5]), .word_C2_in(DACbitN[4]), .word_C1_in(DACbitN[3]), .word_C0_in(DACbitN[2]),
 			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
 			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
 			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
