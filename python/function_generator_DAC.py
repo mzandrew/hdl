@@ -494,6 +494,8 @@ def test_function_generator_DAC_12():
 	everything.extend(waveform)
 	waveform = prepare_DC_waveform_for_upload_to_DAC(1.0/delay, DC_level)
 	everything.extend(waveform)
+	for i in range(350):
+		everything.extend(waveform)
 	#everything = fill_up_the_rest_with(everything, prepare_DC_waveform_for_upload_to_DAC(f, 0.0))
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
 

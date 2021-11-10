@@ -141,7 +141,7 @@ if 1:
 	values[4] = 0 # train_oserdes
 	values[5] = 0b10001010 # train_oserdes_pattern
 	values[6] = 0 # start_sample (3 LSBs ignored)
-	values[7] = 4000 # end_sample (3 LSBs ignored)
+	values[7] = 0 # end_sample (3 LSBs ignored)
 	althea.write_to_half_duplex_bus_and_then_verify(j * 2**BANK_ADDRESS_DEPTH, values)
 	time.sleep(1)
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**BANK_ADDRESS_DEPTH, 2**4)
