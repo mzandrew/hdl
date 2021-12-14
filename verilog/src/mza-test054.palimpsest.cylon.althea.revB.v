@@ -1,6 +1,6 @@
-// written 2021-10-13 by mza
-// based on mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBLM.v
-// last updated 2021-11-10 by mza
+// written 2021-12-14 by mza
+// based on mza-test053.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revB.v
+// last updated 2021-12-14 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -45,11 +45,13 @@ module top #(
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
 	output ack_valid,
-	output [5:0] diff_pair_left,
-	output [5:0] diff_pair_right_p,
+	output [12:1] signal,
+	output [12:1] indicator,
+//	output [5:0] diff_pair_left,
+//	output [5:0] diff_pair_right_p,
 //	output [5:0] diff_pair_right_n,
-	output [5:0] single_ended_left,
-	output [5:0] single_ended_right,
+//	output [5:0] single_ended_left,
+//	output [5:0] single_ended_right,
 //	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
 	output [3:0] coax_led
 );
@@ -248,46 +250,26 @@ module top #(
 	wire [31:0] start_sample              = bank2[6][31:0];
 	wire [31:0] end_sample                = bank2[7][31:0];
 	assign reset = 0;
-	if (1==LEFT_DAC_ROTATED) begin
-		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1)
-		) orama (
-			.clock_in(clock100), .reset(reset100),
-			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
-			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
-			.word_B5_in(DACbitN[7]), .word_B4_in(DACbitN[6]), .word_B3_in(DACbitN[5]), .word_B2_in(DACbitN[4]), .word_B1_in(DACbitN[3]), .word_B0_in(DACbitN[2]),
-			.word_C5_in(DACbitN[7]), .word_C4_in(DACbitN[6]), .word_C3_in(DACbitN[5]), .word_C2_in(DACbitN[4]), .word_C1_in(DACbitN[3]), .word_C0_in(DACbitN[2]),
-			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
-			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
-			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
-			.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(single_ended_right[0]),
-			.A05_out(single_ended_left[0]), .A04_out(single_ended_left[1]), .A03_out(single_ended_left[2]), .A02_out(single_ended_left[3]), .A01_out(single_ended_left[4]), .A00_out(single_ended_left[5]),
-			.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
-			.C5_out(diff_pair_left[0]), .C4_out(diff_pair_left[1]), .C3_out(diff_pair_left[2]), .C2_out(diff_pair_left[3]), .C1_out(diff_pair_left[4]), .C0_out(diff_pair_left[5]),
-			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
-			.E1_out(coax[5]), .E0_out(coax[4]),
-			.locked(pll_oserdes_locked)
-		);
-	end else begin
-		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
-			.PINTYPE_C5("n"), .PINTYPE_C4("n"), .PINTYPE_C3("n"), .PINTYPE_C2("n"), .PINTYPE_C1("n"), .PINTYPE_C0("n")
-		) orama (
-			.clock_in(clock100), .reset(reset100),
-			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
-			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
-			.word_B5_in(DACbitN[7]), .word_B4_in(DACbitN[6]), .word_B3_in(DACbitN[5]), .word_B2_in(DACbitN[4]), .word_B1_in(DACbitN[3]), .word_B0_in(DACbitN[2]),
-			.word_C5_in(DACbitN[7]), .word_C4_in(DACbitN[6]), .word_C3_in(DACbitN[5]), .word_C2_in(DACbitN[4]), .word_C1_in(DACbitN[3]), .word_C0_in(DACbitN[2]),
-			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
-			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
-			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
-			.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(single_ended_right[0]),
-			.A05_out(single_ended_left[5]), .A04_out(single_ended_left[4]), .A03_out(single_ended_left[3]), .A02_out(single_ended_left[2]), .A01_out(single_ended_left[1]), .A00_out(single_ended_left[0]),
-			.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
-			.C5_out(diff_pair_left[5]), .C4_out(diff_pair_left[4]), .C3_out(diff_pair_left[3]), .C2_out(diff_pair_left[2]), .C1_out(diff_pair_left[1]), .C0_out(diff_pair_left[0]),
-			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
-			.E1_out(coax[5]), .E0_out(coax[4]),
-			.locked(pll_oserdes_locked)
-		);
-	end
+	wire [7:0] iserdes_word_raw;
+	// the order here is 12, 11, 10, 6, 5, 4, 9, 8, 7, 3, 2, 1
+	ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1)
+	) orama (
+		.clock_in(clock100), .reset(reset100),
+		.word_A11_in(~status[12]), .word_A10_in(~status[11]), .word_A09_in(~status[10]), .word_A08_in(~status[6]), .word_A07_in(~status[5]), .word_A06_in(~status[4]),
+		.word_A05_in(~status[9]), .word_A04_in(~status[8]), .word_A03_in(~status[7]), .word_A02_in(~status[3]), .word_A01_in(~status[2]), .word_A00_in(~status[1]),
+		.word_B5_in(pattern[12]), .word_B4_in(pattern[11]), .word_B3_in(pattern[10]), .word_B2_in(pattern[6]), .word_B1_in(pattern[5]), .word_B0_in(pattern[4]),
+		.word_C5_in(pattern[9]), .word_C4_in(pattern[8]), .word_C3_in(pattern[7]), .word_C2_in(pattern[3]), .word_C1_in(pattern[2]), .word_C0_in(pattern[1]),
+		.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_out(iserdes_word_raw),
+		.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
+		.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
+		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[6]), .A07_out(indicator[5]), .A06_out(indicator[4]),
+		.A05_out(indicator[9]), .A04_out(indicator[8]), .A03_out(indicator[7]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
+		.B5_out(signal[12]), .B4_out(signal[11]), .B3_out(signal[10]), .B2_out(signal[6]), .B1_out(signal[5]), .B0_out(signal[4]),
+		.C5_out(signal[9]), .C4_out(signal[8]), .C3_out(signal[7]), .C2_out(signal[3]), .C1_out(signal[2]), .C0_out(signal[1]),
+		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_in(coax[0]),
+		.E1_out(coax[5]), .E0_out(coax[4]),
+		.locked(pll_oserdes_locked)
+	);
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
 		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
 	end
@@ -376,6 +358,61 @@ module top #(
 		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, BANK_ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH);
 		$display("BUS_WIDTH=%d, TRANSACTIONS_PER_DATA_WORD=%d, TRANSACTIONS_PER_ADDRESS_WORD=%d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
 		$display("%d banks", NUMBER_OF_BANKS);
+	end
+	wire [7:0] pattern [12:1];
+	assign pattern[1]  = 8'h81;
+	assign pattern[2]  = 8'h82;
+	assign pattern[3]  = 8'h83;
+	assign pattern[4]  = 8'h84;
+	assign pattern[5]  = 8'h85;
+	assign pattern[6]  = 8'h86;
+	assign pattern[7]  = 8'h87;
+	assign pattern[8]  = 8'h88;
+	assign pattern[9]  = 8'h89;
+	assign pattern[10] = 8'h8a;
+	assign pattern[11] = 8'h8b;
+	assign pattern[12] = 8'h8c;
+	wire [7:0] iserdes_word_rotated [7:0];
+	bitslip #(.WIDTH(8)) bs0 (.clock(word_clock), .bitslip(3'd0), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[0]));
+	bitslip #(.WIDTH(8)) bs1 (.clock(word_clock), .bitslip(3'd1), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[1]));
+	bitslip #(.WIDTH(8)) bs2 (.clock(word_clock), .bitslip(3'd2), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[2]));
+	bitslip #(.WIDTH(8)) bs3 (.clock(word_clock), .bitslip(3'd3), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[3]));
+	bitslip #(.WIDTH(8)) bs4 (.clock(word_clock), .bitslip(3'd4), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[4]));
+	bitslip #(.WIDTH(8)) bs5 (.clock(word_clock), .bitslip(3'd5), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[5]));
+	bitslip #(.WIDTH(8)) bs6 (.clock(word_clock), .bitslip(3'd6), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[6]));
+	bitslip #(.WIDTH(8)) bs7 (.clock(word_clock), .bitslip(3'd7), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[7]));
+	reg [7:0] status [12:1];
+	integer p;
+	always @(posedge word_clock) begin
+		if (reset_word) begin
+			status[12] <= 0;
+			status[11] <= 0;
+			status[10] <= 0;
+			status[9] <= 0;
+			status[8] <= 0;
+			status[7] <= 0;
+			status[6] <= 0;
+			status[5] <= 0;
+			status[4] <= 0;
+			status[3] <= 0;
+			status[2] <= 0;
+			status[1] <= 0;
+		end else begin
+			for (p=0; p<8; p=p+1) begin
+				if (pattern[12]==iserdes_word_rotated[p]) begin status[12][p] <= 1; end
+				if (pattern[11]==iserdes_word_rotated[p]) begin status[11][p] <= 1; end
+				if (pattern[10]==iserdes_word_rotated[p]) begin status[10][p] <= 1; end
+				if (pattern[9] ==iserdes_word_rotated[p]) begin status[9][p]  <= 1; end
+				if (pattern[8] ==iserdes_word_rotated[p]) begin status[8][p]  <= 1; end
+				if (pattern[7] ==iserdes_word_rotated[p]) begin status[7][p]  <= 1; end
+				if (pattern[6] ==iserdes_word_rotated[p]) begin status[6][p]  <= 1; end
+				if (pattern[5] ==iserdes_word_rotated[p]) begin status[5][p]  <= 1; end
+				if (pattern[4] ==iserdes_word_rotated[p]) begin status[4][p]  <= 1; end
+				if (pattern[3] ==iserdes_word_rotated[p]) begin status[3][p]  <= 1; end
+				if (pattern[2] ==iserdes_word_rotated[p]) begin status[2][p]  <= 1; end
+				if (pattern[1] ==iserdes_word_rotated[p]) begin status[1][p]  <= 1; end
+			end
+		end
 	end
 endmodule
 
@@ -701,9 +738,9 @@ module myalthea #(
 	inout rpi_gpio14, rpi_gpio15, rpi_gpio16, rpi_gpio17,
 	inout rpi_gpio18, rpi_gpio19, rpi_gpio20, rpi_gpio21,
 	// diff-pair IOs (toupee connectors):
-//	a_p, b_p, c_p, d_p, e_p, f_p, // rotated
+	a_p, b_p, c_p, d_p, e_p, f_p, // rotated
 	g_p, h_p, j_p, k_p, l_p, m_p,
-	a_n, b_n, c_n, d_n, e_n, f_n, // flipped
+//	a_n, b_n, c_n, d_n, e_n, f_n, // flipped
 //	g_n, h_n, j_n, k_n, l_n, m_n, 
 	// single-ended IOs (toupee connectors):
 	n, p, q, r, s, t,
@@ -731,6 +768,12 @@ module myalthea #(
 		assign { a_n, c_n, d_n, f_n, b_n, e_n } = diff_pair_left; // flipped
 	end
 	wire coax5, coax2, coax1;
+	wire [12:1] signal;
+	wire [12:1] indicator;
+	//assign { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p } = signal;
+	//assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
+	assign { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p } = signal;
+	assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	top #(
 		.LEFT_DAC_OUTER(LEFT_DAC_OUTER), .RIGHT_DAC_OUTER(RIGHT_DAC_OUTER),
 		.LEFT_DAC_ROTATED(LEFT_DAC_ROTATED),
@@ -749,11 +792,13 @@ module myalthea #(
 			rpi_gpio13, rpi_gpio12, rpi_gpio11_spi_sclk, rpi_gpio10_spi_mosi,
 			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
 		}),
-		.diff_pair_left(diff_pair_left),
-		.diff_pair_right_p({ m_p, k_p, l_p, j_p, h_p, g_p }),
+		.signal(signal),
+		.indicator(indicator),
+//		.diff_pair_left(diff_pair_left),
+//		.diff_pair_right_p({ m_p, k_p, l_p, j_p, h_p, g_p }),
 //		.diff_pair_right_n({ m_n, k_n, l_n, j_n, h_n, g_n }),
-		.single_ended_left({ z, y, x, w, v, u }),
-		.single_ended_right({ n, p, q, r, s, t }),
+//		.single_ended_left({ z, y, x, w, v, u }),
+//		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
 		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio2_i2c1_sda),
 //		.rot(rot),

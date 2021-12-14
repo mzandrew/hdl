@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2021-11-01 by mza
+// last updated 2021-12-14 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -816,6 +816,189 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2 #(
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_C4)) mylei_C4 (.word_clock(word_clockC_out), .bit_clock(bit_clockC), .bit_strobe(bit_strobeC), .reset(reset_clockC), .word_in(word_C4_in), .bit_out(C4_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_C5)) mylei_C5 (.word_clock(word_clockC_out), .bit_clock(bit_clockC), .bit_strobe(bit_strobeC), .reset(reset_clockC), .word_in(word_C5_in), .bit_out(C5_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_D0)) mylei_D0 (.word_clock(word_clockD_out), .bit_clock(bit_clockD), .bit_strobe(bit_strobeD), .reset(reset_clockD), .word_in(word_D0_in), .bit_out(D0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_D1)) mylei_D1 (.word_clock(word_clockD_out), .bit_clock(bit_clockD), .bit_strobe(bit_strobeD), .reset(reset_clockD), .word_in(word_D1_in), .bit_out(D1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_D2)) mylei_D2 (.word_clock(word_clockD_out), .bit_clock(bit_clockD), .bit_strobe(bit_strobeD), .reset(reset_clockD), .word_in(word_D2_in), .bit_out(D2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_D3)) mylei_D3 (.word_clock(word_clockD_out), .bit_clock(bit_clockD), .bit_strobe(bit_strobeD), .reset(reset_clockD), .word_in(word_D3_in), .bit_out(D3_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_E0)) mylei_E0 (.word_clock(word_clockE_out), .bit_clock(bit_clockE), .bit_strobe(bit_strobeE), .reset(reset_clockE), .word_in(word_E0_in), .bit_out(E0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_E1)) mylei_E1 (.word_clock(word_clockE_out), .bit_clock(bit_clockE), .bit_strobe(bit_strobeE), .reset(reset_clockE), .word_in(word_E1_in), .bit_out(E1_out));
+	wire [4:0] clock_1x;
+	wire clock_nx;
+	simpll #(
+		.BIT_DEPTH(BIT_DEPTH),
+		.CLKIN_PERIOD(PERIOD),
+		.PHASE(0.0),
+		.PHASE2345(0.0),
+		.PLLD(DIVIDE),
+		.PLLX(MULTIPLY),
+		.CLK_FEEDBACK("CLKFBOUT")
+	) siphon (
+		.clock_in(clock_in),
+		.reset(reset),
+		.clock_nx_fb(bit_clockA),
+		.pll_is_locked(pll_is_locked),
+		.clock_1x(clock_1x[0]),
+		.clock_1x_1(clock_1x[1]),
+		.clock_1x_2(clock_1x[2]),
+		.clock_1x_3(clock_1x[3]),
+		.clock_1x_4(clock_1x[4]),
+		.clock_nx(clock_nx)
+	);
+	BUFG bufg_txA (.I(clock_1x[0]), .O(word_clockA_out));
+	BUFG bufg_txB (.I(clock_1x[0]), .O(word_clockB_out));
+	BUFG bufg_txC (.I(clock_1x[0]), .O(word_clockC_out));
+	BUFG bufg_txD (.I(clock_1x[0]), .O(word_clockD_out));
+//	BUFG bufg_txE (.I(clock_1x[0]), .O(word_clockE_out));
+	wire strobe_is_alignedA, strobe_is_alignedB, strobe_is_alignedC, strobe_is_alignedD;
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) tx_bufpll_inst_A (
+		.PLLIN(clock_nx), // PLL Clock input
+		.GCLK(word_clockA_out), // Global Clock input
+		.LOCKED(pll_is_locked), // Clock0 locked input
+		.IOCLK(bit_clockA), // Output PLL Clock
+		.LOCK(strobe_is_alignedA), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(bit_strobeA) // Output SERDES strobe
+	);
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) tx_bufpll_inst_B (
+		.PLLIN(clock_nx), // PLL Clock input
+		.GCLK(word_clockB_out), // Global Clock input
+		.LOCKED(pll_is_locked), // Clock0 locked input
+		.IOCLK(bit_clockB), // Output PLL Clock
+		.LOCK(strobe_is_alignedB), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(bit_strobeB) // Output SERDES strobe
+	);
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) tx_bufpll_inst_C (
+		.PLLIN(clock_nx), // PLL Clock input
+		.GCLK(word_clockC_out), // Global Clock input
+		.LOCKED(pll_is_locked), // Clock0 locked input
+		.IOCLK(bit_clockC), // Output PLL Clock
+		.LOCK(strobe_is_alignedC), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(bit_strobeC) // Output SERDES strobe
+	);
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) tx_bufpll_inst_D (
+		.PLLIN(clock_nx), // PLL Clock input
+		.GCLK(word_clockD_out), // Global Clock input
+		.LOCKED(pll_is_locked), // Clock0 locked input
+		.IOCLK(bit_clockD), // Output PLL Clock
+		.LOCK(strobe_is_alignedD), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(bit_strobeD) // Output SERDES strobe
+	);
+	assign word_clockE_out = word_clockA_out;
+	assign bit_clockE = bit_clockA;
+	assign bit_strobeE = bit_strobeA;
+	assign locked = pll_is_locked & strobe_is_alignedA & strobe_is_alignedB & strobe_is_alignedC & strobe_is_alignedD;
+endmodule
+
+module ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(
+	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
+	parameter BIT_WIDTH=1, // how many bits come out in parallel
+	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
+	parameter PINTYPE_A00 = "p",
+	parameter PINTYPE_A01 = "p",
+	parameter PINTYPE_A02 = "p",
+	parameter PINTYPE_A03 = "p",
+	parameter PINTYPE_A04 = "p",
+	parameter PINTYPE_A05 = "p",
+	parameter PINTYPE_A06 = "p",
+	parameter SPECIAL_A06 = "A",
+	parameter PINTYPE_A07 = "p",
+	parameter PINTYPE_A08 = "p",
+	parameter PINTYPE_A09 = "p",
+	parameter PINTYPE_A10 = "p",
+	parameter PINTYPE_A11 = "p",
+	parameter PINTYPE_B0 = "p",
+	parameter PINTYPE_B1 = "p",
+	parameter PINTYPE_B2 = "p",
+	parameter PINTYPE_B3 = "p",
+	parameter PINTYPE_B4 = "p",
+	parameter PINTYPE_B5 = "p",
+	parameter PINTYPE_C0 = "p",
+	parameter PINTYPE_C1 = "p",
+	parameter PINTYPE_C2 = "p",
+	parameter PINTYPE_C3 = "p",
+	parameter PINTYPE_C4 = "p",
+	parameter PINTYPE_C5 = "p",
+	parameter PINTYPE_D0 = "p",
+	parameter PINTYPE_D1 = "p",
+	parameter PINTYPE_D2 = "p",
+	parameter PINTYPE_D3 = "p",
+	parameter PINTYPE_E0 = "p",
+	parameter PINTYPE_E1 = "p",
+	parameter PERIOD = 20.0,
+	parameter MULTIPLY = 40,
+	parameter DIVIDE = 2
+) (
+	input clock_in,
+	input reset,
+	input [BIT_DEPTH-1:0]
+		word_A00_in, word_A01_in, word_A02_in, word_A03_in, word_A04_in, word_A05_in,
+		word_A06_in, word_A07_in, word_A08_in, word_A09_in, word_A10_in, word_A11_in,
+		word_B0_in, word_B1_in, word_B2_in, word_B3_in, word_B4_in, word_B5_in,
+		word_C0_in, word_C1_in, word_C2_in, word_C3_in, word_C4_in, word_C5_in,
+		word_D1_in, word_D2_in, word_D3_in,
+		word_E0_in, word_E1_in,
+	output word_clockA_out, word_clockB_out, word_clockC_out, word_clockD_out, word_clockE_out,
+	input D0_in,
+	output [BIT_DEPTH-1:0] word_D0_out,
+	output
+		A00_out, A01_out, A02_out, A03_out, A04_out, A05_out,
+		A06_out, A07_out, A08_out, A09_out, A10_out, A11_out,
+		B0_out, B1_out, B2_out, B3_out, B4_out, B5_out,
+		C0_out, C1_out, C2_out, C3_out, C4_out, C5_out,
+		D1_out, D2_out, D3_out,
+		E0_out, E1_out,
+	output locked
+);
+	wire bit_clockA, bit_clockB, bit_clockC, bit_clockD, bit_clockE;
+	wire bit_strobeA, bit_strobeB, bit_strobeC, bit_strobeD, bit_strobeE;
+	wire pll_is_locked; // Locked output from PLL
+	wire reset_clockA, reset_clockB, reset_clockC, reset_clockD, reset_clockE;
+	reset_wait4pll resetA_wait4pll (.reset_input(reset), .pll_locked_input(locked), .clock_input(word_clockA_out), .reset_output(reset_clockA));
+	reset_wait4pll resetB_wait4pll (.reset_input(reset), .pll_locked_input(locked), .clock_input(word_clockB_out), .reset_output(reset_clockB));
+	reset_wait4pll resetC_wait4pll (.reset_input(reset), .pll_locked_input(locked), .clock_input(word_clockC_out), .reset_output(reset_clockC));
+	reset_wait4pll resetD_wait4pll (.reset_input(reset), .pll_locked_input(locked), .clock_input(word_clockD_out), .reset_output(reset_clockD));
+	reset_wait4pll resetE_wait4pll (.reset_input(reset), .pll_locked_input(locked), .clock_input(word_clockE_out), .reset_output(reset_clockE));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A00)) mylei_A00 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A00_in), .bit_out(A00_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A01)) mylei_A01 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A01_in), .bit_out(A01_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A02)) mylei_A02 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A02_in), .bit_out(A02_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A03)) mylei_A03 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A03_in), .bit_out(A03_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A04)) mylei_A04 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A04_in), .bit_out(A04_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A05)) mylei_A05 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A05_in), .bit_out(A05_out));
+	if ("A"==SPECIAL_A06) begin
+		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A06)) mylei_A06 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A06_in), .bit_out(A06_out));
+	end else begin
+		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A06)) mylei_A06 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_A06_in), .bit_out(A06_out)); // special case for a06 being on a different bank from a11-a07
+	end
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A07)) mylei_A07 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A07_in), .bit_out(A07_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A08)) mylei_A08 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A08_in), .bit_out(A08_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A09)) mylei_A09 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A09_in), .bit_out(A09_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A10)) mylei_A10 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A10_in), .bit_out(A10_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A11)) mylei_A11 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A11_in), .bit_out(A11_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B0)) mylei_B0 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B0_in), .bit_out(B0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B1)) mylei_B1 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B1_in), .bit_out(B1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B2)) mylei_B2 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B2_in), .bit_out(B2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B3)) mylei_B3 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B3_in), .bit_out(B3_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B4)) mylei_B4 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B4_in), .bit_out(B4_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B5)) mylei_B5 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B5_in), .bit_out(B5_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_C0)) mylei_C0 (.word_clock(word_clockC_out), .bit_clock(bit_clockC), .bit_strobe(bit_strobeC), .reset(reset_clockC), .word_in(word_C0_in), .bit_out(C0_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_C1)) mylei_C1 (.word_clock(word_clockC_out), .bit_clock(bit_clockC), .bit_strobe(bit_strobeC), .reset(reset_clockC), .word_in(word_C1_in), .bit_out(C1_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_C2)) mylei_C2 (.word_clock(word_clockC_out), .bit_clock(bit_clockC), .bit_strobe(bit_strobeC), .reset(reset_clockC), .word_in(word_C2_in), .bit_out(C2_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_C3)) mylei_C3 (.word_clock(word_clockC_out), .bit_clock(bit_clockC), .bit_strobe(bit_strobeC), .reset(reset_clockC), .word_in(word_C3_in), .bit_out(C3_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_C4)) mylei_C4 (.word_clock(word_clockC_out), .bit_clock(bit_clockC), .bit_strobe(bit_strobeC), .reset(reset_clockC), .word_in(word_C4_in), .bit_out(C4_out));
+	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_C5)) mylei_C5 (.word_clock(word_clockC_out), .bit_clock(bit_clockC), .bit_strobe(bit_strobeC), .reset(reset_clockC), .word_in(word_C5_in), .bit_out(C5_out));
+//	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_D0)) mylei_D0 (.word_clock(word_clockD_out), .bit_clock(bit_clockD), .bit_strobe(bit_strobeD), .reset(reset_clockD), .word_in(word_D0_in), .bit_out(D0_out));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_D0)) is8i (.word_clock(word_clockD_out), .bit_clock(bit_clockD), .bit_strobe(bit_strobeD), .reset(reset_clockD), .data_in(D0_in), .word_out(word_D0_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_D1)) mylei_D1 (.word_clock(word_clockD_out), .bit_clock(bit_clockD), .bit_strobe(bit_strobeD), .reset(reset_clockD), .word_in(word_D1_in), .bit_out(D1_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_D2)) mylei_D2 (.word_clock(word_clockD_out), .bit_clock(bit_clockD), .bit_strobe(bit_strobeD), .reset(reset_clockD), .word_in(word_D2_in), .bit_out(D2_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_D3)) mylei_D3 (.word_clock(word_clockD_out), .bit_clock(bit_clockD), .bit_strobe(bit_strobeD), .reset(reset_clockD), .word_in(word_D3_in), .bit_out(D3_out));
