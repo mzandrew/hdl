@@ -55,6 +55,8 @@ module top #(
 //	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
 	output [3:0] coax_led
 );
+	wire [7:0] pattern [12:1];
+	reg [7:0] status [12:1];
 	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [3:0] status4;
 	wire [7:0] status8;
@@ -255,8 +257,8 @@ module top #(
 	ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1)
 	) orama (
 		.clock_in(clock100), .reset(reset100),
-		.word_A11_in(~status[12]), .word_A10_in(~status[11]), .word_A09_in(~status[10]), .word_A08_in(~status[6]), .word_A07_in(~status[5]), .word_A06_in(~status[4]),
-		.word_A05_in(~status[9]), .word_A04_in(~status[8]), .word_A03_in(~status[7]), .word_A02_in(~status[3]), .word_A01_in(~status[2]), .word_A00_in(~status[1]),
+		.word_A11_in({8{|status[12]}}), .word_A10_in({8{|status[11]}}), .word_A09_in({8{|status[10]}}), .word_A08_in({8{|status[6]}}), .word_A07_in({8{|status[5]}}), .word_A06_in({8{|status[4]}}),
+		.word_A05_in({8{|status[9]}}), .word_A04_in({8{|status[8]}}), .word_A03_in({8{|status[7]}}), .word_A02_in({8{|status[3]}}), .word_A01_in({8{|status[2]}}), .word_A00_in({8{|status[1]}}),
 		.word_B5_in(pattern[12]), .word_B4_in(pattern[11]), .word_B3_in(pattern[10]), .word_B2_in(pattern[6]), .word_B1_in(pattern[5]), .word_B0_in(pattern[4]),
 		.word_C5_in(pattern[9]), .word_C4_in(pattern[8]), .word_C3_in(pattern[7]), .word_C2_in(pattern[3]), .word_C1_in(pattern[2]), .word_C0_in(pattern[1]),
 		.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_out(iserdes_word_raw),
@@ -359,7 +361,6 @@ module top #(
 		$display("BUS_WIDTH=%d, TRANSACTIONS_PER_DATA_WORD=%d, TRANSACTIONS_PER_ADDRESS_WORD=%d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
 		$display("%d banks", NUMBER_OF_BANKS);
 	end
-	wire [7:0] pattern [12:1];
 	assign pattern[1]  = 8'h81;
 	assign pattern[2]  = 8'h82;
 	assign pattern[3]  = 8'h83;
@@ -381,7 +382,6 @@ module top #(
 	bitslip #(.WIDTH(8)) bs5 (.clock(word_clock), .bitslip(3'd5), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[5]));
 	bitslip #(.WIDTH(8)) bs6 (.clock(word_clock), .bitslip(3'd6), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[6]));
 	bitslip #(.WIDTH(8)) bs7 (.clock(word_clock), .bitslip(3'd7), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[7]));
-	reg [7:0] status [12:1];
 	integer p;
 	always @(posedge word_clock) begin
 		if (reset_word) begin
@@ -399,18 +399,18 @@ module top #(
 			status[1] <= 0;
 		end else begin
 			for (p=0; p<8; p=p+1) begin
-				if (pattern[12]==iserdes_word_rotated[p]) begin status[12][p] <= 1; end
-				if (pattern[11]==iserdes_word_rotated[p]) begin status[11][p] <= 1; end
-				if (pattern[10]==iserdes_word_rotated[p]) begin status[10][p] <= 1; end
-				if (pattern[9] ==iserdes_word_rotated[p]) begin status[9][p]  <= 1; end
-				if (pattern[8] ==iserdes_word_rotated[p]) begin status[8][p]  <= 1; end
-				if (pattern[7] ==iserdes_word_rotated[p]) begin status[7][p]  <= 1; end
-				if (pattern[6] ==iserdes_word_rotated[p]) begin status[6][p]  <= 1; end
-				if (pattern[5] ==iserdes_word_rotated[p]) begin status[5][p]  <= 1; end
-				if (pattern[4] ==iserdes_word_rotated[p]) begin status[4][p]  <= 1; end
-				if (pattern[3] ==iserdes_word_rotated[p]) begin status[3][p]  <= 1; end
-				if (pattern[2] ==iserdes_word_rotated[p]) begin status[2][p]  <= 1; end
-				if (pattern[1] ==iserdes_word_rotated[p]) begin status[1][p]  <= 1; end
+				if (pattern[12]==iserdes_word_rotated[p]) begin status[12][p] <= 1; end else begin status[12][p] <= 0; end
+				if (pattern[11]==iserdes_word_rotated[p]) begin status[11][p] <= 1; end else begin status[11][p] <= 0; end
+				if (pattern[10]==iserdes_word_rotated[p]) begin status[10][p] <= 1; end else begin status[10][p] <= 0; end
+				if (pattern[9] ==iserdes_word_rotated[p]) begin status[9][p]  <= 1; end else begin status[9][p]  <= 0; end
+				if (pattern[8] ==iserdes_word_rotated[p]) begin status[8][p]  <= 1; end else begin status[8][p]  <= 0; end
+				if (pattern[7] ==iserdes_word_rotated[p]) begin status[7][p]  <= 1; end else begin status[7][p]  <= 0; end
+				if (pattern[6] ==iserdes_word_rotated[p]) begin status[6][p]  <= 1; end else begin status[6][p]  <= 0; end
+				if (pattern[5] ==iserdes_word_rotated[p]) begin status[5][p]  <= 1; end else begin status[5][p]  <= 0; end
+				if (pattern[4] ==iserdes_word_rotated[p]) begin status[4][p]  <= 1; end else begin status[4][p]  <= 0; end
+				if (pattern[3] ==iserdes_word_rotated[p]) begin status[3][p]  <= 1; end else begin status[3][p]  <= 0; end
+				if (pattern[2] ==iserdes_word_rotated[p]) begin status[2][p]  <= 1; end else begin status[2][p]  <= 0; end
+				if (pattern[1] ==iserdes_word_rotated[p]) begin status[1][p]  <= 1; end else begin status[1][p]  <= 0; end
 			end
 		end
 	end
