@@ -1260,7 +1260,8 @@ module oserdes_pll #(
 		if (SCOPE == "BUFPLL") begin
 			wire serializer_strobe_out_bufpll;
 			BUFPLL #(
-				.ENABLE_SYNC("FALSE"), // does *not* try to synchronize strobe to gclk input
+				.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+				//.ENABLE_SYNC("FALSE"), // does *not* try to synchronize strobe to gclk input
 				.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
 			) tx_bufpll_inst_2 (
 				.PLLIN(clock_nx), // PLL Clock input
