@@ -1,6 +1,6 @@
 // written 2021-12-14 by mza
 // based on mza-test053.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revB.v
-// last updated 2021-12-14 by mza
+// last updated 2022-01-05 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -55,6 +55,9 @@ module top #(
 //	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
 	output [3:0] coax_led
 );
+	localparam DIVIDE = 2;
+	localparam MULTIPLY = 8;
+	localparam PERIOD = 10.0;
 	wire [7:0] pattern [12:1];
 	reg [7:0] status [12:1];
 	localparam ERROR_COUNT_PICKOFF = 7;
@@ -212,7 +215,7 @@ module top #(
 		assign word_clock = word_clock_left_inner;
 		assign pll_oserdes_locked_other = 1;
 	end else begin
-		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei4 (
+		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(PERIOD), .DIVIDE(DIVIDE), .MULTIPLY(MULTIPLY), .SCOPE("BUFPLL")) mylei4 (
 			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock), .locked(pll_oserdes_locked_other),
 			.word3_in(DACbit[7]), .word2_in(DACbit[6]), .word1_in(DACbit[5]), .word0_in(DACbit[4]),
 			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
@@ -254,7 +257,7 @@ module top #(
 	assign reset = 0;
 	wire [7:0] iserdes_word_raw;
 	// the order here is 12, 11, 10, 6, 5, 4, 9, 8, 7, 3, 2, 1
-	ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1)
+	ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE)
 	) orama (
 		.clock_in(clock100), .reset(reset100),
 		.word_A11_in({8{|status[12]}}), .word_A10_in({8{|status[11]}}), .word_A09_in({8{|status[10]}}), .word_A08_in({8{|status[6]}}), .word_A07_in({8{|status[5]}}), .word_A06_in({8{|status[4]}}),
@@ -284,7 +287,7 @@ module top #(
 //		assign coax[0] = write_strobe[0];
 		assign pll_oserdes_locked_other = 1;
 	end else if (0) begin // to put the oserdes outputs on coax[4] and coax[0]
-		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei2 (
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .SCOPE("BUFPLL")) mylei2 (
 			.clock_in(clock100), .reset(reset100), .word_clock_out(),
 			.word1_in(oserdes_word[0]), .D1_out(coax[0]),
 			.word0_in(oserdes_word[0]), .D0_out(coax[4]),
@@ -292,11 +295,11 @@ module top #(
 			.locked(pll_oserdes_locked_other));
 		assign sync_read_address = 0;
 	end else if (0) begin
-		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[0]), .locked(pll_oserdes_locked_other));
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .SCOPE("BUFPLL")) mylei (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[0]), .locked(pll_oserdes_locked_other));
 		assign coax[4] = sync_out_stream[SYNC_OUT_STREAM_PICKOFF]; // scope trigger
 		assign sync_read_address = 0;
 	end else if (1) begin
-		//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[4]), .locked(pll_oserdes_locked_other));
+		//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[4]), .locked(pll_oserdes_locked_other));
 		//assign sync_read_address = coax[0];
 		assign sync_read_address = 0;
 		//assign coax[0] = sync_out_stream[SYNC_OUT_STREAM_PICKOFF]; // scope trigger
