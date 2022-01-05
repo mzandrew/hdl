@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2021-12-14 by mza
+// last updated 2022-01-05 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -466,6 +466,7 @@ module ocyrus_hex8_split_4_2 #(
 	parameter PERIOD = 20.0,
 	parameter MULTIPLY = 40,
 	parameter DIVIDE = 2,
+	parameter EXTRA_DIVIDE = 1,
 	parameter PHASE45 = 0.0,
 	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
@@ -507,6 +508,7 @@ module ocyrus_hex8_split_4_2 #(
 		.PHASE2345(PHASE45),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
+		.EXTRA_DIVIDE(EXTRA_DIVIDE),
 		.CLK_FEEDBACK(CLK_FEEDBACK)
 	) siphon (
 		.clock_in(clock_in),
@@ -592,7 +594,8 @@ module ocyrus_gyrobicupola8_split_12_6_6 #(
 	parameter PINTYPE_C5 = "p",
 	parameter PERIOD = 20.0,
 	parameter MULTIPLY = 40,
-	parameter DIVIDE = 2
+	parameter DIVIDE = 2,
+	parameter EXTRA_DIVIDE = 1
 ) (
 	input clock_in,
 	input reset,
@@ -649,6 +652,7 @@ module ocyrus_gyrobicupola8_split_12_6_6 #(
 		.PHASE2345(0.0),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
+		.EXTRA_DIVIDE(EXTRA_DIVIDE),
 		.CLK_FEEDBACK("CLKFBOUT")
 	) siphon (
 		.clock_in(clock_in),
@@ -757,7 +761,8 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2 #(
 	parameter PINTYPE_E1 = "p",
 	parameter PERIOD = 20.0,
 	parameter MULTIPLY = 40,
-	parameter DIVIDE = 2
+	parameter DIVIDE = 2,
+	parameter EXTRA_DIVIDE = 1
 ) (
 	input clock_in,
 	input reset,
@@ -830,6 +835,7 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2 #(
 		.PHASE2345(0.0),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
+		.EXTRA_DIVIDE(EXTRA_DIVIDE),
 		.CLK_FEEDBACK("CLKFBOUT")
 	) siphon (
 		.clock_in(clock_in),
@@ -937,7 +943,8 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(
 	parameter PINTYPE_E1 = "p",
 	parameter PERIOD = 20.0,
 	parameter MULTIPLY = 40,
-	parameter DIVIDE = 2
+	parameter DIVIDE = 2,
+	parameter EXTRA_DIVIDE = 1
 ) (
 	input clock_in,
 	input reset,
@@ -1013,6 +1020,7 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(
 		.PHASE2345(0.0),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
+		.EXTRA_DIVIDE(EXTRA_DIVIDE),
 		.CLK_FEEDBACK("CLKFBOUT")
 	) siphon (
 		.clock_in(clock_in),
@@ -1094,6 +1102,7 @@ module simpll #(
 	parameter PHASE2345 = 0.0,
 	parameter PLLD = 5,
 	parameter PLLX = 32,
+	parameter EXTRA_DIVIDE = 1,
 	parameter CLK_FEEDBACK = "CLKFBOUT",
 	parameter COMPENSATION = CLK_FEEDBACK=="CLKFBOUT" ? "INTERNAL" : "EXTERNAL"
 	//parameter COMPENSATION = "SOURCE_SYNCHRONOUS"
@@ -1135,12 +1144,12 @@ module simpll #(
 		.CLKIN2_PERIOD(CLKIN_PERIOD), // clock period (ns) of input clock on clkin2
 		.DIVCLK_DIVIDE(PLLD), // division factor for all clocks (1 to 52)
 		.CLKFBOUT_MULT(PLLX), // multiplication factor for all output clocks
-		.CLKOUT0_DIVIDE(1), // division factor for clkout0 (1 to 128)
-		.CLKOUT1_DIVIDE(BIT_DEPTH), // division factor for clkout1 (1 to 128)
-		.CLKOUT2_DIVIDE(BIT_DEPTH), // division factor for clkout2 (1 to 128)
-		.CLKOUT3_DIVIDE(BIT_DEPTH), // division factor for clkout3 (1 to 128)
-		.CLKOUT4_DIVIDE(BIT_DEPTH), // division factor for clkout4 (1 to 128)
-		.CLKOUT5_DIVIDE(BIT_DEPTH), // division factor for clkout5 (1 to 128)
+		.CLKOUT0_DIVIDE(EXTRA_DIVIDE), // division factor for clkout0 (1 to 128)
+		.CLKOUT1_DIVIDE(EXTRA_DIVIDE*BIT_DEPTH), // division factor for clkout1 (1 to 128)
+		.CLKOUT2_DIVIDE(EXTRA_DIVIDE*BIT_DEPTH), // division factor for clkout2 (1 to 128)
+		.CLKOUT3_DIVIDE(EXTRA_DIVIDE*BIT_DEPTH), // division factor for clkout3 (1 to 128)
+		.CLKOUT4_DIVIDE(EXTRA_DIVIDE*BIT_DEPTH), // division factor for clkout4 (1 to 128)
+		.CLKOUT5_DIVIDE(EXTRA_DIVIDE*BIT_DEPTH), // division factor for clkout5 (1 to 128)
 		.CLKOUT0_PHASE(0.0), // phase shift (degrees) for clkout0 (0.0 to 360.0)
 		.CLKOUT1_PHASE(PHASE), // phase shift (degrees) for clkout1 (0.0 to 360.0)
 		.CLKOUT2_PHASE(PHASE2345+1*360/BIT_DEPTH), // phase shift (degrees) for clkout2 (0.0 to 360.0)
@@ -1197,6 +1206,7 @@ module oserdes_pll #(
 	parameter PHASE = 0.0,
 	parameter PLLD=5,
 	parameter PLLX=32,
+	parameter EXTRA_DIVIDE = 1,
 	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
 	input clock_in, input reset, output word_clock_out,
@@ -1215,6 +1225,7 @@ module oserdes_pll #(
 			.PHASE(PHASE),
 			.PLLD(PLLD),
 			.PLLX(PLLX),
+			.EXTRA_DIVIDE(EXTRA_DIVIDE),
 			.CLK_FEEDBACK(CLK_FEEDBACK)
 		) simon (
 			.clock_in(clock_in),
