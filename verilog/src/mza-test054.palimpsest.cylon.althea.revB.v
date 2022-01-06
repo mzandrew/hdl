@@ -55,11 +55,12 @@ module top #(
 //	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
 	output [3:0] coax_led
 );
-	localparam DIVIDE = 2;
-	localparam MULTIPLY = 8;
+	// PLL_ADV VCO range is 400 MHz to 1080 MHz
 	localparam PERIOD = 10.0;
-	localparam EXTRA_DIVIDE = 4;
-	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
+	localparam MULTIPLY = 8;
+	localparam DIVIDE = 2;
+	localparam EXTRA_DIVIDE = 16;
+	localparam SCOPE = "GLOBAL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	wire [7:0] pattern [12:1];
 	reg [7:0] status [12:1];
 	localparam ERROR_COUNT_PICKOFF = 7;
