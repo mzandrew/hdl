@@ -374,7 +374,7 @@ module top #(
 	assign pattern[5]  = 8'h1f;
 	assign pattern[6]  = 8'h3f;
 	assign pattern[7]  = 8'h7f;
-	assign pattern[8]  = 8'hff;
+	assign pattern[8]  = 8'hcc;
 	assign pattern[9]  = 8'ha1;
 	assign pattern[10] = 8'ha3;
 	assign pattern[11] = 8'ha7;
