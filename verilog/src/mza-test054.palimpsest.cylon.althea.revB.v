@@ -1,6 +1,6 @@
 // written 2021-12-14 by mza
 // based on mza-test053.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revB.v
-// last updated 2022-01-05 by mza
+// last updated 2022-01-24 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -367,18 +367,18 @@ module top #(
 		$display("BUS_WIDTH=%d, TRANSACTIONS_PER_DATA_WORD=%d, TRANSACTIONS_PER_ADDRESS_WORD=%d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
 		$display("%d banks", NUMBER_OF_BANKS);
 	end
-	assign pattern[1]  = 8'hc3;
-	assign pattern[2]  = 8'hc7;
-	assign pattern[3]  = 8'hcc;
-	assign pattern[4]  = 8'hcf;
-	assign pattern[5]  = 8'h00;
-	assign pattern[6]  = 8'hff;
-	assign pattern[7]  = 8'hf0;
-	assign pattern[8]  = 8'h0f;
-	assign pattern[9]  = 8'ha5;
-	assign pattern[10] = 8'h5a;
-	assign pattern[11] = 8'he7;
-	assign pattern[12] = 8'h7e;
+	assign pattern[1]  = 8'h01;
+	assign pattern[2]  = 8'h03;
+	assign pattern[3]  = 8'h07;
+	assign pattern[4]  = 8'h0f;
+	assign pattern[5]  = 8'h1f;
+	assign pattern[6]  = 8'h3f;
+	assign pattern[7]  = 8'h7f;
+	assign pattern[8]  = 8'hff;
+	assign pattern[9]  = 8'ha1;
+	assign pattern[10] = 8'ha3;
+	assign pattern[11] = 8'ha7;
+	assign pattern[12] = 8'haf;
 	wire [7:0] iserdes_word_rotated [7:0];
 	bitslip #(.WIDTH(8)) bs0 (.clock(word_clock), .bitslip(3'd0), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[0]));
 	bitslip #(.WIDTH(8)) bs1 (.clock(word_clock), .bitslip(3'd1), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[1]));

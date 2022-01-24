@@ -1,7 +1,7 @@
 # written 2021-10-28 by mza
 # based off of mza-test053.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revB.ucf
 # for an althea revB
-# last updated 2021-12-14 by mza
+# last updated 2022-01-24 by mza
 
 # 50 MHz local oscillator:
 net clock50_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK50+
@@ -124,7 +124,7 @@ net coax_led<1> loc=p94  | iostandard=lvttl | drive = 2 | slew = slow; #
 net coax_led<2> loc=p92  | iostandard=lvttl | drive = 2 | slew = slow; #
 net coax_led<3> loc=p88  | iostandard=lvttl | drive = 2 | slew = slow; #
 
-net coax0 loc=p105 | iostandard=lvttl | drive = 24 | slew = fast; # bank1
+net coax0 loc=p105 | iostandard=lvttl | drive = 24 | slew = fast; # bank1 - need to remove the termination resistor for this input for this project
 #net coax<1> loc=p102 | iostandard=lvttl | drive = 24 | slew = fast; # bank1
 #net coax<2> loc=p79  | iostandard=lvttl | drive = 24 | slew = fast; # bank1
 net coax3 loc=p75  | iostandard=lvttl | drive = 24 | slew = fast; # bank1
