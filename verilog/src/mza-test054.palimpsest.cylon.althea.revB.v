@@ -61,25 +61,69 @@ module top #(
 	localparam DIVIDE = 2;
 	localparam EXTRA_DIVIDE = 16;
 	localparam SCOPE = "GLOBAL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
-	wire [7:0] pattern [12:1];
-	assign pattern[1]  = 8'h0f;
-	assign pattern[2]  = 8'h03;
-	assign pattern[3]  = 8'h07;
-	assign pattern[4]  = 8'h01;
-	assign pattern[5]  = 8'h1f;
-	assign pattern[6]  = 8'h3f;
-	assign pattern[7]  = 8'h7f;
-	assign pattern[8]  = 8'hcc;
-	assign pattern[9]  = 8'ha1;
-	assign pattern[10] = 8'ha3;
-	assign pattern[11] = 8'ha7;
-	assign pattern[12] = 8'haf;
+	reg [7:0] pattern [12:1];
+	wire [7:0] null = 0;
+	wire [7:0] pat = 8'b11000000;
+	wire reset_word;
 	reg [7:0] status [12:1];
 	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [3:0] status4;
 	wire [7:0] status8;
 	wire reset;
 	genvar i;
+	localparam COUNTER_PICKOFF=6;
+	reg [COUNTER_PICKOFF:0] counter = 0;
+	always @(posedge word_clock) begin
+		if (reset_word) begin
+			counter <= 0;
+		end else begin
+			counter <= counter + 1'b1;
+		end
+	end
+	always @(posedge word_clock) begin
+//		for (i=1; i<13; i=i+1) begin : clear_pattern
+		pattern[1] <= null;
+		pattern[2] <= null;
+		pattern[3] <= null;
+		pattern[4] <= null;
+		pattern[5] <= null;
+		pattern[6] <= null;
+		pattern[7] <= null;
+		pattern[8] <= null;
+		pattern[9] <= null;
+		pattern[10] <= null;
+		pattern[11] <= null;
+		pattern[12] <= null;
+//		end
+		if (reset_word) begin
+		end else begin
+			if (counter[COUNTER_PICKOFF:0]==1) begin
+				pattern[1] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==2) begin
+				pattern[2] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==3) begin
+				pattern[3] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==4) begin
+				pattern[4] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==5) begin
+				pattern[5] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==6) begin
+				pattern[6] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==7) begin
+				pattern[7] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==8) begin
+				pattern[8] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==9) begin
+				pattern[9] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==10) begin
+				pattern[10] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==11) begin
+				pattern[11] <= pat;
+			end else if (counter[COUNTER_PICKOFF:0]==12) begin
+				pattern[12] <= pat;
+			end
+		end
+	end
 	wire pll_oserdes_locked;
 	wire pll_oserdes_locked_other;
 	wire pll_oserdes_locked_right_outer;
@@ -111,7 +155,6 @@ module top #(
 	wire word_clock_right_inner;
 	wire word_clock_left_inner;
 	// ----------------------------------------------------------------------
-	wire reset_word;
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset100), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock), .reset_output(reset_word));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
