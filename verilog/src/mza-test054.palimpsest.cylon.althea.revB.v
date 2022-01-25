@@ -62,6 +62,18 @@ module top #(
 	localparam EXTRA_DIVIDE = 16;
 	localparam SCOPE = "GLOBAL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	wire [7:0] pattern [12:1];
+	assign pattern[1]  = 8'h0f;
+	assign pattern[2]  = 8'h03;
+	assign pattern[3]  = 8'h07;
+	assign pattern[4]  = 8'h01;
+	assign pattern[5]  = 8'h1f;
+	assign pattern[6]  = 8'h3f;
+	assign pattern[7]  = 8'h7f;
+	assign pattern[8]  = 8'hcc;
+	assign pattern[9]  = 8'ha1;
+	assign pattern[10] = 8'ha3;
+	assign pattern[11] = 8'ha7;
+	assign pattern[12] = 8'haf;
 	reg [7:0] status [12:1];
 	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [3:0] status4;
@@ -367,18 +379,6 @@ module top #(
 		$display("BUS_WIDTH=%d, TRANSACTIONS_PER_DATA_WORD=%d, TRANSACTIONS_PER_ADDRESS_WORD=%d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
 		$display("%d banks", NUMBER_OF_BANKS);
 	end
-	assign pattern[1]  = 8'h01;
-	assign pattern[2]  = 8'h03;
-	assign pattern[3]  = 8'h07;
-	assign pattern[4]  = 8'h0f;
-	assign pattern[5]  = 8'h1f;
-	assign pattern[6]  = 8'h3f;
-	assign pattern[7]  = 8'h7f;
-	assign pattern[8]  = 8'hcc;
-	assign pattern[9]  = 8'ha1;
-	assign pattern[10] = 8'ha3;
-	assign pattern[11] = 8'ha7;
-	assign pattern[12] = 8'haf;
 	wire [7:0] iserdes_word_rotated [7:0];
 	bitslip #(.WIDTH(8)) bs0 (.clock(word_clock), .bitslip(3'd0), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[0]));
 	bitslip #(.WIDTH(8)) bs1 (.clock(word_clock), .bitslip(3'd1), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[1]));
