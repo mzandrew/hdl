@@ -1,6 +1,6 @@
 // written 2021-12-14 by mza
 // based on mza-test053.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revB.v
-// last updated 2022-01-24 by mza
+// last updated 2022-01-31 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -57,13 +57,16 @@ module top #(
 );
 	// PLL_ADV VCO range is 400 MHz to 1080 MHz
 	localparam PERIOD = 10.0;
-	localparam MULTIPLY = 8;
-	localparam DIVIDE = 2;
-	localparam EXTRA_DIVIDE = 16;
+	//localparam MULTIPLY = 9; // 900 MHz
+	//localparam DIVIDE = 1; // 900 MHz
+	//localparam EXTRA_DIVIDE = 3; // 300 MHz
+	localparam MULTIPLY = 8; // 800 MHz
+	localparam DIVIDE = 2; // 400 MHz
+	localparam EXTRA_DIVIDE = 16; // 25 MHz
 	localparam SCOPE = "GLOBAL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	reg [7:0] pattern [12:1];
 	wire [7:0] null = 0;
-	wire [7:0] pat = 8'b11000000;
+	wire [7:0] pat = 8'b10000000;
 	wire reset_word;
 	reg [7:0] status [12:1];
 	localparam ERROR_COUNT_PICKOFF = 7;
