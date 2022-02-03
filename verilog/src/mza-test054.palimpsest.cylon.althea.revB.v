@@ -1,6 +1,6 @@
 // written 2021-12-14 by mza
 // based on mza-test053.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revB.v
-// last updated 2022-01-31 by mza
+// last updated 2022-02-02 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -19,6 +19,7 @@ module top #(
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
 	parameter LOG2_OF_TRANSACTIONS_PER_DATA_WORD = $clog2(TRANSACTIONS_PER_DATA_WORD),
 	parameter OSERDES_DATA_WIDTH = 8,
+	parameter LOG2_OF_OSERDES_DATA_WIDTH = $clog2(OSERDES_DATA_WIDTH),
 	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
 	parameter BANK_ADDRESS_DEPTH = 13,
 	parameter LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD - BANK_ADDRESS_DEPTH,
@@ -32,6 +33,7 @@ module top #(
 	parameter RIGHT_DAC_INNER = 1,
 	parameter LEFT_DAC_INNER = 1,
 	parameter TESTBENCH = 0,
+	parameter COUNTER_PICKOFF=$clog2(14285714) - LOG2_OF_OSERDES_DATA_WIDTH, // 143 MHz / 2^23 ~ 17 Hz
 	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
 	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
@@ -60,13 +62,16 @@ module top #(
 	//localparam MULTIPLY = 9; // 900 MHz
 	//localparam DIVIDE = 1; // 900 MHz
 	//localparam EXTRA_DIVIDE = 3; // 300 MHz
-	localparam MULTIPLY = 8; // 800 MHz
-	localparam DIVIDE = 2; // 400 MHz
-	localparam EXTRA_DIVIDE = 16; // 25 MHz
-	localparam SCOPE = "GLOBAL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
+	//localparam MULTIPLY = 8; // 800 MHz
+	//localparam DIVIDE = 2; // 400 MHz
+	//localparam EXTRA_DIVIDE = 16; // 25 MHz
+	localparam MULTIPLY = 10; // 1000 MHz
+	localparam DIVIDE = 1; // 1000 MHz
+	localparam EXTRA_DIVIDE = 7; // 142.857143 MHz (7ns bit time)
+	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	reg [7:0] pattern [12:1];
 	wire [7:0] null = 0;
-	wire [7:0] pat = 8'b10000000;
+	wire [7:0] pat = 8'b11111111;
 	wire reset_word;
 	reg [7:0] status [12:1];
 	localparam ERROR_COUNT_PICKOFF = 7;
@@ -74,7 +79,6 @@ module top #(
 	wire [7:0] status8;
 	wire reset;
 	genvar i;
-	localparam COUNTER_PICKOFF=6;
 	reg [COUNTER_PICKOFF:0] counter = 0;
 	always @(posedge word_clock) begin
 		if (reset_word) begin
