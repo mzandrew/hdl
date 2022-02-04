@@ -1,6 +1,6 @@
 // written 2021-12-14 by mza
 // based on mza-test053.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revB.v
-// last updated 2022-02-02 by mza
+// last updated 2022-02-03 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -78,6 +78,7 @@ module top #(
 	wire [3:0] status4;
 	wire [7:0] status8;
 	wire reset;
+	reg [7:0] sync_out_word_alternate = 0;
 	genvar i;
 	reg [COUNTER_PICKOFF:0] counter = 0;
 	always @(posedge word_clock) begin
@@ -101,10 +102,12 @@ module top #(
 		pattern[10] <= null;
 		pattern[11] <= null;
 		pattern[12] <= null;
+		sync_out_word_alternate <= null;
 //		end
 		if (reset_word) begin
 		end else begin
 			if (counter[COUNTER_PICKOFF:0]==1) begin
+				sync_out_word_alternate <= pat;
 				pattern[1] <= pat;
 			end else if (counter[COUNTER_PICKOFF:0]==2) begin
 				pattern[2] <= pat;
@@ -330,7 +333,7 @@ module top #(
 		.word_B5_in(pattern[12]), .word_B4_in(pattern[11]), .word_B3_in(pattern[10]), .word_B2_in(pattern[6]), .word_B1_in(pattern[5]), .word_B0_in(pattern[4]),
 		.word_C5_in(pattern[9]), .word_C4_in(pattern[8]), .word_C3_in(pattern[7]), .word_C2_in(pattern[3]), .word_C1_in(pattern[2]), .word_C0_in(pattern[1]),
 		.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_out(iserdes_word_raw),
-		.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
+		.word_E1_in(sync_out_word), .word_E0_in(sync_out_word_alternate),
 		.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
 		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[6]), .A07_out(indicator[5]), .A06_out(indicator[4]),
 		.A05_out(indicator[9]), .A04_out(indicator[8]), .A03_out(indicator[7]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
