@@ -410,14 +410,14 @@ module top #(
 			assign status8[7] = ~clock50_locked;
 			assign status8[6] = ~pll_oserdes_locked;
 			assign status8[5] = ~pll_oserdes_locked_other;
-			assign status8[4] = 0;
+			assign status8[4] = reset100;
 		end else begin
-			assign status8[7] = 0;
-			assign status8[6] = 0;
-			assign status8[5] = 0;
+			assign status8[7] = reset_word;
+			assign status8[6] = 0;//clock100_locked;
+			assign status8[5] = reset;
 			assign status8[4] = enable;
 		end
-		assign status8[3] = ~pll_oserdes_locked;
+		assign status8[3] = 0;
 		assign status8[2] = 0;
 		assign status8[1] = 0;
 		assign status8[0] = enable;
