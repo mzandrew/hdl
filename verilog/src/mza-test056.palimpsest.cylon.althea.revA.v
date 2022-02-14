@@ -1,6 +1,6 @@
 // written 2021-12-14 by mza
 // based on mza-test054.palimpsest.cylon.althea.revB.v
-// last updated 2022-02-09 by mza
+// last updated 2022-02-14 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -54,7 +54,7 @@ module top #(
 //	output [5:0] diff_pair_right_n,
 //	output [5:0] single_ended_left,
 //	output [5:0] single_ended_right,
-//	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
+	output [7:0] led,
 	output [3:0] coax_led
 );
 	// PLL_ADV VCO range is 400 MHz to 1080 MHz
@@ -136,10 +136,6 @@ module top #(
 	end
 	wire pll_oserdes_locked;
 	wire pll_oserdes_locked_other;
-	wire pll_oserdes_locked_right_outer;
-	wire pll_oserdes_locked_left_outer;
-	wire pll_oserdes_locked_right_inner;
-	wire pll_oserdes_locked_left_inner;
 	// ----------------------------------------------------------------------
 	wire clock100;
 	wire clock50_locked;
@@ -402,24 +398,32 @@ module top #(
 		assign coax_led = { 1'b0, adc_bit[2:0] };
 	end
 	// ----------------------------------------------------------------------
-	if (1) begin
+	if (0) begin
 		assign status4 = 0;
 		assign status8 = 0;
 	end else begin
 		assign status4[3] = ~pll_oserdes_locked;
-		assign status4[2] = ~pll_oserdes_locked_right_outer;
-		assign status4[1] = ~pll_oserdes_locked_left_outer;
+		assign status4[2] = 0;
+		assign status4[1] = 0;
 		assign status4[0] = enable;
-		assign status8[7] = ~pll_oserdes_locked;
-		assign status8[6] = ~pll_oserdes_locked_right_inner;
-		assign status8[5] = ~pll_oserdes_locked_left_inner;
-		assign status8[4] = enable;
+		if (1) begin
+			assign status8[7] = ~clock50_locked;
+			assign status8[6] = ~pll_oserdes_locked;
+			assign status8[5] = ~pll_oserdes_locked_other;
+			assign status8[4] = 0;
+		end else begin
+			assign status8[7] = 0;
+			assign status8[6] = 0;
+			assign status8[5] = 0;
+			assign status8[4] = enable;
+		end
 		assign status8[3] = ~pll_oserdes_locked;
-		assign status8[2] = ~pll_oserdes_locked_right_outer;
-		assign status8[1] = ~pll_oserdes_locked_left_outer;
+		assign status8[2] = 0;
+		assign status8[1] = 0;
 		assign status8[0] = enable;
 	end
 	assign coax_led = status4;
+	assign led = status8;
 //	if (0==LEFT_DAC_OUTER) begin
 //		assign led[7:4] = status8[7:4];
 //	end
@@ -806,9 +810,9 @@ module myalthea #(
 //	u, v, w, x, y, z,
 	// other IOs:
 	//input [2:0] rot
-	input button // reset
-//	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
+	output [7:0] led,
 //	output [3:0] coax_led
+	input button // reset
 );
 	localparam BUS_WIDTH = 16;
 	localparam BANK_ADDRESS_DEPTH = 13;
@@ -819,8 +823,8 @@ module myalthea #(
 	wire clock10 = 0;
 	wire [3:0] internal_coax_led;
 	wire [7:0] internal_led;
-	//assign led = internal_led;
-	assign coax_led = internal_coax_led;
+	assign led = internal_led;
+	//assign coax_led = internal_coax_led;
 	wire [5:0] diff_pair_left;
 	if (1==LEFT_DAC_ROTATED) begin
 //		assign { a_p, c_p, d_p, f_p, b_p, e_p } = diff_pair_left; // rotated
@@ -857,7 +861,7 @@ module myalthea #(
 		.register_select(1'b0), .read(1'b0),
 		.enable(1'b0), .ack_valid(),
 //		.rot(rot),
-//		.led(internal_led),
+		.led(internal_led),
 		.coax_led(internal_coax_led)
 	);
 endmodule
