@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2018-11-26 by mza
+// last updated 2012-09-23 by mza
 
 module mza_test026_serdes_pll_dual_differential_althea (
 	input clock_p,
@@ -40,10 +40,8 @@ module mza_test026_serdes_pll_dual_differential_althea (
 //	OBUFDS catcat1 (.I(sync), .O(lvds_trig_output_1_p), .OB(lvds_trig_output_1_n));
 //	OBUFDS catcat2 (.I(sync), .O(lvds_trig_output_2_p), .OB(lvds_trig_output_2_n));
 	assign lemo_output = sync;
-	wire ioclk_T; // 1000 MHz
-	wire ioclk_R; // 1000 MHz
-	wire ioce_T;
-	wire ioce_R;
+	wire ioclk; // 1000 MHz
+	wire ioce;
 	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
 	wire cascade_do1;
 	wire cascade_to1;
@@ -63,36 +61,36 @@ module mza_test026_serdes_pll_dual_differential_althea (
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
 	         osirus_primary_T
-	         (.OQ(lvds_trig_output_T), .TQ(), .CLK0(ioclk_T), .CLK1(1'b0), .CLKDIV(clock),
+	         (.OQ(lvds_trig_output_T), .TQ(), .CLK0(ioclk), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
-	         .IOCE(ioce_T), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
+	         .IOCE(ioce), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
 	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do1), .SHIFTIN4(cascade_to1), 
 	         .SHIFTOUT1(cascade_di1), .SHIFTOUT2(cascade_ti1), .SHIFTOUT3(), .SHIFTOUT4(), 
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
 	         osirus_secondary_T
-	         (.OQ(), .TQ(), .CLK0(ioclk_T), .CLK1(1'b0), .CLKDIV(clock),
+	         (.OQ(), .TQ(), .CLK0(ioclk), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
-	         .IOCE(ioce_T), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
+	         .IOCE(ioce), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
 	         .SHIFTIN1(cascade_di1), .SHIFTIN2(cascade_ti1), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
 	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do1), .SHIFTOUT4(cascade_to1),
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
 	         osirus_primary_R
-	         (.OQ(lvds_trig_output_R), .TQ(), .CLK0(ioclk_R), .CLK1(1'b0), .CLKDIV(clock),
+	         (.OQ(lvds_trig_output_R), .TQ(), .CLK0(ioclk), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
-	         .IOCE(ioce_R), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
+	         .IOCE(ioce), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
 	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2), 
 	         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(WIDTH),
 	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
 	         osirus_secondary_R
-	         (.OQ(), .TQ(), .CLK0(ioclk_R), .CLK1(1'b0), .CLKDIV(clock),
+	         (.OQ(), .TQ(), .CLK0(ioclk), .CLK1(1'b0), .CLKDIV(clock),
 	         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
-	         .IOCE(ioce_R), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
+	         .IOCE(ioce), .OCE(1'b1), .RST(reset1), .TRAIN(1'b0),
 	         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
 	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
 	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
@@ -103,7 +101,7 @@ module mza_test026_serdes_pll_dual_differential_althea (
 				reset1 <= 0;
 			end
 		end
-		reset1_counter <= reset1_counter + 1;
+		reset1_counter <= reset1_counter + 1'b1;
 	end
 	wire trigger_input;
 	IBUFDS angel (.I(lvds_trig_input_p), .IB(lvds_trig_input_n), .O(trigger_input));
@@ -188,10 +186,9 @@ module mza_test026_serdes_pll_dual_differential_althea (
 		trigger_stream <= { trigger_stream[1:0], trigger_input };
 		counter <= counter + 1;
 	end
-	oserdes_pll #(.WIDTH(WIDTH), .CLKIN_PERIOD(20.0), .PLLD(2), .PLLX(40)) difficult_pll_TR (
-		.reset(reset1), .clock_in(other_clock), .fabric_clock_out(clock), 
-		.serializer_clock_out_1(ioclk_T), .serializer_strobe_out_1(ioce_T), .locked_1(),
-		.serializer_clock_out_2(ioclk_R), .serializer_strobe_out_2(ioce_R), .locked_2()
+	oserdes_pll #(.BIT_DEPTH(WIDTH), .CLKIN_PERIOD(20.0), .PLLD(2), .PLLX(40)) difficult_pll_TR (
+		.reset(reset1), .clock_in(other_clock), .word_clock_out(clock), 
+		.serializer_clock_out(ioclk), .serializer_strobe_out(ioce), .locked()
 	);
 endmodule
 

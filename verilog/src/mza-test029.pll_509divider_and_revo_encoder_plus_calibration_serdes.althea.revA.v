@@ -1,6 +1,8 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2021-07-02 by mza
+// last updated 2022-09-23 by mza
+
+// ERROR: Unroutable signal: mything/mylei/difficult_pll_TR/rawclock_nx_plladv pin: mything/mylei/difficult_pll_TR/simon1/I
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 
@@ -322,7 +324,7 @@ module mza_test029_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	reg [7:0] word;
 	wire [7:0] word_null = 8'b11000000;
 	wire [7:0] word_trg  = 8'b00111111;
-	ocyrus_single8 #(.WIDTH(8), .PERIOD(3.93), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock254), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .T_out(), .locked(locked2));
+	ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(3.93), .DIVIDE(2), .MULTIPLY(8)) mylei (.clock_in(clock254), .reset(reset), .word_clock_out(word_clock), .word_in(word), .D_out(data), .locked(locked2));
 	always @(posedge word_clock) begin
 		if (reset) begin
 			word <= word_null;

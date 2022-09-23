@@ -15,11 +15,11 @@
   <version xil_pn:ise_version="14.7" xil_pn:schema_version="2"/>
 
   <files>
-    <file xil_pn:name="../verilog/src/mza-test044.simple-parallel-interface-and-pollable-memory.althea.v" xil_pn:type="FILE_VERILOG">
+    <file xil_pn:name="../verilog/src/mza-test044.simple-parallel-interface-and-pollable-memory.althea.revA.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="4"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="4"/>
     </file>
-    <file xil_pn:name="../verilog/src/mza-test044.simple-parallel-interface-and-pollable-memory.althea.ucf" xil_pn:type="FILE_UCF">
+    <file xil_pn:name="../verilog/src/mza-test044.simple-parallel-interface-and-pollable-memory.althea.revA.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
   </files>
@@ -139,7 +139,7 @@
     <property xil_pn:name="Ignore User Timing Constraints Map" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Ignore User Timing Constraints Par" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Implementation Top" xil_pn:value="Module|myalthea" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="Implementation Top File" xil_pn:value="../../verilog/src/mza-test044.simple-parallel-interface-and-pollable-memory.althea.v" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="Implementation Top File" xil_pn:value="../../verilog/src/mza-test044.simple-parallel-interface-and-pollable-memory.althea.revA.v" xil_pn:valueState="non-default"/>
     <property xil_pn:name="Implementation Top Instance Path" xil_pn:value="/myalthea" xil_pn:valueState="non-default"/>
     <property xil_pn:name="Include 'uselib Directive in Verilog File" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Include SIMPRIM Models in Verilog File" xil_pn:value="false" xil_pn:valueState="default"/>
@@ -350,7 +350,7 @@
   </properties>
 
   <bindings>
-    <binding xil_pn:location="/myalthea" xil_pn:name="../verilog/src/mza-test044.simple-parallel-interface-and-pollable-memory.althea.ucf"/>
+    <binding xil_pn:location="/myalthea" xil_pn:name="../verilog/src/mza-test044.simple-parallel-interface-and-pollable-memory.althea.revA.ucf"/>
   </bindings>
 
   <libraries/>
@@ -364,7 +364,7 @@
     <!-- include files.                                                       -->
     <file xil_pn:name="../verilog/src/lib/generic.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/RAM8.v" xil_pn:type="FILE_VERILOG"/>
-    <file xil_pn:name="../verilog/src/lib/dcm.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="../verilog/src/lib/plldcm.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>
