@@ -1,6 +1,6 @@
 // written 2021-12-14 by mza
 // based on mza-test054.palimpsest.cylon.althea.revB.v
-// last updated 2022-02-14 by mza
+// last updated 2022-09-23 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -33,7 +33,7 @@ module top #(
 	parameter RIGHT_DAC_INNER = 1,
 	parameter LEFT_DAC_INNER = 1,
 	parameter TESTBENCH = 0,
-	parameter COUNTER_PICKOFF=$clog2(14285714) - LOG2_OF_OSERDES_DATA_WIDTH, // 143 MHz / 2^23 ~ 17 Hz
+	parameter COUNTER_PICKOFF=$clog2(25000000) - LOG2_OF_OSERDES_DATA_WIDTH, // 25 MHz / 2^23 ~ 3 Hz
 	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
 	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
@@ -65,10 +65,11 @@ module top #(
 	//localparam MULTIPLY = 8; // 800 MHz
 	//localparam DIVIDE = 2; // 400 MHz
 	//localparam EXTRA_DIVIDE = 16; // 25 MHz
-	localparam MULTIPLY = 10; // 1000 MHz
-	localparam DIVIDE = 1; // 1000 MHz
-	localparam EXTRA_DIVIDE = 7; // 142.857143 MHz (7ns bit time)
-	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
+	localparam MULTIPLY = 8; // 800 MHz
+	localparam DIVIDE = 2; // 400 MHz
+	//localparam EXTRA_DIVIDE = 7; // 142.857143 MHz (7ns bit time)
+	localparam EXTRA_DIVIDE = 16; // 25 MHz (40ns bit time)
+	localparam SCOPE = "GLOBAL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	reg [7:0] pattern [12:1];
 	wire [7:0] null = 0;
 	wire [7:0] pat = 8'b11111111;
@@ -140,11 +141,11 @@ module top #(
 	wire clock100;
 	wire clock50_locked;
 	if (1) begin
-		wire clock50_raw1;
-		IBUFGDS mybuf50_raw1 (.I(clock50_p), .IB(clock50_n), .O(clock50_raw1));
-		wire clock50_raw2;
-		simpledcm_CLKGEN #(.MULTIPLY(2), .DIVIDE(1), .PERIOD(20.0)) mydcm50 (.clockin(clock50_raw1), .reset(reset), .clockout(clock50_raw2), .clockout180(), .locked(clock50_locked));
-		BUFG mybuf50_raw2 (.I(clock50_raw2), .O(clock100));
+		wire clock50_raw;
+		IBUFGDS mybuf50_raw1 (.I(clock50_p), .IB(clock50_n), .O(clock50_raw));
+		wire clock100_raw;
+		simpledcm_CLKGEN #(.MULTIPLY(2), .DIVIDE(1), .PERIOD(20.0)) mydcm50 (.clockin(clock50_raw), .reset(reset), .clockout(clock100_raw), .clockout180(), .locked(clock50_locked));
+		BUFG mybuf50_raw2 (.I(clock100_raw), .O(clock100));
 	end
 	wire reset100;
 	if (1) begin
@@ -161,6 +162,7 @@ module top #(
 	wire word_clock_right_inner;
 	wire word_clock_left_inner;
 	// ----------------------------------------------------------------------
+	wire reset_word;
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset100), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock), .reset_output(reset_word));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
@@ -321,7 +323,7 @@ module top #(
 	assign reset = 0;
 	wire [7:0] iserdes_word_raw;
 	// the order here is 12, 11, 10, 6, 5, 4, 9, 8, 7, 3, 2, 1
-	ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE)
+	ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE), .SCOPE(SCOPE)
 	) orama (
 		.clock_in(clock100), .reset(reset100),
 		.word_A11_in({8{|status[12]}}), .word_A10_in({8{|status[11]}}), .word_A09_in({8{|status[10]}}), .word_A08_in({8{|status[6]}}), .word_A07_in({8{|status[5]}}), .word_A06_in({8{|status[4]}}),
@@ -406,19 +408,13 @@ module top #(
 		assign status4[2] = 0;
 		assign status4[1] = 0;
 		assign status4[0] = enable;
-		if (1) begin
-			assign status8[7] = ~clock50_locked;
-			assign status8[6] = ~pll_oserdes_locked;
-			assign status8[5] = ~pll_oserdes_locked_other;
-			assign status8[4] = reset100;
-		end else begin
-			assign status8[7] = reset_word;
-			assign status8[6] = 0;//clock100_locked;
-			assign status8[5] = reset;
-			assign status8[4] = enable;
-		end
-		assign status8[3] = 0;
-		assign status8[2] = 0;
+		// status8:
+		assign status8[7] = reset;
+		assign status8[6] = ~clock50_locked;
+		assign status8[5] = reset100;
+		assign status8[4] = ~pll_oserdes_locked;
+		assign status8[3] = reset_word;
+		assign status8[2] = ~pll_oserdes_locked_other;
 		assign status8[1] = 0;
 		assign status8[0] = enable;
 	end
@@ -810,16 +806,15 @@ module myalthea #(
 //	u, v, w, x, y, z,
 	// other IOs:
 	//input [2:0] rot
-	output [7:0] led,
+//	input button // reset
+	output [7:0] led//,
 //	output [3:0] coax_led
-	input button // reset
 );
 	localparam BUS_WIDTH = 16;
 	localparam BANK_ADDRESS_DEPTH = 13;
 	localparam TRANSACTIONS_PER_DATA_WORD = 2;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
-	wire [15:0] dummybus;
 	wire clock10 = 0;
 	wire [3:0] internal_coax_led;
 	wire [7:0] internal_led;
@@ -848,7 +843,8 @@ module myalthea #(
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) althea (
-		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .button(button),
+		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10),
+		.button(1'b0),
 		.coax({coax5, coax4, coax3, coax2, coax1, coax0}),
 		.bus(),
 		.signal(signal),
