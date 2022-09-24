@@ -1,6 +1,6 @@
 // written 2021-12-14 by mza
 // based on mza-test054.palimpsest.cylon.althea.revB.v
-// last updated 2022-01-24 by mza
+// last updated 2022-09-23 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -90,11 +90,11 @@ module top #(
 	wire clock100;
 	wire clock50_locked;
 	if (1) begin
-		wire clock50_raw1;
-		IBUFGDS mybuf50_raw1 (.I(clock50_p), .IB(clock50_n), .O(clock50_raw1));
-		wire clock50_raw2;
-		simpledcm_CLKGEN #(.MULTIPLY(2), .DIVIDE(1), .PERIOD(20.0)) mydcm50 (.clockin(clock50_raw1), .reset(reset), .clockout(clock50_raw2), .clockout180(), .locked(clock50_locked));
-		BUFG mybuf50_raw2 (.I(clock50_raw2), .O(clock100));
+		wire clock50_raw;
+		IBUFGDS mybuf50_raw1 (.I(clock50_p), .IB(clock50_n), .O(clock50_raw));
+		wire clock100_raw;
+		simpledcm_CLKGEN #(.MULTIPLY(2), .DIVIDE(1), .PERIOD(20.0)) mydcm50 (.clockin(clock50_raw), .reset(reset), .clockout(clock100_raw), .clockout180(), .locked(clock50_locked));
+		BUFG mybuf50_raw2 (.I(clock100_raw), .O(clock100));
 	end
 	wire reset100;
 	if (1) begin
@@ -790,7 +790,8 @@ module myalthea #(
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) althea (
-		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .button(button),
+		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10),
+		.button(button),
 		.coax({coax5, coax4, coax3, coax2, coax1, coax0}),
 		.bus({
 			rpi_gpio21, rpi_gpio20, rpi_gpio19, rpi_gpio18,
