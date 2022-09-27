@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2022-01-05 by mza
+// last updated 2022-09-27 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -965,6 +965,7 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(
 		C0_out, C1_out, C2_out, C3_out, C4_out, C5_out,
 		D1_out, D2_out, D3_out,
 		E0_out, E1_out,
+	output strobe_is_alignedA, strobe_is_alignedB, strobe_is_alignedC, strobe_is_alignedD,
 	output locked
 );
 	wire bit_clockA, bit_clockB, bit_clockC, bit_clockD, bit_clockE;
@@ -1027,19 +1028,19 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(
 		.reset(reset),
 		.clock_nx_fb(bit_clockA),
 		.pll_is_locked(pll_is_locked),
-		.clock_1x(clock_1x[0]),
+		.clock_1x(clock_1x[0]), // word_clock for BUFG
 		.clock_1x_1(clock_1x[1]),
 		.clock_1x_2(clock_1x[2]),
 		.clock_1x_3(clock_1x[3]),
 		.clock_1x_4(clock_1x[4]),
-		.clock_nx(clock_nx)
+		.clock_nx(clock_nx) // bit clock for IOSERDES
 	);
 	BUFG bufg_txA (.I(clock_1x[0]), .O(word_clockA_out));
 	BUFG bufg_txB (.I(clock_1x[0]), .O(word_clockB_out));
 	BUFG bufg_txC (.I(clock_1x[0]), .O(word_clockC_out));
 	BUFG bufg_txD (.I(clock_1x[0]), .O(word_clockD_out));
 //	BUFG bufg_txE (.I(clock_1x[0]), .O(word_clockE_out));
-	wire strobe_is_alignedA, strobe_is_alignedB, strobe_is_alignedC, strobe_is_alignedD;
+	//wire strobe_is_alignedA, strobe_is_alignedB, strobe_is_alignedC, strobe_is_alignedD;
 	BUFPLL #(
 		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
 		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
@@ -1087,7 +1088,8 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(
 	assign word_clockE_out = word_clockA_out;
 	assign bit_clockE = bit_clockA;
 	assign bit_strobeE = bit_strobeA;
-	assign locked = pll_is_locked & strobe_is_alignedA & strobe_is_alignedB & strobe_is_alignedC & strobe_is_alignedD;
+	//assign locked = pll_is_locked & strobe_is_alignedA & strobe_is_alignedB & strobe_is_alignedC & strobe_is_alignedD;
+	assign locked = pll_is_locked;
 endmodule
 
 // 156.25 / 8.0 * 61.875 / 2.375 = 508.840461 for scrod revA3 on-board oscillator
@@ -1109,14 +1111,14 @@ module simpll #(
 ) (
 	input clock_in,
 	input reset,
-	input clock_nx_fb,
+	input clock_nx_fb, // bit clock feedback input
 	output pll_is_locked,
-	output clock_1x,
-	output clock_1x_1,
-	output clock_1x_2,
-	output clock_1x_3,
-	output clock_1x_4,
-	output clock_nx
+	output clock_1x, // word clock output, phase shifted by PHASE
+	output clock_1x_1, // word clock output, phase shifted by PHASE2345+1*360/BIT_DEPTH
+	output clock_1x_2, // word clock output, phase shifted by PHASE2345+2*360/BIT_DEPTH
+	output clock_1x_3, // word clock output, phase shifted by PHASE2345+3*360/BIT_DEPTH
+	output clock_1x_4, // word clock output, phase shifted by PHASE2345+4*360/BIT_DEPTH
+	output clock_nx // bit clock output
 );
 	// from clock_generator_pll_s8_diff.v from XAPP1064 example code, ug615 and ug382
 	// frequency of VCO after div and mult must be in range [400,1050] MHz for speed grade 3
@@ -1168,14 +1170,14 @@ module simpll #(
 		.RST(reset), // asynchronous pll reset
 		.LOCKED(pll_is_locked), // active high pll lock signal
 		.CLKFBIN(fb_in), // clock feedback input
-		.CLKFBOUT(fb_out), // general output feedback signal
+		.CLKFBOUT(fb_out), // clock feedback output
 		.CLKIN1(clock_in_copy), // primary clock input
 		.CLKOUT0(clock_nx), // *n clock for transmitter
-		.CLKOUT1(clock_1x), //
-		.CLKOUT2(clock_1x_1), // *1 clock for BUFG
-		.CLKOUT3(clock_1x_2), // one of six general clock output signals
-		.CLKOUT4(clock_1x_3), // one of six general clock output signals
-		.CLKOUT5(clock_1x_4), // one of six general clock output signals
+		.CLKOUT1(clock_1x), // *1 clock for BUFG
+		.CLKOUT2(clock_1x_1), //
+		.CLKOUT3(clock_1x_2), //
+		.CLKOUT4(clock_1x_3), //
+		.CLKOUT5(clock_1x_4), //
 		.CLKFBDCM(), // output feedback signal used when pll feeds a dcm
 		.CLKOUTDCM0(), // one of six clock outputs to connect to the dcm
 		.CLKOUTDCM1(), // one of six clock outputs to connect to the dcm
