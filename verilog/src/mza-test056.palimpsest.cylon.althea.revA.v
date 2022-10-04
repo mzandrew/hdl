@@ -1,6 +1,6 @@
 // written 2021-12-14 by mza
 // based on mza-test054.palimpsest.cylon.althea.revB.v
-// last updated 2022-09-27 by mza
+// last updated 2022-10-03 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -19,6 +19,7 @@ module top #(
 	parameter LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH = $clog2(64),
 	parameter TESTBENCH = 0,
 	parameter COUNTER_PICKOFF = TESTBENCH ? 6 : $clog2(2500000) - LOG2_OF_OSERDES_DATA_WIDTH, // 25 MHz / 2^23 ~ 23 Hz
+	parameter COUNTER_SIZE = COUNTER_PICKOFF + 3,
 	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
 	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
@@ -46,14 +47,15 @@ module top #(
 	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	reg [7:0] pattern [12:1];
 	wire [7:0] null = 0;
-	wire [7:0] pat = 8'b10000000;
+	//wire [7:0] pat [COUNTER_SIZE-COUNTER_PICKOFF-1:0] = { 8'b11111111, 8'b11111110, 8'b11111100, 8'b11111000, 8'b11110000, 8'b11100000, 8'b11000000, 8'b10000000 };
+	wire [7:0] pat [COUNTER_SIZE-COUNTER_PICKOFF-1:0] = { 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111 };
 	wire [3:0] status4;
 	wire [7:0] status8;
 	wire reset;
 	assign reset = 0;
 	reg [7:0] sync_out_word_alternate = 0;
 	genvar i;
-	reg [COUNTER_PICKOFF:0] counter = 0;
+	reg [COUNTER_SIZE:0] counter = 0;
 	wire word_clock;
 	wire reset_word;
 	always @(posedge word_clock) begin
@@ -81,31 +83,31 @@ module top #(
 //		end
 		if (reset_word) begin
 		end else begin
-			if (counter==1) begin
-				sync_out_word_alternate <= pat;
-				pattern[1] <= pat;
-			end else if (counter==2) begin
-				pattern[2] <= pat;
-			end else if (counter==3) begin
-				pattern[3] <= pat;
-			end else if (counter==4) begin
-				pattern[4] <= pat;
-			end else if (counter==5) begin
-				pattern[5] <= pat;
-			end else if (counter==6) begin
-				pattern[6] <= pat;
-			end else if (counter==7) begin
-				pattern[7] <= pat;
-			end else if (counter==8) begin
-				pattern[8] <= pat;
-			end else if (counter==9) begin
-				pattern[9] <= pat;
-			end else if (counter==10) begin
-				pattern[10] <= pat;
-			end else if (counter==11) begin
-				pattern[11] <= pat;
-			end else if (counter==12) begin
-				pattern[12] <= pat;
+			if (counter[COUNTER_PICKOFF:0]==1) begin
+				sync_out_word_alternate <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+				pattern[1] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==2) begin
+				pattern[2] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==3) begin
+				pattern[3] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==4) begin
+				pattern[4] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==5) begin
+				pattern[5] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==6) begin
+				pattern[6] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==7) begin
+				pattern[7] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==8) begin
+				pattern[8] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==9) begin
+				pattern[9] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==10) begin
+				pattern[10] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==11) begin
+				pattern[11] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			end else if (counter[COUNTER_PICKOFF:0]==12) begin
+				pattern[12] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end
 		end
 	end
