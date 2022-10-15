@@ -243,6 +243,7 @@ module top #(
 	wire [7:0] sync_out_word_delayed; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
 //	wire [2:0] rot_pipeline;
 	reg [31:0] hit_counter = 0;
+	reg [31:0] hit_counter_buffered = 0;
 //	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
 	assign bank1[0]  = { 16'd0, 4'd0, status4, status8 };
 	assign bank1[1]  = iserdes_in_buffered_1[1];
@@ -259,7 +260,7 @@ module top #(
 	assign bank1[12] = iserdes_in_buffered_1[12];
 	assign bank1[13] = hdrb_read_errors;
 	assign bank1[14] = hdrb_write_errors;
-	assign bank1[15] = hit_counter;
+	assign bank1[15] = hit_counter_buffered;
 	(* KEEP = "TRUE" *)
 //	assign      minuend                   = bank2[0][7:0];
 	wire        train_oserdes             = bank2[4][0];
@@ -319,7 +320,9 @@ module top #(
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			hit_counter <= 0;
+			hit_counter_buffered <= 0;
 		end else begin
+			hit_counter_buffered <= hit_counter;
 			if (2'b01==anytrain[2:1]) begin
 				hit_counter <= hit_counter + 1'b1;
 			end

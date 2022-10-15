@@ -17,7 +17,7 @@
   <files>
     <file xil_pn:name="../verilog/src/mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="1"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="8"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="2"/>
     </file>
     <file xil_pn:name="../verilog/src/mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
