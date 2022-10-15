@@ -26,11 +26,6 @@ module top #(
 	parameter LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH = $clog2(64),
 	parameter ADDRESS_DEPTH_OSERDES = BANK_ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
-	parameter RIGHT_DAC_OUTER = 1,
-	parameter LEFT_DAC_OUTER = 1,
-	parameter LEFT_DAC_ROTATED = 0,
-	parameter RIGHT_DAC_INNER = 1,
-	parameter LEFT_DAC_INNER = 1,
 	parameter TESTBENCH = 0,
 	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
 	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
@@ -249,22 +244,22 @@ module top #(
 //	wire [2:0] rot_pipeline;
 	reg [31:0] hit_counter = 0;
 //	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
-	assign bank1[0]  = hit_counter;
-	assign bank1[1]  = 0;
-	assign bank1[2]  = 0;
-	assign bank1[3]  = hdrb_read_errors;
-	assign bank1[4]  = hdrb_write_errors;
-	assign bank1[5]  = hdrb_address_errors;
-	assign bank1[6]  = { 16'd0, 4'd0, status4, status8 };
-	assign bank1[7]  = 0;
-	assign bank1[8]  = 0;
-	assign bank1[9]  = 0;
-	assign bank1[10] = 0;
-	assign bank1[11] = 0;
-	assign bank1[12] = 0;
-	assign bank1[13] = 0;
-	assign bank1[14] = 0;
-	assign bank1[15] = 0;
+	assign bank1[0]  = { 16'd0, 4'd0, status4, status8 };
+	assign bank1[1]  = iserdes_in_buffered_1[1];
+	assign bank1[2]  = iserdes_in_buffered_1[2];
+	assign bank1[3]  = iserdes_in_buffered_1[3];
+	assign bank1[4]  = iserdes_in_buffered_1[4];
+	assign bank1[5]  = iserdes_in_buffered_1[5];
+	assign bank1[6]  = iserdes_in_buffered_1[6];
+	assign bank1[7]  = iserdes_in_buffered_1[7];
+	assign bank1[8]  = iserdes_in_buffered_1[8];
+	assign bank1[9]  = iserdes_in_buffered_1[9];
+	assign bank1[10] = iserdes_in_buffered_1[10];
+	assign bank1[11] = iserdes_in_buffered_1[11];
+	assign bank1[12] = iserdes_in_buffered_1[12];
+	assign bank1[13] = hdrb_read_errors;
+	assign bank1[14] = hdrb_write_errors;
+	assign bank1[15] = hit_counter;
 	(* KEEP = "TRUE" *)
 //	assign      minuend                   = bank2[0][7:0];
 	wire        train_oserdes             = bank2[4][0];
@@ -278,15 +273,17 @@ module top #(
 	reg [12:1] iserdes_word_hit;
 	reg any;
 	reg [2:0] anytrain = 0;
+	wire [12:1] hitmask = 12'b000000000001;
 	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_1_mapping
 		always @(posedge word_clock) begin
 			if (reset_word) begin
 				iserdes_in_buffered_1[i] <= 0;
 			end else begin
-				iserdes_in_buffered_1[i] <= iserdes_in[i];
+				iserdes_in_buffered_1[i] <= {8{|hitmask[i]}} & iserdes_in[i];
 			end
 		end
 	end
+
 	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_2_mapping
 		always @(posedge word_clock) begin
 			if (reset_word) begin
@@ -301,7 +298,7 @@ module top #(
 			if (reset_word) begin
 				iserdes_word_hit[i] <= 0;
 			end else begin
-				iserdes_word_hit[i] <= |iserdes_in[i]; // this result will be available when iserdes_in_buffered_1 corresponds
+				iserdes_word_hit[i] <= |hitmask[i] && |iserdes_in[i]; // this result will be available when iserdes_in_buffered_1 corresponds
 			end
 		end
 	end
@@ -695,13 +692,7 @@ module top_tb;
 	end
 endmodule
 
-module myalthea #(
-	parameter LEFT_DAC_OUTER = 1,
-	parameter RIGHT_DAC_OUTER = 1,
-	parameter LEFT_DAC_ROTATED = 0,
-	parameter LEFT_DAC_INNER = 0,
-	parameter RIGHT_DAC_INNER = 0
-) (
+module myalthea (
 	input clock50_p, clock50_n,
 	inout coax4,
 	inout coax3,
@@ -718,10 +709,10 @@ module myalthea #(
 	inout rpi_gpio18, rpi_gpio19, rpi_gpio20, rpi_gpio21,
 	// diff-pair IOs (toupee connectors):
 	input
-	a_p, b_p, c_p, d_p, e_p, f_p, // rotated
+	a_p, b_p, c_p, d_p, e_p, f_p,
 	g_p, h_p, j_p, k_p, l_p, m_p,
-//	a_n, b_n, c_n, d_n, e_n, f_n, // flipped
-//	g_n, h_n, j_n, k_n, l_n, m_n, 
+	a_n, b_n, c_n, d_n, e_n, f_n,
+	g_n, h_n, j_n, k_n, l_n, m_n, 
 	// single-ended IOs (toupee connectors):
 	output
 	n, p, q, r, s, t,
@@ -742,24 +733,33 @@ module myalthea #(
 	wire [7:0] internal_led;
 	//assign led = internal_led;
 	assign coax_led = internal_coax_led;
-	wire [5:0] diff_pair_left;
-	if (1==LEFT_DAC_ROTATED) begin
+//	wire [5:0] diff_pair_left;
+//	if (1==LEFT_DAC_ROTATED) begin
 //		assign { a_p, c_p, d_p, f_p, b_p, e_p } = diff_pair_left; // rotated
-	end else begin
-		assign { a_n, c_n, d_n, f_n, b_n, e_n } = diff_pair_left; // flipped
-	end
+//	end else begin
+//		assign { a_n, c_n, d_n, f_n, b_n, e_n } = diff_pair_left; // flipped
+//	end
 	wire coax5, coax2, coax1;
 	wire [12:1] signal;
 	wire [12:1] indicator;
 	//assign { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p } = signal;
 	//assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	//assign { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p } = signal;
-	assign signal = { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p };
+//	assign signal = { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p };
+	IBUFDS ibufds12 (.I(b_p), .IB(b_n), .O(signal[12]));
+	IBUFDS ibufds11 (.I(d_p), .IB(d_n), .O(signal[11]));
+	IBUFDS ibufds10 (.I(f_p), .IB(f_n), .O(signal[10]));
+	IBUFDS ibufds09 (.I(h_p), .IB(h_n), .O(signal[9]));
+	IBUFDS ibufds08 (.I(l_p), .IB(l_n), .O(signal[8]));
+	IBUFDS ibufds07 (.I(m_p), .IB(m_n), .O(signal[7]));
+	IBUFDS ibufds06 (.I(a_p), .IB(a_n), .O(signal[6]));
+	IBUFDS ibufds05 (.I(c_p), .IB(c_n), .O(signal[5]));
+	IBUFDS ibufds04 (.I(e_p), .IB(e_n), .O(signal[4]));
+	IBUFDS ibufds03 (.I(g_p), .IB(g_n), .O(signal[3]));
+	IBUFDS ibufds02 (.I(j_p), .IB(j_n), .O(signal[2]));
+	IBUFDS ibufds01 (.I(k_p), .IB(k_n), .O(signal[1]));
 	assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	top #(
-		.LEFT_DAC_OUTER(LEFT_DAC_OUTER), .RIGHT_DAC_OUTER(RIGHT_DAC_OUTER),
-		.LEFT_DAC_ROTATED(LEFT_DAC_ROTATED),
-		.LEFT_DAC_INNER(LEFT_DAC_INNER), .RIGHT_DAC_INNER(RIGHT_DAC_INNER),
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
