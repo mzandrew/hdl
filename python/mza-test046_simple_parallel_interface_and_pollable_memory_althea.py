@@ -134,7 +134,7 @@ if 0:
 		print(hex(readback[i], 8))
 	#althea.test_writing_data_to_half_duplex_bus()
 
-if 1:
+if 0:
 	j = 2
 	values = [ 0 for a in range(2**4) ]
 	values[0] = 0xff # minuend
@@ -217,7 +217,7 @@ if 0:
 
 from function_generator_DAC import *
 
-if 1:
+if 0:
 	clear_DAC_waveform()
 
 if 0:
@@ -250,7 +250,7 @@ if 0:
 if 0:
 	test_function_generator_DAC_11() # single ramp from lowest to highest
 
-if 1:
+if 0:
 	test_function_generator_DAC_12() # single pulse
 
 if 0:
