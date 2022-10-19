@@ -1,6 +1,6 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-10-20 by mza
+// last updated 2022-10-19 by mza
 
 module half_duplex_rpi_bus #(
 	parameter BUS_WIDTH = 16,
@@ -11,6 +11,7 @@ module half_duplex_rpi_bus #(
 	parameter LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD = $clog2(TRANSACTIONS_PER_ADDRESS_WORD),
 	parameter BANK_ADDRESS_DEPTH = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD,
 	parameter LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD - BANK_ADDRESS_DEPTH,
+	parameter NUMBER_OF_BANKS = 2**LOG2_OF_NUMBER_OF_BANKS,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter ERROR_COUNT_PICKOFF = 7,
 	parameter ANTI_META = 3, // a lot of these state machines check against something[PICKOFF:PICKOFF-1]==2'b00, so we need at least 3 here
@@ -24,7 +25,8 @@ module half_duplex_rpi_bus #(
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
 	output ack_valid,
-	output reg [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe = 0,
+	output reg [NUMBER_OF_BANKS-1:0] write_strobe = 0,
+	output [NUMBER_OF_BANKS-1:0] read_strobe,
 	output [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] write_data_word,
 	input [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word,
 	output reg [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_reg = 0,
@@ -86,6 +88,9 @@ module half_duplex_rpi_bus #(
 		end
 `endif
 	reg [1:0] rstate = 0;
+	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : bank_read_strobes
+		assign read_strobe[i] = rstate[1] && bank^i;
+	end
 	reg [LOG2_OF_TRANSACTIONS_PER_DATA_WORD-1:0] rword = TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
 	always @(posedge clock) begin
