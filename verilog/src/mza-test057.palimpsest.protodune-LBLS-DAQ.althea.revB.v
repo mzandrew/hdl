@@ -287,6 +287,7 @@ module top #(
 				time_over_threshold[i] <= 0;
 			end else begin
 				if (8'b00000000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
+					previous_time_over_threshold[i] <= time_over_threshold[i];
 					time_over_threshold[i] <= 0;
 				end else if (8'b00000001==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					time_over_threshold[i] <= 8'd1;
@@ -328,7 +329,7 @@ module top #(
 				end else begin // any more complicated pattern
 					complicated_pattern_counter[i] <= complicated_pattern_counter[i] + 1'b1;
 					//previous_time_over_threshold[i] <= 0;
-					time_over_threshold[i] <= 0;
+					//time_over_threshold[i] <= 0;
 				end
 			end
 		end
