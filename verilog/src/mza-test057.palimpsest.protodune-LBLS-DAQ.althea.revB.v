@@ -5,6 +5,7 @@
 `define althea_revB
 `include "lib/generic.v"
 `include "lib/RAM8.v"
+`include "lib/fifo.v"
 //`include "lib/RAM.sv" // ise does not and will not support systemverilog
 `include "lib/plldcm.v"
 `include "lib/serdes_pll.v"
@@ -115,7 +116,8 @@ module top #(
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] write_data_word;
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [NUMBER_OF_BANKS-1:0];
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] bank;
-	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe;
+	wire [NUMBER_OF_BANKS-1:0] write_strobe;
+	wire [NUMBER_OF_BANKS-1:0] read_strobe;
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_read_errors;
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_write_errors;
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_address_errors;
@@ -134,6 +136,7 @@ module top #(
 		.enable(enable), // 1=active; 0=inactive
 		.ack_valid(ack_valid),
 		.write_strobe(write_strobe),
+		.read_strobe(read_strobe),
 		.write_data_word(write_data_word),
 		.read_data_word(read_data_word[bank]),
 		.address_word_reg(address_word_full),
@@ -157,9 +160,14 @@ module top #(
 	end else begin
 		assign read_data_word[0] = 0;
 	end
-	for (i=3; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
-		assign read_data_word[i] = 0;
-	end
+//	for (i=3; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
+//		assign read_data_word[i] = 0;
+//	end
+	reg [12:1] fifo_write_enable;
+	wire [12:1] fifo_read_enable;
+	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc3210 (.clock(word_clock), .reset(reset_word),
+		.data_in({previous_time_over_threshold[4],previous_time_over_threshold[3],previous_time_over_threshold[2],previous_time_over_threshold[1]}), .write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
+		.data_out(read_data_word[3]), .read_enable(read_strobe[3]), .empty(), .almost_empty(), .empty_or_almost_empty());
 	wire [31:0] bank1 [15:0];
 	wire [31:0] bank2 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -286,6 +294,7 @@ module top #(
 	end
 	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
 		always @(posedge word_clock) begin
+			fifo_write_enable[i] <= 0;
 			if (reset_word) begin
 				previous_time_over_threshold[i] <= 0;
 				time_over_threshold[i] <= 0;
@@ -295,6 +304,9 @@ module top #(
 					time_over_threshold[i] <= 0;
 				end else begin
 					time_over_threshold[i] <= time_over_threshold[i] + iserdes_in_ones_counter[i];
+				end
+				if (previous_time_over_threshold[i]) begin
+					fifo_write_enable[i] <= 1;
 				end
 			end
 		end
