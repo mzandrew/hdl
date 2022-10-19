@@ -14,6 +14,7 @@
 `include "lib/edge_to_pulse.v"
 
 module top #(
+	parameter INVERTED_HEIRARCHY = 0,
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
@@ -187,18 +188,18 @@ module top #(
 	reg [31:0] complicated_pattern_counter [12:1];
 //	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
 	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[3:0], status4, status8 };
-	assign bank1[1]  = iserdes_in_buffered_1[1];
-	assign bank1[2]  = iserdes_in_buffered_1[2];
-	assign bank1[3]  = iserdes_in_buffered_1[3];
-	assign bank1[4]  = iserdes_in_buffered_1[4];
-	assign bank1[5]  = iserdes_in_buffered_1[5];
-	assign bank1[6]  = iserdes_in_buffered_1[6];
-	assign bank1[7]  = iserdes_in_buffered_1[7];
-	assign bank1[8]  = iserdes_in_buffered_1[8];
-	assign bank1[9]  = iserdes_in_buffered_1[9];
-	assign bank1[10] = iserdes_in_buffered_1[10];
-	assign bank1[11] = iserdes_in_buffered_1[11];
-	assign bank1[12] = iserdes_in_buffered_1[12];
+	assign bank1[1]  = iserdes_in_buffered_and_maybe_inverted_a[1];
+	assign bank1[2]  = iserdes_in_buffered_and_maybe_inverted_a[2];
+	assign bank1[3]  = iserdes_in_buffered_and_maybe_inverted_a[3];
+	assign bank1[4]  = iserdes_in_buffered_and_maybe_inverted_a[4];
+	assign bank1[5]  = iserdes_in_buffered_and_maybe_inverted_a[5];
+	assign bank1[6]  = iserdes_in_buffered_and_maybe_inverted_a[6];
+	assign bank1[7]  = iserdes_in_buffered_and_maybe_inverted_a[7];
+	assign bank1[8]  = iserdes_in_buffered_and_maybe_inverted_a[8];
+	assign bank1[9]  = iserdes_in_buffered_and_maybe_inverted_a[9];
+	assign bank1[10] = iserdes_in_buffered_and_maybe_inverted_a[10];
+	assign bank1[11] = iserdes_in_buffered_and_maybe_inverted_a[11];
+	assign bank1[12] = iserdes_in_buffered_and_maybe_inverted_a[12];
 	assign bank1[13] = complicated_pattern_counter[1];
 	assign bank1[14] = 0;
 	assign bank1[15] = hit_counter_buffered;
@@ -210,8 +211,8 @@ module top #(
 	wire [31:0] end_sample                = bank2[7][31:0];
 	assign reset = 0;
 	wire [7:0] iserdes_in [12:1];
-	reg [7:0] iserdes_in_buffered_1 [12:1];
-	reg [7:0] iserdes_in_buffered_2 [12:1];
+	reg [7:0] iserdes_in_buffered_and_maybe_inverted_a [12:1];
+	reg [7:0] iserdes_in_buffered_and_maybe_inverted_b [12:1];
 	reg [12:1] iserdes_word_hit;
 	reg any;
 	reg [2:0] anytrain = 0;
@@ -219,18 +220,22 @@ module top #(
 	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_1_mapping
 		always @(posedge word_clock) begin
 			if (reset_word) begin
-				iserdes_in_buffered_1[i] <= 0;
+				iserdes_in_buffered_and_maybe_inverted_a[i] <= 0;
 			end else begin
-				iserdes_in_buffered_1[i] <= {8{|hitmask[i]}} & iserdes_in[i];
+				if (INVERTED_HEIRARCHY) begin
+					iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{|hitmask[i]}} & ~iserdes_in[i];
+				end else begin
+					iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{|hitmask[i]}} &  iserdes_in[i];
+				end
 			end
 		end
 	end
 	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_2_mapping
 		always @(posedge word_clock) begin
 			if (reset_word) begin
-				iserdes_in_buffered_2[i] <= 0;
+				iserdes_in_buffered_and_maybe_inverted_b[i] <= 0;
 			end else begin
-				iserdes_in_buffered_2[i] <= iserdes_in_buffered_1[i];
+				iserdes_in_buffered_and_maybe_inverted_b[i] <= iserdes_in_buffered_and_maybe_inverted_a[i];
 			end
 		end
 	end
@@ -239,7 +244,11 @@ module top #(
 			if (reset_word) begin
 				iserdes_word_hit[i] <= 0;
 			end else begin
-				iserdes_word_hit[i] <= |hitmask[i] && |iserdes_in[i]; // this result will be available when iserdes_in_buffered_1 corresponds
+				if (INVERTED_HEIRARCHY) begin
+					iserdes_word_hit[i] <= |hitmask[i] && ~|iserdes_in[i]; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
+				end else begin
+					iserdes_word_hit[i] <= |hitmask[i] &&  |iserdes_in[i]; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
+				end
 			end
 		end
 	end
@@ -247,7 +256,7 @@ module top #(
 		if (reset_word) begin
 			any <= 0;
 		end else begin
-			any <= |iserdes_word_hit; // this result will be available when iserdes_in_buffered_2 corresponds
+			any <= |iserdes_word_hit; // this result will be available when iserdes_in_buffered_and_maybe_inverted_b corresponds
 		end
 	end
 	always @(posedge word_clock) begin
@@ -277,43 +286,43 @@ module top #(
 				previous_time_over_threshold[i] <= 0;
 				time_over_threshold[i] <= 0;
 			end else begin
-				if (8'b00000000==iserdes_in_buffered_1[i]) begin
+				if (8'b00000000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					time_over_threshold[i] <= 0;
-				end else if (8'b00000001==iserdes_in_buffered_1[i]) begin
+				end else if (8'b00000001==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					time_over_threshold[i] <= 8'd1;
-				end else if (8'b00000011==iserdes_in_buffered_1[i]) begin
+				end else if (8'b00000011==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					time_over_threshold[i] <= 8'd2;
-				end else if (8'b00000111==iserdes_in_buffered_1[i]) begin
+				end else if (8'b00000111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					time_over_threshold[i] <= 8'd3;
-				end else if (8'b00001111==iserdes_in_buffered_1[i]) begin
+				end else if (8'b00001111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					time_over_threshold[i] <= 8'd4;
-				end else if (8'b00011111==iserdes_in_buffered_1[i]) begin
+				end else if (8'b00011111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					time_over_threshold[i] <= 8'd5;
-				end else if (8'b00111111==iserdes_in_buffered_1[i]) begin
+				end else if (8'b00111111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					time_over_threshold[i] <= 8'd6;
-				end else if (8'b01111111==iserdes_in_buffered_1[i]) begin
+				end else if (8'b01111111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					time_over_threshold[i] <= 8'd7;
-				end else if (8'b11111111==iserdes_in_buffered_1[i]) begin
+				end else if (8'b11111111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					time_over_threshold[i] <= time_over_threshold[i] + 8'd8;
-				end else if (8'b11111110==iserdes_in_buffered_1[i]) begin
+				end else if (8'b11111110==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd7;
 					time_over_threshold[i] <= 0;
-				end else if (8'b11111100==iserdes_in_buffered_1[i]) begin
+				end else if (8'b11111100==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd6;
 					time_over_threshold[i] <= 0;
-				end else if (8'b11111000==iserdes_in_buffered_1[i]) begin
+				end else if (8'b11111000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd5;
 					time_over_threshold[i] <= 0;
-				end else if (8'b11110000==iserdes_in_buffered_1[i]) begin
+				end else if (8'b11110000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd4;
 					time_over_threshold[i] <= 0;
-				end else if (8'b11100000==iserdes_in_buffered_1[i]) begin
+				end else if (8'b11100000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd3;
 					time_over_threshold[i] <= 0;
-				end else if (8'b11000000==iserdes_in_buffered_1[i]) begin
+				end else if (8'b11000000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd2;
 					time_over_threshold[i] <= 0;
-				end else if (8'b10000000==iserdes_in_buffered_1[i]) begin
+				end else if (8'b10000000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
 					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd1;
 					time_over_threshold[i] <= 0;
 				end else begin // any more complicated pattern
@@ -329,14 +338,15 @@ module top #(
 	wire strobe_is_alignedC;
 	wire strobe_is_alignedD;
 	// the order here is 12, 11, 10, 6, 5, 4, 9, 8, 7, 3, 2, 1
-	ocyrus_triacontahedron8_split_12_6_6_4_2_BCinput #(.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE)
+	ocyrus_triacontahedron8_split_12_6_6_4_2_BCinput #(
+		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE)
 	) orama (
 		.clock_in(clock100), .reset(reset100),
 		.word_A11_in({8{iserdes_word_hit[12]}}), .word_A10_in({8{iserdes_word_hit[11]}}), .word_A09_in({8{iserdes_word_hit[10]}}), .word_A08_in({8{iserdes_word_hit[9]}}), .word_A07_in({8{iserdes_word_hit[8]}}), .word_A06_in({8{iserdes_word_hit[7]}}),
 		.word_A05_in({8{iserdes_word_hit[6]}}), .word_A04_in({8{iserdes_word_hit[5]}}), .word_A03_in({8{iserdes_word_hit[4]}}), .word_A02_in({8{iserdes_word_hit[3]}}), .word_A01_in({8{iserdes_word_hit[2]}}), .word_A00_in({8{iserdes_word_hit[1]}}),
 		.word_B5_out(iserdes_in[12]), .word_B4_out(iserdes_in[11]), .word_B3_out(iserdes_in[10]), .word_B2_out(iserdes_in[9]), .word_B1_out(iserdes_in[8]), .word_B0_out(iserdes_in[7]),
 		.word_C5_out(iserdes_in[6]), .word_C4_out(iserdes_in[5]), .word_C3_out(iserdes_in[4]), .word_C2_out(iserdes_in[3]), .word_C1_out(iserdes_in[2]), .word_C0_out(iserdes_in[1]),
-		.word_D3_in(previous_time_over_threshold[1]), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(iserdes_in_buffered_2[1]),
+		.word_D3_in(previous_time_over_threshold[1]), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(iserdes_in_buffered_and_maybe_inverted_b[1]),
 		.word_E1_in(sync_out_word), .word_E0_in({8{any}}),
 		.word_clockA_out(), .word_clockB_out(word_clock), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
 		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[6]), .A07_out(indicator[5]), .A06_out(indicator[4]),
@@ -691,7 +701,9 @@ module top_tb;
 	end
 endmodule
 
-module myalthea (
+module myalthea #(
+	parameter INVERTED_HEIRARCHY = 1
+) (
 	input clock50_p, clock50_n,
 	inout coax4,
 	inout coax3,
@@ -759,7 +771,7 @@ module myalthea (
 	IBUFDS ibufds01 (.I(k_p), .IB(k_n), .O(signal[1]));
 	assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	top #(
-		.TESTBENCH(0),
+		.TESTBENCH(0), .INVERTED_HEIRARCHY(INVERTED_HEIRARCHY),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
