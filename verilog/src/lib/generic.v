@@ -628,5 +628,20 @@ module bitslip #(
 	end
 endmodule
 
+module count_ones #(
+	parameter WIDTH = 8,
+	parameter LOG2_WIDTH = $clog2(WIDTH)
+) (
+	input clock,
+	input [WIDTH-1:0] data_in,
+	output reg [LOG2_WIDTH:0] count_out
+);
+	always @(posedge clock) begin
+		if (8==WIDTH) begin
+			count_out <= data_in[7] + data_in[6] + data_in[5] + data_in[4] + data_in[3] + data_in[2] + data_in[1] + data_in[0];
+		end
+	end
+endmodule
+
 `endif
 

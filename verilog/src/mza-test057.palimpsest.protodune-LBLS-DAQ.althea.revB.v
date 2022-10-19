@@ -1,6 +1,6 @@
 // written 2022-10-14 by mza
 // based on mza-test055.palimpsest.cable-tester.althea.revB.v
-// last updated 2022-10-18 by mza
+// last updated 2022-10-19 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -280,56 +280,21 @@ module top #(
 //	wire [255:0] [12:1];
 	reg [7:0] previous_time_over_threshold [12:1];
 	reg [7:0] time_over_threshold [12:1];
+	wire [3:0] iserdes_in_ones_counter [12:1];
+	for (i=1; i<=12; i=i+1) begin : ones_counter_mapping
+		count_ones (.clock(word_clock), .data_in(iserdes_in_buffered_and_maybe_inverted_a[i]), .count_out(iserdes_in_ones_counter[i]));
+	end
 	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
 		always @(posedge word_clock) begin
 			if (reset_word) begin
 				previous_time_over_threshold[i] <= 0;
 				time_over_threshold[i] <= 0;
 			end else begin
-				if (8'b00000000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
+				if (0==iserdes_in_ones_counter[i]) begin
 					previous_time_over_threshold[i] <= time_over_threshold[i];
 					time_over_threshold[i] <= 0;
-				end else if (8'b00000001==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					time_over_threshold[i] <= 8'd1;
-				end else if (8'b00000011==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					time_over_threshold[i] <= 8'd2;
-				end else if (8'b00000111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					time_over_threshold[i] <= 8'd3;
-				end else if (8'b00001111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					time_over_threshold[i] <= 8'd4;
-				end else if (8'b00011111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					time_over_threshold[i] <= 8'd5;
-				end else if (8'b00111111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					time_over_threshold[i] <= 8'd6;
-				end else if (8'b01111111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					time_over_threshold[i] <= 8'd7;
-				end else if (8'b11111111==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					time_over_threshold[i] <= time_over_threshold[i] + 8'd8;
-				end else if (8'b11111110==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd7;
-					time_over_threshold[i] <= 0;
-				end else if (8'b11111100==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd6;
-					time_over_threshold[i] <= 0;
-				end else if (8'b11111000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd5;
-					time_over_threshold[i] <= 0;
-				end else if (8'b11110000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd4;
-					time_over_threshold[i] <= 0;
-				end else if (8'b11100000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd3;
-					time_over_threshold[i] <= 0;
-				end else if (8'b11000000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd2;
-					time_over_threshold[i] <= 0;
-				end else if (8'b10000000==iserdes_in_buffered_and_maybe_inverted_a[i]) begin
-					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd1;
-					time_over_threshold[i] <= 0;
-				end else begin // any more complicated pattern
-					complicated_pattern_counter[i] <= complicated_pattern_counter[i] + 1'b1;
-					//previous_time_over_threshold[i] <= 0;
-					//time_over_threshold[i] <= 0;
+				end else begin
+					time_over_threshold[i] <= time_over_threshold[i] + iserdes_in_ones_counter[i];
 				end
 			end
 		end
