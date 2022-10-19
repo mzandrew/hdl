@@ -156,49 +156,9 @@ module top #(
 	end else begin
 		assign read_data_word[0] = 0;
 	end
-//	wire [63:0] oserdes_word64;
-//	assign oserdes_word64[63:48] = a_c_[31:16];
-//	assign oserdes_word64[47:32] = _b_d[31:16];
-//	assign oserdes_word64[31:16] = a_c_[15:0];
-//	assign oserdes_word64[15:0 ] = _b_d[15:0];
-//	wire [OSERDES_DATA_WIDTH-1:0] preDACbit [7:0]; // preDACbit[i] is an 8 bit word giving the next 8 timeseries values [7 downto 0] for bit i of the DAC output
-//	for (i=0; i<8; i=i+1) begin : preDACbit_mapping
-		// bit0 -> 56, 48, 40, 32, 24, 16, 8, 0
-		// bit7 -> 63, 55, 47, 39, 31, 23, 15, 7
-//		assign preDACbit[i] = { oserdes_word64[8*7+i], oserdes_word64[8*6+i], oserdes_word64[8*5+i], oserdes_word64[8*4+i],
-//		                        oserdes_word64[8*3+i], oserdes_word64[8*2+i], oserdes_word64[8*1+i], oserdes_word64[8*0+i] };
-//	end
-//	wire [OSERDES_DATA_WIDTH-1:0] DACvalue [7:0]; // DACvalue[i] for i=7 downto 0 is a timeseries of 8 bit DAC values
-//	wire [OSERDES_DATA_WIDTH-1:0] DACvaluePRIME [7:0]; // delayed version of DACvalue
-//	for (i=0; i<8; i=i+1) begin : DACvalue_mapping
-//		assign DACvalue[i] = {
-//			preDACbit[7][i], preDACbit[6][i], preDACbit[5][i], preDACbit[4][i], 
-//			preDACbit[3][i], preDACbit[2][i], preDACbit[1][i], preDACbit[0][i] };
-//	end
-//	wire [OSERDES_DATA_WIDTH-1:0] minuend;
-//	wire [OSERDES_DATA_WIDTH-1:0] difference [7:0];
-//	localparam DEPTH = 4;
-//	for (i=0; i<8; i=i+1) begin : arithmetic_pipeline_mapping
-//		arithmetic_pipeline #(.WIDTH(OSERDES_DATA_WIDTH), .DEPTH(DEPTH)) ap (.clock(word_clock), .minuend(minuend), .subtrahend(DACvalue[i]), .difference(difference[i]));
-//		pipeline #(.WIDTH(OSERDES_DATA_WIDTH), .DEPTH(DEPTH)) pl (.clock(word_clock), .in(DACvalue[i]), .out(DACvaluePRIME[i]));
-//	end
-//	wire [OSERDES_DATA_WIDTH-1:0] DACbit [7:0];
-//	wire [OSERDES_DATA_WIDTH-1:0] DACbitN [7:0];
-//	for (i=0; i<8; i=i+1) begin : DACbit_mapping
-//		assign DACbit[i] = {
-//			DACvaluePRIME[7][i], DACvaluePRIME[6][i], DACvaluePRIME[5][i], DACvaluePRIME[4][i], 
-//			DACvaluePRIME[3][i], DACvaluePRIME[2][i], DACvaluePRIME[1][i], DACvaluePRIME[0][i] };
-//		assign DACbitN[i] = {
-//			difference[7][i], difference[6][i], difference[5][i], difference[4][i], 
-//			difference[3][i], difference[2][i], difference[1][i], difference[0][i] };
-//	end
 	for (i=3; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
 		assign read_data_word[i] = 0;
 	end
-//	assign potential_oserdes_word[0] = DACbit[7];
-//	for (i=1; i<NUMBER_OF_BANKS; i=i+1) begin : banksfake
-//		assign potential_oserdes_word[i] = 0;
-//	end
 	wire [31:0] bank1 [15:0];
 	wire [31:0] bank2 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -216,30 +176,6 @@ module top #(
 		.data_out_b_4(bank2[4]),  .data_out_b_5(bank2[5]),  .data_out_b_6(bank2[6]),  .data_out_b_7(bank2[7]),
 		.data_out_b_8(bank2[8]),  .data_out_b_9(bank2[9]),  .data_out_b_a(bank2[10]), .data_out_b_b(bank2[11]),
 		.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
-//	if (1==RIGHT_DAC_OUTER) begin
-//		assign word_clock = word_clock_right_outer;
-//		assign pll_oserdes_locked_other = 1;
-//	end else if (1==LEFT_DAC_OUTER) begin
-//		assign word_clock = word_clock_left_outer;
-//		assign pll_oserdes_locked_other = 1;
-//	end else if (1==RIGHT_DAC_INNER) begin
-//		assign word_clock = word_clock_right_inner;
-//		assign pll_oserdes_locked_other = 1;
-//	end else if (1==LEFT_DAC_INNER) begin
-//		assign word_clock = word_clock_left_inner;
-//		assign pll_oserdes_locked_other = 1;
-//	end else begin
-//		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(PERIOD), .DIVIDE(DIVIDE), .MULTIPLY(MULTIPLY), .SCOPE(SCOPE), .EXTRA_DIVIDE(EXTRA_DIVIDE)) mylei4 (
-//			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock), .locked(pll_oserdes_locked_other),
-//			.word3_in(DACbit[7]), .word2_in(DACbit[6]), .word1_in(DACbit[5]), .word0_in(DACbit[4]),
-//			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
-//	end
-//	assign pll_oserdes_locked = pll_oserdes_locked_other && pll_oserdes_locked_right_outer && pll_oserdes_locked_left_outer && pll_oserdes_locked_right_inner && pll_oserdes_locked_left_inner;
-//	assign coax[0] = 0;
-//	assign coax[1] = 0;
-//	assign coax[2] = 0;
-//	assign coax[3] = 0;
-//	assign coax[5] = sync_out_stream[SYNC_OUT_STREAM_PICKOFF];
 	wire sync_read_address; // assert this when you feel like (re)synchronizing
 	localparam SYNC_OUT_STREAM_PICKOFF = 2;
 	wire [SYNC_OUT_STREAM_PICKOFF:0] sync_out_stream; // sync_out_stream[2] is usually good
@@ -248,8 +184,9 @@ module top #(
 //	wire [2:0] rot_pipeline;
 	reg [31:0] hit_counter = 0;
 	reg [31:0] hit_counter_buffered = 0;
+	reg [31:0] complicated_pattern_counter [12:1];
 //	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
-	assign bank1[0]  = { 16'd0, 4'd0, status4, status8 };
+	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[3:0], status4, status8 };
 	assign bank1[1]  = iserdes_in_buffered_1[1];
 	assign bank1[2]  = iserdes_in_buffered_1[2];
 	assign bank1[3]  = iserdes_in_buffered_1[3];
@@ -262,8 +199,8 @@ module top #(
 	assign bank1[10] = iserdes_in_buffered_1[10];
 	assign bank1[11] = iserdes_in_buffered_1[11];
 	assign bank1[12] = iserdes_in_buffered_1[12];
-	assign bank1[13] = hdrb_read_errors;
-	assign bank1[14] = hdrb_write_errors;
+	assign bank1[13] = complicated_pattern_counter[1];
+	assign bank1[14] = 0;
 	assign bank1[15] = hit_counter_buffered;
 	(* KEEP = "TRUE" *)
 //	assign      minuend                   = bank2[0][7:0];
@@ -288,7 +225,6 @@ module top #(
 			end
 		end
 	end
-
 	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_2_mapping
 		always @(posedge word_clock) begin
 			if (reset_word) begin
@@ -332,6 +268,62 @@ module top #(
 			end
 		end
 	end
+//	wire [255:0] [12:1];
+	reg [7:0] previous_time_over_threshold [12:1];
+	reg [7:0] time_over_threshold [12:1];
+	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
+		always @(posedge word_clock) begin
+			if (reset_word) begin
+				previous_time_over_threshold[i] <= 0;
+				time_over_threshold[i] <= 0;
+			end else begin
+				if (8'b00000000==iserdes_in_buffered_1[i]) begin
+					time_over_threshold[i] <= 0;
+				end else if (8'b00000001==iserdes_in_buffered_1[i]) begin
+					time_over_threshold[i] <= 8'd1;
+				end else if (8'b00000011==iserdes_in_buffered_1[i]) begin
+					time_over_threshold[i] <= 8'd2;
+				end else if (8'b00000111==iserdes_in_buffered_1[i]) begin
+					time_over_threshold[i] <= 8'd3;
+				end else if (8'b00001111==iserdes_in_buffered_1[i]) begin
+					time_over_threshold[i] <= 8'd4;
+				end else if (8'b00011111==iserdes_in_buffered_1[i]) begin
+					time_over_threshold[i] <= 8'd5;
+				end else if (8'b00111111==iserdes_in_buffered_1[i]) begin
+					time_over_threshold[i] <= 8'd6;
+				end else if (8'b01111111==iserdes_in_buffered_1[i]) begin
+					time_over_threshold[i] <= 8'd7;
+				end else if (8'b11111111==iserdes_in_buffered_1[i]) begin
+					time_over_threshold[i] <= time_over_threshold[i] + 8'd8;
+				end else if (8'b11111110==iserdes_in_buffered_1[i]) begin
+					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd7;
+					time_over_threshold[i] <= 0;
+				end else if (8'b11111100==iserdes_in_buffered_1[i]) begin
+					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd6;
+					time_over_threshold[i] <= 0;
+				end else if (8'b11111000==iserdes_in_buffered_1[i]) begin
+					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd5;
+					time_over_threshold[i] <= 0;
+				end else if (8'b11110000==iserdes_in_buffered_1[i]) begin
+					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd4;
+					time_over_threshold[i] <= 0;
+				end else if (8'b11100000==iserdes_in_buffered_1[i]) begin
+					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd3;
+					time_over_threshold[i] <= 0;
+				end else if (8'b11000000==iserdes_in_buffered_1[i]) begin
+					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd2;
+					time_over_threshold[i] <= 0;
+				end else if (8'b10000000==iserdes_in_buffered_1[i]) begin
+					previous_time_over_threshold[i] <= time_over_threshold[i] + 8'd1;
+					time_over_threshold[i] <= 0;
+				end else begin // any more complicated pattern
+					complicated_pattern_counter[i] <= complicated_pattern_counter[i] + 1'b1;
+					//previous_time_over_threshold[i] <= 0;
+					time_over_threshold[i] <= 0;
+				end
+			end
+		end
+	end
 	wire strobe_is_alignedA;
 	wire strobe_is_alignedB;
 	wire strobe_is_alignedC;
@@ -344,8 +336,8 @@ module top #(
 		.word_A05_in({8{iserdes_word_hit[6]}}), .word_A04_in({8{iserdes_word_hit[5]}}), .word_A03_in({8{iserdes_word_hit[4]}}), .word_A02_in({8{iserdes_word_hit[3]}}), .word_A01_in({8{iserdes_word_hit[2]}}), .word_A00_in({8{iserdes_word_hit[1]}}),
 		.word_B5_out(iserdes_in[12]), .word_B4_out(iserdes_in[11]), .word_B3_out(iserdes_in[10]), .word_B2_out(iserdes_in[9]), .word_B1_out(iserdes_in[8]), .word_B0_out(iserdes_in[7]),
 		.word_C5_out(iserdes_in[6]), .word_C4_out(iserdes_in[5]), .word_C3_out(iserdes_in[4]), .word_C2_out(iserdes_in[3]), .word_C1_out(iserdes_in[2]), .word_C0_out(iserdes_in[1]),
-		.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in({8{any}}),
-		.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
+		.word_D3_in(previous_time_over_threshold[1]), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(iserdes_in_buffered_2[1]),
+		.word_E1_in(sync_out_word), .word_E0_in({8{any}}),
 		.word_clockA_out(), .word_clockB_out(word_clock), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
 		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[6]), .A07_out(indicator[5]), .A06_out(indicator[4]),
 		.A05_out(indicator[9]), .A04_out(indicator[8]), .A03_out(indicator[7]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
