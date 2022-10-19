@@ -157,6 +157,12 @@ if 1:
 #	for i in range(8):
 		print(hex(readback[i], 8))
 
+if 1:
+	j = 3
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**BANK_ADDRESS_DEPTH, 2**4)
+	for i in range(2**4):
+		print(hex(readback[i], 8))
+
 if 0:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
 	#values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
