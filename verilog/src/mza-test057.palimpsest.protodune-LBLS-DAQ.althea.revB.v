@@ -1,6 +1,6 @@
 // written 2022-10-14 by mza
 // based on mza-test055.palimpsest.cable-tester.althea.revB.v
-// last updated 2022-10-14 by mza
+// last updated 2022-10-18 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -146,12 +146,16 @@ module top #(
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 //	wire [31:0] a_c_;
 //	wire [31:0] _b_d;
-	RAM_s6_8k_16bit_32bit mem0 (.reset(reset_word),
-		.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[15:0]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][15:0]),
-		.clock_b(word_clock), .address_b(read_address), .data_out_b());
-	RAM_s6_8k_16bit_32bit mem1 (.reset(reset_word),
-		.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[31:16]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][31:16]),
-		.clock_b(word_clock), .address_b(read_address), .data_out_b());
+	if (0) begin
+		RAM_s6_8k_16bit_32bit mem0 (.reset(reset_word),
+			.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[15:0]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][15:0]),
+			.clock_b(word_clock), .address_b(read_address), .data_out_b());
+		RAM_s6_8k_16bit_32bit mem1 (.reset(reset_word),
+			.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[31:16]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][31:16]),
+			.clock_b(word_clock), .address_b(read_address), .data_out_b());
+	end else begin
+		assign read_data_word[0] = 0;
+	end
 //	wire [63:0] oserdes_word64;
 //	assign oserdes_word64[63:48] = a_c_[31:16];
 //	assign oserdes_word64[47:32] = _b_d[31:16];
