@@ -1,6 +1,6 @@
 // written 2022-10-14 by mza
 // based on mza-test055.palimpsest.cable-tester.althea.revB.v
-// last updated 2022-10-20 by mza
+// last updated 2022-10-21 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -15,7 +15,6 @@
 `include "lib/edge_to_pulse.v"
 
 module top #(
-	parameter INVERTED_HEIRARCHY = 0,
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
@@ -212,7 +211,8 @@ module top #(
 	assign bank1[15] = hit_counter_buffered;
 	(* KEEP = "TRUE" *)
 //	assign      minuend                   = bank2[0][7:0];
-	wire [12:1] hitmask                   = bank2[0][11:0];
+	wire [12:1] hit_mask                  = bank2[0][11:0];
+	wire [12:1] inversion_mask            = bank2[1][11:0];
 //	wire        train_oserdes             = bank2[4][0];
 //	wire  [7:0] train_oserdes_pattern     = bank2[5][7:0];
 	wire [31:0] start_sample              = bank2[6][31:0];
@@ -228,13 +228,10 @@ module top #(
 		always @(posedge word_clock) begin
 			if (reset_word) begin
 				iserdes_in_buffered_and_maybe_inverted_a[i] <= 0;
-//				hitmask <= 12'b000000000001;
 			end else begin
-				if (INVERTED_HEIRARCHY) begin
-					iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{|hitmask[i]}} & ~iserdes_in[i];
-				end else begin
-					iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{|hitmask[i]}} &  iserdes_in[i];
-				end
+				//iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{|hitmask[i]}} & ~iserdes_in[i];
+				//iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{hit_mask[i] & inversion_mask[i]}} ^ iserdes_in[i];
+				iserdes_in_buffered_and_maybe_inverted_a[i] <= iserdes_in[i] ^ {8{inversion_mask[i]}} & {8{hit_mask[i]}};
 			end
 		end
 	end
@@ -252,11 +249,9 @@ module top #(
 			if (reset_word) begin
 				iserdes_word_hit[i] <= 0;
 			end else begin
-				if (INVERTED_HEIRARCHY) begin
-					iserdes_word_hit[i] <= |hitmask[i] && ~|iserdes_in[i]; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
-				end else begin
-					iserdes_word_hit[i] <= |hitmask[i] &&  |iserdes_in[i]; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
-				end
+				//iserdes_word_hit[i] <= |hitmask[i] && ~|iserdes_in[i]; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
+				//iserdes_word_hit[i] <= hit_mask[i] & inversion_mask[i] ^ (|iserdes_in[i]); // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
+				iserdes_word_hit[i] <= |iserdes_in[i] ^ inversion_mask[i] && hit_mask[i]; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
 			end
 		end
 	end
@@ -680,7 +675,7 @@ module top_tb;
 endmodule
 
 module myalthea #(
-	parameter INVERTED_HEIRARCHY = 0
+	parameter NOTHING = 0
 ) (
 	input clock50_p, clock50_n,
 	inout coax4,
@@ -749,7 +744,7 @@ module myalthea #(
 	IBUFDS ibufds01 (.I(k_p), .IB(k_n), .O(signal[1]));
 	assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	top #(
-		.TESTBENCH(0), .INVERTED_HEIRARCHY(INVERTED_HEIRARCHY),
+		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
