@@ -1,4 +1,4 @@
-// last updated 2021-07-22 by mza
+// last updated 2022-10-21 by mza
 
 `ifndef FIFO_LIB
 `define FIFO_LIB
@@ -30,9 +30,9 @@ module fifo_single_clock_using_single_bram #(
 	localparam MIN_COUNT = 1;
 	localparam MAX_COUNT = MIN_COUNT + DEPTH;
 	reg [LOG2_OF_DEPTH:0] count = MIN_COUNT; // 1 extra bit
-	reg [31:0] write_error_count = 0;
-	reg [31:0] read_error_count = 0;
-	reg [31:0] other_error_count = 0;
+	reg [7:0] write_error_count = 0;
+	reg [7:0] read_error_count = 0;
+	reg [7:0] other_error_count = 0;
 	//assign error_count = write_error_count + read_error_count + other_error_count;
 	assign error_count = { 8'd0, write_error_count[7:0], read_error_count[7:0], other_error_count[7:0] };
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};
