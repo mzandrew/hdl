@@ -212,8 +212,9 @@ module top #(
 	assign bank1[15] = hit_counter_buffered;
 	(* KEEP = "TRUE" *)
 //	assign      minuend                   = bank2[0][7:0];
-	wire        train_oserdes             = bank2[4][0];
-	wire  [7:0] train_oserdes_pattern     = bank2[5][7:0];
+	wire [12:1] hitmask                   = bank2[0][11:0];
+//	wire        train_oserdes             = bank2[4][0];
+//	wire  [7:0] train_oserdes_pattern     = bank2[5][7:0];
 	wire [31:0] start_sample              = bank2[6][31:0];
 	wire [31:0] end_sample                = bank2[7][31:0];
 	assign reset = 0;
@@ -223,11 +224,11 @@ module top #(
 	reg [12:1] iserdes_word_hit;
 	reg any;
 	reg [2:0] anytrain = 0;
-	wire [12:1] hitmask = 12'b000000000001;
 	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_1_mapping
 		always @(posedge word_clock) begin
 			if (reset_word) begin
 				iserdes_in_buffered_and_maybe_inverted_a[i] <= 0;
+//				hitmask <= 12'b000000000001;
 			end else begin
 				if (INVERTED_HEIRARCHY) begin
 					iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{|hitmask[i]}} & ~iserdes_in[i];
@@ -679,7 +680,7 @@ module top_tb;
 endmodule
 
 module myalthea #(
-	parameter INVERTED_HEIRARCHY = 1
+	parameter INVERTED_HEIRARCHY = 0
 ) (
 	input clock50_p, clock50_n,
 	inout coax4,
