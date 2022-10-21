@@ -1,6 +1,6 @@
 // written 2022-10-14 by mza
 // based on mza-test055.palimpsest.cable-tester.althea.revB.v
-// last updated 2022-10-19 by mza
+// last updated 2022-10-20 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -160,12 +160,12 @@ module top #(
 	end else begin
 		assign read_data_word[0] = 0;
 	end
-//	for (i=3; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
-//		assign read_data_word[i] = 0;
-//	end
+	for (i=4; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
+		assign read_data_word[i] = 0;
+	end
 	reg [12:1] fifo_write_enable;
 	wire [12:1] fifo_read_enable;
-	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc3210 (.clock(word_clock), .reset(reset_word),
+	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc3210 (.clock(word_clock), .reset(reset_word), .error_count(),
 		.data_in({previous_time_over_threshold[4],previous_time_over_threshold[3],previous_time_over_threshold[2],previous_time_over_threshold[1]}), .write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
 		.data_out(read_data_word[3]), .read_enable(read_strobe[3]), .empty(), .almost_empty(), .empty_or_almost_empty());
 	wire [31:0] bank1 [15:0];
@@ -193,7 +193,6 @@ module top #(
 //	wire [2:0] rot_pipeline;
 	reg [31:0] hit_counter = 0;
 	reg [31:0] hit_counter_buffered = 0;
-	reg [31:0] complicated_pattern_counter [12:1];
 //	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
 	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[3:0], status4, status8 };
 	assign bank1[1]  = iserdes_in_buffered_and_maybe_inverted_a[1];
@@ -208,7 +207,7 @@ module top #(
 	assign bank1[10] = iserdes_in_buffered_and_maybe_inverted_a[10];
 	assign bank1[11] = iserdes_in_buffered_and_maybe_inverted_a[11];
 	assign bank1[12] = iserdes_in_buffered_and_maybe_inverted_a[12];
-	assign bank1[13] = complicated_pattern_counter[1];
+	assign bank1[13] = 0;
 	assign bank1[14] = 0;
 	assign bank1[15] = hit_counter_buffered;
 	(* KEEP = "TRUE" *)
@@ -290,7 +289,7 @@ module top #(
 	reg [7:0] time_over_threshold [12:1];
 	wire [3:0] iserdes_in_ones_counter [12:1];
 	for (i=1; i<=12; i=i+1) begin : ones_counter_mapping
-		count_ones (.clock(word_clock), .data_in(iserdes_in_buffered_and_maybe_inverted_a[i]), .count_out(iserdes_in_ones_counter[i]));
+		count_ones c1s (.clock(word_clock), .data_in(iserdes_in_buffered_and_maybe_inverted_a[i]), .count_out(iserdes_in_ones_counter[i]));
 	end
 	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
 		always @(posedge word_clock) begin
