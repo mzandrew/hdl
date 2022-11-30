@@ -1,6 +1,6 @@
 // written 2020-10-05 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-10-21 by mza
+// last updated 2022-11-29 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -178,14 +178,14 @@ module top #(
 		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank0 (.reset(reset_word0),
 			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
 			.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[0]));
-		RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock0), .reset(reset_word0),
+		RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock0),
 			.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
 			.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
 			.data_in_b_4(bank1[4]),  .data_in_b_5(bank1[5]),  .data_in_b_6(bank1[6]),  .data_in_b_7(bank1[7]),
 			.data_in_b_8(bank1[8]),  .data_in_b_9(bank1[9]),  .data_in_b_a(bank1[10]), .data_in_b_b(bank1[11]),
 			.data_in_b_c(bank1[12]), .data_in_b_d(bank1[13]), .data_in_b_e(bank1[14]), .data_in_b_f(bank1[15]),
 			.write_strobe_b(write_strobe_b));
-		RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank2 (.clock(word_clock0), .reset(reset_word0),
+		RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank2 (.clock(word_clock0),
 			.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[2]),
 			.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[2]),
 			.data_out_b_0(bank2[0]),  .data_out_b_1(bank2[1]),  .data_out_b_2(bank2[2]),  .data_out_b_3(bank2[3]),
