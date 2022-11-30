@@ -103,7 +103,7 @@ net rpi_gpio23          loc=p100 | iostandard=lvttl | drive = 4 | slew = slow; #
 #net rot<3> loc=p97 | iostandard=lvttl | pullup; # rot_8 bank0 - differs from althea revB and revBL
 
 # momentary pushbutton, normally open:
-#net button loc=p1 | iostandard=lvttl | pullup; # bank3 - on same p/n pair as U
+#net button loc=p1 | iostandard=lvttl | pullup; # bank3 - this conflicts with u in cascaded serdes mode
 
 # array of 8 LEDs:
 # available when LEFT_DAC mode is used:
