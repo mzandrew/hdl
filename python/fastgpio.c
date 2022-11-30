@@ -2,7 +2,7 @@
 // merged a modified version of code from https://github.com/hzeller/rpi-gpio-dma-demo/blob/master/gpio-dma-test.c
 // with modification of example code from https://realpython.com/build-python-c-extension-module/
 // with help from https://docs.python.org/3.7/extending/newtypes_tutorial.html
-// last updated 2020-07-06 by mza
+// last updated 2022-11-30 by mza
 
 // how to use this module:
 
@@ -517,7 +517,7 @@ static int init_half_duplex_bus(half_duplex_bus_object *self, PyObject *args, Py
 	self->ack_valid = ack_valid;
 	//printf("\nack_valid: %08lx", self->ack_valid);
 	u32 partial_mask = 0;
-	for (int i=0; i<bus_width; i++) {
+	for (u32 i=0; i<bus_width; i++) {
 		partial_mask |= 1<<i;
 	}
 	self->partial_mask = partial_mask;
@@ -810,7 +810,7 @@ static PyObject* method_half_duplex_bus_read(half_duplex_bus_object *self, PyObj
 	}
 	*self->clr_reg = everything;
 	u32 new_errors = 0;
-	if (length!=PyList_Size(obj)) {
+	if ((Py_ssize_t)length!=PyList_Size(obj)) {
 		printf("\nlengths don't match");
 		new_errors++;
 	}
