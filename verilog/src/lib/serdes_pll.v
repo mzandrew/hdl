@@ -1110,6 +1110,7 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_BCinput #(
 	parameter PINTYPE_A09 = "p",
 	parameter PINTYPE_A10 = "p",
 	parameter PINTYPE_A11 = "p",
+	parameter SPECIAL_A11 = "A",
 	parameter PINTYPE_B0 = "p",
 	parameter PINTYPE_B1 = "p",
 	parameter PINTYPE_B2 = "p",
@@ -1179,7 +1180,11 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_BCinput #(
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A08)) mylei_A08 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A08_in), .bit_out(A08_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A09)) mylei_A09 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A09_in), .bit_out(A09_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A10)) mylei_A10 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A10_in), .bit_out(A10_out));
-	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A11)) mylei_A11 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A11_in), .bit_out(A11_out));
+	if ("A"==SPECIAL_A11) begin
+		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A11)) mylei_A11 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A11_in), .bit_out(A11_out));
+	end else begin
+		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A11)) mylei_A11 (.word_clock(word_clockC_out), .bit_clock(bit_clockC), .bit_strobe(bit_strobeC), .reset(reset_clockC), .word_in(word_A11_in), .bit_out(A11_out)); // special case for a11 (t/p51 on althea revBLM) being on a different bank from a10-a00
+	end
 	//ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B0)) mylei_B0 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B0_in), .bit_out(B0_out));
 	//ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B1)) mylei_B1 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B1_in), .bit_out(B1_out));
 	//ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B2)) mylei_B2 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B2_in), .bit_out(B2_out));
