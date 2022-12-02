@@ -93,7 +93,6 @@ module top #(
 		simpledcm_CLKGEN #(.MULTIPLY(2), .DIVIDE(1), .PERIOD(20.0)) mydcm50 (.clockin(clock50_raw), .reset(reset), .clockout(clock100_raw), .clockout180(), .locked(clock50_locked));
 		BUFG mybuf50_raw2 (.I(clock100_raw), .O(clock100));
 	end
-
 	if (1) begin
 //		IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 		reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(clock50_locked), .clock_input(clock100), .reset_output(reset100));
@@ -219,6 +218,7 @@ module top #(
 	wire [31:0] start_sample              = bank2[6][31:0];
 	wire [31:0] end_sample                = bank2[7][31:0];
 	assign reset = 0;
+	//assign reset = ~button;
 	wire [7:0] iserdes_in [12:1];
 	reg [7:0] iserdes_in_buffered_and_maybe_inverted_a [12:1];
 	reg [7:0] iserdes_in_buffered_and_maybe_inverted_b [12:1];
