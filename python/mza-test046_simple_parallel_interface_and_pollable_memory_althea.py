@@ -134,12 +134,14 @@ if 0:
 		print(hex(readback[i], 8))
 	#althea.test_writing_data_to_half_duplex_bus()
 
-if 0:
+if 1:
 	j = 2
 	values = [ 0 for a in range(2**4) ]
-	values[0] = 0xff # minuend
-	values[4] = 0 # train_oserdes
-	values[5] = 0b10001010 # train_oserdes_pattern
+	values[0] = 0b000000000001 # hit_mask
+	values[1] = 0b011100101000 # inversion_mask
+	#values[0] = 0xff # minuend
+	#values[4] = 0 # train_oserdes
+	#values[5] = 0b10001010 # train_oserdes_pattern
 	values[6] = 0 # start_sample (3 LSBs ignored)
 	values[7] = 0 # end_sample (3 LSBs ignored)
 	althea.write_to_half_duplex_bus_and_then_verify(j * 2**BANK_ADDRESS_DEPTH, values)
