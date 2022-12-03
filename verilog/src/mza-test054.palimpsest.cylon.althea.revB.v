@@ -1,6 +1,7 @@
 // written 2021-12-14 by mza
 // based on mza-test053.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revB.v
-// last updated 2022-02-03 by mza
+// and based on mza-test056.palimpsest.cylon.althea.revA.v
+// last updated 2022-12-02 by mza
 
 `define althea_revB
 `include "lib/generic.v"
@@ -27,13 +28,14 @@ module top #(
 	parameter LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH = $clog2(64),
 	parameter ADDRESS_DEPTH_OSERDES = BANK_ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
-	parameter RIGHT_DAC_OUTER = 1,
-	parameter LEFT_DAC_OUTER = 1,
-	parameter LEFT_DAC_ROTATED = 0,
-	parameter RIGHT_DAC_INNER = 1,
-	parameter LEFT_DAC_INNER = 1,
+//	parameter RIGHT_DAC_OUTER = 1,
+//	parameter LEFT_DAC_OUTER = 1,
+//	parameter LEFT_DAC_ROTATED = 0,
+//	parameter RIGHT_DAC_INNER = 1,
+//	parameter LEFT_DAC_INNER = 1,
 	parameter TESTBENCH = 0,
-	parameter COUNTER_PICKOFF=$clog2(14285714) - LOG2_OF_OSERDES_DATA_WIDTH, // 143 MHz / 2^23 ~ 17 Hz
+	parameter COUNTER_PICKOFF = TESTBENCH ? 6 : $clog2(2500000) - LOG2_OF_OSERDES_DATA_WIDTH, // 25 MHz / 2^23 ~ 23 Hz
+	parameter COUNTER_SIZE = COUNTER_PICKOFF + 3,
 	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
 	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
@@ -65,22 +67,25 @@ module top #(
 	//localparam MULTIPLY = 8; // 800 MHz
 	//localparam DIVIDE = 2; // 400 MHz
 	//localparam EXTRA_DIVIDE = 16; // 25 MHz
-	localparam MULTIPLY = 10; // 1000 MHz
-	localparam DIVIDE = 1; // 1000 MHz
-	localparam EXTRA_DIVIDE = 7; // 142.857143 MHz (7ns bit time)
+	localparam MULTIPLY = 8; // 800 MHz bit_clock
+	localparam DIVIDE = 2; // 400 MHz bit_clock; 50 MHz word_clock
+	//localparam EXTRA_DIVIDE = 7; // 142.857143 MHz (7ns bit time); 
+	//localparam EXTRA_DIVIDE = 16; // 25 MHz bit_clock (40ns bit time); 3.125 MHz word_clock
+	localparam EXTRA_DIVIDE = 3; // 133.33 MHz bit_clock (7.5ns bit time); 16.67 MHz word_clock
+	//localparam EXTRA_DIVIDE = 2; // 200 MHz bit_clock (5ns bit time); 25 MHz word_clock
 	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	reg [7:0] pattern [12:1];
 	wire [7:0] null = 0;
-	wire [7:0] pat = 8'b11111111;
-	wire reset_word;
-	reg [7:0] status [12:1];
-	localparam ERROR_COUNT_PICKOFF = 7;
+	//wire [7:0] pat [COUNTER_SIZE-COUNTER_PICKOFF-1:0] = { 8'b11111111, 8'b11111110, 8'b11111100, 8'b11111000, 8'b11110000, 8'b11100000, 8'b11000000, 8'b10000000 };
+	wire [7:0] pat [COUNTER_SIZE-COUNTER_PICKOFF-1:0] = { 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111 };
 	wire [3:0] status4;
 	wire [7:0] status8;
 	wire reset;
 	reg [7:0] sync_out_word_alternate = 0;
 	genvar i;
-	reg [COUNTER_PICKOFF:0] counter = 0;
+	reg [COUNTER_SIZE:0] counter = 0;
+	wire word_clock;
+	wire reset_word;
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			counter <= 0;
@@ -107,63 +112,51 @@ module top #(
 		if (reset_word) begin
 		end else begin
 			if (counter[COUNTER_PICKOFF:0]==1) begin
-				sync_out_word_alternate <= pat;
-				pattern[1] <= pat;
+				sync_out_word_alternate <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+				pattern[1] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==2) begin
-				pattern[2] <= pat;
+				pattern[2] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==3) begin
-				pattern[3] <= pat;
+				pattern[3] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==4) begin
-				pattern[4] <= pat;
+				pattern[4] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==5) begin
-				pattern[5] <= pat;
+				pattern[5] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==6) begin
-				pattern[6] <= pat;
+				pattern[6] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==7) begin
-				pattern[7] <= pat;
+				pattern[7] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==8) begin
-				pattern[8] <= pat;
+				pattern[8] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==9) begin
-				pattern[9] <= pat;
+				pattern[9] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==10) begin
-				pattern[10] <= pat;
+				pattern[10] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==11) begin
-				pattern[11] <= pat;
+				pattern[11] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end else if (counter[COUNTER_PICKOFF:0]==12) begin
-				pattern[12] <= pat;
+				pattern[12] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end
 		end
 	end
 	wire pll_oserdes_locked;
-	wire pll_oserdes_locked_other;
-	wire pll_oserdes_locked_right_outer;
-	wire pll_oserdes_locked_left_outer;
-	wire pll_oserdes_locked_right_inner;
-	wire pll_oserdes_locked_left_inner;
 	// ----------------------------------------------------------------------
 	wire clock100;
 	wire clock50_locked;
-	if (1) begin
-		wire clock50_raw1;
-		IBUFGDS mybuf50_raw1 (.I(clock50_p), .IB(clock50_n), .O(clock50_raw1));
-		wire clock50_raw2;
-		simpledcm_CLKGEN #(.MULTIPLY(2), .DIVIDE(1), .PERIOD(20.0)) mydcm50 (.clockin(clock50_raw1), .reset(reset), .clockout(clock50_raw2), .clockout180(), .locked(clock50_locked));
-		BUFG mybuf50_raw2 (.I(clock50_raw2), .O(clock100));
-	end
 	wire reset100;
-	if (1) begin
-//		IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
+	if (1) begin // on boards with 50 MHz oscillator
+		wire clock50_raw;
+		IBUFGDS mybuf50_raw1 (.I(clock50_p), .IB(clock50_n), .O(clock50_raw));
+		wire clock100_raw;
+		simpledcm_CLKGEN #(.MULTIPLY(2), .DIVIDE(1), .PERIOD(20.0)) mydcm50 (.clockin(clock50_raw), .reset(reset), .clockout(clock100_raw), .clockout180(), .locked(clock50_locked));
+		BUFG mybuf50_raw2 (.I(clock100_raw), .O(clock100));
 		reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(clock50_locked), .clock_input(clock100), .reset_output(reset100));
-	end else begin
+	end else begin // on boards with 100 MHz oscillator
 		wire clock100_locked;
+//		IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 		dummy_dcm_diff_input lollipop (.clock_p(clock100_p), .clock_n(clock100_n), .reset(reset), .clock_out(clock100), .clock_locked(clock100_locked));
 		reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(clock100_locked), .clock_input(clock100), .reset_output(reset100));
 	end
-	wire word_clock;
-	wire word_clock_right_outer;
-	wire word_clock_left_outer;
-	wire word_clock_right_inner;
-	wire word_clock_left_inner;
 	// ----------------------------------------------------------------------
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset100), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock), .reset_output(reset_word));
 	// ----------------------------------------------------------------------
@@ -173,6 +166,7 @@ module top #(
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [NUMBER_OF_BANKS-1:0];
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] bank;
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe;
+	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_read_errors;
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_write_errors;
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_address_errors;
@@ -270,24 +264,6 @@ module top #(
 		.data_out_b_4(bank2[4]),  .data_out_b_5(bank2[5]),  .data_out_b_6(bank2[6]),  .data_out_b_7(bank2[7]),
 		.data_out_b_8(bank2[8]),  .data_out_b_9(bank2[9]),  .data_out_b_a(bank2[10]), .data_out_b_b(bank2[11]),
 		.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
-	if (1==RIGHT_DAC_OUTER) begin
-		assign word_clock = word_clock_right_outer;
-		assign pll_oserdes_locked_other = 1;
-	end else if (1==LEFT_DAC_OUTER) begin
-		assign word_clock = word_clock_left_outer;
-		assign pll_oserdes_locked_other = 1;
-	end else if (1==RIGHT_DAC_INNER) begin
-		assign word_clock = word_clock_right_inner;
-		assign pll_oserdes_locked_other = 1;
-	end else if (1==LEFT_DAC_INNER) begin
-		assign word_clock = word_clock_left_inner;
-		assign pll_oserdes_locked_other = 1;
-	end else begin
-		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(PERIOD), .DIVIDE(DIVIDE), .MULTIPLY(MULTIPLY), .SCOPE(SCOPE), .EXTRA_DIVIDE(EXTRA_DIVIDE)) mylei4 (
-			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock), .locked(pll_oserdes_locked_other),
-			.word3_in(DACbit[7]), .word2_in(DACbit[6]), .word1_in(DACbit[5]), .word0_in(DACbit[4]),
-			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
-	end
 //	assign pll_oserdes_locked = pll_oserdes_locked_other && pll_oserdes_locked_right_outer && pll_oserdes_locked_left_outer && pll_oserdes_locked_right_inner && pll_oserdes_locked_left_inner;
 //	assign coax[0] = 0;
 //	assign coax[1] = 0;
@@ -325,22 +301,26 @@ module top #(
 	assign reset = 0;
 	wire [7:0] iserdes_word_raw;
 	// the order here is 12, 11, 10, 6, 5, 4, 9, 8, 7, 3, 2, 1
-	ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE)
+	wire [7:0] dummy = 0;
+	wire strobe_is_alignedA, strobe_is_alignedB, strobe_is_alignedC, strobe_is_alignedD;
+	ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(
+		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE), .SCOPE(SCOPE)
 	) orama (
 		.clock_in(clock100), .reset(reset100),
-		.word_A11_in({8{|status[12]}}), .word_A10_in({8{|status[11]}}), .word_A09_in({8{|status[10]}}), .word_A08_in({8{|status[6]}}), .word_A07_in({8{|status[5]}}), .word_A06_in({8{|status[4]}}),
-		.word_A05_in({8{|status[9]}}), .word_A04_in({8{|status[8]}}), .word_A03_in({8{|status[7]}}), .word_A02_in({8{|status[3]}}), .word_A01_in({8{|status[2]}}), .word_A00_in({8{|status[1]}}),
+		.word_A11_in(dummy), .word_A10_in(dummy), .word_A09_in(dummy), .word_A08_in(dummy), .word_A07_in(dummy), .word_A06_in(dummy),
+		.word_A05_in(dummy), .word_A04_in(dummy), .word_A03_in(dummy), .word_A02_in(dummy), .word_A01_in(dummy), .word_A00_in(dummy),
 		.word_B5_in(pattern[12]), .word_B4_in(pattern[11]), .word_B3_in(pattern[10]), .word_B2_in(pattern[6]), .word_B1_in(pattern[5]), .word_B0_in(pattern[4]),
 		.word_C5_in(pattern[9]), .word_C4_in(pattern[8]), .word_C3_in(pattern[7]), .word_C2_in(pattern[3]), .word_C1_in(pattern[2]), .word_C0_in(pattern[1]),
-		.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_out(iserdes_word_raw),
-		.word_E1_in(sync_out_word), .word_E0_in(sync_out_word_alternate),
-		.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
-		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[6]), .A07_out(indicator[5]), .A06_out(indicator[4]),
-		.A05_out(indicator[9]), .A04_out(indicator[8]), .A03_out(indicator[7]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
+		.word_D3_in(dummy), .word_D2_in(dummy), .word_D1_in(dummy), .word_D0_out(),
+		.word_E1_in(dummy), .word_E0_in(sync_out_word_alternate),
+		.word_clockA_out(word_clock), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
+		.A11_out(), .A10_out(), .A09_out(), .A08_out(), .A07_out(), .A06_out(),
+		.A05_out(), .A04_out(), .A03_out(), .A02_out(), .A01_out(), .A00_out(),
 		.B5_out(signal[12]), .B4_out(signal[11]), .B3_out(signal[10]), .B2_out(signal[6]), .B1_out(signal[5]), .B0_out(signal[4]),
 		.C5_out(signal[9]), .C4_out(signal[8]), .C3_out(signal[7]), .C2_out(signal[3]), .C1_out(signal[2]), .C0_out(signal[1]),
 		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_in(coax[0]),
 		.E1_out(coax[5]), .E0_out(coax[4]),
+		.strobe_is_alignedA(strobe_is_alignedA), .strobe_is_alignedB(strobe_is_alignedB), .strobe_is_alignedC(strobe_is_alignedC), .strobe_is_alignedD(strobe_is_alignedD),
 		.locked(pll_oserdes_locked)
 	);
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
@@ -402,76 +382,29 @@ module top #(
 		assign coax_led = { 1'b0, adc_bit[2:0] };
 	end
 	// ----------------------------------------------------------------------
-	if (1) begin
+	if (0) begin
 		assign status4 = 0;
 		assign status8 = 0;
 	end else begin
 		assign status4[3] = ~pll_oserdes_locked;
-		assign status4[2] = ~pll_oserdes_locked_right_outer;
-		assign status4[1] = ~pll_oserdes_locked_left_outer;
-		assign status4[0] = enable;
-		assign status8[7] = ~pll_oserdes_locked;
-		assign status8[6] = ~pll_oserdes_locked_right_inner;
-		assign status8[5] = ~pll_oserdes_locked_left_inner;
-		assign status8[4] = enable;
-		assign status8[3] = ~pll_oserdes_locked;
-		assign status8[2] = ~pll_oserdes_locked_right_outer;
-		assign status8[1] = ~pll_oserdes_locked_left_outer;
-		assign status8[0] = enable;
+		assign status4[2] = 0;
+		assign status4[1] = 0;
+		assign status4[0] = 0;
+		// status8:
+		assign status8[7] = ~clock50_locked;
+		assign status8[6] = reset100;
+		assign status8[5] = ~pll_oserdes_locked;
+		assign status8[4] = reset_word;
+		assign status8[3] = ~strobe_is_alignedA;
+		assign status8[2] = ~strobe_is_alignedB;
+		assign status8[1] = ~strobe_is_alignedC;
+		assign status8[0] = ~strobe_is_alignedD;
 	end
 	assign coax_led = status4;
-//	if (0==LEFT_DAC_OUTER) begin
-//		assign led[7:4] = status8[7:4];
-//	end
-//	if (0==RIGHT_DAC_OUTER) begin
-//		assign led[3:0] = status8[3:0];
-//	end
+	assign led = status8;
 	initial begin
 		#100;
-		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, BANK_ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH);
-		$display("BUS_WIDTH=%d, TRANSACTIONS_PER_DATA_WORD=%d, TRANSACTIONS_PER_ADDRESS_WORD=%d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
-		$display("%d banks", NUMBER_OF_BANKS);
-	end
-	wire [7:0] iserdes_word_rotated [7:0];
-	bitslip #(.WIDTH(8)) bs0 (.clock(word_clock), .bitslip(3'd0), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[0]));
-	bitslip #(.WIDTH(8)) bs1 (.clock(word_clock), .bitslip(3'd1), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[1]));
-	bitslip #(.WIDTH(8)) bs2 (.clock(word_clock), .bitslip(3'd2), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[2]));
-	bitslip #(.WIDTH(8)) bs3 (.clock(word_clock), .bitslip(3'd3), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[3]));
-	bitslip #(.WIDTH(8)) bs4 (.clock(word_clock), .bitslip(3'd4), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[4]));
-	bitslip #(.WIDTH(8)) bs5 (.clock(word_clock), .bitslip(3'd5), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[5]));
-	bitslip #(.WIDTH(8)) bs6 (.clock(word_clock), .bitslip(3'd6), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[6]));
-	bitslip #(.WIDTH(8)) bs7 (.clock(word_clock), .bitslip(3'd7), .data_in(iserdes_word_raw), .data_out(iserdes_word_rotated[7]));
-	integer p;
-	always @(posedge word_clock) begin
-		if (reset_word) begin
-			status[12] <= 0;
-			status[11] <= 0;
-			status[10] <= 0;
-			status[9] <= 0;
-			status[8] <= 0;
-			status[7] <= 0;
-			status[6] <= 0;
-			status[5] <= 0;
-			status[4] <= 0;
-			status[3] <= 0;
-			status[2] <= 0;
-			status[1] <= 0;
-		end else begin
-			for (p=0; p<8; p=p+1) begin
-				if (pattern[12]==iserdes_word_rotated[p]) begin status[12][p] <= 1; end else begin status[12][p] <= 0; end
-				if (pattern[11]==iserdes_word_rotated[p]) begin status[11][p] <= 1; end else begin status[11][p] <= 0; end
-				if (pattern[10]==iserdes_word_rotated[p]) begin status[10][p] <= 1; end else begin status[10][p] <= 0; end
-				if (pattern[9] ==iserdes_word_rotated[p]) begin status[9][p]  <= 1; end else begin status[9][p]  <= 0; end
-				if (pattern[8] ==iserdes_word_rotated[p]) begin status[8][p]  <= 1; end else begin status[8][p]  <= 0; end
-				if (pattern[7] ==iserdes_word_rotated[p]) begin status[7][p]  <= 1; end else begin status[7][p]  <= 0; end
-				if (pattern[6] ==iserdes_word_rotated[p]) begin status[6][p]  <= 1; end else begin status[6][p]  <= 0; end
-				if (pattern[5] ==iserdes_word_rotated[p]) begin status[5][p]  <= 1; end else begin status[5][p]  <= 0; end
-				if (pattern[4] ==iserdes_word_rotated[p]) begin status[4][p]  <= 1; end else begin status[4][p]  <= 0; end
-				if (pattern[3] ==iserdes_word_rotated[p]) begin status[3][p]  <= 1; end else begin status[3][p]  <= 0; end
-				if (pattern[2] ==iserdes_word_rotated[p]) begin status[2][p]  <= 1; end else begin status[2][p]  <= 0; end
-				if (pattern[1] ==iserdes_word_rotated[p]) begin status[1][p]  <= 1; end else begin status[1][p]  <= 0; end
-			end
-		end
+		//$display("%d banks", NUMBER_OF_BANKS);
 	end
 endmodule
 
@@ -776,12 +709,7 @@ module top_tb;
 endmodule
 
 module myalthea #(
-	parameter LEFT_DAC_OUTER = 1,
-	parameter RIGHT_DAC_OUTER = 1,
-	parameter LEFT_DAC_ROTATED = 0,
-	parameter LEFT_DAC_INNER = 0,
-	parameter RIGHT_DAC_INNER = 0
-) (
+	) (
 	input clock50_p, clock50_n,
 	inout coax4,
 	inout coax3,
@@ -821,11 +749,8 @@ module myalthea #(
 	//assign led = internal_led;
 	assign coax_led = internal_coax_led;
 	wire [5:0] diff_pair_left;
-	if (1==LEFT_DAC_ROTATED) begin
-//		assign { a_p, c_p, d_p, f_p, b_p, e_p } = diff_pair_left; // rotated
-	end else begin
-		assign { a_n, c_n, d_n, f_n, b_n, e_n } = diff_pair_left; // flipped
-	end
+//	assign { a_p, c_p, d_p, f_p, b_p, e_p } = diff_pair_left; // rotated
+	assign { a_n, c_n, d_n, f_n, b_n, e_n } = diff_pair_left; // flipped
 	wire coax5, coax2, coax1;
 	wire [12:1] signal;
 	wire [12:1] indicator;
@@ -834,9 +759,6 @@ module myalthea #(
 	assign { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p } = signal;
 	assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	top #(
-		.LEFT_DAC_OUTER(LEFT_DAC_OUTER), .RIGHT_DAC_OUTER(RIGHT_DAC_OUTER),
-		.LEFT_DAC_ROTATED(LEFT_DAC_ROTATED),
-		.LEFT_DAC_INNER(LEFT_DAC_INNER), .RIGHT_DAC_INNER(RIGHT_DAC_INNER),
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
