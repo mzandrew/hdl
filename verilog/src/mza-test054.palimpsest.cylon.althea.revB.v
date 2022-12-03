@@ -114,27 +114,27 @@ module top #(
 			if (counter[COUNTER_PICKOFF:0]==1) begin
 				sync_out_word_alternate <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 				pattern[1] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==2) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==2) begin
 				pattern[2] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==3) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==3) begin
 				pattern[3] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==4) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==4) begin
 				pattern[4] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==5) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==5) begin
 				pattern[5] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==6) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==6) begin
 				pattern[6] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==7) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==7) begin
 				pattern[7] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==8) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==8) begin
 				pattern[8] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==9) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==9) begin
 				pattern[9] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==10) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==10) begin
 				pattern[10] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==11) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==11) begin
 				pattern[11] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==12) begin
+//			end else if (counter[COUNTER_PICKOFF:0]==12) begin
 				pattern[12] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end
 		end
