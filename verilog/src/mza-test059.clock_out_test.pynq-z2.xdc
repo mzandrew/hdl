@@ -125,16 +125,16 @@ create_clock -add -name alt_clk_pin -period 7.861 -waveform {0 3.93} [get_ports 
 
 ##Raspberry Digital I/O 
 set_property -dict { PACKAGE_PIN W18   IOSTANDARD LVCMOS25 } [get_ports { rpio_02_r }]; #IO_L22P_T3_34 Sch=rpio_02_r
-set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS25 } [get_ports { rpio_03_r }]; #IO_L22N_T3_34 Sch=rpio_03_r
-#set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS25 } [get_ports { rpio_04_r }]; #IO_L17P_T2_34 Sch=rpio_04_r
+#set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS25 } [get_ports { rpio_03_r }]; #IO_L22N_T3_34 Sch=rpio_03_r
+set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS25 } [get_ports { rpio_04_r }]; #IO_L17P_T2_34 Sch=rpio_04_r
 #set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS25 } [get_ports { rpio_05_r }]; #IO_L17N_T2_34 Sch=rpio_05_r
 #set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS25 } [get_ports { rpio_06_r }]; #IO_L22P_T3_13 Sch=rpio_06_r
 #set_property -dict { PACKAGE_PIN U19   IOSTANDARD LVCMOS25 } [get_ports { rpio_07_r }]; #IO_L12P_T1_MRCC_34 Sch=rpio_07_r
-#set_property -dict { PACKAGE_PIN F19   IOSTANDARD LVCMOS25 } [get_ports { rpio_08_r }]; #IO_L12N_T1_MRCC_34 Sch=rpio_08_r
-#set_property -dict { PACKAGE_PIN V10   IOSTANDARD LVCMOS25 } [get_ports { rpio_09_r }]; #IO_L21N_T3_DQS_13 Sch=rpio_09_r
-#set_property -dict { PACKAGE_PIN V8    IOSTANDARD LVCMOS25 } [get_ports { rpio_10_r }]; #IO_L15P_T2_DQS_13 Sch=rpio_10_r
-#set_property -dict { PACKAGE_PIN W10   IOSTANDARD LVCMOS25 } [get_ports { rpio_11_r }]; #IO_L16P_T2_13 Sch=rpio_11_r
-#set_property -dict { PACKAGE_PIN B20   IOSTANDARD LVCMOS25 } [get_ports { rpio_12_r }]; #IO_L1N_T0_AD0N_35 Sch=rpio_12_r
+set_property -dict { PACKAGE_PIN F19   IOSTANDARD LVCMOS25 } [get_ports { rpio_08_r }]; #IO_L12N_T1_MRCC_34 Sch=rpio_08_r
+set_property -dict { PACKAGE_PIN V10   IOSTANDARD LVCMOS25 } [get_ports { rpio_09_r }]; #IO_L21N_T3_DQS_13 Sch=rpio_09_r
+set_property -dict { PACKAGE_PIN V8    IOSTANDARD LVCMOS25 } [get_ports { rpio_10_r }]; #IO_L15P_T2_DQS_13 Sch=rpio_10_r
+set_property -dict { PACKAGE_PIN W10   IOSTANDARD LVCMOS25 } [get_ports { rpio_11_r }]; #IO_L16P_T2_13 Sch=rpio_11_r
+set_property -dict { PACKAGE_PIN B20   IOSTANDARD LVCMOS25 } [get_ports { rpio_12_r }]; #IO_L1N_T0_AD0N_35 Sch=rpio_12_r
 #set_property -dict { PACKAGE_PIN W8    IOSTANDARD LVCMOS25 } [get_ports { rpio_13_r }]; #IO_L15N_T2_DQS_13 Sch=rpio_13_r
 #set_property -dict { PACKAGE_PIN V6    IOSTANDARD LVCMOS25 } [get_ports { rpio_14_r }]; #IO_L22P_T3_13 Sch=rpio_14_r
 #set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS25 } [get_ports { rpio_15_r }]; #IO_L13N_T2_MRCC_13 Sch=rpio_15_r
@@ -153,26 +153,30 @@ set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS25 } [get_ports { rpio_0
 #set_property -dict { PACKAGE_PIN Y17   IOSTANDARD LVCMOS25 } [get_ports { rpio_sc_r }]; #IO_L7N_T1_34 Sch=rpio_sc_r
 
 ##HDMI Rx
-set_property -dict { PACKAGE_PIN H17   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_cec }]; #IO_L13N_T2_MRCC_35 Sch=hdmi_rx_cec
-#set_property -dict { PACKAGE_PIN P19   IOSTANDARD LVDS_25  } [get_ports { hdmi_rx_clk_n }]; #IO_L13N_T2_MRCC_34 Sch=hdmi_rx_clk_n
-#set_property -dict { PACKAGE_PIN N18   IOSTANDARD LVDS_25  } [get_ports { hdmi_rx_clk_p }]; #IO_L13P_T2_MRCC_34 Sch=hdmi_rx_clk_p
-set_property -dict { PACKAGE_PIN N18   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_clk_p }]; #IO_L13P_T2_MRCC_34 Sch=hdmi_rx_clk_p
-#set_property -dict { PACKAGE_PIN W20   IOSTANDARD LVDS_25  } [get_ports { hdmi_rx_d_n[0] }]; #IO_L16N_T2_34 Sch=hdmi_rx_d_n[0]
-#set_property -dict { PACKAGE_PIN V20   IOSTANDARD LVDS_25  } [get_ports { hdmi_rx_d_p[0] }]; #IO_L16P_T2_34 Sch=hdmi_rx_d_p[0]
-#set_property -dict { PACKAGE_PIN U20   IOSTANDARD LVDS_25  } [get_ports { hdmi_rx_d_n[1] }]; #IO_L15N_T2_DQS_34 Sch=hdmi_rx_d_n[1]
-#set_property -dict { PACKAGE_PIN T20   IOSTANDARD LVDS_25  } [get_ports { hdmi_rx_d_p[1] }]; #IO_L15P_T2_DQS_34 Sch=hdmi_rx_d_p[1]
-#set_property -dict { PACKAGE_PIN P20   IOSTANDARD LVDS_25  } [get_ports { hdmi_rx_d_n[2] }]; #IO_L14N_T2_SRCC_34 Sch=hdmi_rx_d_n[2]
-#set_property -dict { PACKAGE_PIN N20   IOSTANDARD LVDS_25  } [get_ports { hdmi_rx_d_p[2] }]; #IO_L14P_T2_SRCC_34 Sch=hdmi_rx_d_p[2]
+#set_property -dict { PACKAGE_PIN H17   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_cec }]; #IO_L13N_T2_MRCC_35 Sch=hdmi_rx_cec
+#set_property -dict { PACKAGE_PIN P19   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_clk_n }]; #IO_L13N_T2_MRCC_34 Sch=hdmi_rx_clk_n
+set_property -dict { PACKAGE_PIN N18   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_clk_p }]; #IO_L13P_T2_MRCC_34 Sch=hdmi_rx_clk_p
+#set_property -dict { PACKAGE_PIN N18   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_clk_p }]; #IO_L13P_T2_MRCC_34 Sch=hdmi_rx_clk_p
+#set_property -dict { PACKAGE_PIN W20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_n }]; #IO_L16N_T2_34 Sch=hdmi_rx_d_n[0]
+set_property -dict { PACKAGE_PIN V20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p }]; #IO_L16P_T2_34 Sch=hdmi_rx_d_p[0]
+#set_property -dict { PACKAGE_PIN W20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_n[0] }]; #IO_L16N_T2_34 Sch=hdmi_rx_d_n[0]
+#set_property -dict { PACKAGE_PIN V20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p[0] }]; #IO_L16P_T2_34 Sch=hdmi_rx_d_p[0]
+#set_property -dict { PACKAGE_PIN U20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_n[1] }]; #IO_L15N_T2_DQS_34 Sch=hdmi_rx_d_n[1]
+#set_property -dict { PACKAGE_PIN T20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p[1] }]; #IO_L15P_T2_DQS_34 Sch=hdmi_rx_d_p[1]
+#set_property -dict { PACKAGE_PIN P20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_n[2] }]; #IO_L14N_T2_SRCC_34 Sch=hdmi_rx_d_n[2]
+#set_property -dict { PACKAGE_PIN N20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p[2] }]; #IO_L14P_T2_SRCC_34 Sch=hdmi_rx_d_p[2]
 #set_property -dict { PACKAGE_PIN T19   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_hpd }]; #IO_25_34 Sch=hdmi_rx_hpd
 set_property -dict { PACKAGE_PIN U14   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_scl }]; #IO_L11P_T1_SRCC_34 Sch=hdmi_rx_scl
 set_property -dict { PACKAGE_PIN U15   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_sda }]; #IO_L11N_T1_SRCC_34 Sch=hdmi_rx_sda
 
-create_clock -add -name src_clk_pin -period 0.786 -waveform {0 0.393} [get_ports { hdmi_rx_clk_p }]; # actual data rate
+#create_clock -add -name src_clk_pin -period 0.786 -waveform {0 0.393} [get_ports { hdmi_rx_clk_p }]; # actual data rate
+#create_clock -add -name src_clk_pin -period 1.572 -waveform {0 0.786} [get_ports { hdmi_rx_clk_p }]; # half data rate
+create_clock -add -name src_clk_pin -period 1.8 -waveform {0 0.9} [get_ports { hdmi_rx_clk_p }]; # a little slower than half data rate
 #create_clock -add -name src_clk_pin -period 1 -waveform {0 0.5} [get_ports { hdmi_rx_clk_p }]; # fake
 
 ##HDMI Tx
 #set_property -dict { PACKAGE_PIN G15   IOSTANDARD LVCMOS25 } [get_ports { hdmi_tx_cec }]; #IO_L19N_T3_VREF_35 Sch=hdmi_tx_cec
-set_property -dict { PACKAGE_PIN L17   IOSTANDARD LVDS_25  } [get_ports { hdmi_tx_clk_n }]; #IO_L11N_T1_SRCC_35 Sch=hdmi_tx_clk_n
+#set_property -dict { PACKAGE_PIN L17   IOSTANDARD LVDS_25  } [get_ports { hdmi_tx_clk_n }]; #IO_L11N_T1_SRCC_35 Sch=hdmi_tx_clk_n
 set_property -dict { PACKAGE_PIN L16   IOSTANDARD LVDS_25  } [get_ports { hdmi_tx_clk_p }]; #IO_L11P_T1_SRCC_35 Sch=hdmi_tx_clk_p
 #set_property -dict { PACKAGE_PIN K18   IOSTANDARD LVDS_25  } [get_ports { hdmi_tx_d_n[0] }]; #IO_L12N_T1_MRCC_35 Sch=hdmi_tx_d_n[0]
 #set_property -dict { PACKAGE_PIN K17   IOSTANDARD LVDS_25  } [get_ports { hdmi_tx_d_p[0] }]; #IO_L12P_T1_MRCC_35 Sch=hdmi_tx_d_p[0]
