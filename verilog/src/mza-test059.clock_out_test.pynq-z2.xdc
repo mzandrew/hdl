@@ -135,11 +135,11 @@ set_property -dict { PACKAGE_PIN V10   IOSTANDARD LVCMOS25 } [get_ports { rpio_0
 set_property -dict { PACKAGE_PIN V8    IOSTANDARD LVCMOS25 } [get_ports { rpio_10_r }]; #IO_L15P_T2_DQS_13 Sch=rpio_10_r
 set_property -dict { PACKAGE_PIN W10   IOSTANDARD LVCMOS25 } [get_ports { rpio_11_r }]; #IO_L16P_T2_13 Sch=rpio_11_r
 set_property -dict { PACKAGE_PIN B20   IOSTANDARD LVCMOS25 } [get_ports { rpio_12_r }]; #IO_L1N_T0_AD0N_35 Sch=rpio_12_r
-#set_property -dict { PACKAGE_PIN W8    IOSTANDARD LVCMOS25 } [get_ports { rpio_13_r }]; #IO_L15N_T2_DQS_13 Sch=rpio_13_r
-#set_property -dict { PACKAGE_PIN V6    IOSTANDARD LVCMOS25 } [get_ports { rpio_14_r }]; #IO_L22P_T3_13 Sch=rpio_14_r
-#set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS25 } [get_ports { rpio_15_r }]; #IO_L13N_T2_MRCC_13 Sch=rpio_15_r
-#set_property -dict { PACKAGE_PIN B19   IOSTANDARD LVCMOS25 } [get_ports { rpio_16_r }]; #IO_L2P_T0_AD8P_35 Sch=rpio_16_r
-#set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS25 } [get_ports { rpio_17_r }]; #IO_L11P_T1_SRCC_13 Sch=rpio_17_r
+set_property -dict { PACKAGE_PIN W8    IOSTANDARD LVCMOS25 } [get_ports { rpio_13_r }]; #IO_L15N_T2_DQS_13 Sch=rpio_13_r
+set_property -dict { PACKAGE_PIN V6    IOSTANDARD LVCMOS25 } [get_ports { rpio_14_r }]; #IO_L22P_T3_13 Sch=rpio_14_r
+set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS25 } [get_ports { rpio_15_r }]; #IO_L13N_T2_MRCC_13 Sch=rpio_15_r
+set_property -dict { PACKAGE_PIN B19   IOSTANDARD LVCMOS25 } [get_ports { rpio_16_r }]; #IO_L2P_T0_AD8P_35 Sch=rpio_16_r
+set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS25 } [get_ports { rpio_17_r }]; #IO_L11P_T1_SRCC_13 Sch=rpio_17_r
 #set_property -dict { PACKAGE_PIN C20   IOSTANDARD LVCMOS25 } [get_ports { rpio_18_r }]; #IO_L1P_T0_AD0P_35 Sch=rpio_18_r
 #set_property -dict { PACKAGE_PIN Y8    IOSTANDARD LVCMOS25 } [get_ports { rpio_19_r }]; #IO_L14N_T2_SRCC_13 Sch=rpio_19_r
 #set_property -dict { PACKAGE_PIN A20   IOSTANDARD LVCMOS25 } [get_ports { rpio_20_r }]; #IO_L2N_T0_AD8N_35 Sch=rpio_20_r
