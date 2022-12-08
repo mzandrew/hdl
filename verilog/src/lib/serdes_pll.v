@@ -268,7 +268,6 @@ module ocyrus_single8_inner #(
 	input [BIT_RATIO-1:0] word_in,
 	output bit_out
 );
-	wire cascade_do1, cascade_to1, cascade_di1, cascade_ti1;
 	wire cascade_do2, cascade_to2, cascade_di2, cascade_ti2;
 	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
 	// want MSB of word to come out first (D1 comes out first; secondary oserdes goes first)
