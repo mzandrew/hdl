@@ -10,6 +10,8 @@ module icyrus7series5bit (
 	output [4:0] output_word,
 	input input_bit
 );
+	wire the_bit_clock;
+	BUFIO mediate (.I(bit_clock), .O(the_bit_clock));
 	BUFR #(.BUFR_DIVIDE("5"), .SIM_DEVICE("7SERIES")) deviate (.I(bit_clock), .O(word_clock), .CLR(reset), .CE(1'b1));
 	// ISERDESE2: Input SERial/DESerializer with Bitslip
 	// 7 Series Xilinx HDL Language Template, version 2018.3
@@ -37,7 +39,7 @@ module icyrus7series5bit (
 		.CE1(1'b1), .CE2(1'b1), // CE1, CE2: 1-bit (each) input: Data register clock enable inputs
 		.CLKDIVP(1'b0), // 1-bit input: MIG only; all others connect to GND
 		// Clocks: 1-bit (each) input: ISERDESE2 clock input ports
-		.CLK(bit_clock), // 1-bit input: High-speed clock
+		.CLK(the_bit_clock), // 1-bit input: High-speed clock
 		.CLKB(1'b0), // 1-bit input: High-speed secondary clock
 		.CLKDIV(word_clock), // 1-bit input: Divided clock
 		.OCLK(1'b0), // 1-bit input: High speed output clock used when INTERFACE_TYPE="MEMORY"; all others connect to GND
