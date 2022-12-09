@@ -171,8 +171,8 @@ set_property -dict { PACKAGE_PIN U15   IOSTANDARD LVCMOS25 } [get_ports { hdmi_r
 
 #create_clock -add -name src_clk_pin -period 0.786 -waveform {0 0.393} [get_ports { hdmi_rx_clk_p }]; # actual data rate
 #create_clock -add -name src_clk_pin -period 1.572 -waveform {0 0.786} [get_ports { hdmi_rx_clk_p }]; # half data rate
-#create_clock -add -name src_clk_pin -period 1.8 -waveform {0 0.9} [get_ports { hdmi_rx_clk_p }]; # a little slower than half data rate
 create_clock -add -name src_clk_pin -period 1.667 -waveform {0 0.833} [get_ports { hdmi_rx_clk_p }]; # at the limit of what will pass timing
+#create_clock -add -name src_clk_pin -period 1.6 -waveform {0 0.8} [get_ports { hdmi_rx_clk_p }]; # too fast for a z7020
 
 ##HDMI Tx
 #set_property -dict { PACKAGE_PIN G15   IOSTANDARD LVCMOS25 } [get_ports { hdmi_tx_cec }]; #IO_L19N_T3_VREF_35 Sch=hdmi_tx_cec
