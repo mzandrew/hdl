@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // written 2022-11-16 by mza
-// last updated 2022-12-08 by mza
+// last updated 2022-12-09 by mza
 
 module icyrus7series10bit (
 	input bit_clock, bit_clock_inverted,
@@ -100,9 +100,12 @@ module clock_out_test #(
 	parameter clock_select = 0
 ) (
 //	input sysclk, // 125 MHz, comes from RTL8211 (ethernet) via 50 MHz osc
+	output [7:0] jb, // pmodB
 	input [5:4] ja, // 127.216 MHz, comes from PMODA
+//	input [7:6] ja, // 42.3724 MHz, comes from PMODA
 //	input hdmi_rx_clk_p, // dummy for 1.27216 GHz clock from gulfstream
-//	input hdmi_rx_cec, // dummy data
+//	output hdmi_rx_cec, // dummy data
+	output hdmi_tx_cec, // dummy data
 	output rpio_02_r, // clock out
 //	output rpio_03_r, // dummy output
 	output rpio_04_r, // source word_clock out
@@ -134,15 +137,18 @@ module clock_out_test #(
 	if (clock_select) begin
 //		IBUFG clock_in (.I(sysclk), .O(clock));
 	end else begin
-		IBUFGDS clock_in (.I(ja[4]), .IB(ja[5]), .O(clock));
+		IBUFGDS clock_in_diff (.I(ja[4]), .IB(ja[5]), .O(clock));
+		//IBUFG clock_in_se (.I(ja[7]), .O(clock));
 	end
 	OBUFDS (.I(clock), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
 	assign rpio_02_r = clock;
+	assign hdmi_tx_cec = clock;
 //	reg thing = 0;
 //	always @(posedge hdmi_rx_clk_p) begin
 //		thing <= hdmi_rx_cec;
 //	end
 //	assign rpio_03_r = thing;
+//	assign rpio_03_r = clock;
 	wire bit_clock;
 	wire bit_clock_inverted;
 	IOBUFDS_DIFF_OUT clock_in (.IO(hdmi_rx_clk_p), .IOB(hdmi_rx_clk_n), .TM(1'b1), .TS(1'b1), .I(1'b0), .O(bit_clock), .OB(bit_clock_inverted));
@@ -152,6 +158,7 @@ module clock_out_test #(
 	assign rpio_04_r = word_clock;
 	wire [9:0] output_word;
 	assign { rpio_17_r, rpio_16_r, rpio_15_r, rpio_14_r, rpio_13_r, rpio_12_r, rpio_11_r, rpio_10_r, rpio_09_r, rpio_08_r } = output_word;
+	assign jb = output_word[9:2];
 	icyrus7series10bit (.bit_clock(bit_clock), .bit_clock_inverted(bit_clock_inverted), .word_clock(word_clock), .reset(reset), .output_word(output_word), .input_bit(input_bit));
 endmodule
 

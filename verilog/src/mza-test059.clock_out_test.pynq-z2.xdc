@@ -1,6 +1,6 @@
 # started 2022-11-16 by mza
 # taken from "master xdc" at https://www.tulembedded.com/FPGA/ProductsPYNQ-Z2.html
-# last updated 2022-12-08 by mza
+# last updated 2022-12-09 by mza
 
 ## This file is a general .xdc for the PYNQ-Z2 board 
 ## To use it in a project:
@@ -36,28 +36,29 @@
 #set_property -dict { PACKAGE_PIN L19   IOSTANDARD LVCMOS25 } [get_ports { btn[3] }]; #IO_L9P_T1_DQS_AD3P_35 Sch=btn[3]
 
 ##PmodA
-#set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS25 } [get_ports { ja[0] }]; #IO_L17P_T2_34 Sch=ja_p[1]
-#set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS25 } [get_ports { ja[1] }]; #IO_L17N_T2_34 Sch=ja_n[1]
-#set_property -dict { PACKAGE_PIN Y16   IOSTANDARD LVCMOS25 } [get_ports { ja[2] }]; #IO_L7P_T1_34 Sch=ja_p[2]
-#set_property -dict { PACKAGE_PIN Y17   IOSTANDARD LVCMOS25 } [get_ports { ja[3] }]; #IO_L7N_T1_34 Sch=ja_n[2]
-#set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS25 } [get_ports { ja[4] }]; #IO_L12P_T1_MRCC_34 Sch=ja_p[3]
-#set_property -dict { PACKAGE_PIN U19   IOSTANDARD LVCMOS25 } [get_ports { ja[5] }]; #IO_L12N_T1_MRCC_34 Sch=ja_n[3]
-set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVDS_25  DIFF_TERM TRUE } [get_ports { ja[4] }]; #IO_L12P_T1_MRCC_34 Sch=ja_p[3]
-set_property -dict { PACKAGE_PIN U19   IOSTANDARD LVDS_25  DIFF_TERM TRUE } [get_ports { ja[5] }]; #IO_L12N_T1_MRCC_34 Sch=ja_n[3]
-#set_property -dict { PACKAGE_PIN W18   IOSTANDARD LVCMOS25 } [get_ports { ja[6] }]; #IO_L22P_T3_34 Sch=ja_p[4]
-#set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS25 } [get_ports { ja[7] }]; #IO_L22N_T3_34 Sch=ja_n[4]
+#set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS25 } [get_ports { ja[0] }]; #IO_L17P_T2_34 Sch=ja_p[1] pmodA_pin1 clock_pmod_pin1
+#set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS25 } [get_ports { ja[1] }]; #IO_L17N_T2_34 Sch=ja_n[1] pmodA_pin2 clock_pmod_pin3
+#set_property -dict { PACKAGE_PIN Y16   IOSTANDARD LVCMOS25 } [get_ports { ja[2] }]; #IO_L7P_T1_34 Sch=ja_p[2] pmodA_pin3 clock_pmod_pin5
+#set_property -dict { PACKAGE_PIN Y17   IOSTANDARD LVCMOS25 } [get_ports { ja[3] }]; #IO_L7N_T1_34 Sch=ja_n[2] pmodA_pin4 clock_pmod_pin7
+#set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS25 } [get_ports { ja[4] }]; #IO_L12P_T1_MRCC_34 Sch=ja_p[3] pmodA_pin7 clock_pmod_pin0
+#set_property -dict { PACKAGE_PIN U19   IOSTANDARD LVCMOS25 } [get_ports { ja[5] }]; #IO_L12N_T1_MRCC_34 Sch=ja_n[3] pmodA_pin8 clock_pmod_pin2
+set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVDS_25  DIFF_TERM TRUE } [get_ports { ja[4] }]; #IO_L12P_T1_MRCC_34 Sch=ja_p[3] pmodA_pin7 clock_pmod_pin0
+set_property -dict { PACKAGE_PIN U19   IOSTANDARD LVDS_25  DIFF_TERM TRUE } [get_ports { ja[5] }]; #IO_L12N_T1_MRCC_34 Sch=ja_n[3] pmodA_pin8 clock_pmod_pin2
+#set_property -dict { PACKAGE_PIN W18   IOSTANDARD LVCMOS25 } [get_ports { ja[6] }]; #IO_L22P_T3_34 Sch=ja_p[4] pmodA_pin9 clock_pmod_pin4
+#set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS25 } [get_ports { ja[7] }]; #IO_L22N_T3_34 Sch=ja_n[4] pmodA_pin10 clock_pmod_pin6
 
 create_clock -add -name alt_clk_pin -period 7.861 -waveform {0 3.93} [get_ports { ja[4] }];
+#create_clock -add -name alt_alt_clk_pin -period 23.6 -waveform {0 11.8} [get_ports { ja[7] }];
 
 ##PmodB
-#set_property -dict { PACKAGE_PIN W14   IOSTANDARD LVCMOS25 } [get_ports { jb[0] }]; #IO_L8P_T1_34 Sch=jb_p[1]
-#set_property -dict { PACKAGE_PIN Y14   IOSTANDARD LVCMOS25 } [get_ports { jb[1] }]; #IO_L8N_T1_34 Sch=jb_n[1]
-#set_property -dict { PACKAGE_PIN T11   IOSTANDARD LVCMOS25 } [get_ports { jb[2] }]; #IO_L1P_T0_34 Sch=jb_p[2]
-#set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS25 } [get_ports { jb[3] }]; #IO_L1N_T0_34 Sch=jb_n[2]
-#set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS25 } [get_ports { jb[4] }]; #IO_L18P_T2_34 Sch=jb_p[3]
-#set_property -dict { PACKAGE_PIN W16   IOSTANDARD LVCMOS25 } [get_ports { jb[5] }]; #IO_L18N_T2_34 Sch=jb_n[3]
-#set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS25 } [get_ports { jb[6] }]; #IO_L4P_T0_34 Sch=jb_p[4]
-#set_property -dict { PACKAGE_PIN W13   IOSTANDARD LVCMOS25 } [get_ports { jb[7] }]; #IO_L4N_T0_34 Sch=jb_n[4]
+set_property -dict { PACKAGE_PIN W14   IOSTANDARD LVCMOS25 } [get_ports { jb[0] }]; #IO_L8P_T1_34 Sch=jb_p[1]
+set_property -dict { PACKAGE_PIN Y14   IOSTANDARD LVCMOS25 } [get_ports { jb[1] }]; #IO_L8N_T1_34 Sch=jb_n[1]
+set_property -dict { PACKAGE_PIN T11   IOSTANDARD LVCMOS25 } [get_ports { jb[2] }]; #IO_L1P_T0_34 Sch=jb_p[2]
+set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS25 } [get_ports { jb[3] }]; #IO_L1N_T0_34 Sch=jb_n[2]
+set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS25 } [get_ports { jb[4] }]; #IO_L18P_T2_34 Sch=jb_p[3]
+set_property -dict { PACKAGE_PIN W16   IOSTANDARD LVCMOS25 } [get_ports { jb[5] }]; #IO_L18N_T2_34 Sch=jb_n[3]
+set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS25 } [get_ports { jb[6] }]; #IO_L4P_T0_34 Sch=jb_p[4]
+set_property -dict { PACKAGE_PIN W13   IOSTANDARD LVCMOS25 } [get_ports { jb[7] }]; #IO_L4N_T0_34 Sch=jb_n[4]
 
 ##Audio 
 #set_property -dict { PACKAGE_PIN M17   IOSTANDARD LVCMOS25 } [get_ports { adr0 }]; #IO_L8P_T1_AD10P_35 Sch=adr0
@@ -125,7 +126,7 @@ create_clock -add -name alt_clk_pin -period 7.861 -waveform {0 3.93} [get_ports 
 
 ##Raspberry Digital I/O 
 set_property -dict { PACKAGE_PIN W18   IOSTANDARD LVCMOS25 } [get_ports { rpio_02_r }]; #IO_L22P_T3_34 Sch=rpio_02_r
-#set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS25 } [get_ports { rpio_03_r }]; #IO_L22N_T3_34 Sch=rpio_03_r
+#set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS25 } [get_ports { rpio_03_r }]; #IO_L22N_T3_34 Sch=rpio_03_r conflicts with ja[6]
 set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS25 } [get_ports { rpio_04_r }]; #IO_L17P_T2_34 Sch=rpio_04_r
 #set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS25 } [get_ports { rpio_05_r }]; #IO_L17N_T2_34 Sch=rpio_05_r
 #set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS25 } [get_ports { rpio_06_r }]; #IO_L22P_T3_13 Sch=rpio_06_r
@@ -175,7 +176,7 @@ create_clock -add -name src_clk_pin -period 1.667 -waveform {0 0.833} [get_ports
 #create_clock -add -name src_clk_pin -period 1.6 -waveform {0 0.8} [get_ports { hdmi_rx_clk_p }]; # too fast for a z7020
 
 ##HDMI Tx
-#set_property -dict { PACKAGE_PIN G15   IOSTANDARD LVCMOS25 } [get_ports { hdmi_tx_cec }]; #IO_L19N_T3_VREF_35 Sch=hdmi_tx_cec
+set_property -dict { PACKAGE_PIN G15   IOSTANDARD LVCMOS25 } [get_ports { hdmi_tx_cec }]; #IO_L19N_T3_VREF_35 Sch=hdmi_tx_cec
 #set_property -dict { PACKAGE_PIN L17   IOSTANDARD LVDS_25  } [get_ports { hdmi_tx_clk_n }]; #IO_L11N_T1_SRCC_35 Sch=hdmi_tx_clk_n
 set_property -dict { PACKAGE_PIN L16   IOSTANDARD LVDS_25  } [get_ports { hdmi_tx_clk_p }]; #IO_L11P_T1_SRCC_35 Sch=hdmi_tx_clk_p
 #set_property -dict { PACKAGE_PIN K18   IOSTANDARD LVDS_25  } [get_ports { hdmi_tx_d_n[0] }]; #IO_L12N_T1_MRCC_35 Sch=hdmi_tx_d_n[0]
