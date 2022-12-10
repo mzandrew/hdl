@@ -125,8 +125,8 @@ module clock_out_test #(
 	inout hdmi_rx_clk_n,
 	//input [2:0] hdmi_rx_d_p, // input_bit
 	//input [2:0] hdmi_rx_d_n,
-	input hdmi_rx_d_p, // input_bit
-	input hdmi_rx_d_n,
+	input [2:0] hdmi_rx_d_p, // input_bit
+	input [2:0] hdmi_rx_d_n,
 	inout hdmi_rx_scl,
 	output hdmi_rx_sda
 );
@@ -153,7 +153,7 @@ module clock_out_test #(
 	wire bit_clock_inverted;
 	IOBUFDS_DIFF_OUT clock_in (.IO(hdmi_rx_clk_p), .IOB(hdmi_rx_clk_n), .TM(1'b1), .TS(1'b1), .I(1'b0), .O(bit_clock), .OB(bit_clock_inverted));
 	wire input_bit;
-	IBUFGDS data_in (.I(hdmi_rx_d_p), .IB(hdmi_rx_d_n), .O(input_bit));
+	IBUFDS data_in (.I(hdmi_rx_d_p[1]), .IB(hdmi_rx_d_n[1]), .O(input_bit));
 	wire word_clock;
 	assign rpio_04_r = word_clock;
 	wire [9:0] output_word;

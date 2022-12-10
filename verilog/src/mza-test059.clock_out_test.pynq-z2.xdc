@@ -159,13 +159,13 @@ set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS25 } [get_ports { rpio_1
 set_property -dict { PACKAGE_PIN N18   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_clk_p }]; #IO_L13P_T2_MRCC_34 Sch=hdmi_rx_clk_p
 #set_property -dict { PACKAGE_PIN N18   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_clk_p }]; #IO_L13P_T2_MRCC_34 Sch=hdmi_rx_clk_p
 #set_property -dict { PACKAGE_PIN W20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_n }]; #IO_L16N_T2_34 Sch=hdmi_rx_d_n[0]
-set_property -dict { PACKAGE_PIN V20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p }]; #IO_L16P_T2_34 Sch=hdmi_rx_d_p[0]
+#set_property -dict { PACKAGE_PIN V20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p }]; #IO_L16P_T2_34 Sch=hdmi_rx_d_p[0]
 #set_property -dict { PACKAGE_PIN W20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_n[0] }]; #IO_L16N_T2_34 Sch=hdmi_rx_d_n[0]
-#set_property -dict { PACKAGE_PIN V20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p[0] }]; #IO_L16P_T2_34 Sch=hdmi_rx_d_p[0]
+set_property -dict { PACKAGE_PIN V20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p[0] }]; #IO_L16P_T2_34 Sch=hdmi_rx_d_p[0]
 #set_property -dict { PACKAGE_PIN U20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_n[1] }]; #IO_L15N_T2_DQS_34 Sch=hdmi_rx_d_n[1]
-#set_property -dict { PACKAGE_PIN T20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p[1] }]; #IO_L15P_T2_DQS_34 Sch=hdmi_rx_d_p[1]
+set_property -dict { PACKAGE_PIN T20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p[1] }]; #IO_L15P_T2_DQS_34 Sch=hdmi_rx_d_p[1]
 #set_property -dict { PACKAGE_PIN P20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_n[2] }]; #IO_L14N_T2_SRCC_34 Sch=hdmi_rx_d_n[2]
-#set_property -dict { PACKAGE_PIN N20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p[2] }]; #IO_L14P_T2_SRCC_34 Sch=hdmi_rx_d_p[2]
+set_property -dict { PACKAGE_PIN N20   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_d_p[2] }]; #IO_L14P_T2_SRCC_34 Sch=hdmi_rx_d_p[2]
 #set_property -dict { PACKAGE_PIN T19   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_hpd }]; #IO_25_34 Sch=hdmi_rx_hpd
 set_property -dict { PACKAGE_PIN U14   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_scl }]; #IO_L11P_T1_SRCC_34 Sch=hdmi_rx_scl
 set_property -dict { PACKAGE_PIN U15   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_sda }]; #IO_L11N_T1_SRCC_34 Sch=hdmi_rx_sda
