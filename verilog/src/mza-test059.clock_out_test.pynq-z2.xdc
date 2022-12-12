@@ -1,6 +1,6 @@
 # started 2022-11-16 by mza
 # taken from "master xdc" at https://www.tulembedded.com/FPGA/ProductsPYNQ-Z2.html
-# last updated 2022-12-09 by mza
+# last updated 2022-12-12 by mza
 
 ## This file is a general .xdc for the PYNQ-Z2 board 
 ## To use it in a project:
@@ -12,8 +12,8 @@
 #create_clock -add -name sys_clk_pin -period 8.00 -waveform {0 4} [get_ports { sysclk }];
 
 ##Switches
-#set_property -dict { PACKAGE_PIN M20   IOSTANDARD LVCMOS25 } [get_ports { sw[0] }]; #IO_L7N_T1_AD2N_35 Sch=sw[0]
-#set_property -dict { PACKAGE_PIN M19   IOSTANDARD LVCMOS25 } [get_ports { sw[1] }]; #IO_L7P_T1_AD2P_35 Sch=sw[1]
+set_property -dict { PACKAGE_PIN M20   IOSTANDARD LVCMOS25 PULL_UP TRUE } [get_ports { sw[0] }]; #IO_L7N_T1_AD2N_35 Sch=sw[0]
+set_property -dict { PACKAGE_PIN M19   IOSTANDARD LVCMOS25 PULL_UP TRUE } [get_ports { sw[1] }]; #IO_L7P_T1_AD2P_35 Sch=sw[1]
 
 ##RGB LEDs
 #set_property -dict { PACKAGE_PIN L15   IOSTANDARD LVCMOS25 } [get_ports { led4_b }]; #IO_L22N_T3_AD7N_35 Sch=led4_b
@@ -191,5 +191,5 @@ set_property -dict { PACKAGE_PIN L16   IOSTANDARD LVDS_25  } [get_ports { hdmi_t
 #set_property -dict { PACKAGE_PIN J15   IOSTANDARD LVCMOS25 } [get_ports { crypto_sda }]; #IO_25_35 Sch=crypto_sda
 
 set_property CFGBVS VCCO [current_design];
-set_property CONFIG_VOLTAGE 3.3 [current_design];
+set_property CONFIG_VOLTAGE 2.5 [current_design];
 
