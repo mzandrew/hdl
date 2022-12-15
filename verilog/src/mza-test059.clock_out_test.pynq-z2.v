@@ -152,7 +152,8 @@ module clock_out_test #(
 	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_inst3 (.C(clock), .CE(clock_enable), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_oddr3));
 	OBUFDS (.I(clock_oddr1), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
 	assign rpio_02_r = clock_oddr2;
-	assign hdmi_tx_cec = clock_oddr3;
+	//assign hdmi_tx_cec = clock_oddr3;
+	assign hdmi_tx_cec = 0;
 //	reg thing = 0;
 //	always @(posedge hdmi_rx_clk_p) begin
 //		thing <= hdmi_rx_cec;
