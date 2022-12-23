@@ -99,7 +99,7 @@ endmodule
 module clock_out_test #(
 	parameter clock_select = 0
 ) (
-//	input sysclk, // 125 MHz, comes from RTL8211 (ethernet) via 50 MHz osc
+//	input sysclk, // unreliable 125 MHz, comes from RTL8211 (ethernet) via 50 MHz osc
 	output [7:0] jb, // pmodB
 	input [5:4] ja, // 127.216 MHz, comes from PMODA
 //	input [7:6] ja, // 42.3724 MHz, comes from PMODA
@@ -119,20 +119,28 @@ module clock_out_test #(
 	output rpio_15_r, // output_word[7]
 	output rpio_16_r, // output_word[8]
 	output rpio_17_r, // output_word[9]
-	output hdmi_tx_clk_p, // dummy output
+	output hdmi_tx_clk_p, // sysclk output (TMDS_33 but pulled towards 1.2V with 28 Ohm resistors)
 	output hdmi_tx_clk_n,
-	input hdmi_rx_clk_p, // bit_clock in; 1.27216 GHz clock from gulfstream
+	input hdmi_rx_clk_p, // bit_clock in; 1.27216 GHz clock from gulfstream (TMDS_33 but pulled towards 1.2V with 28 Ohm resistors)
 	input hdmi_rx_clk_n,
-	//input [2:0] hdmi_rx_d_p, // input_bit
-	//input [2:0] hdmi_rx_d_n,
-	input [2:0] hdmi_rx_d_p, // input_bit
+	input [2:0] hdmi_rx_d_p, // input_bit (TMDS_33 but pulled towards 1.2V with 28 Ohm resistors)
 	input [2:0] hdmi_rx_d_n,
-	inout hdmi_rx_scl,
-	output hdmi_rx_sda
+	input hdmi_tx_d2_p, // input_bit (TMDS_33 but pulled towards 1.2V with 28 Ohm resistors)
+	input hdmi_tx_d2_n,
+	output hdmi_tx_d1_p, // calmode (LVCMOS33 but can't drive below 0.7V due to 50 Ohm pullups on pynq board)
+	output hdmi_tx_d1_n, // sckdac (LVCMOS33 but can't drive below 0.7V due to 50 Ohm pullups on pynq board)
+	output hdmi_tx_d0_p, // sdidac (LVCMOS33 but can't drive below 0.7V due to 50 Ohm pullups on pynq board)
+	output hdmi_tx_d0_n, // cslddac (active low; LVCMOS33 but can't drive below 0.7V due to 50 Ohm pullups on pynq board)
+	inout hdmi_rx_scl, // LVCMOS33 but only driven to 0 or z, never to 1
+	inout hdmi_rx_sda // LVCMOS33 but only driven to 0 or z, never to 1
 );
 	wire reset = 0;
-	assign hdmi_rx_scl = 0;
-	assign hdmi_rx_sda = 0;
+	assign hdmi_rx_scl = 1'bz;
+	assign hdmi_rx_sda = 1'bz;
+//	assign hdmi_tx_d1_p = 0; // calmode
+	assign hdmi_tx_d1_n = 0; // sckdac
+	assign hdmi_tx_d0_p = 0; // sdidac
+	assign hdmi_tx_d0_n = 1; // cslddac active low
 	wire clock;
 	if (clock_select) begin
 //		IBUFG clock_in (.I(sysclk), .O(clock));
@@ -143,6 +151,7 @@ module clock_out_test #(
 //	OBUFDS (.I(clock), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
 	wire clock_enable;
 	assign clock_enable = sw[0];
+	assign hdmi_tx_d1_p = sw[1]; // calmode
 	wire clock_oddr1;
 	wire clock_oddr2;
 	wire clock_oddr3;

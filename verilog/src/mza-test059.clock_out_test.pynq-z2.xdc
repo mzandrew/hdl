@@ -1,6 +1,6 @@
 # started 2022-11-16 by mza
 # taken from "master xdc" at https://www.tulembedded.com/FPGA/ProductsPYNQ-Z2.html
-# last updated 2022-12-12 by mza
+# last updated 2022-12-23 by mza
 
 ## This file is a general .xdc for the PYNQ-Z2 board 
 ## To use it in a project:
@@ -183,8 +183,13 @@ set_property -dict { PACKAGE_PIN L16   IOSTANDARD TMDS_33  } [get_ports { hdmi_t
 #set_property -dict { PACKAGE_PIN K17   IOSTANDARD TMDS_33  } [get_ports { hdmi_tx_d_p[0] }]; #IO_L12P_T1_MRCC_35 Sch=hdmi_tx_d_p[0]
 #set_property -dict { PACKAGE_PIN J19   IOSTANDARD TMDS_33  } [get_ports { hdmi_tx_d_n[1] }]; #IO_L10N_T1_AD11N_35 Sch=hdmi_tx_d_n[1]
 #set_property -dict { PACKAGE_PIN K19   IOSTANDARD TMDS_33  } [get_ports { hdmi_tx_d_p[1] }]; #IO_L10P_T1_AD11P_35 Sch=hdmi_tx_d_p[1]
+set_property -dict { PACKAGE_PIN K18   IOSTANDARD LVCMOS33  } [get_ports { hdmi_tx_d0_n }]; #IO_L12N_T1_MRCC_35 Sch=hdmi_tx_d_n[0]
+set_property -dict { PACKAGE_PIN K17   IOSTANDARD LVCMOS33  } [get_ports { hdmi_tx_d0_p }]; #IO_L12P_T1_MRCC_35 Sch=hdmi_tx_d_p[0]
+set_property -dict { PACKAGE_PIN J19   IOSTANDARD LVCMOS33  } [get_ports { hdmi_tx_d1_n }]; #IO_L10N_T1_AD11N_35 Sch=hdmi_tx_d_n[1]
+set_property -dict { PACKAGE_PIN K19   IOSTANDARD LVCMOS33  } [get_ports { hdmi_tx_d1_p }]; #IO_L10P_T1_AD11P_35 Sch=hdmi_tx_d_p[1]
 #set_property -dict { PACKAGE_PIN H18   IOSTANDARD TMDS_33  } [get_ports { hdmi_tx_d_n[2] }]; #IO_L14N_T2_AD4N_SRCC_35 Sch=hdmi_tx_d_n[2]
 #set_property -dict { PACKAGE_PIN J18   IOSTANDARD TMDS_33  } [get_ports { hdmi_tx_d_p[2] }]; #IO_L14P_T2_AD4P_SRCC_35 Sch=hdmi_tx_d_p[2]
+set_property -dict { PACKAGE_PIN J18   IOSTANDARD TMDS_33  } [get_ports { hdmi_tx_d2_p }]; #IO_L14P_T2_AD4P_SRCC_35 Sch=hdmi_tx_d_p[2]
 #set_property -dict { PACKAGE_PIN R19   IOSTANDARD LVCMOS33 } [get_ports { hdmi_tx_hpdn }]; #IO_0_34 Sch=hdmi_tx_hpdn
 
 ##Crypto SDA 
