@@ -154,7 +154,7 @@ set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS25 } [get_ports { rpio_1
 #set_property -dict { PACKAGE_PIN Y17   IOSTANDARD LVCMOS25 } [get_ports { rpio_sc_r }]; #IO_L7N_T1_34 Sch=rpio_sc_r
 
 ##HDMI Rx
-#set_property -dict { PACKAGE_PIN H17   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_cec }]; #IO_L13N_T2_MRCC_35 Sch=hdmi_rx_cec
+set_property -dict { PACKAGE_PIN H17   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_cec }]; #IO_L13N_T2_MRCC_35 Sch=hdmi_rx_cec
 #set_property -dict { PACKAGE_PIN P19   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_clk_n }]; #IO_L13N_T2_MRCC_34 Sch=hdmi_rx_clk_n
 set_property -dict { PACKAGE_PIN N18   IOSTANDARD LVDS_25 DIFF_TERM TRUE } [get_ports { hdmi_rx_clk_p }]; #IO_L13P_T2_MRCC_34 Sch=hdmi_rx_clk_p
 #set_property -dict { PACKAGE_PIN N18   IOSTANDARD LVCMOS25 } [get_ports { hdmi_rx_clk_p }]; #IO_L13P_T2_MRCC_34 Sch=hdmi_rx_clk_p

@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // written 2022-11-16 by mza
-// last updated 2022-12-12 by mza
+// last updated 2022-12-23 by mza
 
 module icyrus7series10bit (
 	input bit_clock, bit_clock_inverted,
@@ -104,10 +104,9 @@ module clock_out_test #(
 	input [5:4] ja, // 127.216 MHz, comes from PMODA
 //	input [7:6] ja, // 42.3724 MHz, comes from PMODA
 	input [1:0] sw,
-//	input hdmi_rx_clk_p, // dummy for 1.27216 GHz clock from gulfstream
-//	output hdmi_rx_cec, // dummy data
+	output hdmi_rx_cec, // sysclock out (single-ended because of TMDS/LVDS shenanigans on pynq board)
 	output hdmi_tx_cec, // dummy data
-	output rpio_02_r, // clock out
+	output rpio_02_r, // dummy output
 //	output rpio_03_r, // dummy output
 	output rpio_04_r, // source word_clock out
 	output rpio_08_r, // output_word[0]
@@ -120,9 +119,9 @@ module clock_out_test #(
 	output rpio_15_r, // output_word[7]
 	output rpio_16_r, // output_word[8]
 	output rpio_17_r, // output_word[9]
-	output hdmi_tx_clk_p, // system word_clock out
+	output hdmi_tx_clk_p, // dummy output
 	output hdmi_tx_clk_n,
-	inout hdmi_rx_clk_p, // bit_clock in
+	inout hdmi_rx_clk_p, // bit_clock in; 1.27216 GHz clock from gulfstream
 	inout hdmi_rx_clk_n,
 	//input [2:0] hdmi_rx_d_p, // input_bit
 	//input [2:0] hdmi_rx_d_n,
@@ -151,9 +150,12 @@ module clock_out_test #(
 	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_inst2 (.C(clock), .CE(clock_enable), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_oddr2));
 	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_inst3 (.C(clock), .CE(clock_enable), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_oddr3));
 	OBUFDS (.I(clock_oddr1), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
-	assign rpio_02_r = clock_oddr2;
+	//OBUFDS (.I(1'b0), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
+	//assign rpio_02_r = clock_oddr2;
+	assign rpio_02_r = 0;
 	//assign hdmi_tx_cec = clock_oddr3;
 	assign hdmi_tx_cec = 0;
+	assign hdmi_rx_cec = clock_oddr3;
 //	reg thing = 0;
 //	always @(posedge hdmi_rx_clk_p) begin
 //		thing <= hdmi_rx_cec;
