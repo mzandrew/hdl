@@ -121,8 +121,8 @@ module clock_out_test #(
 	output rpio_17_r, // output_word[9]
 	output hdmi_tx_clk_p, // dummy output
 	output hdmi_tx_clk_n,
-	inout hdmi_rx_clk_p, // bit_clock in; 1.27216 GHz clock from gulfstream
-	inout hdmi_rx_clk_n,
+	input hdmi_rx_clk_p, // bit_clock in; 1.27216 GHz clock from gulfstream
+	input hdmi_rx_clk_n,
 	//input [2:0] hdmi_rx_d_p, // input_bit
 	//input [2:0] hdmi_rx_d_n,
 	input [2:0] hdmi_rx_d_p, // input_bit
@@ -162,9 +162,9 @@ module clock_out_test #(
 //	end
 //	assign rpio_03_r = thing;
 //	assign rpio_03_r = clock;
-	wire bit_clock;
-	wire bit_clock_inverted;
-	IOBUFDS_DIFF_OUT clock_in (.IO(hdmi_rx_clk_p), .IOB(hdmi_rx_clk_n), .TM(1'b1), .TS(1'b1), .I(1'b0), .O(bit_clock), .OB(bit_clock_inverted));
+	wire bit_clock = 0;
+	wire bit_clock_inverted = 1;
+	//IOBUFDS_DIFF_OUT clock_in (.IO(hdmi_rx_clk_p), .IOB(hdmi_rx_clk_n), .TM(1'b1), .TS(1'b1), .I(1'b0), .O(bit_clock), .OB(bit_clock_inverted));
 	wire input_bit;
 	IBUFDS data_in (.I(hdmi_rx_d_p[1]), .IB(hdmi_rx_d_n[1]), .O(input_bit));
 	wire word_clock;
@@ -172,6 +172,7 @@ module clock_out_test #(
 	wire [9:0] output_word;
 	assign { rpio_17_r, rpio_16_r, rpio_15_r, rpio_14_r, rpio_13_r, rpio_12_r, rpio_11_r, rpio_10_r, rpio_09_r, rpio_08_r } = output_word;
 	assign jb = output_word[9:2];
-	icyrus7series10bit (.bit_clock(bit_clock), .bit_clock_inverted(bit_clock_inverted), .word_clock(word_clock), .reset(reset), .output_word(output_word), .input_bit(input_bit));
+//	icyrus7series10bit (.bit_clock(bit_clock), .bit_clock_inverted(bit_clock_inverted), .word_clock(word_clock), .reset(reset), .output_word(output_word), .input_bit(input_bit));
+	assign output_word = 0;
 endmodule
 
