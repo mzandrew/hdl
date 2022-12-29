@@ -259,7 +259,7 @@ module clock_out_test #(
 	assign rpio_02_r = 0;
 	//assign hdmi_tx_cec = clock_oddr3;
 	assign hdmi_tx_cec = 0;
-	assign hdmi_rx_cec = clock_oddr3;
+	//assign hdmi_rx_cec = clock_oddr3;
 //	reg thing = 0;
 //	always @(posedge hdmi_rx_clk_p) begin
 //		thing <= hdmi_rx_cec;
@@ -275,6 +275,7 @@ module clock_out_test #(
 	wire mmcm_locked;
 	assign led[3:1] = 0;
 	assign led[0] = mmcm_locked;
+	wire raw_word_clock;
 	MMCM #(
 		//.M(4.0), .D(2), .CLOCK_PERIOD_NS(1.667), .CLKOUT0_DIVIDE(2.0), .CLKOUT4_DIVIDE(10) // 600 MHz -> bit_clock=600 MHz and word_clock=120 MHz
 		.M(4.0), .D(2), .CLOCK_PERIOD_NS(1.965), .CLKOUT0_DIVIDE(2.0), .CLKOUT4_DIVIDE(10) // 508.8875 MHz -> bit_clock=508.8875 MHz and word_clock=101.7775 MHz
@@ -282,10 +283,12 @@ module clock_out_test #(
 		.clock_in(raw_half_bit_clock), .reset(reset), .locked(mmcm_locked),
 		.clock0_out_p(half_bit_clock_p), .clock0_out_n(half_bit_clock_n), .clock1_out_p(), .clock1_out_n(),
 		.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
-		.clock4_out(word_clock), .clock5_out(), .clock6_out());
+		.clock4_out(raw_word_clock), .clock5_out(), .clock6_out());
+	BUFG buffy (.I(raw_word_clock), .O(word_clock));
 	wire input_bit;
 	IBUFDS data_in (.I(hdmi_rx_d_p[1]), .IB(hdmi_rx_d_n[1]), .O(input_bit));
-	assign rpio_04_r = word_clock;
+	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) word_clock_oddr_inst (.C(word_clock), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(word_clock_oddr2));
+	assign rpio_04_r = word_clock_oddr2;
 	wire [9:0] output_word;
 	assign { rpio_17_r, rpio_16_r, rpio_15_r, rpio_14_r, rpio_13_r, rpio_12_r, rpio_11_r, rpio_10_r, rpio_09_r, rpio_08_r } = output_word;
 	assign jb = output_word[9:2];
