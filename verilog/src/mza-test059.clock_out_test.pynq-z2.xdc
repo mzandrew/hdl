@@ -1,6 +1,6 @@
 # started 2022-11-16 by mza
 # taken from "master xdc" at https://www.tulembedded.com/FPGA/ProductsPYNQ-Z2.html
-# last updated 2022-12-23 by mza
+# last updated 2022-12-29 by mza
 
 ## This file is a general .xdc for the PYNQ-Z2 board 
 ## To use it in a project:
@@ -24,10 +24,10 @@ set_property -dict { PACKAGE_PIN M19   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_
 #set_property -dict { PACKAGE_PIN M15   IOSTANDARD LVCMOS33 } [get_ports { led5_r }]; #IO_L23N_T3_35 Sch=led5_r
 
 ##LEDs
-#set_property -dict { PACKAGE_PIN R14   IOSTANDARD LVCMOS33 } [get_ports { led[0] }]; #IO_L6N_T0_VREF_34 Sch=led[0]
-#set_property -dict { PACKAGE_PIN P14   IOSTANDARD LVCMOS33 } [get_ports { led[1] }]; #IO_L6P_T0_34 Sch=led[1]
-#set_property -dict { PACKAGE_PIN N16   IOSTANDARD LVCMOS33 } [get_ports { led[2] }]; #IO_L21N_T3_DQS_AD14N_35 Sch=led[2]
-#set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 } [get_ports { led[3] }]; #IO_L23P_T3_35 Sch=led[3]
+set_property -dict { PACKAGE_PIN R14   IOSTANDARD LVCMOS33 } [get_ports { led[0] }]; #IO_L6N_T0_VREF_34 Sch=led[0]
+set_property -dict { PACKAGE_PIN P14   IOSTANDARD LVCMOS33 } [get_ports { led[1] }]; #IO_L6P_T0_34 Sch=led[1]
+set_property -dict { PACKAGE_PIN N16   IOSTANDARD LVCMOS33 } [get_ports { led[2] }]; #IO_L21N_T3_DQS_AD14N_35 Sch=led[2]
+set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 } [get_ports { led[3] }]; #IO_L23P_T3_35 Sch=led[3]
 
 ##Buttons
 #set_property -dict { PACKAGE_PIN D19   IOSTANDARD LVCMOS33 } [get_ports { btn[0] }]; #IO_L4P_T0_35 Sch=btn[0]
@@ -170,10 +170,23 @@ set_property -dict { PACKAGE_PIN N20   IOSTANDARD TMDS_33 } [get_ports { hdmi_rx
 set_property -dict { PACKAGE_PIN U14   IOSTANDARD LVCMOS33 } [get_ports { hdmi_rx_scl }]; #IO_L11P_T1_SRCC_34 Sch=hdmi_rx_scl
 set_property -dict { PACKAGE_PIN U15   IOSTANDARD LVCMOS33 } [get_ports { hdmi_rx_sda }]; #IO_L11N_T1_SRCC_34 Sch=hdmi_rx_sda
 
-#create_clock -add -name src_clk_pin -period 0.786 -waveform {0 0.393} [get_ports { hdmi_rx_clk_p }]; # actual data rate
-#create_clock -add -name src_clk_pin -period 1.572 -waveform {0 0.786} [get_ports { hdmi_rx_clk_p }]; # half data rate
-create_clock -add -name src_clk_pin -period 1.667 -waveform {0 0.833} [get_ports { hdmi_rx_clk_p }]; # at the limit of what will pass timing
-#create_clock -add -name src_clk_pin -period 1.6 -waveform {0 0.8} [get_ports { hdmi_rx_clk_p }]; # too fast for a z7020
+#create_clock -add -name src_clk_pin -period 0.786 -waveform {0 0.393} [get_ports { hdmi_rx_clk_p }]; # 1.27221875 MHz; actual data rate
+#create_clock -add -name src_clk_pin -period 1.572 -waveform {0 0.786} [get_ports { hdmi_rx_clk_p }]; # 636.109375 MHz; half data rate
+#create_clock -add -name src_clk_pin -period 1.667 -waveform {0 0.833} [get_ports { hdmi_rx_clk_p }]; # 600 MHz; at the limit of what will pass timing
+create_clock -add -name src_clk_pin -period 1.965 -waveform {0 0.983} [get_ports { hdmi_rx_clk_p }]; # 508.8875 MHz; SuperKEKB RF clock
+#create_clock -add -name src_clk_pin -period 1.6 -waveform {0 0.8} [get_ports { hdmi_rx_clk_p }]; # 625 MHz; too fast for a z7020
+
+# adding the following two lines:
+set_property CLOCK_BUFFER_TYPE NONE [get_nets -of [get_pins mymmcm/MMCME2_BASE_inst/CLKOUT0B]];
+set_property CLOCK_BUFFER_TYPE NONE [get_nets -of [get_pins mymmcm/MMCME2_BASE_inst/CLKOUT0]];
+# allows it to pass timing, avoiding driving a 508.8875 MHz clock on a BUFG (max on a -1 device is 464 MHz), but leads to:
+# [Opt 31-313] Attribute CLOCK_BUFFER_TYPE set to NONE on net mymmcm/half_bit_clock_p or port driving net prevents insertion of buffer
+# [Place 30-673] MMCM instance "mymmcm/MMCME2_BASE_inst" has outputs that directly drive clock pins without going through clock buffers first. This might lead to an unroutable placement if the clock loads aren't grouped into a single clock region. If unintended, please define a clock buffer (BUFG/BUFH) for the MMCM outputs to avoid clock placement issues.
+# [DRC REQP-1577] Clock output buffering: MMCME2_ADV connectivity violation. The signal mymmcm/rpio_04_r_OBUF on the mymmcm/MMCME2_BASE_inst/CLKOUT4 pin of mymmcm/MMCME2_BASE_inst does not drive the same kind of BUFFER load as the other CLKOUT pins. Routing from the different buffer types will not be phase aligned.
+# [DRC REQP-1580] Phase alignment: Unsupported clocking topology used for ISERDESE2 tenbit/ISERDESE2_1. This can result in corrupted data. The tenbit/ISERDESE2_1/CLK / tenbit/ISERDESE2_1/CLKDIV pins should be driven by the same source through the same buffer type or by a BUFIO / BUFR combination in order to have a proper phase relationship. Please refer to the Select I/O User Guide for supported clocking topologies of the chosen INTERFACE_TYPE mode.
+
+# no_input_delay ("Ports with no input delay"): use set_input_delay
+# no_output_delay ("Ports with no output delay"): use set_output_delay
 
 ##HDMI Tx
 set_property -dict { PACKAGE_PIN G15   IOSTANDARD LVCMOS33 } [get_ports { hdmi_tx_cec }]; #IO_L19N_T3_VREF_35 Sch=hdmi_tx_cec

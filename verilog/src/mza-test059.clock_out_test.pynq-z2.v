@@ -1,22 +1,23 @@
 `timescale 1ns / 1ps
 
 // written 2022-11-16 by mza
-// last updated 2022-12-23 by mza
+// last updated 2022-12-29 by mza
 
 module icyrus7series10bit (
-	input bit_clock, bit_clock_inverted,
-	output word_clock,
+	input half_bit_clock_p, half_bit_clock_n,
+	//output word_clock,
+	input word_clock,
 	input reset,
 	output [9:0] output_word,
 	input input_bit
 );
-	wire the_bit_clock;
-//	wire the_bit_clock_inverted;
-	BUFIO mediate (.I(bit_clock), .O(the_bit_clock));
-	BUFR #(.BUFR_DIVIDE("5"), .SIM_DEVICE("7SERIES")) deviate (.I(bit_clock), .O(word_clock), .CLR(reset), .CE(1'b1));
-	// ISERDESE2: Input SERial/DESerializer with Bitslip
-	// 7 Series Xilinx HDL Language Template, version 2018.3
-	// from UG953 (v2018.3) December 5, 2018
+	wire refined_half_bit_clock_p, refined_half_bit_clock_n;
+	assign refined_half_bit_clock_p = half_bit_clock_p;
+//	BUFIO mediate_p (.I(half_bit_clock_p), .O(refined_half_bit_clock_p));
+	assign refined_half_bit_clock_n = half_bit_clock_n;
+//	BUFIO mediate_n (.I(half_bit_clock_n), .O(refined_half_bit_clock_n));
+//	BUFR #(.BUFR_DIVIDE("5"), .SIM_DEVICE("7SERIES")) deviate (.I(refined_half_bit_clock_p), .O(word_clock), .CLR(reset), .CE(1'b1));
+	// ISERDESE2: Input SERial/DESerializer with Bitslip 7 Series Xilinx HDL Language Template, version 2018.3 from UG953 (v2018.3) December 5, 2018
 	wire shiftout1, shiftout2;
 	ISERDESE2 #(
 		.DATA_RATE("DDR"), // DDR, SDR
@@ -41,8 +42,8 @@ module icyrus7series10bit (
 		.CE1(1'b1), .CE2(1'b1), // CE1, CE2: 1-bit (each) input: Data register clock enable inputs
 		.CLKDIVP(1'b0), // 1-bit input: MIG only; all others connect to GND
 		// Clocks: 1-bit (each) input: ISERDESE2 clock input ports
-		.CLK(the_bit_clock), // 1-bit input: High-speed clock
-		.CLKB(bit_clock_inverted), // 1-bit input: High-speed secondary clock
+		.CLK(refined_half_bit_clock_p), // 1-bit input: High-speed clock
+		.CLKB(refined_half_bit_clock_n), // 1-bit input: High-speed secondary clock
 		.CLKDIV(word_clock), // 1-bit input: Divided clock
 		.OCLK(1'b0), // 1-bit input: High speed output clock used when INTERFACE_TYPE="MEMORY"; all others connect to GND
 		// Dynamic Clock Inversions: 1-bit (each) input: Dynamic clock inversion pins to switch clock polarity
@@ -79,8 +80,8 @@ module icyrus7series10bit (
 		.CE1(1'b1), .CE2(1'b1), // CE1, CE2: 1-bit (each) input: Data register clock enable inputs
 		.CLKDIVP(1'b0), // 1-bit input: MIG only; all others connect to GND
 		// Clocks: 1-bit (each) input: ISERDESE2 clock input ports
-		.CLK(the_bit_clock), // 1-bit input: High-speed clock
-		.CLKB(bit_clock_inverted), // 1-bit input: High-speed secondary clock
+		.CLK(refined_half_bit_clock_p), // 1-bit input: High-speed clock
+		.CLKB(refined_half_bit_clock_n), // 1-bit input: High-speed secondary clock
 		.CLKDIV(word_clock), // 1-bit input: Divided clock
 		.OCLK(1'b0), // 1-bit input: High speed output clock used when INTERFACE_TYPE="MEMORY"; all others connect to GND
 		// Dynamic Clock Inversions: 1-bit (each) input: Dynamic clock inversion pins to switch clock polarity
@@ -96,6 +97,99 @@ module icyrus7series10bit (
 	);
 endmodule
 
+//MMCM #(.M(10.0), .D(1), .CLKOUT0_DIVIDE(1.0), .CLOCK_PERIOD_NS(10.0),
+//	.CLKOUT1_DIVIDE(1), .CLKOUT2_DIVIDE(1), .CLKOUT3_DIVIDE(1),
+//	.CLKOUT4_DIVIDE(1), .CLKOUT5_DIVIDE(1), .CLKOUT6_DIVIDE(1)) (
+//	.clock_in(clock), .reset(reset), .locked(mmcm_locked),
+//	.clock0_out_p(), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
+//	.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
+//	.clock4_out(), .clock5_out(), .clock6_out());
+module MMCM #(
+	parameter M = 10.0, // overall multiply [2.0,64.0]
+	parameter D = 1, // overall divide [1,106]
+	parameter CLKOUT0_DIVIDE = 1.0, // this one is fractional [1.0,128.0]
+	parameter CLKOUT1_DIVIDE = 1, // [1,128]
+	parameter CLKOUT2_DIVIDE = 1,
+	parameter CLKOUT3_DIVIDE = 1,
+	parameter CLKOUT4_DIVIDE = 1,
+	parameter CLKOUT5_DIVIDE = 1,
+	parameter CLKOUT6_DIVIDE = 1,
+	parameter CLOCK_PERIOD_NS = 10.0
+) (
+	input clock_in, // input=[10,800]MHz; PFD=[10,450]MHZ; VCO=[600,1200]MHz; OUT=[4.69,800]MHz for a "-1" grade zynq-7020
+	input reset,
+	output locked,
+	output clock0_out_p, clock0_out_n,
+	output clock1_out_p, clock1_out_n,
+	output clock2_out_p, clock2_out_n,
+	output clock3_out_p, clock3_out_n,
+	output clock4_out,
+	output clock5_out,
+	output clock6_out
+);
+	wire clkfb;
+	// MMCME2_BASE: Base Mixed Mode Clock Manager 7 Series Xilinx HDL Language Template, version 2018.3
+	MMCME2_BASE #(
+		.STARTUP_WAIT("FALSE"), // Delays DONE until MMCM is locked (FALSE, TRUE)
+		.BANDWIDTH("OPTIMIZED"), // Jitter programming (OPTIMIZED, HIGH, LOW)
+		.REF_JITTER1(0.0), // Reference input jitter in UI (0.000-0.999).
+		.DIVCLK_DIVIDE(D), // Master division value (1-106)
+		.CLKFBOUT_MULT_F(M), // Multiply value for all CLKOUT (2.000-64.000).
+		.CLKFBOUT_PHASE(0.0), // Phase offset in degrees of CLKFB (-360.000-360.000).
+		.CLKIN1_PERIOD(CLOCK_PERIOD_NS), // Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
+		.CLKOUT0_DIVIDE_F(CLKOUT0_DIVIDE), // Divide amount for CLKOUT0 (1.000-128.000).
+		// CLKOUT0_DIVIDE - CLKOUT6_DIVIDE: Divide amount for each CLKOUT (1-128)
+		.CLKOUT1_DIVIDE(CLKOUT1_DIVIDE),
+		.CLKOUT2_DIVIDE(CLKOUT2_DIVIDE),
+		.CLKOUT3_DIVIDE(CLKOUT3_DIVIDE),
+		.CLKOUT4_DIVIDE(CLKOUT4_DIVIDE),
+		.CLKOUT5_DIVIDE(CLKOUT5_DIVIDE),
+		.CLKOUT6_DIVIDE(CLKOUT6_DIVIDE),
+		// CLKOUT0_DUTY_CYCLE - CLKOUT6_DUTY_CYCLE: Duty cycle for each CLKOUT (0.01-0.99).
+		.CLKOUT0_DUTY_CYCLE(0.5),
+		.CLKOUT1_DUTY_CYCLE(0.5),
+		.CLKOUT2_DUTY_CYCLE(0.5),
+		.CLKOUT3_DUTY_CYCLE(0.5),
+		.CLKOUT4_DUTY_CYCLE(0.5),
+		.CLKOUT5_DUTY_CYCLE(0.5),
+		.CLKOUT6_DUTY_CYCLE(0.5),
+		// CLKOUT0_PHASE - CLKOUT6_PHASE: Phase offset for each CLKOUT (-360.000-360.000).
+		.CLKOUT0_PHASE(0.0),
+		.CLKOUT1_PHASE(0.0),
+		.CLKOUT2_PHASE(0.0),
+		.CLKOUT3_PHASE(0.0),
+		.CLKOUT4_PHASE(0.0),
+		.CLKOUT5_PHASE(0.0),
+		.CLKOUT6_PHASE(0.0),
+		.CLKOUT4_CASCADE("FALSE") // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
+	) MMCME2_BASE_inst (
+		// Clock Outputs: 1-bit (each) output: User configurable clock outputs
+		.CLKOUT0(clock0_out_p), // 1-bit output: CLKOUT0
+		.CLKOUT0B(clock0_out_n), // 1-bit output: Inverted CLKOUT0
+		.CLKOUT1(clock1_out_p), // 1-bit output: CLKOUT1
+		.CLKOUT1B(clock1_out_n), // 1-bit output: Inverted CLKOUT1
+		.CLKOUT2(clock2_out_p), // 1-bit output: CLKOUT2
+		.CLKOUT2B(clock2_out_n), // 1-bit output: Inverted CLKOUT2
+		.CLKOUT3(clock3_out_p), // 1-bit output: CLKOUT3
+		.CLKOUT3B(clock3_out_n), // 1-bit output: Inverted CLKOUT3
+		.CLKOUT4(clock4_out), // 1-bit output: CLKOUT4
+		.CLKOUT5(clock5_out), // 1-bit output: CLKOUT5
+		.CLKOUT6(clock6_out), // 1-bit output: CLKOUT6
+		// Feedback Clocks: 1-bit (each) output: Clock feedback ports
+		.CLKFBOUT(clkfb), // 1-bit output: Feedback clock
+		.CLKFBOUTB(), // 1-bit output: Inverted CLKFBOUT
+		// Status Ports: 1-bit (each) output: MMCM status ports
+		.LOCKED(locked), // 1-bit output: LOCK
+		// Clock Inputs: 1-bit (each) input: Clock input
+		.CLKIN1(clock_in), // 1-bit input: Clock
+		// Control Ports: 1-bit (each) input: MMCM control ports
+		.PWRDWN(1'b0), // 1-bit input: Power-down
+		.RST(reset), // 1-bit input: Reset
+		// Feedback Clocks: 1-bit (each) input: Clock feedback ports
+		.CLKFBIN(clkfb) // 1-bit input: Feedback clock
+	);
+endmodule
+
 module clock_out_test #(
 	parameter clock_select = 0
 ) (
@@ -104,6 +198,7 @@ module clock_out_test #(
 	input [5:4] ja, // 127.216 MHz, comes from PMODA
 //	input [7:6] ja, // 42.3724 MHz, comes from PMODA
 	input [1:0] sw,
+	output [3:0] led,
 	output hdmi_rx_cec, // sysclock out (single-ended because of TMDS/LVDS shenanigans on pynq board)
 	output hdmi_tx_cec, // dummy data
 	output rpio_02_r, // dummy output
@@ -171,17 +266,44 @@ module clock_out_test #(
 //	end
 //	assign rpio_03_r = thing;
 //	assign rpio_03_r = clock;
-	wire bit_clock = 0;
-	wire bit_clock_inverted = 1;
+	wire half_bit_clock_p;
+	wire half_bit_clock_n;
 	//IOBUFDS_DIFF_OUT clock_in (.IO(hdmi_rx_clk_p), .IOB(hdmi_rx_clk_n), .TM(1'b1), .TS(1'b1), .I(1'b0), .O(bit_clock), .OB(bit_clock_inverted));
+	wire raw_half_bit_clock;
+	wire word_clock;
+	IBUFGDS clock_in_diff (.I(hdmi_rx_clk_p), .IB(hdmi_rx_clk_n), .O(raw_half_bit_clock));
+	wire mmcm_locked;
+	assign led[3:1] = 0;
+	assign led[0] = mmcm_locked;
+	MMCM #(
+		//.M(4.0), .D(2), .CLOCK_PERIOD_NS(1.667), .CLKOUT0_DIVIDE(2.0), .CLKOUT4_DIVIDE(10) // 600 MHz -> bit_clock=600 MHz and word_clock=120 MHz
+		.M(4.0), .D(2), .CLOCK_PERIOD_NS(1.965), .CLKOUT0_DIVIDE(2.0), .CLKOUT4_DIVIDE(10) // 508.8875 MHz -> bit_clock=508.8875 MHz and word_clock=101.7775 MHz
+			) mymmcm (
+		.clock_in(raw_half_bit_clock), .reset(reset), .locked(mmcm_locked),
+		.clock0_out_p(half_bit_clock_p), .clock0_out_n(half_bit_clock_n), .clock1_out_p(), .clock1_out_n(),
+		.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
+		.clock4_out(word_clock), .clock5_out(), .clock6_out());
 	wire input_bit;
 	IBUFDS data_in (.I(hdmi_rx_d_p[1]), .IB(hdmi_rx_d_n[1]), .O(input_bit));
-	wire word_clock;
 	assign rpio_04_r = word_clock;
 	wire [9:0] output_word;
 	assign { rpio_17_r, rpio_16_r, rpio_15_r, rpio_14_r, rpio_13_r, rpio_12_r, rpio_11_r, rpio_10_r, rpio_09_r, rpio_08_r } = output_word;
 	assign jb = output_word[9:2];
-//	icyrus7series10bit (.bit_clock(bit_clock), .bit_clock_inverted(bit_clock_inverted), .word_clock(word_clock), .reset(reset), .output_word(output_word), .input_bit(input_bit));
-	assign output_word = 0;
+	reg word_reset = 1'b1;
+	localparam COUNTER_PICKOFF = 15;
+	reg [COUNTER_PICKOFF:0] counter = 0;
+	always @(posedge word_clock) begin
+		if (reset) begin
+			word_reset <= 1'b1;
+			counter <= 0;
+		end else begin
+			if (0==counter[COUNTER_PICKOFF]) begin
+				counter = counter + 1'b1;
+			end else begin
+				word_reset <= 0;
+			end
+		end
+	end
+	icyrus7series10bit tenbit (.half_bit_clock_p(half_bit_clock_p), .half_bit_clock_n(half_bit_clock_n), .word_clock(word_clock), .reset(word_reset), .output_word(output_word), .input_bit(input_bit));
 endmodule
 
