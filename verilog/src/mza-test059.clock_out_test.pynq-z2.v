@@ -46,6 +46,7 @@ module icyrus7series10bit (
 		.CLKB(refined_half_bit_clock_n), // 1-bit input: High-speed secondary clock
 		.CLKDIV(word_clock), // 1-bit input: Divided clock
 		.OCLK(1'b0), // 1-bit input: High speed output clock used when INTERFACE_TYPE="MEMORY"; all others connect to GND
+		.OCLKB(1'b0), // 1-bit input: High speed negative edge output clock
 		// Dynamic Clock Inversions: 1-bit (each) input: Dynamic clock inversion pins to switch clock polarity
 		.DYNCLKDIVSEL(1'b0), // 1-bit input: Dynamic CLKDIV inversion
 		.DYNCLKSEL(1'b0), // 1-bit input: Dynamic CLK/CLKB inversion
@@ -53,7 +54,6 @@ module icyrus7series10bit (
 		.D(input_bit), // 1-bit input: Data input
 		.DDLY(1'b0), // 1-bit input: Serial data from IDELAYE2
 		.OFB(1'b0), // 1-bit input: Data feedback from OSERDESE2
-		.OCLKB(1'b0), // 1-bit input: High speed negative edge output clock
 		.RST(reset), // 1-bit input: Active high asynchronous reset
 		.SHIFTIN1(1'b0), .SHIFTIN2(1'b0) // SHIFTIN1, SHIFTIN2: 1-bit (each) input: Data width expansion input ports; all others connect to GND
 	);
@@ -84,6 +84,7 @@ module icyrus7series10bit (
 		.CLKB(refined_half_bit_clock_n), // 1-bit input: High-speed secondary clock
 		.CLKDIV(word_clock), // 1-bit input: Divided clock
 		.OCLK(1'b0), // 1-bit input: High speed output clock used when INTERFACE_TYPE="MEMORY"; all others connect to GND
+		.OCLKB(1'b0), // 1-bit input: High speed negative edge output clock
 		// Dynamic Clock Inversions: 1-bit (each) input: Dynamic clock inversion pins to switch clock polarity
 		.DYNCLKDIVSEL(1'b0), // 1-bit input: Dynamic CLKDIV inversion
 		.DYNCLKSEL(1'b0), // 1-bit input: Dynamic CLK/CLKB inversion
@@ -91,7 +92,6 @@ module icyrus7series10bit (
 		.D(), // 1-bit input: Data input
 		.DDLY(1'b0), // 1-bit input: Serial data from IDELAYE2
 		.OFB(1'b0), // 1-bit input: Data feedback from OSERDESE2
-		.OCLKB(1'b0), // 1-bit input: High speed negative edge output clock
 		.RST(reset), // 1-bit input: Active high asynchronous reset
 		.SHIFTIN1(shiftout1), .SHIFTIN2(shiftout2) // SHIFTIN1, SHIFTIN2: 1-bit (each) input: Data width expansion input ports; all others connect to GND
 	);
@@ -246,7 +246,9 @@ module clock_out_test #(
 //	OBUFDS (.I(clock), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
 	wire clock_enable;
 	assign clock_enable = sw[0];
-	assign hdmi_tx_d1_p = sw[1]; // calmode
+	wire calmode;
+	assign calmode = sw[1];
+	assign hdmi_tx_d1_p = calmode;
 	wire clock_oddr1;
 	wire clock_oddr2;
 	wire clock_oddr3;
@@ -273,7 +275,9 @@ module clock_out_test #(
 	wire word_clock;
 	IBUFGDS clock_in_diff (.I(hdmi_rx_clk_p), .IB(hdmi_rx_clk_n), .O(raw_half_bit_clock));
 	wire mmcm_locked;
-	assign led[3:1] = 0;
+	assign led[3] = 0;
+	assign led[2] = calmode;
+	assign led[1] = clock_enable;
 	assign led[0] = mmcm_locked;
 	wire raw_word_clock;
 	MMCM #(
