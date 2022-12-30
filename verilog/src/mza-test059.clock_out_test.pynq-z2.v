@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // written 2022-11-16 by mza
-// last updated 2022-12-29 by mza
+// last updated 2022-12-30 by mza
 
 module icyrus7series10bit (
 	input half_bit_clock_p, half_bit_clock_n,
@@ -197,7 +197,8 @@ module clock_out_test #(
 	output [7:0] jb, // pmodB
 	input [5:4] ja, // 127.216 MHz, comes from PMODA
 //	input [7:6] ja, // 42.3724 MHz, comes from PMODA
-	input [1:0] sw,
+	input [3:0] btn, // buttons
+	input [1:0] sw, // switches
 	output [3:0] led,
 	output hdmi_rx_cec, // sysclock out (single-ended because of TMDS/LVDS shenanigans on pynq board)
 	output hdmi_tx_cec, // dummy data
@@ -229,7 +230,7 @@ module clock_out_test #(
 	inout hdmi_rx_scl, // LVCMOS33 but only driven to 0 or z, never to 1
 	inout hdmi_rx_sda // LVCMOS33 but only driven to 0 or z, never to 1
 );
-	wire reset = 0;
+	wire reset = btn[0];
 	assign hdmi_rx_scl = 1'bz;
 	assign hdmi_rx_sda = 1'bz;
 //	assign hdmi_tx_d1_p = 0; // calmode
