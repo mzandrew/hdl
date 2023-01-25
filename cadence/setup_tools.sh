@@ -91,7 +91,7 @@ function genus_check {
 		PATH=$PATH:$CADENCE_ROOT/$GENUS/tools.lnx86/bin:
 		export PATH
 		echo -n "                       (digital synthesis)        Genus "
-		echo $(genus -version 2>&1 | awk 'FNR == 2 {print $7}')
+		echo $(genus -version 2>&1 | grep Version | awk '{ print $7 }')
 	else
 		echo "error:  cannot find \"GENUS_ROOT\"" > /dev/stderr
 	fi
