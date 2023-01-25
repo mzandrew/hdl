@@ -19,16 +19,14 @@
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="4"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="1"/>
     </file>
-    <file xil_pn:name="../verilog/src/mza-test027.pll_509divider.althea.v" xil_pn:type="FILE_VERILOG">
+    <file xil_pn:name="../verilog/src/mza-test027.pll_509divider.althea.revA.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="8"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="2"/>
     </file>
-    <file xil_pn:name="../verilog/src/mza-test027.pll_509divider.althea.ucf" xil_pn:type="FILE_UCF">
+    <file xil_pn:name="../verilog/src/mza-test027.pll_509divider.althea.revA.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
-    <file xil_pn:name="mza_test027_pll_509divider_althea/ipcore_dir/pll.xise" xil_pn:type="FILE_COREGENISE">
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
-    </file>
+    <file xil_pn:name="mza_test027_pll_509divider_althea/ipcore_dir/pll.xise" xil_pn:type="FILE_ISE"/>
   </files>
 
   <autoManagedFiles>
@@ -155,7 +153,7 @@
     <property xil_pn:name="Ignore User Timing Constraints Map" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Ignore User Timing Constraints Par" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Implementation Top" xil_pn:value="Module|mza_test027_pll_509divider_althea" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="Implementation Top File" xil_pn:value="../../verilog/src/mza-test027.pll_509divider.althea.v" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="Implementation Top File" xil_pn:value="../../verilog/src/mza-test027.pll_509divider.althea.revA.v" xil_pn:valueState="non-default"/>
     <property xil_pn:name="Implementation Top Instance Path" xil_pn:value="/mza_test027_pll_509divider_althea" xil_pn:valueState="non-default"/>
     <property xil_pn:name="Include 'uselib Directive in Verilog File" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Include SIMPRIM Models in Verilog File" xil_pn:value="false" xil_pn:valueState="default"/>

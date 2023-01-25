@@ -1,9 +1,25 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2021-07-03 by mza
+// last updated 2021-10-27 by mza
 
 `ifndef PLLDCM_LIB
 `define PLLDCM_LIB
+
+module dummy_dcm_diff_input #(
+	parameter MULT_DIV = 10,
+	parameter PERIOD = 10.0
+) (
+	input clock_p, clock_n,
+	input reset,
+	output clock_out,
+	output clock_locked
+);
+	wire clock_raw1;
+	IBUFGDS mybuf_raw1 (.I(clock_p), .IB(clock_n), .O(clock_raw1));
+	wire clock_raw2;
+	simpledcm_CLKGEN #(.MULTIPLY(MULT_DIV), .DIVIDE(MULT_DIV), .PERIOD(PERIOD)) mydcm (.clockin(clock_raw1), .reset(reset), .clockout(clock_raw2), .clockout180(), .locked(clock_locked));
+	BUFG mybuf_raw2 (.I(clock_raw2), .O(clock_out));
+endmodule
 
 // can only be used to directly feed a DCM
 //simplepll_ADV_2DCM #(.OVERALL_DIVIDE(1), .MULTIPLY(10), .DIVIDE(4), .PERIOD(20.0)) mypll (.clockin(clock50), .reset(reset), .clockout(clock), .locked()); // 50->125

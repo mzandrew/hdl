@@ -1,9 +1,8 @@
-// written 2020-10-01 by mza
-// based on mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v
-// based on mza-test044.simple-parallel-interface-and-pollable-memory.althea.v
-// last updated 2021-07-22 by mza
+// written 2020-10-05 by mza
+// based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
+// last updated 2022-11-29 by mza
 
-`define althea_revB
+`define althea_revBLM
 `include "lib/generic.v"
 `include "lib/RAM8.v"
 //`include "lib/RAM.sv" // ise does not and will not support systemverilog
@@ -30,10 +29,10 @@ module top #(
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
 	parameter WRITE_STROBE_PICKOFF = 17, // about 1 kHz
-	parameter COUNTER50_BIT_PICKOFF = TESTBENCH ? 5 : 23,
+	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
 	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
-	input clock50_p, clock50_n,
+	input clock100_p, clock100_n,
 	input clock10,
 	input reset,
 	inout [5:0] coax,
@@ -50,6 +49,7 @@ module top #(
 	output [3:0] coax_led,
 	output [7:0] led
 );
+	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [3:0] status4;
 	wire [7:0] status8;
 	genvar i;
@@ -61,25 +61,25 @@ module top #(
 	end
 	assign single_ended_left[5:2] = 0;
 	assign single_ended_left[0] = 0;
-	assign single_ended_right[5] = 0;
+	assign single_ended_right[5:4] = 0;
 	assign single_ended_right[1:0] = 0;
 	//for (i=0; i<6; i=i+1) begin : single_ended_array
 		//assign single_ended_left[i] = 0;
 		//assign single_ended_right[i] = 0;
 	//end
 	// ----------------------------------------------------------------------
-	wire reset50;
-	wire clock50;
-	IBUFGDS mybuf0 (.I(clock50_p), .IB(clock50_n), .O(clock50));
+	wire reset100;
+	wire clock100;
+	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	wire word_clock0;
 	wire word_clock1;
 	wire clock = word_clock0;
 	// ----------------------------------------------------------------------
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER50_BIT_PICKOFF)) reset50_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock50), .reset_output(reset50));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock100), .reset_output(reset100));
 	wire reset_word0;
 	wire reset_word1;
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset50), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock0), .reset_output(reset_word0));
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword1_wait4pll (.reset_input(reset50), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock1), .reset_output(reset_word1));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset100), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock0), .reset_output(reset_word0));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword1_wait4pll (.reset_input(reset100), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock1), .reset_output(reset_word1));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
 	wire [BANK_ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[BANK_ADDRESS_DEPTH-1:0];
@@ -87,9 +87,9 @@ module top #(
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [NUMBER_OF_BANKS-1:0];
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] bank;
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe;
-	wire [31:0] hdrb_read_errors;
-	wire [31:0] hdrb_write_errors;
-	wire [31:0] hdrb_address_errors;
+	wire [ERROR_COUNT_PICKOFF:0] hdrb_read_errors;
+	wire [ERROR_COUNT_PICKOFF:0] hdrb_write_errors;
+	wire [ERROR_COUNT_PICKOFF:0] hdrb_address_errors;
 	half_duplex_rpi_bus #(
 		.BUS_WIDTH(BUS_WIDTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
@@ -178,14 +178,14 @@ module top #(
 		RAM_s6_4k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank0 (.reset(reset_word0),
 			.clock_a(word_clock0), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
 			.clock_b(word_clock0), .address_b(read_address), .data_out_b(potential_oserdes_word[0]));
-		RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock0), .reset(reset_word0),
+		RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock0),
 			.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
 			.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
 			.data_in_b_4(bank1[4]),  .data_in_b_5(bank1[5]),  .data_in_b_6(bank1[6]),  .data_in_b_7(bank1[7]),
 			.data_in_b_8(bank1[8]),  .data_in_b_9(bank1[9]),  .data_in_b_a(bank1[10]), .data_in_b_b(bank1[11]),
 			.data_in_b_c(bank1[12]), .data_in_b_d(bank1[13]), .data_in_b_e(bank1[14]), .data_in_b_f(bank1[15]),
 			.write_strobe_b(write_strobe_b));
-		RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank2 (.clock(word_clock0), .reset(reset_word0),
+		RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank2 (.clock(word_clock0),
 			.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[2]),
 			.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[2]),
 			.data_out_b_0(bank2[0]),  .data_out_b_1(bank2[1]),  .data_out_b_2(bank2[2]),  .data_out_b_3(bank2[3]),
@@ -222,7 +222,7 @@ module top #(
 	assign bank1[3]  = hdrb_read_errors;
 	assign bank1[4]  = hdrb_write_errors;
 	assign bank1[5]  = hdrb_address_errors;
-	assign bank1[6]  = { capture_completion, histogram_status4, 1'd0, rot_pipeline, status4, status8 };
+	assign bank1[6]  = { capture_completion, histogram_status4, rot_pipeline, status4, status8 };
 	assign bank1[7]  = histogram_error_count;
 	assign bank1[8]  = { {PADDING{1'b0}}, previous_count[0], previous_result[0] };
 	assign bank1[9]  = { {PADDING{1'b0}}, previous_count[1], previous_result[1] };
@@ -303,8 +303,8 @@ module top #(
 //	bitslip #(.WIDTH(8)) bso2 (.clock(word_clock1), .bitslip(bitslip_oserdes1_again), .data_in(oserdes_word1_buffer_mid), .data_out(oserdes_word1_buffer_delayed));
 	//pipeline #(.WIDTH(8), .DEPTH(DELAY)) canoes (.clock(word_clock1), .in(sync_out_word1_buffer), .out(sync_out_word1_buffer1));
 	wire pre_coax_4;
-	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL"), .PINTYPE3("n"), .PHASE45(0.0)) mylei6 (
-		.clock_in(clock50), .reset(reset50), .word_clock0123_out(word_clock1), .locked(pll_oserdes_locked),
+	ocyrus_hex8_split_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL"), .PHASE45(0.0)) mylei6 (
+		.clock_in(clock100), .reset(reset100), .word_clock0123_out(word_clock1), .locked(pll_oserdes_locked),
 		.word_clock45_sel(word_clock_sel[1:0]), .word_clock45_out(word_clock0),
 		.word0_in(oserdes_word1_buffer_delayed), .word1_in(oserdes_word1_buffer), .word2_in(oserdes_word1_buffer), .word3_in(iserdes_word_buffer_delayed),
 		.word4_in(oserdes_word_delayed), .word5_in(sync_out_word_delayed),
@@ -321,19 +321,19 @@ module top #(
 		assign coax[5] = write_strobe[0];
 		assign pll_oserdes_locked_2 = 1;
 	end else if (0) begin // to put the oserdes outputs on coax[4] and coax[5]
-		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL")) mylei2 (
-			.clock_in(clock50), .reset(reset50), .word_clock_out(),
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei2 (
+			.clock_in(clock100), .reset(reset100), .word_clock_out(),
 			.word1_in(oserdes_word[0]), .D1_out(coax[5]),
 			.word0_in(oserdes_word[0]), .D0_out(coax[4]),
 			.bit_clock(), .bit_strobe(),
 			.locked(pll_oserdes_locked_2));
 		assign sync_read_address = 0;
 	end else if (0) begin
-		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL"), .PINTYPE("n")) mylei (.clock_in(clock50), .reset(reset50), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[5]), .locked(pll_oserdes_locked_2));
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[5]), .locked(pll_oserdes_locked_2));
 		assign coax[4] = sync_out_stream[2]; // scope trigger
 		assign sync_read_address = 0;
 	end else if (1) begin
-		//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(20.0), .MULTIPLY(20), .DIVIDE(1), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock50), .reset(reset50), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
+		//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
 		//assign sync_read_address = coax[5];
 		assign sync_read_address = 0;
 		//assign coax[5] = sync_out_stream[2]; // scope trigger
@@ -352,7 +352,7 @@ module top #(
 	//assign status4[2] = 0;
 	//assign status4[3] = 0;
 	assign status4[3:0] = bank;
-	assign status8[7] = reset50;
+	assign status8[7] = reset100;
 	assign status8[6] = ~pll_oserdes_locked;
 	assign status8[5] = reset_word0;
 	assign status8[4] = reset_word1;
@@ -362,10 +362,10 @@ module top #(
 	assign status8[0] = register_select;
 	if (1) begin
 //		assign led = status8;
-		cdc_pipeline #(.WIDTH(8), .DEPTH(2)) blinx (.clock(clock50), .in(status8), .out(led));
+		cdc_pipeline #(.WIDTH(8), .DEPTH(2)) blinx (.clock(clock100), .in(status8), .out(led));
 	end
 	if (1) begin
-		cdc_pipeline #(.WIDTH(4), .DEPTH(2)) jarjar (.clock(clock50), .in(status4), .out(coax_led));
+		cdc_pipeline #(.WIDTH(4), .DEPTH(2)) jarjar (.clock(clock100), .in(status4), .out(coax_led));
 	end
 	// ----------------------------------------------------------------------
 	initial begin
@@ -387,8 +387,8 @@ module top_tb;
 	localparam TRANSACTIONS_PER_DATA_WORD = 2;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
-	reg clock50_p = 0;
-	reg clock50_n = 1;
+	reg clock100_p = 0;
+	reg clock100_n = 1;
 	reg clock10 = 0;
 	reg reset = 0;
 	wire [5:0] coax;
@@ -411,7 +411,7 @@ module top_tb;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] rdata = 0;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are controller
 	top #(.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
-		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(reset),
+		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10), .reset(reset),
 		.coax(coax),
 		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
 		.diff_pair_right({ m_p, m_n, l_p, l_n, j_p, j_n, g_p, g_n, k_p, k_n, h_p, h_n }),
@@ -570,8 +570,11 @@ module top_tb;
 	initial begin
 		// inject global reset
 		#300; reset <= 1; #300; reset <= 0;
-		#512; // wait for reset50
+		#512; // wait for reset100
 		#512; // wait for reset125
+		//#300; reset <= 1; #300; reset <= 0;
+		//#512; // wait for reset100
+		//#512; // wait for reset125
 		// test the interface
 		if (ADDRESS_AUTOINCREMENT_MODE) begin
 			// write some data to some addresses
@@ -664,8 +667,8 @@ module top_tb;
 	end
 	always begin
 		#HALF_PERIOD_OF_PERIPHERAL;
-		clock50_p <= #1.5 ~clock50_p;
-		clock50_n <= #2.5 ~clock50_n;
+		clock100_p <= #1.5 ~clock100_p;
+		clock100_n <= #2.5 ~clock100_n;
 	end
 	always begin
 		#HALF_PERIOD_OF_CONTROLLER;
@@ -674,14 +677,13 @@ module top_tb;
 endmodule
 
 module myalthea (
-	input clock50_p, clock50_n,
+	input clock100_p, clock100_n,
 	inout [5:0] coax,
 	// other IOs:
 	output rpi_gpio2_i2c1_sda, // ack_valid
 	input rpi_gpio3_i2c1_scl, // register_select
 	input rpi_gpio4_gpclk0, // enable
 	input rpi_gpio5, // read
-	input rpi_gpio26, // spare
 	// 16 bit bus:
 	inout rpi_gpio6_gpclk2, rpi_gpio7_spi_ce1, rpi_gpio8_spi_ce0, rpi_gpio9_spi_miso,
 	inout rpi_gpio10_spi_mosi, rpi_gpio11_spi_sclk, rpi_gpio12, rpi_gpio13,
@@ -698,7 +700,7 @@ module myalthea (
 	// other IOs:
 	input button, // reset
 	output [3:0] coax_led,
-	output [7:0] led,
+//	output [7:0] led,
 	input [2:0] rot
 );
 	localparam BUS_WIDTH = 16;
@@ -709,7 +711,7 @@ module myalthea (
 	wire clock10 = 0;
 	wire [3:0] internal_coax_led;
 	wire [7:0] internal_led;
-	assign led = internal_led;
+	//assign led = internal_led;
 	assign coax_led = internal_coax_led;
 	top #(
 		.TESTBENCH(0),
@@ -718,7 +720,7 @@ module myalthea (
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) althea (
-		.clock50_p(clock50_p), .clock50_n(clock50_n), .clock10(clock10), .reset(~button),
+		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10), .reset(~button),
 		.coax(coax),
 		.bus({
 			rpi_gpio21, rpi_gpio20, rpi_gpio19, rpi_gpio18,

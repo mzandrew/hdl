@@ -465,3 +465,37 @@ def test_function_generator_DAC_10(delay=1.0e-6):
 	everything.extend(waveform)
 	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything, False)
 
+def test_function_generator_DAC_11():
+	#clear_DAC_waveform(False)
+	everything = []
+	DC_level = 0.5
+	peak_level = 1.0
+	delay = 1.0e-6
+	ramp_rise_time = 1.0e-6
+#	waveform = prepare_DC_waveform_for_upload_to_DAC(1.0/delay, DC_level)
+#	everything.extend(waveform)
+	waveform = prepare_RAMP_waveform_for_upload_to_DAC(1.0/ramp_rise_time, DC_level, peak_level)
+	everything.extend(waveform)
+	waveform = prepare_DC_waveform_for_upload_to_DAC(1.0/delay, DC_level)
+	everything.extend(waveform)
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything, False)
+
+def test_function_generator_DAC_12():
+	#clear_DAC_waveform()
+	everything = []
+	f = 7.5e6
+	DC_level = 0.5
+	peak_level = 1.0
+	delay = 1.0e-7
+	waveform = prepare_DC_waveform_for_upload_to_DAC(1.0/delay, DC_level)
+	everything.extend(waveform)
+	#waveform = prepare_sawtooth_waveform_for_upload_to_DAC(f, peak_level, DC_level, 35.0)
+	waveform = prepare_DC_waveform_for_upload_to_DAC(1.0/delay, peak_level)
+	everything.extend(waveform)
+	waveform = prepare_DC_waveform_for_upload_to_DAC(1.0/delay, DC_level)
+	everything.extend(waveform)
+	for i in range(350):
+		everything.extend(waveform)
+	#everything = fill_up_the_rest_with(everything, prepare_DC_waveform_for_upload_to_DAC(f, 0.0))
+	althea.write_data_to_pollable_memory_on_half_duplex_bus(0, everything)
+

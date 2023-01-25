@@ -1,5 +1,5 @@
 // updated 2020-10-02 by mza
-// last updated 2021-07-20 by mza
+// last updated 2021-10-27 by mza
 
 `ifndef RAM8_LIB
 `define RAM8_LIB
@@ -94,15 +94,13 @@ module RAM_inferred_with_register_outputs #(
 	assign data_out_b_f = mem[15];
 endmodule
 
-// untested
-// port a takes precedence here (no writes to memory from b bus when write_strobe_a is active)
-// from the untested systemverilog version
 module RAM_inferred_with_register_inputs #(
 	parameter ADDR_WIDTH = 4,
 	parameter NUMBER_OF_ADDRESSES = 1<<ADDR_WIDTH,
 	parameter DATA_WIDTH = 32
 ) (
-	input reset, clock,
+//	input reset,
+	input clock,
 	input [ADDR_WIDTH-1:0] raddress_a,
 	output reg [DATA_WIDTH-1:0] data_out_a = 0,
 	input write_strobe_b,
@@ -125,9 +123,9 @@ module RAM_inferred_with_register_inputs #(
 );
 	reg [DATA_WIDTH-1:0] mem [NUMBER_OF_ADDRESSES-1:0];
 	always @(posedge clock) begin
-		if (reset) begin
-			data_out_a <= 0;
-		end else begin
+//		if (reset) begin
+//			data_out_a <= 0;
+//		end else begin
 			data_out_a <= mem[raddress_a];
 			if (write_strobe_b) begin
 				mem[0]  <= data_in_b_0;
@@ -147,7 +145,7 @@ module RAM_inferred_with_register_inputs #(
 				mem[14] <= data_in_b_e;
 				mem[15] <= data_in_b_f;
 			end
-		end
+//		end
 	end
 endmodule
 
@@ -187,7 +185,8 @@ module RAM_inferred_with_register_inputs_tb;
 	assign bank1[13] = 32'h5cde73e3;
 	assign bank1[14] = 32'h11111111;
 	assign bank1[15] = 32'h88888888;
-		RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock0), .reset(reset_word0),
+		RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock0),
+			//.reset(reset_word0),
 			.raddress_a(read_address[3:0]), .data_out_a(read_data_word[1]),
 			.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
 			.data_in_b_4(bank1[4]),  .data_in_b_5(bank1[5]),  .data_in_b_6(bank1[6]),  .data_in_b_7(bank1[7]),

@@ -1,13 +1,16 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2021-07-02 by mza
+// last updated 2022-11-30 by mza
 
 `define althea_revBL
 `include "lib/generic.v"
 `include "lib/RAM8.v"
+//`include "lib/RAM.sv" // ise does not and will not support systemverilog
 `include "lib/plldcm.v"
 `include "lib/serdes_pll.v"
 `include "lib/half_duplex_rpi_bus.v"
+`include "lib/sequencer.v"
+`include "lib/reset.v"
 `include "lib/edge_to_pulse.v"
 
 module top #(
@@ -15,138 +18,90 @@ module top #(
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
 	parameter LOG2_OF_TRANSACTIONS_PER_DATA_WORD = $clog2(TRANSACTIONS_PER_DATA_WORD),
-	parameter BUS_WIDTH_OSERDES = 8,
+	parameter OSERDES_DATA_WIDTH = 8,
 	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
-	parameter ADDRESS_DEPTH = 13,
-	parameter OSERDES_DATA_WIDTH = 64,
-	parameter LOG2_OF_OSERDES_DATA_WIDTH = $clog2(OSERDES_DATA_WIDTH),
-	parameter ADDRESS_DEPTH_OSERDES = ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_DATA_WIDTH,
+	parameter BANK_ADDRESS_DEPTH = 13,
+	parameter LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD - BANK_ADDRESS_DEPTH,
+	parameter NUMBER_OF_BANKS = 1<<LOG2_OF_NUMBER_OF_BANKS,
+	parameter LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH = $clog2(64),
+	parameter ADDRESS_DEPTH_OSERDES = BANK_ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
-	parameter RIGHT_DAC = 1,
-	parameter LEFT_DAC = 1,
+	parameter RIGHT_DAC_OUTER = 1,
+	parameter LEFT_DAC_OUTER = 1,
+	parameter LEFT_DAC_ROTATED = 0,
+	parameter RIGHT_DAC_INNER = 1,
+	parameter LEFT_DAC_INNER = 1,
 	parameter TESTBENCH = 0,
 	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
-	parameter COUNTER125_BIT_PICKOFF = TESTBENCH ? 5 : 23
+	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
 	input clock100_p, clock100_n,
 	input clock10,
 	input button,
 	inout [5:0] coax,
+//	input [2:0] rot,
 	inout [BUS_WIDTH-1:0] bus,
 	input read, // 0=write; 1=read
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
 	output ack_valid,
-	output [5:0] diff_pair_left_p,
-	input [5:0] diff_pair_left_n,
-	input [5:0] diff_pair_right_p,
-	input [5:0] diff_pair_right_n,
+	output [5:0] diff_pair_left,
+	output [5:0] diff_pair_right_p,
+//	output [5:0] diff_pair_right_n,
 	output [5:0] single_ended_left,
 	output [5:0] single_ended_right,
-//	output [7-LEFT_DAC*4:4-LEFT_DAC*4] led,
+//	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
 	output [3:0] coax_led
 );
+	localparam ERROR_COUNT_PICKOFF = 7;
+	wire [3:0] status4;
+	wire [7:0] status8;
 	wire reset;
 	genvar i;
-	wire pll_locked;
-	wire pll_oserdes_locked_1;
-	wire pll_oserdes_locked_2;
-	wire pll_oserdes_locked_3;
-	wire dpr;
-	wire dpl;
-	for (i=0; i<6; i=i+1) begin : diff_pair_p
-		//assign diff_pair_right_p[i] = dpr;
-		assign diff_pair_left_p[i] = dpl;
-	end
-//	for (i=0; i<6; i=i+1) begin : diff_pair_n
-//		assign diff_pair_right_n[i] = dpr;
-//		assign diff_pair_left_n[i] = dpl;
-//	end
-	reg [7:0] sync_out_stream = 0;
-	reg [7:0] sync_out_word = 0;
-	assign dpr = sync_out_stream[2];
-	assign dpl = sync_out_stream[2];
-//	assign diff_pair_left[3] = pll_oserdes_locked_2; // e_n
-//	assign diff_pair_left[2] = pll_oserdes_locked_1; // e_p
-//	assign diff_pair_left[1] = pll_locked;           // b_p
-//	assign diff_pair_left[0] = write_strobe;         // b_n
-//	assign diff_pair_right[0] = read;            // k_p
-//	assign diff_pair_right[1] = register_select; // k_n
-//	assign diff_pair_right[3] = ack_valid;       // h_n
-//	assign diff_pair_right[2] = enable;          // h_p
-//	assign diff_pair_left[11:4] = bus[15:8]; // a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p
-//	assign diff_pair_right[11:4] = bus[7:0]; // g_n, g_p, j_n, j_p, l_n, l_p, m_n, m_p
+	wire pll_oserdes_locked;
+	wire pll_oserdes_locked_other;
+	wire pll_oserdes_locked_right_outer;
+	wire pll_oserdes_locked_left_outer;
+	wire pll_oserdes_locked_right_inner;
+	wire pll_oserdes_locked_left_inner;
 	// ----------------------------------------------------------------------
-	reg [3:0] reset_counter = 0; // this counts how many times the reset input gets pulsed
-	localparam RESET_PIPELINE_PICKOFF = 5;
-	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline100 = 0;
-	reg [RESET_PIPELINE_PICKOFF:0] reset_pipeline125 = 0;
-	reg reset100 = 1;
 	wire clock100;
-	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
-	wire rawclock125;
-	wire clock125;
-	simpledcm_CLKGEN #(.MULTIPLY(5), .DIVIDE(4), .PERIOD(10.0)) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .locked(pll_locked)); // 100->125
-	//simpledcm_SP #(.MULTIPLY(10), .DIVIDE(4), .PERIOD(10.0), .CLKIN_DIVIDE_BY_2("TRUE")) mydcm_125 (.clockin(clock100), .reset(reset100), .clockout(rawclock125), .clockout180(), .alt_clockout(), .locked(pll_locked)); // 100->125
-	BUFG mrt (.I(rawclock125), .O(clock125));
-	wire clock = clock125;
+	wire reset100;
+	if (0) begin
+		IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
+		reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock100), .reset_output(reset100));
+	end else begin
+		wire clock100_locked;
+		dummy_dcm_diff_input lollipop (.clock_p(clock100_p), .clock_n(clock100_n), .reset(reset), .clock_out(clock100), .clock_locked(clock100_locked));
+		reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(clock100_locked), .clock_input(clock100), .reset_output(reset100));
+	end
+	wire word_clock;
+	wire word_clock_right_outer;
+	wire word_clock_left_outer;
+	wire word_clock_right_inner;
+	wire word_clock_left_inner;
 	// ----------------------------------------------------------------------
-	reg [COUNTER100_BIT_PICKOFF:0] counter100 = 0;
-	always @(posedge clock100) begin
-		if (reset_pipeline100[RESET_PIPELINE_PICKOFF:RESET_PIPELINE_PICKOFF-3]==4'b0011) begin
-			reset_counter <= reset_counter + 1'b1; // this counts how many times the reset input gets pulsed
-		end else if (reset_pipeline100[RESET_PIPELINE_PICKOFF]) begin
-			counter100 <= 0;
-			reset100 <= 1;
-		end else begin
-			if (reset100) begin
-				if (counter100[COUNTER100_BIT_PICKOFF]) begin
-					reset100 <= 0;
-				end
-				counter100 <= counter100 + 1'b1;
-			end
-		end
-		reset_pipeline100 <= { reset_pipeline100[RESET_PIPELINE_PICKOFF-1:0], reset };
-	end
-	reg [2:0] reset100_pipeline125 = 0;
-	localparam PLL_LOCKED_PIPELINE125_PICKOFF = 2;
-	reg [PLL_LOCKED_PIPELINE125_PICKOFF:0] pll_locked_pipeline125 = 0;
-	always @(posedge clock125) begin
-		if (~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF]) begin
-			reset100_pipeline125 <= 0;
-			reset_pipeline125 <= 0;
-		end else begin
-			reset100_pipeline125 <= { reset100_pipeline125[1:0], reset100 };
-			reset_pipeline125 <= { reset_pipeline125[RESET_PIPELINE_PICKOFF-1:0], reset };
-		end
-		pll_locked_pipeline125 <= { pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF-1:0], pll_locked };
-	end
-	wire resettt = reset_pipeline125[RESET_PIPELINE_PICKOFF] || reset100_pipeline125[2] || ~pll_locked_pipeline125[PLL_LOCKED_PIPELINE125_PICKOFF];
-	reg [COUNTER125_BIT_PICKOFF:0] counter125 = 0;
-	reg reset125 = 1;
-	always @(posedge clock) begin
-		if (resettt) begin
-			counter125 <= 0;
-			reset125 <= 1;
-		end else if (reset125) begin
-			if (counter125[COUNTER125_BIT_PICKOFF]) begin
-				reset125 <= 0;
-			end
-			counter125 <= counter125 + 1'b1;
-		end
-	end
+	wire reset_word;
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset100), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock), .reset_output(reset_word));
+	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
-	wire [ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[ADDRESS_DEPTH-1:0];
+	wire [BANK_ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[BANK_ADDRESS_DEPTH-1:0];
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] write_data_word;
-	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word;
+	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [NUMBER_OF_BANKS-1:0];
+	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] bank;
+	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] write_strobe;
+	wire [ERROR_COUNT_PICKOFF:0] hdrb_read_errors;
+	wire [ERROR_COUNT_PICKOFF:0] hdrb_write_errors;
+	wire [ERROR_COUNT_PICKOFF:0] hdrb_address_errors;
 	half_duplex_rpi_bus #(
 		.BUS_WIDTH(BUS_WIDTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
+		.BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) hdrb (
-		.clock(clock),
-		.reset(reset125),
+		.clock(word_clock),
+		.reset(reset_word),
 		.bus(bus),
 		.read(read), // 0=write; 1=read
 		.register_select(register_select), // 0=address; 1=data
@@ -154,140 +109,205 @@ module top #(
 		.ack_valid(ack_valid),
 		.write_strobe(write_strobe),
 		.write_data_word(write_data_word),
-		.read_data_word(read_data_word),
-		.address_word_reg(address_word_full)
+		.read_data_word(read_data_word[bank]),
+		.address_word_reg(address_word_full),
+		.read_errors(hdrb_read_errors),
+		.write_errors(hdrb_write_errors),
+		.address_errors(hdrb_address_errors),
+		.bank(bank)
 	);
-	wire word_clock;
-	wire word_clock2;
-	wire word_clock3;
-//	wire [BUS_WIDTH_OSERDES-1:0] oserdes_word;
+	wire [OSERDES_DATA_WIDTH-1:0] potential_oserdes_word [NUMBER_OF_BANKS-1:0];
+	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [NUMBER_OF_BANKS-1:0];
+	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
+	wire [31:0] a_c_;
+	wire [31:0] _b_d;
+	RAM_s6_8k_16bit_32bit mem0 (.reset(reset_word),
+		.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[15:0]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][15:0]),
+		.clock_b(word_clock), .address_b(read_address), .data_out_b(_b_d));
+	RAM_s6_8k_16bit_32bit mem1 (.reset(reset_word),
+		.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[31:16]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][31:16]),
+		.clock_b(word_clock), .address_b(read_address), .data_out_b(a_c_));
 	wire [63:0] oserdes_word64;
-	wire [BUS_WIDTH_OSERDES-1:0] oserdes_word_for_DACbit [7:0];
-	for (i=0; i<8; i=i+1) begin : oserdes_bit_mapping
+	assign oserdes_word64[63:48] = a_c_[31:16];
+	assign oserdes_word64[47:32] = _b_d[31:16];
+	assign oserdes_word64[31:16] = a_c_[15:0];
+	assign oserdes_word64[15:0 ] = _b_d[15:0];
+	wire [OSERDES_DATA_WIDTH-1:0] preDACbit [7:0]; // preDACbit[i] is an 8 bit word giving the next 8 timeseries values [7 downto 0] for bit i of the DAC output
+	for (i=0; i<8; i=i+1) begin : preDACbit_mapping
 		// bit0 -> 56, 48, 40, 32, 24, 16, 8, 0
 		// bit7 -> 63, 55, 47, 39, 31, 23, 15, 7
-		assign oserdes_word_for_DACbit[i] = { oserdes_word64[8*7+i], oserdes_word64[8*6+i], oserdes_word64[8*5+i], oserdes_word64[8*4+i],
-		                                      oserdes_word64[8*3+i], oserdes_word64[8*2+i], oserdes_word64[8*1+i], oserdes_word64[8*0+i] };
+		assign preDACbit[i] = { oserdes_word64[8*7+i], oserdes_word64[8*6+i], oserdes_word64[8*5+i], oserdes_word64[8*4+i],
+		                        oserdes_word64[8*3+i], oserdes_word64[8*2+i], oserdes_word64[8*1+i], oserdes_word64[8*0+i] };
 	end
-//	assign oserdes_word = oserdes_word_for_DACbit[0];
-	reg [ADDRESS_DEPTH_OSERDES-1:0] read_address = 0; // in 8-bit words
-	if (0) begin
-		RAM_inferred #(.addr_width(ADDRESS_DEPTH), .data_width(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH)) myram (.reset(reset125),
-			.wclk(clock), .waddr(address_word_narrow), .din(write_data_word), .write_en(write_strobe),
-			.rclk(clock), .raddr(address_word_narrow), .dout(read_data_word));
-		assign oserdes_word = 8'b11100100;
-	end else if (0) begin
-		RAM_inferred_dual_port_gearbox #(
-			.GEARBOX_RATIO(4),
-			.ADDR_WIDTH_A(ADDRESS_DEPTH), .ADDR_WIDTH_B(ADDRESS_DEPTH_OSERDES),
-			.DATA_WIDTH_A(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .DATA_WIDTH_B(BUS_WIDTH_OSERDES)
-		) myram (
-			.clk_a(clock), .addr_a(address_word_narrow), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
-			.clk_b(word_clock), .addr_b(read_address), .dout_b(oserdes_word));
-	end else if (0) begin
-		RAM_inferred_dual #(
-			.addr_width_a(ADDRESS_DEPTH), .addr_width_b(ADDRESS_DEPTH_OSERDES),
-			.data_width_a(TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH), .data_width_b(BUS_WIDTH_OSERDES)
-		) myram (
-			.reset(reset125),
-			.clk_a(clock), .addr_a(address_word_narrow), .din_a(write_data_word), .write_en_a(write_strobe), .dout_a(read_data_word),
-			.clk_b(word_clock), .addr_b(read_address), .dout_b());
-		assign oserdes_word = 8'b11100000;
-	end else if (1) begin
-//		assign oserdes_word = { 7'd0, oserdes_word64[0] };
-		wire [31:0] a_c_;
-		wire [31:0] _b_d;
-		RAM_s6_8k_16bit_32bit mem1 (.reset(reset125),
-			.clock_a(clock), .address_a(address_word_narrow), .data_in_a(write_data_word[31:16]), .write_enable_a(write_strobe), .data_out_a(read_data_word[31:16]),
-			.clock_b(word_clock), .address_b(read_address), .data_out_b(a_c_));
-		assign oserdes_word64[63:48] = a_c_[31:16];
-		assign oserdes_word64[47:32] = _b_d[31:16];
-		assign oserdes_word64[31:16] = a_c_[15:0];
-		assign oserdes_word64[15:0 ] = _b_d[15:0];
-		RAM_s6_8k_16bit_32bit mem0 (.reset(reset125),
-			.clock_a(clock), .address_a(address_word_narrow), .data_in_a(write_data_word[15:0]), .write_enable_a(write_strobe), .data_out_a(read_data_word[15:0]),
-			.clock_b(word_clock), .address_b(read_address), .data_out_b(_b_d));
+	wire [OSERDES_DATA_WIDTH-1:0] DACvalue [7:0]; // DACvalue[i] for i=7 downto 0 is a timeseries of 8 bit DAC values
+	wire [OSERDES_DATA_WIDTH-1:0] DACvaluePRIME [7:0]; // delayed version of DACvalue
+	for (i=0; i<8; i=i+1) begin : DACvalue_mapping
+		assign DACvalue[i] = {
+			preDACbit[7][i], preDACbit[6][i], preDACbit[5][i], preDACbit[4][i], 
+			preDACbit[3][i], preDACbit[2][i], preDACbit[1][i], preDACbit[0][i] };
+	end
+	wire [OSERDES_DATA_WIDTH-1:0] minuend;
+	wire [OSERDES_DATA_WIDTH-1:0] difference [7:0];
+	localparam DEPTH = 4;
+	for (i=0; i<8; i=i+1) begin : arithmetic_pipeline_mapping
+		arithmetic_pipeline #(.WIDTH(OSERDES_DATA_WIDTH), .DEPTH(DEPTH)) ap (.clock(word_clock), .minuend(minuend), .subtrahend(DACvalue[i]), .difference(difference[i]));
+		pipeline #(.WIDTH(OSERDES_DATA_WIDTH), .DEPTH(DEPTH)) pl (.clock(word_clock), .in(DACvalue[i]), .out(DACvaluePRIME[i]));
+	end
+	wire [OSERDES_DATA_WIDTH-1:0] DACbit [7:0];
+	wire [OSERDES_DATA_WIDTH-1:0] DACbitN [7:0];
+	for (i=0; i<8; i=i+1) begin : DACbit_mapping
+		assign DACbit[i] = {
+			DACvaluePRIME[7][i], DACvaluePRIME[6][i], DACvaluePRIME[5][i], DACvaluePRIME[4][i], 
+			DACvaluePRIME[3][i], DACvaluePRIME[2][i], DACvaluePRIME[1][i], DACvaluePRIME[0][i] };
+		assign DACbitN[i] = {
+			difference[7][i], difference[6][i], difference[5][i], difference[4][i], 
+			difference[3][i], difference[2][i], difference[1][i], difference[0][i] };
+	end
+	for (i=3; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
+		assign read_data_word[i] = 0;
+	end
+	assign potential_oserdes_word[0] = DACbit[7];
+	for (i=1; i<NUMBER_OF_BANKS; i=i+1) begin : banksfake
+		assign potential_oserdes_word[i] = 0;
+	end
+	wire [31:0] bank1 [15:0];
+	wire [31:0] bank2 [15:0];
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
+		.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
+		.data_in_b_4(bank1[4]),  .data_in_b_5(bank1[5]),  .data_in_b_6(bank1[6]),  .data_in_b_7(bank1[7]),
+		.data_in_b_8(bank1[8]),  .data_in_b_9(bank1[9]),  .data_in_b_a(bank1[10]), .data_in_b_b(bank1[11]),
+		.data_in_b_c(bank1[12]), .data_in_b_d(bank1[13]), .data_in_b_e(bank1[14]), .data_in_b_f(bank1[15]),
+		.write_strobe_b(1'b1));
+	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank2 (.clock(word_clock),
+		.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[2]),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[2]),
+		.data_out_b_0(bank2[0]),  .data_out_b_1(bank2[1]),  .data_out_b_2(bank2[2]),  .data_out_b_3(bank2[3]),
+		.data_out_b_4(bank2[4]),  .data_out_b_5(bank2[5]),  .data_out_b_6(bank2[6]),  .data_out_b_7(bank2[7]),
+		.data_out_b_8(bank2[8]),  .data_out_b_9(bank2[9]),  .data_out_b_a(bank2[10]), .data_out_b_b(bank2[11]),
+		.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
+	if (1==RIGHT_DAC_OUTER) begin
+		assign word_clock = word_clock_right_outer;
+		assign pll_oserdes_locked_other = 1;
+	end else if (1==LEFT_DAC_OUTER) begin
+		assign word_clock = word_clock_left_outer;
+		assign pll_oserdes_locked_other = 1;
+	end else if (1==RIGHT_DAC_INNER) begin
+		assign word_clock = word_clock_right_inner;
+		assign pll_oserdes_locked_other = 1;
+	end else if (1==LEFT_DAC_INNER) begin
+		assign word_clock = word_clock_left_inner;
+		assign pll_oserdes_locked_other = 1;
 	end else begin
-		RAM_s6_16k_32bit_8bit mem (.reset(reset125),
-			.clock_a(clock), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe), .data_out_a(read_data_word),
-			.clock_b(word_clock), .address_b(read_address), .data_out_b(oserdes_word));
-	end
-	wire sync_read_address;
-	if (0==RIGHT_DAC && 0==LEFT_DAC) begin
-		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei4 (
-			.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock), .locked(pll_oserdes_locked_1),
-			.word3_in(oserdes_word_for_DACbit[7]), .word2_in(oserdes_word_for_DACbit[6]), .word1_in(oserdes_word_for_DACbit[5]), .word0_in(oserdes_word_for_DACbit[4]),
+		ocyrus_quad8 #(.BIT_DEPTH(8), .PERIOD(10.0), .DIVIDE(1), .MULTIPLY(10), .SCOPE("BUFPLL")) mylei4 (
+			.clock_in(clock100), .reset(reset100), .word_clock_out(word_clock), .locked(pll_oserdes_locked_other),
+			.word3_in(DACbit[7]), .word2_in(DACbit[6]), .word1_in(DACbit[5]), .word0_in(DACbit[4]),
 			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]));
-	end else begin
-//		for (i=0; i<4; i=i+1) begin : single_ended_array_coax
-//			assign coax[i] = 0;
-//		end
-		assign word_clock = word_clock2;
-		assign pll_oserdes_locked_1 = 1;
 	end
-	if (1==RIGHT_DAC) begin
-		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei6r (
-			.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock2), .locked(pll_oserdes_locked_2),
-			.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
-			.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
-			.word1_in(oserdes_word_for_DACbit[3]), .word0_in(sync_out_word),
-			.D5_out(single_ended_right[5]), .D4_out(single_ended_right[4]),
-			.D3_out(single_ended_right[3]), .D2_out(single_ended_right[2]),
-			.D1_out(single_ended_right[1]), .D0_out(coax[4]));
-		assign single_ended_right[0] = 0;
+//	assign pll_oserdes_locked = pll_oserdes_locked_other && pll_oserdes_locked_right_outer && pll_oserdes_locked_left_outer && pll_oserdes_locked_right_inner && pll_oserdes_locked_left_inner;
+//	assign coax[0] = 0;
+//	assign coax[1] = 0;
+//	assign coax[2] = 0;
+//	assign coax[3] = 0;
+//	assign coax[5] = sync_out_stream[SYNC_OUT_STREAM_PICKOFF];
+	wire sync_read_address; // assert this when you feel like (re)synchronizing
+	localparam SYNC_OUT_STREAM_PICKOFF = 2;
+	wire [SYNC_OUT_STREAM_PICKOFF:0] sync_out_stream; // sync_out_stream[2] is usually good
+	wire [7:0] sync_out_word; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
+	wire [7:0] sync_out_word_delayed; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
+//	wire [2:0] rot_pipeline;
+	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
+	assign bank1[1]  = 0;
+	assign bank1[2]  = 0;
+	assign bank1[3]  = hdrb_read_errors;
+	assign bank1[4]  = hdrb_write_errors;
+	assign bank1[5]  = hdrb_address_errors;
+	assign bank1[6]  = { 16'd0, 4'd0, status4, status8 };
+	assign bank1[7]  = 0;
+	assign bank1[8]  = 0;
+	assign bank1[9]  = 0;
+	assign bank1[10] = 0;
+	assign bank1[11] = 0;
+	assign bank1[12] = 0;
+	assign bank1[13] = 0;
+	assign bank1[14] = 0;
+	assign bank1[15] = 0;
+	(* KEEP = "TRUE" *)
+	assign      minuend                   = bank2[0][7:0];
+	wire        train_oserdes             = bank2[4][0];
+	wire  [7:0] train_oserdes_pattern     = bank2[5][7:0];
+	wire [31:0] start_sample              = bank2[6][31:0];
+	wire [31:0] end_sample                = bank2[7][31:0];
+	assign reset = 0;
+	if (1==LEFT_DAC_ROTATED) begin
+		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1)
+		) orama (
+			.clock_in(clock100), .reset(reset100),
+			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
+			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
+			.word_B5_in(DACbitN[7]), .word_B4_in(DACbitN[6]), .word_B3_in(DACbitN[5]), .word_B2_in(DACbitN[4]), .word_B1_in(DACbitN[3]), .word_B0_in(DACbitN[2]),
+			.word_C5_in(DACbitN[7]), .word_C4_in(DACbitN[6]), .word_C3_in(DACbitN[5]), .word_C2_in(DACbitN[4]), .word_C1_in(DACbitN[3]), .word_C0_in(DACbitN[2]),
+			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
+			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
+			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
+			.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(single_ended_right[0]),
+			.A05_out(single_ended_left[0]), .A04_out(single_ended_left[1]), .A03_out(single_ended_left[2]), .A02_out(single_ended_left[3]), .A01_out(single_ended_left[4]), .A00_out(single_ended_left[5]),
+			.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
+			.C5_out(diff_pair_left[0]), .C4_out(diff_pair_left[1]), .C3_out(diff_pair_left[2]), .C2_out(diff_pair_left[3]), .C1_out(diff_pair_left[4]), .C0_out(diff_pair_left[5]),
+			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
+			.E1_out(coax[5]), .E0_out(coax[4]),
+			.locked(pll_oserdes_locked)
+		);
 	end else begin
-		for (i=0; i<6; i=i+1) begin : single_ended_array_right
-			assign single_ended_right[i] = 0;
-		end
-		assign pll_oserdes_locked_2 = 1;
+		ocyrus_triacontahedron8_split_12_6_6_4_2 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1),
+			.PINTYPE_C5("n"), .PINTYPE_C4("n"), .PINTYPE_C3("n"), .PINTYPE_C2("n"), .PINTYPE_C1("n"), .PINTYPE_C0("n")
+		) orama (
+			.clock_in(clock100), .reset(reset100),
+			.word_A11_in(DACbit[7]), .word_A10_in(DACbit[6]), .word_A09_in(DACbit[5]), .word_A08_in(DACbit[4]), .word_A07_in(DACbit[3]), .word_A06_in(DACbit[2]),
+			.word_A05_in(DACbit[7]), .word_A04_in(DACbit[6]), .word_A03_in(DACbit[5]), .word_A02_in(DACbit[4]), .word_A01_in(DACbit[3]), .word_A00_in(DACbit[2]),
+			.word_B5_in(DACbitN[7]), .word_B4_in(DACbitN[6]), .word_B3_in(DACbitN[5]), .word_B2_in(DACbitN[4]), .word_B1_in(DACbitN[3]), .word_B0_in(DACbitN[2]),
+			.word_C5_in(DACbitN[7]), .word_C4_in(DACbitN[6]), .word_C3_in(DACbitN[5]), .word_C2_in(DACbitN[4]), .word_C1_in(DACbitN[3]), .word_C0_in(DACbitN[2]),
+			.word_D3_in(sync_out_word), .word_D2_in(sync_out_word), .word_D1_in(sync_out_word), .word_D0_in(sync_out_word),
+			.word_E1_in(sync_out_word), .word_E0_in(sync_out_word),
+			.word_clockA_out(word_clock_right_outer), .word_clockB_out(), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
+			.A11_out(single_ended_right[5]), .A10_out(single_ended_right[4]), .A09_out(single_ended_right[3]), .A08_out(single_ended_right[2]), .A07_out(single_ended_right[1]), .A06_out(),
+			.A05_out(single_ended_left[5]), .A04_out(single_ended_left[4]), .A03_out(single_ended_left[3]), .A02_out(single_ended_left[2]), .A01_out(single_ended_left[1]), .A00_out(single_ended_left[0]),
+			.B5_out(diff_pair_right_p[5]), .B4_out(diff_pair_right_p[4]), .B3_out(diff_pair_right_p[3]), .B2_out(diff_pair_right_p[2]), .B1_out(diff_pair_right_p[1]), .B0_out(diff_pair_right_p[0]),
+			.C5_out(diff_pair_left[5]), .C4_out(diff_pair_left[4]), .C3_out(diff_pair_left[3]), .C2_out(diff_pair_left[2]), .C1_out(diff_pair_left[1]), .C0_out(diff_pair_left[0]),
+			.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
+			.E1_out(coax[5]), .E0_out(coax[4]),
+			.locked(pll_oserdes_locked)
+		);
 	end
-	if (1==LEFT_DAC) begin
-		ocyrus_hex8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei6l (
-			.clock_in(clock125), .reset(reset125), .word_clock_out(word_clock3), .locked(pll_oserdes_locked_3),
-			.word5_in(oserdes_word_for_DACbit[7]), .word4_in(oserdes_word_for_DACbit[6]),
-			.word3_in(oserdes_word_for_DACbit[5]), .word2_in(oserdes_word_for_DACbit[4]),
-			.word1_in(oserdes_word_for_DACbit[3]), .word0_in(oserdes_word_for_DACbit[2]),
-			// for the case of the DAC board's outputs facing the same direction as the coax[0-3] outputs:
-			//.D5_out(single_ended_left[5]), .D4_out(single_ended_left[4]),
-			//.D3_out(single_ended_left[3]), .D2_out(single_ended_left[2]),
-			//.D1_out(single_ended_left[1]), .D0_out(single_ended_left[0]));
-			// for the case of the DAC board's outputs facing the opposite direction as the coax[0-3] outputs (the rotated case):
-			.D5_out(single_ended_left[0]), .D4_out(single_ended_left[1]),
-			.D3_out(single_ended_left[2]), .D2_out(single_ended_left[3]),
-			.D1_out(single_ended_left[4]), .D0_out(single_ended_left[5]));
-		assign reset = 0;
-	end else begin
-		for (i=0; i<6; i=i+1) begin : single_ended_array_left
-			assign single_ended_left[i] = 0;
-		end
-		assign pll_oserdes_locked_3 = 1;
-		assign reset = ~button;
+	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
+		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
 	end
-	//assign coax_led = 4'b1111;
-	//assign coax_led = reset_counter;
+	assign single_ended_right[0] = 0; // because t is on a different bank/bufpll from n-s on althea revBL and is also on the same pin pair as GPIO6
+	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH), .SYNC_OUT_STREAM_PICKOFF(SYNC_OUT_STREAM_PICKOFF)) ss (.clock(word_clock), .reset(reset_word), .sync_read_address(sync_read_address), .start_sample(start_sample), .end_sample(end_sample), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
-		assign coax[5] = write_strobe;
-		assign pll_oserdes_locked_2 = 1;
+		assign coax[5] = write_strobe[0];
+		assign pll_oserdes_locked_other = 1;
 	end else if (0) begin // to put the oserdes outputs on coax[4] and coax[5]
-		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei2 (
-			.clock_in(clock125), .reset(reset125), .word_clock_out(),
-			.word1_in(oserdes_word), .D1_out(coax[5]),
-			.word0_in(oserdes_word), .D0_out(coax[4]),
+		ocyrus_double8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei2 (
+			.clock_in(clock100), .reset(reset100), .word_clock_out(),
+			.word1_in(oserdes_word[0]), .D1_out(coax[5]),
+			.word0_in(oserdes_word[0]), .D0_out(coax[4]),
 			.bit_clock(), .bit_strobe(),
-			.locked(pll_oserdes_locked_2));
-		assign sync_read_address = 0;
-//	wire pll_oserdes_locked;
-//		assign pll_oserdes_locked = pll_oserdes_locked_1 && pll_oserdes_locked_2;
-	end else if (0) begin
-		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL"), .PINTYPE("n")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[5]), .locked(pll_oserdes_locked_2));
-		assign coax[4] = sync_out_stream[2]; // scope trigger
+			.locked(pll_oserdes_locked_other));
 		assign sync_read_address = 0;
 	end else if (0) begin
-		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(8.0), .DIVIDE(1), .MULTIPLY(8), .SCOPE("BUFPLL")) mylei (.clock_in(clock125), .reset(reset125), .word_clock_out(), .word_in(oserdes_word), .D_out(coax[4]), .locked(pll_oserdes_locked_2));
-		assign sync_read_address = coax[5];
+		ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[5]), .locked(pll_oserdes_locked_other));
+		assign coax[4] = sync_out_stream[SYNC_OUT_STREAM_PICKOFF]; // scope trigger
+		assign sync_read_address = 0;
+	end else if (1) begin
+		//ocyrus_single8 #(.BIT_DEPTH(8), .PERIOD(10.0), .MULTIPLY(10), .DIVIDE(1), .SCOPE("BUFPLL")) mylei1 (.clock_in(clock100), .reset(reset100), .word_clock_out(), .word_in(oserdes_word[0]), .D_out(coax[4]), .locked(pll_oserdes_locked_other));
+		//assign sync_read_address = coax[5];
+		assign sync_read_address = 0;
+		//assign coax[5] = sync_out_stream[SYNC_OUT_STREAM_PICKOFF]; // scope trigger
+//		assign pll_oserdes_locked_other = 1;
 	end else begin // to synchronize the coax outputs and to trigger the scope on that synchronization
-		//assign coax[4] = sync_out_stream[2]; // scope trigger
+		//assign coax[4] = sync_out_stream[SYNC_OUT_STREAM_PICKOFF]; // scope trigger
 		//assign sync_read_address = coax[0] || coax[3]; // an input to synchronize to an external event
 //		assign sync_read_address = diff_pair_right_p[0] || diff_pair_right_p[5]; // an input to synchronize to an external event
 		//wire sync_read_address_raw;
@@ -298,15 +318,15 @@ module top #(
 		//assign coax[1] = sync_read_address_not;
 		//assign sync_read_address = ~sync_read_address_not;
 		assign sync_read_address = 0;
-//		assign pll_oserdes_locked_2 = 1;
+//		assign pll_oserdes_locked_other = 1;
 		wire [2:0] adc_bit;
 		wire [5:0] adc_thresh;
-		IBUFDS adc0 (.I(diff_pair_right_p[0]), .IB(diff_pair_right_n[0]), .O(adc_thresh[0]));
-		IBUFDS adc1 (.I(diff_pair_right_p[1]), .IB(diff_pair_right_n[1]), .O(adc_thresh[1]));
-		IBUFDS adc2 (.I(diff_pair_right_p[2]), .IB(diff_pair_right_n[2]), .O(adc_thresh[2]));
-		IBUFDS adc3 (.I(diff_pair_right_p[3]), .IB(diff_pair_right_n[3]), .O(adc_thresh[3]));
-		IBUFDS adc4 (.I(diff_pair_right_p[4]), .IB(diff_pair_right_n[4]), .O(adc_thresh[4]));
-		IBUFDS adc5 (.I(diff_pair_right_p[5]), .IB(diff_pair_right_n[5]), .O(adc_thresh[5]));
+//		IBUFDS adc0 (.I(diff_pair_right_p[0]), .IB(diff_pair_right_n[0]), .O(adc_thresh[0]));
+//		IBUFDS adc1 (.I(diff_pair_right_p[1]), .IB(diff_pair_right_n[1]), .O(adc_thresh[1]));
+//		IBUFDS adc2 (.I(diff_pair_right_p[2]), .IB(diff_pair_right_n[2]), .O(adc_thresh[2]));
+//		IBUFDS adc3 (.I(diff_pair_right_p[3]), .IB(diff_pair_right_n[3]), .O(adc_thresh[3]));
+//		IBUFDS adc4 (.I(diff_pair_right_p[4]), .IB(diff_pair_right_n[4]), .O(adc_thresh[4]));
+//		IBUFDS adc5 (.I(diff_pair_right_p[5]), .IB(diff_pair_right_n[5]), .O(adc_thresh[5]));
 		assign adc_bit = adc_thresh[5] ? 3'b110 :
 		                 adc_thresh[4] ? 3'b101 :
 		                 adc_thresh[3] ? 3'b100 :
@@ -315,45 +335,36 @@ module top #(
 		                 adc_thresh[0] ? 3'b001 : 3'b000;
 		assign coax_led = { 1'b0, adc_bit[2:0] };
 	end
-	wire [31:0] start_read_address = 32'd0; // in 8ns chunks
-	wire [31:0] end_read_address = 32'd3773; // in 8ns chunks
-	reg [ADDRESS_DEPTH_OSERDES-1:0] last_read_address = 12'd3772; // in 8ns chunks
-	reg sync_out_raw = 0;
-	always @(posedge word_clock) begin
-		sync_out_raw <= 0;
-		sync_out_word <= 0;
-		if (reset125) begin
-			read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:0];
-			last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:0] - 1'b1;
-		end else begin
-			if (read_address==last_read_address || sync_read_address) begin
-				read_address <= start_read_address[ADDRESS_DEPTH_OSERDES-1:0];
-				last_read_address <= end_read_address[ADDRESS_DEPTH_OSERDES-1:0] - 1'b1;
-				sync_out_raw <= 1;
-				sync_out_word <= {8{1'b1}};
-			end else begin
-				read_address <= read_address + 1'b1;
-			end
-		end
-		sync_out_stream <= { sync_out_stream[6:0], sync_out_raw };
-	end
 	// ----------------------------------------------------------------------
-//	if (0==LEFT_DAC) begin
-//		assign led[7] = ~pll_locked;
-//		assign led[6] = ~pll_oserdes_locked_1;
-//		assign led[5] = ~pll_oserdes_locked_2;
-//		assign led[4] = enable;
+	if (1) begin
+		assign status4 = 0;
+		assign status8 = 0;
+	end else begin
+		assign status4[3] = ~pll_oserdes_locked;
+		assign status4[2] = ~pll_oserdes_locked_right_outer;
+		assign status4[1] = ~pll_oserdes_locked_left_outer;
+		assign status4[0] = enable;
+		assign status8[7] = ~pll_oserdes_locked;
+		assign status8[6] = ~pll_oserdes_locked_right_inner;
+		assign status8[5] = ~pll_oserdes_locked_left_inner;
+		assign status8[4] = enable;
+		assign status8[3] = ~pll_oserdes_locked;
+		assign status8[2] = ~pll_oserdes_locked_right_outer;
+		assign status8[1] = ~pll_oserdes_locked_left_outer;
+		assign status8[0] = enable;
+	end
+	assign coax_led = status4;
+//	if (0==LEFT_DAC_OUTER) begin
+//		assign led[7:4] = status8[7:4];
 //	end
-//	if (0==RIGHT_DAC) begin
-//		assign led[3] = ~pll_locked;
-//		assign led[2] = ~pll_oserdes_locked_1;
-//		assign led[1] = ~pll_oserdes_locked_2;
-//		assign led[0] = enable;
+//	if (0==RIGHT_DAC_OUTER) begin
+//		assign led[3:0] = status8[3:0];
 //	end
 	initial begin
 		#100;
-		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_DATA_WIDTH);
-		$display("%d, %d, %d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
+		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, BANK_ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH);
+		$display("BUS_WIDTH=%d, TRANSACTIONS_PER_DATA_WORD=%d, TRANSACTIONS_PER_ADDRESS_WORD=%d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
+		$display("%d banks", NUMBER_OF_BANKS);
 	end
 endmodule
 
@@ -658,8 +669,11 @@ module top_tb;
 endmodule
 
 module myalthea #(
-	parameter LEFT_DAC = 1,
-	parameter RIGHT_DAC = 1
+	parameter LEFT_DAC_OUTER = 1,
+	parameter RIGHT_DAC_OUTER = 1,
+	parameter LEFT_DAC_ROTATED = 0,
+	parameter LEFT_DAC_INNER = 0,
+	parameter RIGHT_DAC_INNER = 0
 ) (
 	input clock100_p, clock100_n,
 	inout [5:0] coax,
@@ -668,43 +682,52 @@ module myalthea #(
 	input rpi_gpio3_i2c1_scl, // register_select
 	input rpi_gpio4_gpclk0, // enable
 	input rpi_gpio5, // read
-	input rpi_gpio26, // spare
 	// 16 bit bus:
 	inout rpi_gpio6_gpclk2, rpi_gpio7_spi_ce1, rpi_gpio8_spi_ce0, rpi_gpio9_spi_miso,
 	inout rpi_gpio10_spi_mosi, rpi_gpio11_spi_sclk, rpi_gpio12, rpi_gpio13,
 	inout rpi_gpio14, rpi_gpio15, rpi_gpio16, rpi_gpio17,
 	inout rpi_gpio18, rpi_gpio19, rpi_gpio20, rpi_gpio21,
 	// diff-pair IOs (toupee connectors):
-	a_p, a_n, b_p, b_n, c_p, c_n,
-	d_p, d_n, e_p, e_n, f_p, f_n,
-	g_p, g_n, h_p, h_n, j_p, j_n,
-	k_p, k_n, l_p, l_n, m_p, m_n,
+//	a_p, b_p, c_p, d_p, e_p, f_p, // rotated
+	g_p, h_p, j_p, k_p, l_p, m_p,
+	a_n, b_n, c_n, d_n, e_n, f_n, // flipped
+//	g_n, h_n, j_n, k_n, l_n, m_n, 
 	// single-ended IOs (toupee connectors):
 	n, p, q, r, s, t,
 	u, v, w, x, y, z,
 	// other IOs:
+	//input [2:0] rot
 	input button, // reset
-//	output [7-LEFT_DAC*4:4-LEFT_DAC*4] led,
+//	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
 	output [3:0] coax_led
 );
 	localparam BUS_WIDTH = 16;
-	localparam ADDRESS_DEPTH = 13;
+	localparam BANK_ADDRESS_DEPTH = 13;
 	localparam TRANSACTIONS_PER_DATA_WORD = 2;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 	wire clock10 = 0;
+	wire [3:0] internal_coax_led;
+	wire [7:0] internal_led;
+	//assign led = internal_led;
+	assign coax_led = internal_coax_led;
+	wire [5:0] diff_pair_left;
+	if (1==LEFT_DAC_ROTATED) begin
+//		assign { a_p, c_p, d_p, f_p, b_p, e_p } = diff_pair_left; // rotated
+	end else begin
+		assign { a_n, c_n, d_n, f_n, b_n, e_n } = diff_pair_left; // flipped
+	end
 	top #(
-		.LEFT_DAC(LEFT_DAC),
-		.RIGHT_DAC(RIGHT_DAC),
+		.LEFT_DAC_OUTER(LEFT_DAC_OUTER), .RIGHT_DAC_OUTER(RIGHT_DAC_OUTER),
+		.LEFT_DAC_ROTATED(LEFT_DAC_ROTATED),
+		.LEFT_DAC_INNER(LEFT_DAC_INNER), .RIGHT_DAC_INNER(RIGHT_DAC_INNER),
 		.TESTBENCH(0),
-		.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH),
+		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) althea (
-		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10),
-		.button(button),
-		//.button(1),
+		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10), .button(button),
 		.coax(coax),
 		.bus({
 			rpi_gpio21, rpi_gpio20, rpi_gpio19, rpi_gpio18,
@@ -712,16 +735,16 @@ module myalthea #(
 			rpi_gpio13, rpi_gpio12, rpi_gpio11_spi_sclk, rpi_gpio10_spi_mosi,
 			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
 		}),
-		.diff_pair_left_p({ a_p, c_p, d_p, f_p, b_p, e_p }),
-		.diff_pair_left_n({ a_n, c_n, d_n, f_n, b_n, e_n }),
+		.diff_pair_left(diff_pair_left),
 		.diff_pair_right_p({ m_p, k_p, l_p, j_p, h_p, g_p }),
-		.diff_pair_right_n({ m_n, k_n, l_n, j_n, h_n, g_n }),
+//		.diff_pair_right_n({ m_n, k_n, l_n, j_n, h_n, g_n }),
 		.single_ended_left({ z, y, x, w, v, u }),
 		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
 		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio2_i2c1_sda),
-//		.led(led),
-		.coax_led(coax_led)
+//		.rot(rot),
+//		.led(internal_led),
+		.coax_led(internal_coax_led)
 	);
 endmodule
 

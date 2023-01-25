@@ -1,6 +1,6 @@
-#source [find interface/ftdi/digilent-hs1.cfg]
+source [find interface/ftdi/digilent-hs1.cfg]
 #source [find interface/ftdi/digilent-hs2.cfg]
-source [find interface/ftdi/digilent_jtag_hs3.cfg]
+#source [find interface/ftdi/digilent_jtag_hs3.cfg]
 adapter_khz 10000
 transport select jtag
 source [find cpld/xilinx-xc6s.cfg]

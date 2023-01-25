@@ -1,6 +1,6 @@
 // written 2020-05-13 by mza
 // based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.v
-// last updated 2021-07-02 by mza
+// last updated 2022-09-23 by mza
 
 `define althea_revB
 `include "lib/spi.v"
@@ -99,10 +99,10 @@ module top (
 		.SCK(rpi_spi_sclk), .MOSI(rpi_spi_mosi), .MISO(miso_ce0), .SSEL(rpi_spi_ce0),
 		.transaction_valid(transaction_valid_ce0), .command8(command8_ce0), .address16(address16_ce0), .data32(data32_ce0), .data32_to_controller(read_data32_ce0));
 	wire [3:0] address4_ce0 = address16_ce0[3:0];
-	RAM_inferred_with_register_outputs #(.addr_width(4), .data_width(32)) myram (.reset(reset3_word_clock),
-		.wclk(clock_ram), .waddr(address4_ce0), .din(data32_ce0), .write_en(transaction_valid_ce0),
-		.rclk(clock_ram), .raddr(address4_ce0), .dout(read_data32_ce0),
-		.register0(start_read_address), .register1(end_read_address), .register2(), .register3());
+	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) myram (.reset(reset3_word_clock),
+		.clock(clock_ram), .waddress_a(address4_ce0), .data_in_a(data32_ce0), .write_strobe_a(transaction_valid_ce0),
+		.raddress_a(address4_ce0), .data_out_a(read_data32_ce0),
+		.data_out_b_0(start_read_address), .data_out_b_1(end_read_address), .data_out_b_2(), .data_out_b_3());
 	// ----------------------------------------------------------------------
 	wire [7:0] command8;
 	wire [15:0] address16;

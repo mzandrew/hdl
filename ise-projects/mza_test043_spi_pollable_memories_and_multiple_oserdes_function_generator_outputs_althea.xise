@@ -15,10 +15,10 @@
   <version xil_pn:ise_version="14.7" xil_pn:schema_version="2"/>
 
   <files>
-    <file xil_pn:name="../verilog/src/mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.ucf" xil_pn:type="FILE_UCF">
+    <file xil_pn:name="../verilog/src/mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.revB.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
-    <file xil_pn:name="../verilog/src/mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v" xil_pn:type="FILE_VERILOG">
+    <file xil_pn:name="../verilog/src/mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.revB.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="2"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="6"/>
     </file>
@@ -138,7 +138,7 @@
     <property xil_pn:name="Ignore User Timing Constraints Map" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Ignore User Timing Constraints Par" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Implementation Top" xil_pn:value="Module|mza_test043_spi_pollable_memories_and_multiple_oserdes_function_generator_outputs_althea_top" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="Implementation Top File" xil_pn:value="../../verilog/src/mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.v" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="Implementation Top File" xil_pn:value="../../verilog/src/mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.revB.v" xil_pn:valueState="non-default"/>
     <property xil_pn:name="Implementation Top Instance Path" xil_pn:value="/mza_test043_spi_pollable_memories_and_multiple_oserdes_function_generator_outputs_althea_top" xil_pn:valueState="non-default"/>
     <property xil_pn:name="Include 'uselib Directive in Verilog File" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Include SIMPRIM Models in Verilog File" xil_pn:value="false" xil_pn:valueState="default"/>
@@ -348,7 +348,7 @@
   </properties>
 
   <bindings>
-    <binding xil_pn:location="/mza_test043_spi_pollable_memories_and_multiple_oserdes_function_generator_outputs_althea_top" xil_pn:name="../verilog/src/mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.ucf"/>
+    <binding xil_pn:location="/mza_test043_spi_pollable_memories_and_multiple_oserdes_function_generator_outputs_althea_top" xil_pn:name="../verilog/src/mza-test043.spi-pollable-memories-and-multiple-oserdes-function-generator-outputs.althea.revB.ucf"/>
   </bindings>
 
   <libraries/>
@@ -364,7 +364,7 @@
     <file xil_pn:name="../verilog/src/lib/RAM8.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/generic.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/serdes_pll.v" xil_pn:type="FILE_VERILOG"/>
-    <file xil_pn:name="../verilog/src/lib/dcm.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="../verilog/src/lib/plldcm.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>

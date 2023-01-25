@@ -1,5 +1,7 @@
 // written 2020-06-20 by mza
-// last updated 2020-06-20 by mza
+// last updated 2022-09-23 by mza
+
+// NCD was not produced. All logic was removed from the design. This is usually due to having no input or output PAD connections in the design and no nets or symbols marked as 'SAVE'
 
 `define althea_revA
 

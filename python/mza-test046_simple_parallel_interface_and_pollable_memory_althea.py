@@ -2,7 +2,7 @@
 
 # written 2020-06-20 by mza
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2021-04-16 by mza
+# last updated 2021-11-10 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -16,6 +16,7 @@ max_count = scaling*RF_buckets
 date_string = "2019-11-15.075530"
 size = RF_buckets/16
 N = 10.0
+BANK_ADDRESS_DEPTH = 13
 
 #spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 2, 0 ], 2) # test idelay inc/dec functionality
 
@@ -110,7 +111,7 @@ if 1:
 if 0:
 	althea.setup_half_duplex_bus("test049")
 
-if 1:
+if 0:
 	j = 2
 	values = [ 0 for a in range(2**4) ]
 	values[0] = 3 # bitslip_iserdes[2:0]
@@ -123,30 +124,52 @@ if 1:
 	values[6] = 0 # start_sample (3 LSBs ignored)
 	values[7] = 16 # end_sample (3 LSBs ignored)
 	values[8] = 0b10 # clear histogram and stop sampling
-	althea.write_to_half_duplex_bus_and_then_verify(j * 2**12, values)
+	althea.write_to_half_duplex_bus_and_then_verify(j * 2**BANK_ADDRESS_DEPTH, values)
 	#time.sleep(0.1)
 	values[8] = 0b01 # start sampling histogram
-	althea.write_to_half_duplex_bus_and_then_verify(j * 2**12, values)
+	althea.write_to_half_duplex_bus_and_then_verify(j * 2**BANK_ADDRESS_DEPTH, values)
 	time.sleep(1)
-	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**12, 2**4)
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**BANK_ADDRESS_DEPTH, 2**4)
 	for i in range(16):
 		print(hex(readback[i], 8))
 	#althea.test_writing_data_to_half_duplex_bus()
 
 if 1:
+	j = 2
+	values = [ 0 for a in range(2**4) ]
+	values[0] = 0b000000000001 # hit_mask
+	values[1] = 0b011100101000 # inversion_mask
+	#values[0] = 0xff # minuend
+	#values[4] = 0 # train_oserdes
+	#values[5] = 0b10001010 # train_oserdes_pattern
+	values[6] = 0 # start_sample (3 LSBs ignored)
+	values[7] = 0 # end_sample (3 LSBs ignored)
+	althea.write_to_half_duplex_bus_and_then_verify(j * 2**BANK_ADDRESS_DEPTH, values)
+	time.sleep(1)
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**BANK_ADDRESS_DEPTH, 2**4)
+	for i in range(16):
+		print(hex(readback[i], 8))
+
+if 1:
 #	for j in range(4):
 #		print()
 	j = 1
-	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**12, 2**4)
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**BANK_ADDRESS_DEPTH, 2**4)
 	for i in range(2**4):
 #	for i in range(8):
 		print(hex(readback[i], 8))
 
 if 1:
+	j = 3
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**BANK_ADDRESS_DEPTH, 2**4)
+	for i in range(2**4):
+		print(hex(readback[i], 8))
+
+if 0:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
 	#values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
 	#values = [ 0 for a in range(2**14) ]
-	values = [ 0 for a in range(2**12) ]
+	values = [ 0 for a in range(2**BANK_ADDRESS_DEPTH) ]
 #	for i in range(125):
 #		values[i] = 0xffffffff
 	values[0]  = 0xc0000000
@@ -231,6 +254,12 @@ if 0:
 
 if 0:
 	test_function_generator_DAC_9(10.0e-9) # double 8ns pulse (1.3V) with some ringing; configurable gap between
+
+if 0:
+	test_function_generator_DAC_11() # single ramp from lowest to highest
+
+if 0:
+	test_function_generator_DAC_12() # single pulse
 
 if 0:
 	# continuously increases delay between two pulses until a maximum, then restarts
@@ -336,11 +365,11 @@ if 0:
 	#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 16 ]) # show entire memory while we're writing into it
 	#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 12.7*RF_buckets ]) # show entire memory while we're writing into it
 	#spi_ce0.write_values_to_spi_pollable_memory_and_verify(2, [ 0, 9.0*RF_buckets ]) # show 9 revolutions while we're writing into it
-	spi_ce1.write_zero_values_to_spi_pollable_memory_and_verify(2**12) # clear memory
-	#spi_ce1.write_sequential_values_to_spi_pollable_memory_and_verify(2**12)
-	#spi_ce1.write_pseudorandom_values_to_spi_pollable_memory_and_verify(2**12)
+	spi_ce1.write_zero_values_to_spi_pollable_memory_and_verify(2**BANK_ADDRESS_DEPTH) # clear memory
+	#spi_ce1.write_sequential_values_to_spi_pollable_memory_and_verify(2**BANK_ADDRESS_DEPTH)
+	#spi_ce1.write_pseudorandom_values_to_spi_pollable_memory_and_verify(2**BANK_ADDRESS_DEPTH)
 	# write pulses of increasing width to sequential parts of memory:
-	#size = 2**12
+	#size = 2**BANK_ADDRESS_DEPTH
 	for i in range(9):
 		spi_ce1.write_csv_values_to_spi_pollable_memory_and_verify(size, i*RF_buckets, max_count, "bcm.csv", date_string, i)
 		time.sleep(0.1)

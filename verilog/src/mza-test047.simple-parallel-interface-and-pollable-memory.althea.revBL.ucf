@@ -1,7 +1,7 @@
 # written 2020-10-05 by mza
 # based off of mza-test046.simple-parallel-interface-and-pollable-memory.althea.ucf
 # for an althea revBL
-# last updated 2021-03-01 by mza
+# last updated 2021-10-21 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
@@ -90,17 +90,17 @@ net rpi_gpio21          loc=p79  | iostandard=lvcmos33 | drive = 4; # bank1 - di
 #net rpi_gpio23                                                   ; # used for jtag (TCK)
 #net rpi_gpio24                                                   ; # used for jtag (TDO)
 #net rpi_gpio25                                                   ; # used for DONE
-net rpi_gpio26          loc=p62  | iostandard=lvcmos33 | drive = 4; # bank2 - differs from althea revB
+#net rpi_gpio26          loc=p62  | iostandard=lvcmos33 | drive = 4; # bank2 - differs from althea revB
 #net rpi_gpio27                                                   ; # used for jtag (TDI)
 
 #net "rpi_gpio4_gpclk0" tnm_net = tnm_clock10;
 #timespec "ts_clock10" = period "tnm_clock10" 100.0 ns high 50%; # 10 MHz
 
 # hexadecimal rotary encoder:
-#net rot_1 loc=p119 | iostandard=lvcmos33 | pullup; # bank0 - differs from althea revB
-#net rot_2 loc=p143 | iostandard=lvcmos33 | pullup; # bank0 - differs from althea revB
-#net rot_4 loc=p121 | iostandard=lvcmos33 | pullup; # bank0 - differs from althea revB
-#net rot_8 loc=p120 | iostandard=lvcmos33 | pullup; # bank0 - differs from althea revB
+net rot<0> loc=p119 | iostandard=lvcmos33 | pullup; # rot_1 bank0 - differs from althea revB
+net rot<1> loc=p143 | iostandard=lvcmos33 | pullup; # rot_2 bank0 - differs from althea revB
+net rot<2> loc=p121 | iostandard=lvcmos33 | pullup; # rot_4 bank0 - differs from althea revB
+#net rot<3> loc=p120 | iostandard=lvcmos33 | pullup; # rot_8 bank0 - differs from althea revB
 
 # momentary pushbutton, normally open:
 net button loc=p1 | iostandard=lvcmos33 | pullup; # bank3
@@ -128,13 +128,12 @@ net coax<3> loc=p75  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank1
 net coax<4> loc=p6   | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3
 net coax<5> loc=p33  | iostandard=lvcmos33 | drive = 24 | slew = fast; # bank3 - differs from althea revB
 
-#net "althea/reset_1/asychronous_reset_source" TIG;
-#net "althea/reset_2/asychronous_reset_source" TIG;
-#net "althea/reset_3/asychronous_reset_source" TIG;
-#net "althea/reset_4/asychronous_reset_source" TIG;
-#net "althea/global_reset" TIG;
-#net "althea/clock_select" TIG;
-#net "althea/leds" TIG;
+net "button" tig;
+net "rot<?>" tig;
+net "althea/word_clock_sel<?>" tig;
+#net "led<?>" tig;
+net "coax_led<?>" tig;
+net "*cdc*" tig;
 
 config vccaux=3.3;
 

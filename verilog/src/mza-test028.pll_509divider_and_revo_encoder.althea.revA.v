@@ -1,6 +1,8 @@
 `timescale 1ns / 1ps
 // written 2019-08-14 by mza
-// last updated 2021-07-02 by mza
+// last updated 2022-09-23 by mza
+
+// ERROR: simplepll_BASE removed the 180 outputs, so need to rework this
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
 

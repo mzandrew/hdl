@@ -15,12 +15,12 @@
   <version xil_pn:ise_version="14.7" xil_pn:schema_version="2"/>
 
   <files>
-    <file xil_pn:name="../verilog/src/mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBL.v" xil_pn:type="FILE_VERILOG">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="1"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="6"/>
-    </file>
     <file xil_pn:name="../verilog/src/mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBL.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
+    </file>
+    <file xil_pn:name="../verilog/src/mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBL.v" xil_pn:type="FILE_VERILOG">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="2"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="8"/>
     </file>
   </files>
 
@@ -80,12 +80,11 @@
     <property xil_pn:name="Do Not Escape Signal and Instance Names in Netlist" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Done (Output Events)" xil_pn:value="Default (4)" xil_pn:valueState="default"/>
     <property xil_pn:name="Drive Awake Pin During Suspend/Wake Sequence spartan6" xil_pn:value="false" xil_pn:valueState="default"/>
-    <property xil_pn:name="Drive Done Pin High" xil_pn:value="true" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="Drive Done Pin High" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Enable BitStream Compression" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Enable Cyclic Redundancy Checking (CRC) spartan6" xil_pn:value="true" xil_pn:valueState="default"/>
     <property xil_pn:name="Enable Debugging of Serial Mode BitStream" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Enable External Master Clock spartan6" xil_pn:value="false" xil_pn:valueState="default"/>
-    <property xil_pn:name="Enable Hardware Co-Simulation" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Enable Internal Done Pipe" xil_pn:value="true" xil_pn:valueState="non-default"/>
     <property xil_pn:name="Enable Message Filtering" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Enable Multi-Pin Wake-Up Suspend Mode spartan6" xil_pn:value="false" xil_pn:valueState="default"/>
@@ -265,8 +264,7 @@
     <property xil_pn:name="Run for Specified Time Translate" xil_pn:value="true" xil_pn:valueState="default"/>
     <property xil_pn:name="Safe Implementation" xil_pn:value="No" xil_pn:valueState="default"/>
     <property xil_pn:name="Security" xil_pn:value="Enable Readback and Reconfiguration" xil_pn:valueState="default"/>
-    <property xil_pn:name="Selected Module Instance Name" xil_pn:value="/top_tb" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="Selected Simulation Root Source Node Behavioral" xil_pn:value="work.top_tb" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="Selected Simulation Root Source Node Behavioral" xil_pn:value="" xil_pn:valueState="default"/>
     <property xil_pn:name="Selected Simulation Root Source Node Post-Map" xil_pn:value="" xil_pn:valueState="default"/>
     <property xil_pn:name="Selected Simulation Root Source Node Post-Route" xil_pn:value="" xil_pn:valueState="default"/>
     <property xil_pn:name="Selected Simulation Root Source Node Post-Translate" xil_pn:value="" xil_pn:valueState="default"/>
@@ -284,7 +282,7 @@
     <property xil_pn:name="Simulator" xil_pn:value="ISim (VHDL/Verilog)" xil_pn:valueState="default"/>
     <property xil_pn:name="Slice Utilization Ratio" xil_pn:value="100" xil_pn:valueState="default"/>
     <property xil_pn:name="Specify 'define Macro Name and Value" xil_pn:value="" xil_pn:valueState="default"/>
-    <property xil_pn:name="Specify Top Level Instance Names Behavioral" xil_pn:value="work.top_tb" xil_pn:valueState="default"/>
+    <property xil_pn:name="Specify Top Level Instance Names Behavioral" xil_pn:value="Default" xil_pn:valueState="default"/>
     <property xil_pn:name="Specify Top Level Instance Names Post-Map" xil_pn:value="Default" xil_pn:valueState="default"/>
     <property xil_pn:name="Specify Top Level Instance Names Post-Route" xil_pn:value="Default" xil_pn:valueState="default"/>
     <property xil_pn:name="Specify Top Level Instance Names Post-Translate" xil_pn:value="Default" xil_pn:valueState="default"/>
@@ -333,7 +331,7 @@
     <!--                                                                                  -->
     <!-- The following properties are for internal use only. These should not be modified.-->
     <!--                                                                                  -->
-    <property xil_pn:name="PROP_BehavioralSimTop" xil_pn:value="Module|top_tb" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_BehavioralSimTop" xil_pn:value="" xil_pn:valueState="default"/>
     <property xil_pn:name="PROP_DesignName" xil_pn:value="mza-test050.simple-parallel-interface-and-pollable-memory.6bit-oserdes-R2R-ladder-DAC.althea.revBL" xil_pn:valueState="non-default"/>
     <property xil_pn:name="PROP_DevFamilyPMName" xil_pn:value="spartan6" xil_pn:valueState="default"/>
     <property xil_pn:name="PROP_FPGAConfiguration" xil_pn:value="FPGAConfiguration" xil_pn:valueState="default"/>
@@ -342,8 +340,8 @@
     <property xil_pn:name="PROP_PostSynthSimTop" xil_pn:value="" xil_pn:valueState="default"/>
     <property xil_pn:name="PROP_PostXlateSimTop" xil_pn:value="" xil_pn:valueState="default"/>
     <property xil_pn:name="PROP_PreSynthesis" xil_pn:value="PreSynthesis" xil_pn:valueState="default"/>
-    <property xil_pn:name="PROP_intProjectCreationTimestamp" xil_pn:value="2021-03-17T09:13:15" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="PROP_intWbtProjectID" xil_pn:value="7E498BB038F568091AEC337D0A074D8F" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_intProjectCreationTimestamp" xil_pn:value="2021-10-27T09:38:15" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_intWbtProjectID" xil_pn:value="0B4D111776AF75C758A879BE2C3B26A9" xil_pn:valueState="non-default"/>
     <property xil_pn:name="PROP_intWorkingDirLocWRTProjDir" xil_pn:value="UnderProjDir" xil_pn:valueState="non-default"/>
     <property xil_pn:name="PROP_intWorkingDirUsed" xil_pn:value="Yes" xil_pn:valueState="non-default"/>
   </properties>
@@ -363,9 +361,11 @@
     <!-- include files.                                                       -->
     <file xil_pn:name="../verilog/src/lib/generic.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/RAM8.v" xil_pn:type="FILE_VERILOG"/>
-    <file xil_pn:name="../verilog/src/lib/dcm.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="../verilog/src/lib/plldcm.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/serdes_pll.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/half_duplex_rpi_bus.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="../verilog/src/lib/sequencer.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="../verilog/src/lib/reset.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/edge_to_pulse.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
