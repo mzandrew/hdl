@@ -1,6 +1,6 @@
-#source [find interface/ftdi/digilent-hs1.cfg]
+source [find interface/ftdi/digilent-hs1.cfg]
 #source [find interface/ftdi/digilent-hs2.cfg]
-source [find interface/ftdi/digilent_jtag_hs3.cfg]
+#source [find interface/ftdi/digilent_jtag_hs3.cfg]
 adapter_khz 10000
 transport select jtag
 
@@ -11,7 +11,8 @@ init
 xc6s_program xc6s.tap
 #xc6s_print_dna xc6s.tap
 jtagspi_init 0 contrib/bscan_spi_xc6slx9.bit
-jtagspi_program ./mza_test031_clock509_and_revo_generator_althea/ise_project/mza_test031_clock509_and_revo_generator_althea_top.bin 0
+#jtagspi_program ./mza_test031_clock509_and_revo_generator_althea/ise_project/mza_test031_clock509_and_revo_generator_althea_top.bin 0
+jtagspi_program ./ise_project/mza_test031_clock509_and_revo_generator_althea_top.bin 0
 xc6s_program xc6s.tap
 
 #Info : Found flash device 'win w25q64cv' (ID 0x001740ef)
