@@ -1,9 +1,9 @@
 `timescale 1ns / 1ps
 
 // written 2023-02-21 by mza
-// last updated 2023-02-28 by mza
+// last updated 2023-05-02 by mza
 
-module test002(
+module dual_counter (
 	input clock, input reset,
 	input pulse1, pulse2,
 	output reg [7:0] count1 = 0,
@@ -28,7 +28,7 @@ module test002(
 	end
 endmodule
 
-module test002_tb;
+module dual_counter_tb;
 	localparam half_clock_period = 4;
 	reg clock = 0;
 	reg reset = 0;
@@ -42,7 +42,7 @@ module test002_tb;
 		clock <= 1'b1;
 		#half_clock_period;
 	end
-	test002 blah (.clock(clock), .reset(reset), .pulse1(pulse1), .pulse2(pulse2), .count1(count1), .count2(count2));
+	dual_counter dual_counter (.clock(clock), .reset(reset), .pulse1(pulse1), .pulse2(pulse2), .count1(count1), .count2(count2));
 	initial begin
 		reset <= 0;
 		pulse1 <= 0;
@@ -59,3 +59,21 @@ module test002_tb;
 		#12; pulse2 <= 1'b1; #12; pulse2 <= 1'b0;
 	end
 endmodule
+
+module dual_counter_top_level (
+	input clock100_p, clock100_n,
+	input reset,
+	input [5:0] coax,
+	output [7:0] led
+);
+	wire clock;
+	IBUFGDS clk (.I(clock100_p), .IB(clock100_n), .O(clock));
+	wire [7:0] count1;
+	wire [7:0] count2;
+	wire pulse1, pulse2;
+	dual_counter dual_counter (.clock(clock), .reset(reset), .pulse1(pulse1), .pulse2(pulse2), .count1(count1), .count2(count2));
+	assign led = count1;
+	assign pulse1 = coax[0];
+	assign pulse2 = coax[1];
+endmodule
+
