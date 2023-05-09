@@ -19,7 +19,7 @@
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="2"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="1"/>
     </file>
-    <file xil_pn:name="../verilog/src/mza-test018.clock-in-to-toggle-out.ucf" xil_pn:type="FILE_UCF">
+    <file xil_pn:name="../verilog/src/mza-test018.clock-in-to-toggle-out.scrod.revA3.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
   </files>
