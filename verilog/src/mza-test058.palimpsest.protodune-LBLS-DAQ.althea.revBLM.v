@@ -1,6 +1,6 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
-// last updated 2022-11-30 by mza
+// last updated 2023-08-15 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -33,7 +33,7 @@ module top #(
 ) (
 	input clock100_p, clock100_n,
 	input clock10,
-	input button,
+//	input button,
 	inout [5:0] coax,
 //	input [2:0] rot,
 	inout [BUS_WIDTH-1:0] bus,
@@ -179,6 +179,13 @@ module top #(
 //	wire [2:0] rot_pipeline;
 	reg [31:0] hit_counter = 0;
 	reg [31:0] hit_counter_buffered = 0;
+	wire [7:0] raw_gate;
+	localparam GATE_TRAIN_PICKOFF = 2;
+	localparam GATE_TRAIN_DEPTH = 4;
+	reg [GATE_TRAIN_DEPTH-1:0] gate_train = 0;
+	wire gate = gate_train[GATE_TRAIN_PICKOFF];
+	reg [31:0] gate_counter = 0;
+	reg [31:0] gate_counter_buffered = 0;
 //	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
 	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[3:0], status4, status8 };
 	assign bank1[1]  = iserdes_in_buffered_and_maybe_inverted_a[1];
@@ -194,7 +201,7 @@ module top #(
 	assign bank1[11] = iserdes_in_buffered_and_maybe_inverted_a[11];
 	assign bank1[12] = iserdes_in_buffered_and_maybe_inverted_a[12];
 	assign bank1[13] = 0;
-	assign bank1[14] = 0;
+	assign bank1[14] = gate_counter_buffered;
 	assign bank1[15] = hit_counter_buffered;
 	(* KEEP = "TRUE" *)
 //	assign      minuend                   = bank2[0][7:0];
@@ -219,7 +226,7 @@ module top #(
 			end else begin
 				//iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{|hitmask[i]}} & ~iserdes_in[i];
 				//iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{hit_mask[i] & inversion_mask[i]}} ^ iserdes_in[i];
-				iserdes_in_buffered_and_maybe_inverted_a[i] <= iserdes_in[i] ^ {8{inversion_mask[i]}} & {8{hit_mask[i]}};
+				iserdes_in_buffered_and_maybe_inverted_a[i] <= (iserdes_in[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
 			end
 		end
 	end
@@ -239,7 +246,7 @@ module top #(
 			end else begin
 				//iserdes_word_hit[i] <= |hitmask[i] && ~|iserdes_in[i]; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
 				//iserdes_word_hit[i] <= hit_mask[i] & inversion_mask[i] ^ (|iserdes_in[i]); // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
-				iserdes_word_hit[i] <= |iserdes_in[i] ^ inversion_mask[i] && hit_mask[i]; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
+				iserdes_word_hit[i] <= ((|iserdes_in[i]) ^ inversion_mask[i]) & hit_mask[i] & gate; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
 			end
 		end
 	end
@@ -265,6 +272,24 @@ module top #(
 			hit_counter_buffered <= hit_counter;
 			if (2'b01==anytrain[2:1]) begin
 				hit_counter <= hit_counter + 1'b1;
+			end
+		end
+	end
+	always @(posedge word_clock) begin
+		if (reset_word) begin
+			gate_train <= 0;
+		end else begin
+			gate_train <= { gate_train[GATE_TRAIN_DEPTH-2:0], |raw_gate };
+		end
+	end
+	always @(posedge word_clock) begin
+		if (reset_word) begin
+			gate_counter <= 0;
+			gate_counter_buffered <= 0;
+		end else begin
+			gate_counter_buffered <= gate_counter;
+			if (2'b01==gate_train[GATE_TRAIN_PICKOFF+1:GATE_TRAIN_PICKOFF]) begin
+				gate_counter <= gate_counter + 1'b1;
 			end
 		end
 	end
@@ -299,7 +324,7 @@ module top #(
 	wire strobe_is_alignedC;
 	wire strobe_is_alignedD;
 	// the order here is 12, 11, 10, 6, 5, 4, 9, 8, 7, 3, 2, 1
-	ocyrus_triacontahedron8_split_12_6_6_4_2_BCinput #(
+	ocyrus_triacontahedron8_split_12_6_6_4_2_BCEinput #(
 		.SPECIAL_A11("C"),
 		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE)
 	) orama (
@@ -309,14 +334,14 @@ module top #(
 		.word_B5_out(iserdes_in[12]), .word_B4_out(iserdes_in[11]), .word_B3_out(iserdes_in[10]), .word_B2_out(iserdes_in[9]), .word_B1_out(iserdes_in[8]), .word_B0_out(iserdes_in[7]),
 		.word_C5_out(iserdes_in[6]), .word_C4_out(iserdes_in[5]), .word_C3_out(iserdes_in[4]), .word_C2_out(iserdes_in[3]), .word_C1_out(iserdes_in[2]), .word_C0_out(iserdes_in[1]),
 		.word_D3_in(previous_time_over_threshold[1]), .word_D2_in({8{iserdes_word_hit[1]}}), .word_D1_in({8{any}}), .word_D0_in(iserdes_in_buffered_and_maybe_inverted_b[1]),
-		.word_E1_in(sync_out_word), .word_E0_in({8{any}}),
+		.word_E1_out(raw_gate), .word_E0_out(),
 		.word_clockA_out(), .word_clockB_out(word_clock), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
 		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[6]), .A07_out(indicator[5]), .A06_out(indicator[4]),
 		.A05_out(indicator[9]), .A04_out(indicator[8]), .A03_out(indicator[7]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
 		.B5_in(signal[12]), .B4_in(signal[11]), .B3_in(signal[10]), .B2_in(signal[6]), .B1_in(signal[5]), .B0_in(signal[4]),
 		.C5_in(signal[9]), .C4_in(signal[8]), .C3_in(signal[7]), .C2_in(signal[3]), .C1_in(signal[2]), .C0_in(signal[1]),
 		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
-		.E1_out(coax[5]), .E0_out(coax[4]),
+		.E1_in(coax[5]), .E0_in(coax[4]),
 		.strobe_is_alignedA(strobe_is_alignedA), .strobe_is_alignedB(strobe_is_alignedB),
 		.strobe_is_alignedC(strobe_is_alignedC), .strobe_is_alignedD(strobe_is_alignedD),
 		.locked(pll_oserdes_locked)
@@ -399,7 +424,8 @@ module top_tb;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] rdata = 0;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are controller
 	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
-		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10), .button(button),
+		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10),
+		// .button(button),
 		.coax(coax),
 		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
 		.diff_pair_right({ m_p, m_n, l_p, l_n, j_p, j_n, g_p, g_n, k_p, k_n, h_p, h_n }),
@@ -691,7 +717,7 @@ module myalthea #(
 	u, v, w, x, y, z,
 	// other IOs:
 	//input [2:0] rot
-	input button, // reset
+//	input button, // reset
 	output other, // goes to PMOD connector
 //	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
 	output [3:0] coax_led
@@ -739,7 +765,7 @@ module myalthea #(
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) althea (
 		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10),
-		.button(button),
+//		.button(button),
 		.coax(coax),
 		.bus({
 			rpi_gpio21, rpi_gpio20, rpi_gpio19, rpi_gpio18,

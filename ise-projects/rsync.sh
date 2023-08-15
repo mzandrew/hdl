@@ -2,7 +2,7 @@
 
 declare list=""
 #list="$list 2013pi1-idlab"
-list="$list rpi122"
+#list="$list rpi122"
 list="$list rpi173"
 #list="$list 2018pi2-idlab"
 #list="$list 2018pi3-idlab-xrm"

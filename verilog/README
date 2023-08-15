@@ -7,3 +7,16 @@ or
 
 ln -s ../../bin/nofizbin/verilog-icestorm-arachnepnr-yosys.makefile makefile
 
+verilog operator precedence; use () to override:
++ - ! ~ (unary)
++ - (binary)
+<< >>
+< > <= >=
+== !=
+&
+^ ^~ ~^
+|
+&&
+||
+?:
+
