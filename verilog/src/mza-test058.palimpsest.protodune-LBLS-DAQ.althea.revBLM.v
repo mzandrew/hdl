@@ -1,6 +1,6 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
-// last updated 2023-08-15 by mza
+// last updated 2023-08-22 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -22,10 +22,10 @@ module top #(
 	parameter OSERDES_DATA_WIDTH = 8,
 	parameter TRANSACTIONS_PER_ADDRESS_WORD = 1,
 	parameter BANK_ADDRESS_DEPTH = 13,
-	parameter LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD - BANK_ADDRESS_DEPTH,
-	parameter NUMBER_OF_BANKS = 1<<LOG2_OF_NUMBER_OF_BANKS,
+	parameter LOG2_OF_NUMBER_OF_BANKS = BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD - BANK_ADDRESS_DEPTH, // 3
+	parameter NUMBER_OF_BANKS = 1<<LOG2_OF_NUMBER_OF_BANKS, // 2^3 = 8
 	parameter LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH = $clog2(64),
-	parameter ADDRESS_DEPTH_OSERDES = BANK_ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH,
+	parameter ADDRESS_DEPTH_OSERDES = BANK_ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH, // 13 - 4 + 1 - 6 = 4
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
 	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
@@ -146,14 +146,24 @@ module top #(
 	end else begin
 		assign read_data_word[0] = 0;
 	end
-	for (i=4; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
+	for (i=6; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
 		assign read_data_word[i] = 0;
 	end
 	reg [12:1] fifo_write_enable;
 	wire [12:1] fifo_read_enable;
-	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc3210 (.clock(word_clock), .reset(reset_word), .error_count(),
-		.data_in({previous_time_over_threshold[4],previous_time_over_threshold[3],previous_time_over_threshold[2],previous_time_over_threshold[1]}), .write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
-		.data_out(read_data_word[3]), .read_enable(read_strobe[3]), .empty(), .almost_empty(), .empty_or_almost_empty());
+	wire fifo_empty;
+	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc_4321 (.clock(word_clock), .reset(reset_word), .error_count(),
+		.data_in({previous_time_over_threshold[4],previous_time_over_threshold[3],previous_time_over_threshold[2],previous_time_over_threshold[1]}),
+		.write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
+		.data_out(read_data_word[3]), .read_enable(read_strobe[3]), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
+	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc_8765 (.clock(word_clock), .reset(reset_word), .error_count(),
+		.data_in({previous_time_over_threshold[8],previous_time_over_threshold[7],previous_time_over_threshold[6],previous_time_over_threshold[5]}),
+		.write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
+		.data_out(read_data_word[4]), .read_enable(read_strobe[4]), .empty(), .almost_empty(), .empty_or_almost_empty());
+	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc_cba9 (.clock(word_clock), .reset(reset_word), .error_count(),
+		.data_in({previous_time_over_threshold[12],previous_time_over_threshold[11],previous_time_over_threshold[10],previous_time_over_threshold[9]}),
+		.write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
+		.data_out(read_data_word[5]), .read_enable(read_strobe[5]), .empty(), .almost_empty(), .empty_or_almost_empty());
 	wire [31:0] bank1 [15:0];
 	wire [31:0] bank2 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -261,7 +271,7 @@ module top #(
 		if (reset_word) begin
 			anytrain <= 0;
 		end else begin
-			anytrain <= { anytrain[1], anytrain[0], any };
+			anytrain <= { anytrain[1:0], any };
 		end
 	end
 	always @(posedge word_clock) begin
@@ -368,12 +378,12 @@ module top #(
 	end else begin
 		assign status4[3] = ~pll_oserdes_locked;
 		assign status4[2] = enable;
-		assign status4[1] = 0;
+		assign status4[1] = ~fifo_empty;
 		assign status4[0] = any;
 		// ------------------------------------------------
 		assign status8[7] = ~pll_oserdes_locked;
 		assign status8[6] = enable;
-		assign status8[5] = 0;
+		assign status8[5] = ~fifo_empty;
 		assign status8[4] = any;
 		assign status8[3] = ~strobe_is_alignedA;
 		assign status8[2] = ~strobe_is_alignedB;
