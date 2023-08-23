@@ -136,14 +136,20 @@ if 0:
 
 if 1:
 	j = 2
+	print("bank" + str(j) + ":")
 	values = [ 0 for a in range(2**4) ]
-	values[0] = 0b000000000001 # hit_mask
-	values[1] = 0b011100101000 # inversion_mask
+	values[0] = 0b111111111111 # hit_mask
+	values[1] = 0b000000000000 # inversion_mask
+	values[2] = int(1e6) # desired_trigger_quantity
+	values[3] = 250 # trigger_duration_in_word_clocks
+	values[4] = 1 # clear_trigger_count
 	#values[0] = 0xff # minuend
 	#values[4] = 0 # train_oserdes
 	#values[5] = 0b10001010 # train_oserdes_pattern
 	values[6] = 0 # start_sample (3 LSBs ignored)
 	values[7] = 0 # end_sample (3 LSBs ignored)
+	althea.write_to_half_duplex_bus_and_then_verify(j * 2**BANK_ADDRESS_DEPTH, values)
+	values[4] = 0 # clear_trigger_count
 	althea.write_to_half_duplex_bus_and_then_verify(j * 2**BANK_ADDRESS_DEPTH, values)
 	time.sleep(1)
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**BANK_ADDRESS_DEPTH, 2**4)
@@ -154,16 +160,20 @@ if 1:
 #	for j in range(4):
 #		print()
 	j = 1
+	print("bank" + str(j) + ":")
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**BANK_ADDRESS_DEPTH, 2**4)
 	for i in range(2**4):
 #	for i in range(8):
 		print(hex(readback[i], 8))
 
 if 1:
-	j = 3
-	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(j * 2**BANK_ADDRESS_DEPTH, 2**4)
-	for i in range(2**4):
-		print(hex(readback[i], 8))
+	depth = 4
+	print("fifo" + ":")
+	readback_4321 = althea.read_data_from_pollable_memory_on_half_duplex_bus(3 * 2**BANK_ADDRESS_DEPTH, 2**depth)
+	readback_8765 = althea.read_data_from_pollable_memory_on_half_duplex_bus(4 * 2**BANK_ADDRESS_DEPTH, 2**depth)
+	readback_cba9 = althea.read_data_from_pollable_memory_on_half_duplex_bus(5 * 2**BANK_ADDRESS_DEPTH, 2**depth)
+	for i in range(2**depth):
+		print(hex(readback_cba9[i], 8) + " " + hex(readback_8765[i], 8) + " " + hex(readback_4321[i], 8))
 
 if 0:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
