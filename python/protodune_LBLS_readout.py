@@ -7,9 +7,14 @@
 
 SCREEN_WIDTH = 720
 SCREEN_HEIGHT = 720
+ROWS = 1
+COLUMNS = 1
+NUMBER_OF_PHOTODIODES = 12
+
 GAP_X_BETWEEN_PLOTS = 20
 GAP_Y_BETWEEN_PLOTS = 44
-GAP_X_SIDE = 14
+GAP_X_LEFT = 14
+GAP_X_RIGHT = 205
 GAP_Y_TOP = 24
 GAP_Y_BOTTOM = 24
 FONT_SIZE_PLOT_CAPTION = 18
@@ -20,16 +25,27 @@ ICON_BORDER = 2
 ICON_SQUARE_LENGTH = ICON_SIZE//2 - 3*ICON_BORDER
 NUMBER_OF_HOURS_TO_PLOT = 48
 should_use_touchscreen = False
-ROWS = 1
-COLUMNS = 1
+
 plot_name = [ [ "" for j in range(ROWS) ] for i in range(COLUMNS) ]
 feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
 maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
 
+# geometry of protodune LBLS PIN photodiode array:
+#a_in = 0.5 # lattice spacing, in in
+photodiode_can_diameter_in = 0.325
+photodiode_positions_x_in = [ -1.375 + 0.5 * i for i in range(6) ] + [ -1.125 + 0.5 * i for i in range(6) ]
+photodiode_positions_y_in = [ 0.25 for i in range(6)] + [ -0.25 for i in range(6) ]
+#for i in range(12):
+#	print("PD" + str(i+1) + " " + str(photodiode_positions_x_in[i]) + "," + str(photodiode_positions_y_in[i]))
+box_dimension_x_in = 5.0
+box_dimension_y_in = 2.0
+scale_pixels_per_in = 100
+
 black = (0, 0, 0)
 white = (255, 255, 255)
+grey = (127, 127, 127)
 red = (255, 0, 0)
 green = (0, 255, 0)
 blue = (75, 75, 255)
@@ -109,19 +125,10 @@ def update_plot(i, j):
 	# fill with colors for now:
 	#plot[i][j].fill((random.randrange(0, 255), random.randrange(0, 255), random.randrange(0, 255)))
 	print("[" + str(i) + "][" + str(j) + "]")
-	offset_noon = 200
-	#print("offset_noon:" + str(offset_noon))
-	offset_hour = 100
-	#print("offset_hour:" + str(offset_hour))
 	for x in range(plot_width):
 		pygame.event.pump()
 		for y in range(plot_height):
-			if 0==(plot_width-x-offset_noon)%(pixels_per_hour*24): # draw a bright vertical line for noon every day
-				plot[i][j].set_at((x, y), grid_color_bright)
-			elif 0==(plot_width-x-offset_hour)%pixels_per_hour: # draw a faint vertical line for each hour
-				plot[i][j].set_at((x, y), grid_color_faint)
-			else:
-				plot[i][j].set_at((x, y), black)
+			plot[i][j].set_at((x, y), black)
 			for k in range(len(feed_name[i][j])):
 				yn = int(plot_height - plot_height * normalized_feed_data[i][j][k][x])
 				doit = False
@@ -135,16 +142,34 @@ def update_plot(i, j):
 					plot[i][j].set_at((x, y), color[k+2]) # first two indices are black and white
 	plots_were_updated[i][j] = True
 
+active_square_size_in = 0.125
+active_square_size = active_square_size_in * scale_pixels_per_in
+def draw_photodiode_box(i, j):
+	width = int(box_dimension_x_in * scale_pixels_per_in)
+	height = int(box_dimension_y_in * scale_pixels_per_in)
+	offset_x = 0 # GAP_X_LEFT+i*(width+GAP_X_BETWEEN_PLOTS)
+	offset_y = 0 # GAP_Y_TOP+j*(height+GAP_Y_BETWEEN_PLOTS)
+	radius = int(photodiode_can_diameter_in * scale_pixels_per_in / 2.0)
+	box = pygame.draw.rect(flarb[i][j], grey, pygame.Rect(offset_x, offset_y, width, height), 0)
+	for k in range(NUMBER_OF_PHOTODIODES):
+		x = int(offset_x + width/2 + photodiode_positions_x_in[k] * scale_pixels_per_in)
+		y = int(offset_y + height/2 - photodiode_positions_y_in[k] * scale_pixels_per_in)
+		pygame.draw.circle(flarb[i][j], white, (x, y), radius, 0)
+		pygame.draw.rect(flarb[i][j], black, pygame.Rect(x-active_square_size//2, y-active_square_size//2, active_square_size, active_square_size), 0)
+	screen.blit(flarb[i][j], (GAP_X_LEFT+i*(width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(height+GAP_Y_BETWEEN_PLOTS)))
+
 def draw_plot_border(i, j):
 	#print("drawing plot border...")
-	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_SIDE+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
+	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
 
 def setup():
 	global plot_width
 	global plot_height
 	global screen
 	global plot
-	usable_width = SCREEN_WIDTH - 2*GAP_X_SIDE - (COLUMNS-1)*GAP_X_BETWEEN_PLOTS
+	global something_was_updated
+	something_was_updated = False
+	usable_width = SCREEN_WIDTH - GAP_X_LEFT - GAP_X_RIGHT - (COLUMNS-1)*GAP_X_BETWEEN_PLOTS
 	#print("usable_width: " + str(usable_width))
 	usable_height = SCREEN_HEIGHT - GAP_Y_TOP - GAP_Y_BOTTOM - (ROWS-1)*GAP_Y_BETWEEN_PLOTS
 	#print("usable_height: " + str(usable_height))
@@ -182,13 +207,17 @@ def setup():
 	screen.fill(black)
 	pygame.event.pump()
 	plot = [ [ pygame.Surface((plot_width, plot_height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
+	width = int(box_dimension_x_in * scale_pixels_per_in)
+	height = int(box_dimension_y_in * scale_pixels_per_in)
+	global flarb
+	flarb = [ [ pygame.Surface((width, height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#plot_rect = [ [ plot[i][j].get_rect() for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#clear_plots()
 	for i in range(COLUMNS):
 		for j in range(ROWS):
 			pygame.event.pump()
 			plot_caption = plot_caption_font.render(plot_name[i][j], 1, white)
-			screen.blit(plot_caption, plot_caption.get_rect(center=(GAP_X_SIDE+i*(plot_width+GAP_X_BETWEEN_PLOTS)+plot_width//2 , GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-FONT_SIZE_PLOT_CAPTION//2-4)))
+			screen.blit(plot_caption, plot_caption.get_rect(center=(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)+plot_width//2 , GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-FONT_SIZE_PLOT_CAPTION//2-4)))
 			feed_caption = []
 			width = 0
 			for k in range(len(short_feed_name[i][j])):
@@ -196,13 +225,14 @@ def setup():
 				width += feed_caption[k].get_width() + FONT_SIZE_FEED_NAME_EXTRA_GAP
 			#print("width: " + str(width))
 			for k in range(len(short_feed_name[i][j])):
-				screen.blit(feed_caption[k], feed_caption[k].get_rect(center=(GAP_X_SIDE+i*(plot_width+GAP_X_BETWEEN_PLOTS)+plot_width//2-width//2+feed_caption[k].get_width()//2, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)+plot_height+FONT_SIZE_FEED_NAME//2+4)))
+				screen.blit(feed_caption[k], feed_caption[k].get_rect(center=(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)+plot_width//2-width//2+feed_caption[k].get_width()//2, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)+plot_height+FONT_SIZE_FEED_NAME//2+4)))
 				width -= 2*(feed_caption[k].get_width() + FONT_SIZE_FEED_NAME_EXTRA_GAP)
 			#print("width: " + str(width))
 			pygame.event.pump()
 			draw_plot_border(i, j)
-			update_plot(i, j)
-			blit(i, j)
+#			update_plot(i, j)
+#			blit(i, j)
+			draw_photodiode_box(i, j)
 			flip()
 			sys.stdout.flush()
 	global should_check_for_new_data
@@ -217,7 +247,7 @@ def loop():
 	global should_update_plots
 	global ij
 	global something_was_updated
-	something_was_updated = False
+	something_was_updated = True
 	should_update_plots = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#pressed_keys = pygame.key.get_pressed()
 	#pygame.event.wait()
@@ -239,24 +269,25 @@ def loop():
 			elif 3==ij:
 				should_update_plots[1][1] = True
 			ij += 1
-			if 3<ij:
+			if COLUMNS*ROWS-1<ij:
 				ij = 0
 	for i in range(COLUMNS):
 		for j in range(ROWS):
 			if should_update_plots[i][j]:
 				#print("updating...")
 				should_update_plots[i][j] = False
-				update_plot(i, j)
-	for i in range(COLUMNS):
-		for j in range(ROWS):
-			blit(i, j)
+#				update_plot(i, j)
+#	for i in range(COLUMNS):
+#		for j in range(ROWS):
+#			blit(i, j)
+	draw_photodiode_box(i, j)
 	flip()
 
 def blit(i, j):
 	global something_was_updated
 	if plots_were_updated[i][j]:
 		#print("blitting...")
-		screen.blit(plot[i][j], (GAP_X_SIDE+i*(plot_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)))
+		screen.blit(plot[i][j], (GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)))
 		pygame.event.pump()
 		plots_were_updated[i][j] = False
 		something_was_updated = True
