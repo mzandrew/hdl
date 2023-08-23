@@ -1,6 +1,7 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
-// last updated 2023-08-22 by mza
+// and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
+// last updated 2023-08-23 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -194,6 +195,11 @@ module top #(
 	localparam GATE_TRAIN_DEPTH = 4;
 	reg [GATE_TRAIN_DEPTH-1:0] gate_train = 0;
 	wire gate = gate_train[GATE_TRAIN_PICKOFF];
+	wire [7:0] raw_trigger;
+	localparam TRIGGER_TRAIN_PICKOFF = 2;
+	localparam TRIGGER_TRAIN_DEPTH = 4;
+	reg [TRIGGER_TRAIN_DEPTH-1:0] trigger_train = 0;
+	wire trigger = trigger_train[TRIGGER_TRAIN_PICKOFF];
 	reg [31:0] gate_counter = 0;
 	reg [31:0] gate_counter_buffered = 0;
 //	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
@@ -210,17 +216,28 @@ module top #(
 	assign bank1[10] = iserdes_in_buffered_and_maybe_inverted_a[10];
 	assign bank1[11] = iserdes_in_buffered_and_maybe_inverted_a[11];
 	assign bank1[12] = iserdes_in_buffered_and_maybe_inverted_a[12];
-	assign bank1[13] = 0;
+	assign bank1[13] = trigger_count;
 	assign bank1[14] = gate_counter_buffered;
 	assign bank1[15] = hit_counter_buffered;
+	reg trigger_active = 0;
+	reg [31:0] trigger_active_counter = 0;
+	reg [31:0] trigger_count = 0;
 	(* KEEP = "TRUE" *)
-//	assign      minuend                   = bank2[0][7:0];
-	wire [12:1] hit_mask                  = bank2[0][11:0];
-	wire [12:1] inversion_mask            = bank2[1][11:0];
-//	wire        train_oserdes             = bank2[4][0];
-//	wire  [7:0] train_oserdes_pattern     = bank2[5][7:0];
-	wire [31:0] start_sample              = bank2[6][31:0];
-	wire [31:0] end_sample                = bank2[7][31:0];
+//	assign      minuend                         = bank2[0][7:0];
+	wire [12:1] hit_mask                        = bank2[0][11:0];
+	wire [12:1] inversion_mask                  = bank2[1][11:0];
+	wire [31:0] desired_trigger_quantity        = bank2[2][31:0];
+	wire [31:0] trigger_duration_in_word_clocks = bank2[3][31:0];
+	//wire [31:0] trigger_duration_in_word_clocks = 25; // 1 us
+	wire        clear_trigger_count             = bank2[4][0];
+//	wire        train_oserdes                   = bank2[4][0];
+//	wire  [7:0] train_oserdes_pattern           = bank2[5][7:0];
+	wire [31:0] start_sample                    = bank2[6][31:0];
+	wire [31:0] end_sample                      = bank2[7][31:0];
+	wire [31:0] dummy_register8                 = bank2[8][31:0];
+	wire [31:0] dummy_register9                 = bank2[9][31:0];
+	wire [31:0] dummy_registera                 = bank2[10][31:0];
+	wire [31:0] dummy_registerb                 = bank2[11][31:0];
 	assign reset = 0;
 	//assign reset = ~button;
 	wire [7:0] iserdes_in [12:1];
@@ -269,6 +286,35 @@ module top #(
 	end
 	always @(posedge word_clock) begin
 		if (reset_word) begin
+			trigger_active <= 0;
+			trigger_active_counter <= 0;
+			trigger_count <= 0;
+		end else begin
+			if (clear_trigger_count) begin
+				trigger_active <= 0;
+				trigger_active_counter <= 0;
+				trigger_count <= 0;
+			end else begin
+				if (trigger_active) begin
+					if (trigger_active_counter < trigger_duration_in_word_clocks) begin
+						trigger_active_counter <= trigger_active_counter + 1'b1;
+					end else begin
+						trigger_active <= 0;
+					end
+				end else begin
+					if (trigger) begin
+						if (trigger_count < desired_trigger_quantity) begin
+							trigger_active <= 1;
+							trigger_active_counter <= 0;
+							trigger_count <= trigger_count + 1'b1;
+						end
+					end
+				end
+			end
+		end
+	end
+	always @(posedge word_clock) begin
+		if (reset_word) begin
 			anytrain <= 0;
 		end else begin
 			anytrain <= { anytrain[1:0], any };
@@ -290,6 +336,13 @@ module top #(
 			gate_train <= 0;
 		end else begin
 			gate_train <= { gate_train[GATE_TRAIN_DEPTH-2:0], |raw_gate };
+		end
+	end
+	always @(posedge word_clock) begin
+		if (reset_word) begin
+			trigger_train <= 0;
+		end else begin
+			trigger_train <= { trigger_train[TRIGGER_TRAIN_DEPTH-2:0], |raw_trigger };
 		end
 	end
 	always @(posedge word_clock) begin
@@ -317,14 +370,14 @@ module top #(
 				previous_time_over_threshold[i] <= 0;
 				time_over_threshold[i] <= 0;
 			end else begin
-				if (0==iserdes_in_ones_counter[i]) begin
-					previous_time_over_threshold[i] <= time_over_threshold[i];
-					time_over_threshold[i] <= 0;
-				end else begin
+				if (trigger_active) begin
 					time_over_threshold[i] <= time_over_threshold[i] + iserdes_in_ones_counter[i];
-				end
-				if (previous_time_over_threshold[i]) begin
-					fifo_write_enable[i] <= 1;
+				end else begin
+					previous_time_over_threshold[i] <= time_over_threshold[i];
+					if (time_over_threshold[i]) begin
+						fifo_write_enable[i] <= 1;
+						time_over_threshold[i] <= 0;
+					end
 				end
 			end
 		end
@@ -344,7 +397,7 @@ module top #(
 		.word_B5_out(iserdes_in[12]), .word_B4_out(iserdes_in[11]), .word_B3_out(iserdes_in[10]), .word_B2_out(iserdes_in[9]), .word_B1_out(iserdes_in[8]), .word_B0_out(iserdes_in[7]),
 		.word_C5_out(iserdes_in[6]), .word_C4_out(iserdes_in[5]), .word_C3_out(iserdes_in[4]), .word_C2_out(iserdes_in[3]), .word_C1_out(iserdes_in[2]), .word_C0_out(iserdes_in[1]),
 		.word_D3_in(previous_time_over_threshold[1]), .word_D2_in({8{iserdes_word_hit[1]}}), .word_D1_in({8{any}}), .word_D0_in(iserdes_in_buffered_and_maybe_inverted_b[1]),
-		.word_E1_out(raw_gate), .word_E0_out(),
+		.word_E1_out(raw_gate), .word_E0_out(raw_trigger),
 		.word_clockA_out(), .word_clockB_out(word_clock), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
 		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[6]), .A07_out(indicator[5]), .A06_out(indicator[4]),
 		.A05_out(indicator[9]), .A04_out(indicator[8]), .A03_out(indicator[7]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
@@ -377,18 +430,19 @@ module top #(
 		assign status8 = 0;
 	end else begin
 		assign status4[3] = ~pll_oserdes_locked;
-		assign status4[2] = enable;
+		assign status4[2] = trigger_active;
 		assign status4[1] = ~fifo_empty;
 		assign status4[0] = any;
-		// ------------------------------------------------
-		assign status8[7] = ~pll_oserdes_locked;
-		assign status8[6] = enable;
-		assign status8[5] = ~fifo_empty;
-		assign status8[4] = any;
-		assign status8[3] = ~strobe_is_alignedA;
-		assign status8[2] = ~strobe_is_alignedB;
-		assign status8[1] = ~strobe_is_alignedC;
-		assign status8[0] = ~strobe_is_alignedD;
+		// -------------------------------------
+		assign status8[7] = ~strobe_is_alignedA;
+		assign status8[6] = ~strobe_is_alignedB;
+		assign status8[5] = ~strobe_is_alignedC;
+		assign status8[4] = ~strobe_is_alignedD;
+		// -------------------------------------
+		assign status8[3] = ~pll_oserdes_locked;
+		assign status8[2] = trigger_active;
+		assign status8[1] = ~fifo_empty;
+		assign status8[0] = any;
 	end
 	assign coax_led = status4;
 	initial begin
