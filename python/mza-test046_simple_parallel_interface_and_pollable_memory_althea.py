@@ -2,7 +2,7 @@
 
 # written 2020-06-20 by mza
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2021-11-10 by mza
+# last updated 2023-08-23 by mza
 
 import time # time.sleep
 import sys # sys.exit
@@ -134,7 +134,7 @@ if 0:
 		print(hex(readback[i], 8))
 	#althea.test_writing_data_to_half_duplex_bus()
 
-if 1:
+if 1: # mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM
 	j = 2
 	print("bank" + str(j) + ":")
 	values = [ 0 for a in range(2**4) ]
