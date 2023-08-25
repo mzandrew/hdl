@@ -105,8 +105,11 @@ if should_use_touchscreen:
 		os.environ["SDL_MOUSEDRV"] = "TSLIB"
 import pygame # sudo apt install -y python3-pygame # gets 1.9.6 as of early 2023
 # pip3 install pygame # gets 2.1.2 as of early 2023
-# sudo apt install -y libmad0 libmikmod3 libportmidi0 libsdl-image1.2 libsdl-mixer1.2 libsdl-ttf-2.0-0 libsdl1.2debian
+# sudo apt install -y libmad0 libmikmod3 libportmidi0 libsdl-image1.2 libsdl-mixer1.2 libsdl-ttf2.0 libsdl1.2debian
 from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_q, K_BREAK, K_SPACE
+from generic import * # hex, eng
+import althea
+BANK_ADDRESS_DEPTH = 13
 
 def update_plot(i, j):
 	for k in range(len(feed_name[i][j])):
@@ -177,22 +180,13 @@ def setup():
 	plot_height = int(usable_height / ROWS)
 	#print("plot_width: " + str(plot_width))
 	#print("plot_height: " + str(plot_height))
-	global pixels_per_hour
-	pixels_per_hour = plot_width / NUMBER_OF_HOURS_TO_PLOT
-	#print("pixels_per_hour: " + str(pixels_per_hour))
-	global minutes_per_pixel
-	minutes_per_pixel = 60./pixels_per_hour
-	#print("minutes_per_pixel: " + str(minutes_per_pixel))
-	global target_period
-	target_period = 3600./pixels_per_hour
-	#print("target_period: " + str(target_period))
 	pygame.display.init()
 	pygame.font.init()
 	#pygame.mixer.quit()
 	global game_clock
 	game_clock = pygame.time.Clock()
-	if not should_use_touchscreen:
-		pygame.mouse.set_cursor((8,8),(0,0),(0,0,0,0,0,0,0,0),(0,0,0,0,0,0,0,0))
+#	if not should_use_touchscreen:
+#		pygame.mouse.set_cursor((8,8),(0,0),(0,0,0,0,0,0,0,0),(0,0,0,0,0,0,0,0))
 	pygame.display.set_caption("protodune LBLS")
 	plot_caption_font = pygame.font.SysFont("monospace", FONT_SIZE_PLOT_CAPTION )
 	feed_name_font = pygame.font.SysFont("monospace", FONT_SIZE_FEED_NAME)
@@ -235,8 +229,13 @@ def setup():
 			draw_photodiode_box(i, j)
 			flip()
 			sys.stdout.flush()
+	althea.setup_half_duplex_bus("test058")
+	setup_trigger_mask_inversion_mask_trigger_quantity_and_duration()
 	global should_check_for_new_data
 	should_check_for_new_data = pygame.USEREVENT + 1
+	global target_period
+	target_period = 0.1
+	#print("target_period: " + str(target_period))
 	pygame.time.set_timer(should_check_for_new_data, int(target_period*1000/COLUMNS/ROWS))
 
 ij = 0
@@ -251,6 +250,7 @@ def loop():
 	should_update_plots = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#pressed_keys = pygame.key.get_pressed()
 	#pygame.event.wait()
+	mouse = pygame.mouse.get_pos()
 	for event in pygame.event.get():
 		if event.type == KEYDOWN:
 			if K_ESCAPE==event.key or K_q==event.key:
@@ -271,12 +271,15 @@ def loop():
 			ij += 1
 			if COLUMNS*ROWS-1<ij:
 				ij = 0
+		elif event.type == pygame.MOUSEBUTTONDOWN:
+			do_something()
 	for i in range(COLUMNS):
 		for j in range(ROWS):
 			if should_update_plots[i][j]:
 				#print("updating...")
 				should_update_plots[i][j] = False
 #				update_plot(i, j)
+				show_stuff()
 #	for i in range(COLUMNS):
 #		for j in range(ROWS):
 #			blit(i, j)
@@ -299,6 +302,145 @@ def flip():
 		pygame.display.flip()
 		pygame.event.pump()
 		something_was_updated = False
+
+def read_status_register():
+	bank = 1
+	global status_register
+	status_register, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 1, False)
+	return status_register
+
+def show_status_register():
+	read_status_register()
+	print("status register: " + str(hex(status_register, 8)))
+
+def setup_hit_mask(hit_mask):
+	bank = 2
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [hit_mask], False)
+
+def setup_inversion_mask(inversion_mask):
+	bank = 2
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 1, [inversion_mask], False)
+
+def setup_desired_trigger_quantity(quantity):
+	bank = 2
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [quantity], False)
+
+def setup_trigger_duration(number_of_word_clocks):
+	bank = 2
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 3, [number_of_word_clocks], False)
+
+def clear_trigger_count():
+	bank = 2
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 4, [1], False)
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 4, [0], False)
+
+def select(value):
+	bank = 2
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [value], False)
+
+def get_trigger_count():
+	bank = 1
+	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 13, 1, False)
+
+def show_trigger_count():
+	trigger_count, = get_trigger_count()
+	print("  trigger count: " + str(hex(trigger_count, 8)))
+
+def readout_raw_values():
+	bank = 1
+	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+
+def return_raw_values_string():
+	values = readout_raw_values()
+	string = ""
+	for i in range(12):
+		string += str(hex(values[11 - i], 8)) + " "
+	return string
+
+def show_raw_values():
+	print(return_raw_values_string())
+
+def readout_fifo():
+	readback_4321, = althea.read_data_from_pollable_memory_on_half_duplex_bus(3 * 2**BANK_ADDRESS_DEPTH, 1, False)
+	readback_8765, = althea.read_data_from_pollable_memory_on_half_duplex_bus(4 * 2**BANK_ADDRESS_DEPTH, 1, False)
+	readback_cba9, = althea.read_data_from_pollable_memory_on_half_duplex_bus(5 * 2**BANK_ADDRESS_DEPTH, 1, False)
+	return (readback_cba9, readback_8765, readback_4321)
+
+def return_fifo_string():
+	fifo_cba9, fifo_8765, fifo_4321 = readout_fifo()
+	return str(hex(fifo_cba9, 8)) + " " + str(hex(fifo_8765, 8)) + " " + str(hex(fifo_4321, 8))
+
+def show_fifo():
+	print(return_fifo_string())
+
+def do_something():
+	show_status_register()
+	show_trigger_count()
+	clear_trigger_count()
+	show_fifo()
+	global selection
+	try:
+		selection += 1
+	except:
+		selection = 0
+	select(selection)
+
+def show_stuff():
+	print(return_fifo_string() + "     " + return_raw_values_string())
+	#show_fifo()
+	#show_raw_values()
+
+def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
+	setup_hit_mask(0b111111111111)
+	#setup_hit_mask(0b000000000001)
+	#setup_inversion_mask(0b101010101010)
+	#setup_inversion_mask(0b010101010101)
+	#setup_inversion_mask(0b111111111111)
+	#setup_inversion_mask(0b000000000000)
+	setup_inversion_mask(0b101000010001)
+	setup_desired_trigger_quantity(int(1e3))
+	setup_trigger_duration(25)
+	select(1)
+
+def setup_everything():
+	if 1: # mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM
+		bank = 2
+		print("bank" + str(bank) + ":")
+		values = [ 0 for a in range(2**4) ]
+		values[0] = 0b111111111111 # hit_mask
+		values[1] = 0b000000000000 # inversion_mask
+		values[2] = int(1e6) # desired_trigger_quantity
+		values[3] = 250 # trigger_duration_in_word_clocks
+		values[4] = 1 # clear_trigger_count
+		#values[0] = 0xff # minuend
+		#values[4] = 0 # train_oserdes
+		#values[5] = 0b10001010 # train_oserdes_pattern
+		values[6] = 0 # start_sample (3 LSBs ignored)
+		values[7] = 0 # end_sample (3 LSBs ignored)
+		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH, values)
+		values[4] = 0 # clear_trigger_count
+		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH, values)
+		time.sleep(1)
+		readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 2**4)
+		for i in range(16):
+			print(hex(readback[i], 8))
+	if 1:
+	#	for bank in range(4):
+	#		print()
+		bank = 1
+		print("bank" + str(bank) + ":")
+		readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 2**4)
+		for i in range(2**4):
+	#	for i in range(8):
+			print(hex(readback[i], 8))
+	if 1:
+		depth = 4
+		print("fifo" + ":")
+		readback_4321 = althea.read_data_from_pollable_memory_on_half_duplex_bus(3 * 2**BANK_ADDRESS_DEPTH, 2**depth)
+		readback_8765 = althea.read_data_from_pollable_memory_on_half_duplex_bus(4 * 2**BANK_ADDRESS_DEPTH, 2**depth)
+		readback_cba9 = althea.read_data_from_pollable_memory_on_half_duplex_bus(5 * 2**BANK_ADDRESS_DEPTH, 2**depth)
+		for i in range(2**depth):
+			print(hex(readback_cba9[i], 8) + " " + hex(readback_8765[i], 8) + " " + hex(readback_4321[i], 8))
 
 running = True
 should_update_plots = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]

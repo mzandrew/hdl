@@ -492,6 +492,33 @@ def setup_half_duplex_bus_test049():
 		verbosity=3
 	)
 
+def setup_half_duplex_bus_test058():
+	print("setting up for half-duplex bus mode...")
+	gpio_bus = [ g for g in range(6, 21+1) ]
+	print(str(gpio_bus))
+	global bits_bus
+	bits_bus = len(gpio_bus)
+	#print("this bus is " + str(bits_bus) + " bits wide")
+	# NOTE:  change bus_start and bus_width at top of this file to match these!!!
+	#sys.exit(1)
+	global transfers_per_data_word
+	transfers_per_data_word = 2
+	global bits_word
+	bits_word = transfers_per_data_word*bits_bus
+	global half_duplex_bus
+	half_duplex_bus = fastgpio.half_duplex_bus(
+		bus_width=bus_width,
+		bus_offset=gpio_bus[0],
+		transfers_per_address_word=1,
+		transfers_per_data_word=transfers_per_data_word,
+		address_autoincrement_mode=1,
+		register_select=3,
+		read=5,
+		enable=4,
+		ack_valid=2,
+		verbosity=2
+	)
+
 def setup_half_duplex_bus(string):
 	if string=="test044":
 		setup_half_duplex_bus_test044()
@@ -501,6 +528,8 @@ def setup_half_duplex_bus(string):
 		setup_half_duplex_bus_test046()
 	elif string=="test049":
 		setup_half_duplex_bus_test049()
+	elif string=="test058":
+		setup_half_duplex_bus_test058()
 	else:
 		print("must select which firmware project to interface with")
 		sys.exit(1)
