@@ -373,6 +373,19 @@ def return_fifo_string():
 def show_fifo():
 	print(return_fifo_string())
 
+def readout_scalers():
+	bank = 2
+	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 6, 12, False)
+
+def return_scalers_string():
+	string = ""
+	for scaler in readout_scalers():
+		string += str(hex(scaler, 8)) + " "
+	return string
+
+def show_scalers():
+	print(return_scalers_string())
+
 def do_something():
 	show_status_register()
 	show_trigger_count()
@@ -386,7 +399,8 @@ def do_something():
 	select(selection)
 
 def show_stuff():
-	print(return_fifo_string() + "     " + return_raw_values_string())
+	#print(return_fifo_string() + "     " + return_raw_values_string())
+	print(return_fifo_string() + "     " + return_scalers_string())
 	#show_fifo()
 	#show_raw_values()
 
