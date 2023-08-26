@@ -14,6 +14,7 @@
 `include "lib/sequencer.v"
 `include "lib/reset.v"
 `include "lib/edge_to_pulse.v"
+`include "lib/frequency_counter.v"
 
 module top #(
 	parameter BUS_WIDTH = 16,
@@ -230,14 +231,30 @@ module top #(
 	//wire [31:0] trigger_duration_in_word_clocks = 25; // 1 us
 	wire        clear_trigger_count             = bank2[4][0];
 	wire [1:0]  select                          = bank2[5][1:0];
-//	wire        train_oserdes                   = bank2[4][0];
-//	wire  [7:0] train_oserdes_pattern           = bank2[5][7:0];
-//	wire [31:0] start_sample                    = bank2[6][31:0];
-//	wire [31:0] end_sample                      = bank2[7][31:0];
-//	wire [31:0] dummy_register8                 = bank2[8][31:0];
-//	wire [31:0] dummy_register9                 = bank2[9][31:0];
-//	wire [31:0] dummy_registera                 = bank2[10][31:0];
-//	wire [31:0] dummy_registerb                 = bank2[11][31:0];
+//	wire [31:0] channel01_counter               = bank2[][31:0];
+//	wire [31:0] channel02_counter               = bank2[][31:0];
+	wire [31:0] channel03_counter               = bank2[6][31:0];
+	wire [31:0] channel04_counter               = bank2[7][31:0];
+	wire [31:0] channel05_counter               = bank2[8][31:0];
+	wire [31:0] channel06_counter               = bank2[9][31:0];
+	wire [31:0] channel07_counter               = bank2[10][31:0];
+	wire [31:0] channel08_counter               = bank2[11][31:0];
+	wire [31:0] channel09_counter               = bank2[12][31:0];
+	wire [31:0] channel10_counter               = bank2[13][31:0];
+	wire [31:0] channel11_counter               = bank2[14][31:0];
+	wire [31:0] channel12_counter               = bank2[15][31:0];
+//	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count01 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[1]),  .out(channel01_counter));
+//	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count02 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[2]),  .out(channel02_counter));
+	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count03 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[3]),  .out(channel03_counter));
+	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count04 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[4]),  .out(channel04_counter));
+	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count05 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[5]),  .out(channel05_counter));
+	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count06 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[6]),  .out(channel06_counter));
+	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count07 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[7]),  .out(channel07_counter));
+	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count08 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[8]),  .out(channel08_counter));
+	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count09 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[9]),  .out(channel09_counter));
+	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count10 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[10]), .out(channel10_counter));
+	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count11 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[11]), .out(channel11_counter));
+	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count12 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[12]), .out(channel12_counter));
 	assign reset = 0;
 	//assign reset = ~button;
 	reg [12:1] iserdes_word_hit;
@@ -444,6 +461,8 @@ module top #(
 //	assign coax[1] = 0; // because coax[1] is on same pin pair as gpio17 on althea revB
 //	assign coax[2] = 0; // because coax[2] is on same pin pair as gpio12 on althea revB
 //	assign coax[5] = 0; // because coax[5] is on same pin pair as p on althea revB
+	wire [31:0] start_sample = 0;
+	wire [31:0] end_sample = 5120;
 	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH), .SYNC_OUT_STREAM_PICKOFF(SYNC_OUT_STREAM_PICKOFF)) ss (.clock(word_clock), .reset(reset_word), .sync_read_address(sync_read_address), .start_sample(start_sample), .end_sample(end_sample), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
 	if (0) begin // to test the rpi interface to the read/write pollable memory
 		assign coax[4] = enable; // scope trigger
