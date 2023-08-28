@@ -373,8 +373,12 @@ def return_fifo_string():
 def show_fifo():
 	print(return_fifo_string())
 
-def readout_scalers():
+def readout_counters():
 	bank = 6
+	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+
+def readout_scalers():
+	bank = 7
 	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
 
 def return_scalers_string():
