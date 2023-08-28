@@ -1,7 +1,7 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2023-08-25 by mza
+// last updated 2023-08-28 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -148,9 +148,9 @@ module top #(
 	end else begin
 		assign read_data_word[0] = 0;
 	end
-	for (i=7; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
-		assign read_data_word[i] = 0;
-	end
+//	for (i=7; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
+//		assign read_data_word[i] = 0;
+//	end
 	reg [12:1] fifo_write_enable;
 	wire [12:1] fifo_read_enable;
 	wire fifo_empty;
@@ -169,6 +169,7 @@ module top #(
 	wire [31:0] bank1 [15:0];
 	wire [31:0] bank2 [15:0];
 	wire [31:0] bank6 [15:0];
+	wire [31:0] bank7 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
 		.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
@@ -189,6 +190,13 @@ module top #(
 		.data_in_b_4(bank6[4]),  .data_in_b_5(bank6[5]),  .data_in_b_6(bank6[6]),  .data_in_b_7(bank6[7]),
 		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
 		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
+		.write_strobe_b(1'b1));
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank7 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[7]),
+		.data_in_b_0(bank7[0]),  .data_in_b_1(bank7[1]),  .data_in_b_2(bank7[2]),  .data_in_b_3(bank7[3]),
+		.data_in_b_4(bank7[4]),  .data_in_b_5(bank7[5]),  .data_in_b_6(bank7[6]),  .data_in_b_7(bank7[7]),
+		.data_in_b_8(bank7[8]),  .data_in_b_9(bank7[9]),  .data_in_b_a(bank7[10]), .data_in_b_b(bank7[11]),
+		.data_in_b_c(bank7[12]), .data_in_b_d(bank7[13]), .data_in_b_e(bank7[14]), .data_in_b_f(bank7[15]),
 		.write_strobe_b(1'b1));
 	wire sync_read_address; // assert this when you feel like (re)synchronizing
 	localparam SYNC_OUT_STREAM_PICKOFF = 2;
@@ -239,13 +247,18 @@ module top #(
 	wire        clear_trigger_count             = bank2[4][0];
 	wire [1:0]  select                          = bank2[5][1:0];
 	wire [31:0] channel_counter [12:1];
-	for (i=1; i<=12; i=i+1) begin : channel_counter_mapping
+	wire [31:0] channel_scaler [12:1];
+	for (i=1; i<=12; i=i+1) begin : channel_counter_scaler_mapping
 		assign bank6[i] = channel_counter[i];
-		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_count (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[i]),  .out(channel_counter[i]));
+		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[i]),  .out(channel_counter[i]));
+		assign bank7[i] = channel_scaler[i];
+		iserdes_scaler #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000)) channel_scaler (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[i]),  .out(channel_scaler[i]));
 	end
 	assign bank6[0] = 0;
-	for (i=13; i<=15; i=i+1) begin : dummy_bank6_mapping
+	assign bank7[0] = 0;
+	for (i=13; i<=15; i=i+1) begin : dummy_bank6_bank7_mapping
 		assign bank6[i] = 0;
+		assign bank7[i] = 0;
 	end
 	assign reset = 0;
 	//assign reset = ~button;
