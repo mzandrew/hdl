@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2023-08-15 by mza
+// last updated 2023-08-28 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -1384,8 +1384,10 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_BCEinput #(
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A10)) mylei_A10 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A10_in), .bit_out(A10_out));
 	if ("A"==SPECIAL_A11) begin
 		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A11)) mylei_A11 (.word_clock(word_clockA_out), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset_clockA), .word_in(word_A11_in), .bit_out(A11_out));
-	end else begin
+	end else if ("B"==SPECIAL_A11) begin
 		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A11)) mylei_A11 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_A11_in), .bit_out(A11_out)); // special case for a11 (t/p51 on althea revBLM) being on a different bank from a10-a00
+	end else begin
+		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_A11)) mylei_A11 (.word_clock(word_clockC_out), .bit_clock(bit_clockC), .bit_strobe(bit_strobeC), .reset(reset_clockC), .word_in(word_A11_in), .bit_out(A11_out)); // special case for a11 (t/p51 on althea revBLM) being on a different bank from a10-a00
 	end
 	//ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B0)) mylei_B0 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B0_in), .bit_out(B0_out));
 	//ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE_B1)) mylei_B1 (.word_clock(word_clockB_out), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset_clockB), .word_in(word_B1_in), .bit_out(B1_out));
