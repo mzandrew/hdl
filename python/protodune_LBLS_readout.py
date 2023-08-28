@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2023-08-23 by mza
+# last updated 2023-08-28 by mza
 
 SCREEN_WIDTH = 720
 SCREEN_HEIGHT = 720
@@ -374,8 +374,8 @@ def show_fifo():
 	print(return_fifo_string())
 
 def readout_scalers():
-	bank = 2
-	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 6, 12, False)
+	bank = 6
+	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
 
 def return_scalers_string():
 	string = ""
