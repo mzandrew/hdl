@@ -148,7 +148,7 @@ module top #(
 	end else begin
 		assign read_data_word[0] = 0;
 	end
-	for (i=6; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
+	for (i=7; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
 		assign read_data_word[i] = 0;
 	end
 	reg [12:1] fifo_write_enable;
@@ -168,8 +168,8 @@ module top #(
 		.data_out(read_data_word[5]), .read_enable(read_strobe[5]), .empty(), .almost_empty(), .empty_or_almost_empty());
 	wire [31:0] bank1 [15:0];
 	wire [31:0] bank2 [15:0];
+	wire [31:0] bank6 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
-		//.reset(reset_word),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
 		.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
 		.data_in_b_4(bank1[4]),  .data_in_b_5(bank1[5]),  .data_in_b_6(bank1[6]),  .data_in_b_7(bank1[7]),
@@ -183,6 +183,13 @@ module top #(
 		.data_out_b_4(bank2[4]),  .data_out_b_5(bank2[5]),  .data_out_b_6(bank2[6]),  .data_out_b_7(bank2[7]),
 		.data_out_b_8(bank2[8]),  .data_out_b_9(bank2[9]),  .data_out_b_a(bank2[10]), .data_out_b_b(bank2[11]),
 		.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
+		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
+		.data_in_b_4(bank6[4]),  .data_in_b_5(bank6[5]),  .data_in_b_6(bank6[6]),  .data_in_b_7(bank6[7]),
+		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
+		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
+		.write_strobe_b(1'b1));
 	wire sync_read_address; // assert this when you feel like (re)synchronizing
 	localparam SYNC_OUT_STREAM_PICKOFF = 2;
 	wire [SYNC_OUT_STREAM_PICKOFF:0] sync_out_stream; // sync_out_stream[2] is usually good
@@ -231,30 +238,15 @@ module top #(
 	//wire [31:0] trigger_duration_in_word_clocks = 25; // 1 us
 	wire        clear_trigger_count             = bank2[4][0];
 	wire [1:0]  select                          = bank2[5][1:0];
-//	wire [31:0] channel01_counter               = bank2[][31:0];
-//	wire [31:0] channel02_counter               = bank2[][31:0];
-	wire [31:0] channel03_counter               = bank2[6][31:0];
-	wire [31:0] channel04_counter               = bank2[7][31:0];
-	wire [31:0] channel05_counter               = bank2[8][31:0];
-	wire [31:0] channel06_counter               = bank2[9][31:0];
-	wire [31:0] channel07_counter               = bank2[10][31:0];
-	wire [31:0] channel08_counter               = bank2[11][31:0];
-	wire [31:0] channel09_counter               = bank2[12][31:0];
-	wire [31:0] channel10_counter               = bank2[13][31:0];
-	wire [31:0] channel11_counter               = bank2[14][31:0];
-	wire [31:0] channel12_counter               = bank2[15][31:0];
-//	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count01 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[1]),  .out(channel01_counter));
-//	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count02 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[2]),  .out(channel02_counter));
-	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count03 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[3]),  .out(channel03_counter));
-	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count04 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[4]),  .out(channel04_counter));
-	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count05 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[5]),  .out(channel05_counter));
-	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count06 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[6]),  .out(channel06_counter));
-	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count07 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[7]),  .out(channel07_counter));
-	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count08 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[8]),  .out(channel08_counter));
-	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count09 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[9]),  .out(channel09_counter));
-	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count10 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[10]), .out(channel10_counter));
-	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count11 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[11]), .out(channel11_counter));
-	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) count12 (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[12]), .out(channel12_counter));
+	wire [31:0] channel_counter [12:1];
+	for (i=1; i<=12; i=i+1) begin : channel_counter_mapping
+		assign bank6[i] = channel_counter[i];
+		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_count (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[i]),  .out(channel_counter[i]));
+	end
+	assign bank6[0] = 0;
+	for (i=13; i<=15; i=i+1) begin : dummy_bank6_mapping
+		assign bank6[i] = 0;
+	end
 	assign reset = 0;
 	//assign reset = ~button;
 	reg [12:1] iserdes_word_hit;
