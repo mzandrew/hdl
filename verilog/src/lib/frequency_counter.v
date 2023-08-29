@@ -2,7 +2,7 @@
 // based on mza-test014.duration-timer.uart.v
 // and mza-test022.frequency-counter.uart.v
 // updated 2020-05-30 by mza
-// last updated 2023-08-28 by mza
+// last updated 2023-08-29 by mza
 
 `ifndef FREQUENCY_COUNTER_LIB
 `define FREQUENCY_COUNTER_LIB
@@ -155,19 +155,22 @@ module iserdes_scaler #(
 	wire [LOG_BASE_2_OF_BIT_DEPTH:0] current_count = (zo==a?1'b1:0) + (zo==b?1'b1:0) + (zo==c?1'b1:0) + (zo==d?1'b1:0) + (zo==e?1'b1:0) + (zo==f?1'b1:0) + (zo==g?1'b1:0) + (zo==h?1'b1:0);
 	reg [LOG_BASE_2_OF_BIT_DEPTH:0] current_count_reg = 0;
 	reg [LOG_BASE_2_OF_CLOCK_PERIODS_TO_ACCUMULATE:0] accumulation_counter = 0;
+	reg [REGISTER_WIDTH-1:0] accumulator;
 	always @(posedge clock) begin
 		if (reset) begin
 			out <= 0;
+			accumulator <= 0;
 			current_count_reg <= 0;
 			previous_bit <= 0;
 			accumulation_counter <= 0;
 		end else begin
 			if (accumulation_counter < CLOCK_PERIODS_TO_ACCUMULATE) begin
-				out <= out + current_count_reg;
+				accumulator <= accumulator + current_count_reg;
 				current_count_reg <= current_count;
 				accumulation_counter <= accumulation_counter + 1'b1;
 			end else begin
-				out <= 0;
+				out <= accumulator;
+				accumulator <= 0;
 				current_count_reg <= 0;
 				accumulation_counter <= 0;
 			end
