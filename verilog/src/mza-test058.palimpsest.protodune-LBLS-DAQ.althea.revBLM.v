@@ -168,7 +168,7 @@ module top #(
 		.data_out(read_data_word[5]), .read_enable(read_strobe[5]), .empty(), .almost_empty(), .empty_or_almost_empty());
 	wire [31:0] bank1 [15:0];
 	wire [31:0] bank2 [15:0];
-	wire [31:0] bank6 [15:0];
+//	wire [31:0] bank6 [15:0];
 	wire [31:0] bank7 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
@@ -184,13 +184,13 @@ module top #(
 		.data_out_b_4(bank2[4]),  .data_out_b_5(bank2[5]),  .data_out_b_6(bank2[6]),  .data_out_b_7(bank2[7]),
 		.data_out_b_8(bank2[8]),  .data_out_b_9(bank2[9]),  .data_out_b_a(bank2[10]), .data_out_b_b(bank2[11]),
 		.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
-	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
-		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
-		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
-		.data_in_b_4(bank6[4]),  .data_in_b_5(bank6[5]),  .data_in_b_6(bank6[6]),  .data_in_b_7(bank6[7]),
-		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
-		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
-		.write_strobe_b(1'b1));
+//	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
+//		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
+//		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
+//		.data_in_b_4(bank6[4]),  .data_in_b_5(bank6[5]),  .data_in_b_6(bank6[6]),  .data_in_b_7(bank6[7]),
+//		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
+//		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
+//		.write_strobe_b(1'b1));
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank7 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[7]),
 		.data_in_b_0(bank7[0]),  .data_in_b_1(bank7[1]),  .data_in_b_2(bank7[2]),  .data_in_b_3(bank7[3]),
@@ -261,10 +261,10 @@ module top #(
 		.out05(channel_scaler[5]), .out06(channel_scaler[6]),  .out07(channel_scaler[7]),  .out08(channel_scaler[8]),
 		.out09(channel_scaler[9]), .out10(channel_scaler[10]), .out11(channel_scaler[11]), .out12(channel_scaler[12])
 	);
-	assign bank6[0] = 0;
+//	assign bank6[0] = 0;
 	assign bank7[0] = 0;
-	for (i=13; i<=15; i=i+1) begin : dummy_bank6_bank7_mapping
-		assign bank6[i] = 0;
+	for (i=13; i<=15; i=i+1) begin : dummy_bank7_mapping
+//		assign bank6[i] = 0;
 		assign bank7[i] = 0;
 	end
 	assign reset = 0;

@@ -115,8 +115,8 @@ module iserdes_counter #(
 	wire [1:0] g = in[2:1];
 	wire [1:0] h = in[1:0];
 	wire [1:0] zo = 2'b01;
-	wire [LOG_BASE_2_OF_BIT_DEPTH:0] current_count = (zo==a?1'b1:0) + (zo==b?1'b1:0) + (zo==c?1'b1:0) + (zo==d?1'b1:0) + (zo==e?1'b1:0) + (zo==f?1'b1:0) + (zo==g?1'b1:0) + (zo==h?1'b1:0);
-	reg [LOG_BASE_2_OF_BIT_DEPTH:0] current_count_reg = 0;
+	wire [LOG_BASE_2_OF_BIT_DEPTH-1:0] current_count = (zo==a?1'b1:0) + (zo==b?1'b1:0) + (zo==c?1'b1:0) + (zo==d?1'b1:0) + (zo==e?1'b1:0) + (zo==f?1'b1:0) + (zo==g?1'b1:0) + (zo==h?1'b1:0);
+	reg [LOG_BASE_2_OF_BIT_DEPTH-1:0] current_count_reg = 0;
 	always @(posedge clock) begin
 		if (reset) begin
 			out <= 0;
@@ -152,8 +152,8 @@ module iserdes_scaler #(
 	wire [1:0] g = in[2:1];
 	wire [1:0] h = in[1:0];
 	wire [1:0] zo = 2'b01;
-	wire [LOG_BASE_2_OF_BIT_DEPTH:0] current_count = (zo==a?1'b1:0) + (zo==b?1'b1:0) + (zo==c?1'b1:0) + (zo==d?1'b1:0) + (zo==e?1'b1:0) + (zo==f?1'b1:0) + (zo==g?1'b1:0) + (zo==h?1'b1:0);
-	reg [LOG_BASE_2_OF_BIT_DEPTH:0] current_count_reg = 0;
+	wire [LOG_BASE_2_OF_BIT_DEPTH-1:0] current_count = (zo==a?1'b1:0) + (zo==b?1'b1:0) + (zo==c?1'b1:0) + (zo==d?1'b1:0) + (zo==e?1'b1:0) + (zo==f?1'b1:0) + (zo==g?1'b1:0) + (zo==h?1'b1:0);
+	reg [LOG_BASE_2_OF_BIT_DEPTH-1:0] current_count_reg = 0;
 	reg [LOG_BASE_2_OF_CLOCK_PERIODS_TO_ACCUMULATE:0] accumulation_counter = 0;
 	reg [REGISTER_WIDTH-1:0] accumulator;
 	always @(posedge clock) begin
@@ -215,8 +215,8 @@ module iserdes_scaler_array12 #(
 	wire [1:0] g [NUMBER_OF_CHANNELS:1];
 	wire [1:0] h [NUMBER_OF_CHANNELS:1];
 	wire [1:0] zo = 2'b01;
-	wire [LOG_BASE_2_OF_BIT_DEPTH:0] current_count [NUMBER_OF_CHANNELS:1];
-	reg [LOG_BASE_2_OF_BIT_DEPTH:0] current_count_reg [NUMBER_OF_CHANNELS:1];
+	wire [LOG_BASE_2_OF_BIT_DEPTH-1:0] current_count [NUMBER_OF_CHANNELS:1];
+	reg [LOG_BASE_2_OF_BIT_DEPTH-1:0] current_count_reg [NUMBER_OF_CHANNELS:1];
 	reg [LOG_BASE_2_OF_CLOCK_PERIODS_TO_ACCUMULATE:0] accumulation_counter = 0;
 	reg [REGISTER_WIDTH-1:0] accumulator [NUMBER_OF_CHANNELS:1];
 	for (i=1; i<=NUMBER_OF_CHANNELS; i=i+1) begin : scaler_array_mapping
