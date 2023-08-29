@@ -179,41 +179,156 @@ module iserdes_scaler #(
 	end
 endmodule
 
+// based on iserdes_scaler
+module iserdes_scaler_array12 #(
+	parameter NUMBER_OF_CHANNELS = 12,
+	parameter CLOCK_PERIODS_TO_ACCUMULATE = 25000,
+	parameter LOG_BASE_2_OF_CLOCK_PERIODS_TO_ACCUMULATE = $clog2(CLOCK_PERIODS_TO_ACCUMULATE),
+	parameter REGISTER_WIDTH = 8,
+	parameter BIT_DEPTH = 8,
+	parameter LOG_BASE_2_OF_BIT_DEPTH = $clog2(BIT_DEPTH)
+) (
+	input clock, reset,
+	input [BIT_DEPTH-1:0] in01, in02, in03, in04,
+	input [BIT_DEPTH-1:0] in05, in06, in07, in08,
+	input [BIT_DEPTH-1:0] in09, in10, in11, in12,
+	output [REGISTER_WIDTH-1:0] out01, out02, out03, out04,
+	output [REGISTER_WIDTH-1:0] out05, out06, out07, out08,
+	output [REGISTER_WIDTH-1:0] out09, out10, out11, out12
+);
+	genvar i;
+	wire [BIT_DEPTH-1:0] in [NUMBER_OF_CHANNELS:1];
+	assign in[1] = in01; assign in[2]  = in02; assign in[3]  = in03; assign in[4]  = in04;
+	assign in[5] = in05; assign in[6]  = in06; assign in[7]  = in07; assign in[8]  = in08;
+	assign in[9] = in09; assign in[10] = in10; assign in[11] = in11; assign in[12] = in12;
+	reg [REGISTER_WIDTH-1:0] out [NUMBER_OF_CHANNELS:1];
+	assign out01 = out[1]; assign out02 = out[2];  assign out03 = out[3];  assign out04 = out[4];
+	assign out05 = out[5]; assign out06 = out[6];  assign out07 = out[7];  assign out08 = out[8];
+	assign out09 = out[9]; assign out10 = out[10]; assign out11 = out[11]; assign out12 = out[12];
+	reg [NUMBER_OF_CHANNELS:1] previous_bit = 0;
+	wire [1:0] a [NUMBER_OF_CHANNELS:1];
+	wire [1:0] b [NUMBER_OF_CHANNELS:1];
+	wire [1:0] c [NUMBER_OF_CHANNELS:1];
+	wire [1:0] d [NUMBER_OF_CHANNELS:1];
+	wire [1:0] e [NUMBER_OF_CHANNELS:1];
+	wire [1:0] f [NUMBER_OF_CHANNELS:1];
+	wire [1:0] g [NUMBER_OF_CHANNELS:1];
+	wire [1:0] h [NUMBER_OF_CHANNELS:1];
+	wire [1:0] zo = 2'b01;
+	wire [LOG_BASE_2_OF_BIT_DEPTH:0] current_count [NUMBER_OF_CHANNELS:1];
+	reg [LOG_BASE_2_OF_BIT_DEPTH:0] current_count_reg [NUMBER_OF_CHANNELS:1];
+	reg [LOG_BASE_2_OF_CLOCK_PERIODS_TO_ACCUMULATE:0] accumulation_counter = 0;
+	reg [REGISTER_WIDTH-1:0] accumulator [NUMBER_OF_CHANNELS:1];
+	for (i=1; i<=NUMBER_OF_CHANNELS; i=i+1) begin : scaler_array_mapping
+		assign a[i] = { previous_bit[i], in[i][7] };
+		assign b[i] = in[i][7:6];
+		assign c[i] = in[i][6:5];
+		assign d[i] = in[i][5:4];
+		assign e[i] = in[i][4:3];
+		assign f[i] = in[i][3:2];
+		assign g[i] = in[i][2:1];
+		assign h[i] = in[i][1:0];
+		assign current_count[i] = (zo==a[i]?1'b1:0) + (zo==b[i]?1'b1:0) + (zo==c[i]?1'b1:0) + (zo==d[i]?1'b1:0) + (zo==e[i]?1'b1:0) + (zo==f[i]?1'b1:0) + (zo==g[i]?1'b1:0) + (zo==h[i]?1'b1:0);
+		always @(posedge clock) begin
+			if (reset) begin
+				out[i] <= 0;
+				accumulator[i] <= 0;
+				current_count_reg[i] <= 0;
+				previous_bit[i] <= 0;
+				accumulation_counter <= 0;
+			end else begin
+				if (accumulation_counter < CLOCK_PERIODS_TO_ACCUMULATE) begin
+					accumulator[i] <= accumulator[i] + current_count_reg[i];
+					current_count_reg[i] <= current_count[i];
+					accumulation_counter <= accumulation_counter + 1'b1;
+				end else begin
+					out[i] <= accumulator[i];
+					accumulator[i] <= 0;
+					current_count_reg[i] <= 0;
+					accumulation_counter <= 0;
+				end
+				previous_bit[i] <= in[i][0];
+			end
+		end
+	end
+endmodule
 
 `ifndef SYNTHESIS
 module iserdes_counter_scaler_tb ();
+	localparam NUMBER_OF_CHANNELS = 12;
+	genvar i;
 	reg clock = 0;
 	reg reset = 1;
 	reg [7:0] iserdes_in_raw = 0;
+	reg [7:0] iserdes_in_raw_array [NUMBER_OF_CHANNELS:1];
 	reg [7:0] iserdes_in = 0;
+	reg [7:0] iserdes_in_array [NUMBER_OF_CHANNELS:1];
 	wire [31:0] channel_counter;
 	wire [31:0] channel_scaler;
+	wire [31:0] channel_scaler_array [NUMBER_OF_CHANNELS:1];
 	iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) counter (.clock(clock), .reset(reset), .in(iserdes_in), .out(channel_counter));
 	iserdes_scaler #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(4)) scaler (.clock(clock), .reset(reset), .in(iserdes_in), .out(channel_scaler));
+	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(4), .NUMBER_OF_CHANNELS(NUMBER_OF_CHANNELS)) scaler12 (
+		.clock(clock), .reset(reset),
+		.in01(iserdes_in_array[1]), .in02(iserdes_in_array[2]), .in03(iserdes_in_array[3]), .in04(iserdes_in_array[4]),
+		.in05(iserdes_in_array[5]), .in06(iserdes_in_array[6]), .in07(iserdes_in_array[7]), .in08(iserdes_in_array[8]),
+		.in09(iserdes_in_array[9]), .in10(iserdes_in_array[10]), .in11(iserdes_in_array[11]), .in12(iserdes_in_array[12]),
+		.out01(channel_scaler_array[1]), .out02(channel_scaler_array[2]),
+		.out03(channel_scaler_array[3]), .out04(channel_scaler_array[4]),
+		.out05(channel_scaler_array[5]), .out06(channel_scaler_array[6]),
+		.out07(channel_scaler_array[7]), .out08(channel_scaler_array[8]),
+		.out09(channel_scaler_array[9]), .out10(channel_scaler_array[10]),
+		.out11(channel_scaler_array[11]), .out12(channel_scaler_array[12])
+	);
+//	for (i=3; i<=NUMBER_OF_CHANNELS; i=i+1) begin : another
+//		assign iserdes_in_raw_array[i] = 0;
+//	end
 	initial begin
+		iserdes_in_raw_array[1] <= 0;
+		iserdes_in_raw_array[2] <= 0;
 		reset = 1;
 		#100;
 		reset = 0;
 		#100;
 		iserdes_in_raw <= 8'b00111100;
+		iserdes_in_raw_array[1] <= 8'b00111100;
+		iserdes_in_raw_array[2] <= 8'b00111101;
 		#20;
 		iserdes_in_raw <= 8'b00000000;
+		iserdes_in_raw_array[1] <= 8'b00000000;
+		iserdes_in_raw_array[2] <= 8'b00000000;
 		#20;
 		iserdes_in_raw <= 8'b00000110;
+		iserdes_in_raw_array[1] <= 8'b00000000;
+		iserdes_in_raw_array[2] <= 8'b00000000;
 		#20;
 		iserdes_in_raw <= 8'b00000000;
+		iserdes_in_raw_array[1] <= 8'b00000000;
+		iserdes_in_raw_array[2] <= 8'b00000000;
 		#20;
 		iserdes_in_raw <= 8'b10000000;
+		iserdes_in_raw_array[1] <= 8'b10000000;
+		iserdes_in_raw_array[2] <= 8'b10000001;
 		#20;
 		iserdes_in_raw <= 8'b00000000;
+		iserdes_in_raw_array[1] <= 8'b00000000;
+		iserdes_in_raw_array[2] <= 8'b00000000;
 		#20;
 		iserdes_in_raw <= 8'b10101010;
+		iserdes_in_raw_array[1] <= 8'b10101010;
+		iserdes_in_raw_array[2] <= 8'b10101011;
 		#20;
 		iserdes_in_raw <= 8'b00000000;
+		iserdes_in_raw_array[1] <= 8'b00000000;
+		iserdes_in_raw_array[2] <= 8'b00000000;
 		#20;
 		iserdes_in_raw <= 8'b01010101;
+		iserdes_in_raw_array[1] <= 8'b01010101;
+		iserdes_in_raw_array[2] <= 8'b01010110;
 		#20;
 		iserdes_in_raw <= 8'b00000000;
+		iserdes_in_raw_array[1] <= 8'b00000000;
+		iserdes_in_raw_array[2] <= 8'b00000000;
 	end
 	always begin
 		#10;
@@ -221,8 +336,11 @@ module iserdes_counter_scaler_tb ();
 		#10;
 		clock <= 0;
 	end
-	always @(posedge clock) begin
-		iserdes_in <= iserdes_in_raw;
+	for (i=1; i<=NUMBER_OF_CHANNELS; i=i+1) begin : blah
+		always @(posedge clock) begin
+			iserdes_in <= iserdes_in_raw;
+			iserdes_in_array[i] <= iserdes_in_raw_array[i];
+		end
 	end
 endmodule
 `endif

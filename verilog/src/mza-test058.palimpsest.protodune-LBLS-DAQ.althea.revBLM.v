@@ -1,7 +1,7 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2023-08-28 by mza
+// last updated 2023-08-29 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -246,14 +246,21 @@ module top #(
 	//wire [31:0] trigger_duration_in_word_clocks = 25; // 1 us
 	wire        clear_trigger_count             = bank2[4][0];
 	wire [1:0]  select                          = bank2[5][1:0];
-	wire [31:0] channel_counter [12:1];
+//	wire [31:0] channel_counter [12:1];
 	wire [31:0] channel_scaler [12:1];
 	for (i=1; i<=12; i=i+1) begin : channel_counter_scaler_mapping
-		assign bank6[i] = channel_counter[i];
-		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[i]),  .out(channel_counter[i]));
+		//assign bank6[i] = channel_counter[i];
+		//iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[i]), .out(channel_counter[i]));
 		assign bank7[i] = channel_scaler[i];
-		iserdes_scaler #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000)) channel_scaler (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[i]),  .out(channel_scaler[i]));
 	end
+	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_array12 (.clock(word_clock), .reset(reset_word),
+		.in01(iserdes_in_maybe_inverted[1]), .in02(iserdes_in_maybe_inverted[2]), .in03(iserdes_in_maybe_inverted[3]), .in04(iserdes_in_maybe_inverted[4]),
+		.in05(iserdes_in_maybe_inverted[5]), .in06(iserdes_in_maybe_inverted[6]), .in07(iserdes_in_maybe_inverted[7]), .in08(iserdes_in_maybe_inverted[8]),
+		.in09(iserdes_in_maybe_inverted[9]), .in10(iserdes_in_maybe_inverted[10]), .in11(iserdes_in_maybe_inverted[11]), .in12(iserdes_in_maybe_inverted[12]),
+		.out01(channel_scaler[1]), .out02(channel_scaler[2]),  .out03(channel_scaler[3]),  .out04(channel_scaler[4]),
+		.out05(channel_scaler[5]), .out06(channel_scaler[6]),  .out07(channel_scaler[7]),  .out08(channel_scaler[8]),
+		.out09(channel_scaler[9]), .out10(channel_scaler[10]), .out11(channel_scaler[11]), .out12(channel_scaler[12])
+	);
 	assign bank6[0] = 0;
 	assign bank7[0] = 0;
 	for (i=13; i<=15; i=i+1) begin : dummy_bank6_bank7_mapping
