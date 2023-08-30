@@ -5,6 +5,8 @@
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
 # last updated 2023-08-28 by mza
 
+target_period = 0.01
+
 SCREEN_WIDTH = 720
 SCREEN_HEIGHT = 720
 ROWS = 1
@@ -106,7 +108,7 @@ if should_use_touchscreen:
 import pygame # sudo apt install -y python3-pygame # gets 1.9.6 as of early 2023
 # pip3 install pygame # gets 2.1.2 as of early 2023
 # sudo apt install -y libmad0 libmikmod3 libportmidi0 libsdl-image1.2 libsdl-mixer1.2 libsdl-ttf2.0 libsdl1.2debian
-from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_q, K_BREAK, K_SPACE
+from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_q, K_BREAK, K_SPACE, K_t
 from generic import * # hex, eng
 import althea
 BANK_ADDRESS_DEPTH = 13
@@ -233,8 +235,6 @@ def setup():
 	setup_trigger_mask_inversion_mask_trigger_quantity_and_duration()
 	global should_check_for_new_data
 	should_check_for_new_data = pygame.USEREVENT + 1
-	global target_period
-	target_period = 0.1
 	#print("target_period: " + str(target_period))
 	pygame.time.set_timer(should_check_for_new_data, int(target_period*1000/COLUMNS/ROWS))
 
@@ -257,6 +257,8 @@ def loop():
 				running = False
 			elif K_SPACE==event.key:
 				should_update_plots = [ [ True for j in range(ROWS) ] for i in range(COLUMNS) ]
+			elif K_t==event.key:
+				scan_for_tickles()
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -373,6 +375,11 @@ def return_fifo_string():
 def show_fifo():
 	print(return_fifo_string())
 
+def clear_channel_counters():
+	bank = 2
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 6, [1], False)
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 6, [0], False)
+
 def readout_counters():
 	bank = 6
 	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
@@ -402,9 +409,52 @@ def do_something():
 		selection = 0
 	select(selection)
 
+def scan_for_tickles():
+	print("scanning hdrb for tickles...")
+	bank = 0
+	number_of_passes = 100
+	incidentals = 5
+	for i in range(16):
+		token = 1<<i
+		clear_channel_counters()
+		for j in range(number_of_passes):
+			althea.write_value_to_bank_that_is_depth(token, bank, BANK_ADDRESS_DEPTH)
+		counters = readout_counters()
+		string = ""
+		for k in range(12):
+			if counters[k]<number_of_passes*incidentals:
+				string += "         "
+			else:
+				string += hex(counters[k], 8) + " "
+		print("gpio" + dec(6+i, 2) + ": " + string)
+#gpio06:                                                                                                    0005a47c 
+#gpio07:                                                                                                    00050165 
+#gpio08:                                                                                                    0001c27d 
+#gpio09:                                                       00024884                                              
+#gpio10:                                                                                                             
+#gpio11:                                                                                                    000103d4 
+#gpio12:                                                                                                             
+#gpio13: 000054ef                                                                                           000191ec 
+#gpio14:                                                                                                    00026a20 
+#gpio15:                                                       0004746b                                              
+#gpio16: 00037e85                                                                                           00035608 
+#gpio17:                                                                                                    00054a86 
+#gpio18:                                                       00037424                                              
+#gpio19:                                                                                                    0003b973 
+#gpio20:                                                                                                    0002f1b2 
+#gpio21:                                                                                                             
+
 def show_stuff():
+	#althea.write_ones_to_bank_that_is_depth(0, BANK_ADDRESS_DEPTH)
+	#althea.write_value_to_bank_that_is_depth(0b0000010000000000, 0, BANK_ADDRESS_DEPTH) # gpio16 tickles signal[1, 12]
+	#althea.write_value_to_bank_that_is_depth(0b0000001000000000, 0, BANK_ADDRESS_DEPTH) # gpio15 tickles signal[7, 11, 12]
+	#althea.write_value_to_bank_that_is_depth(0b0001000000000000, 0, BANK_ADDRESS_DEPTH) # gpio18 tickles signal[7, 12]
+	scalers_string = return_scalers_string()
+	fifo_string = ""
+	#fifo_string = return_fifo_string()
 	#print(return_fifo_string() + "     " + return_raw_values_string())
-	print(return_fifo_string() + "     " + return_scalers_string())
+	#print(return_fifo_string() + "     " + return_scalers_string())
+	print(fifo_string + "     " + scalers_string)
 	#show_fifo()
 	#show_raw_values()
 
@@ -415,7 +465,8 @@ def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
 	#setup_inversion_mask(0b010101010101)
 	#setup_inversion_mask(0b111111111111)
 	#setup_inversion_mask(0b000000000000)
-	setup_inversion_mask(0b101000010001)
+	#setup_inversion_mask(0b101000010001)
+	setup_inversion_mask(0b001010010100)
 	setup_desired_trigger_quantity(int(1e3))
 	setup_trigger_duration(25)
 	select(1)

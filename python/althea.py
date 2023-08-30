@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2021-04-18 by mza
+# last updated 2023-08-30 by mza
 
 import time
 import time # time.sleep
@@ -371,6 +371,19 @@ def test_different_drive_strengths():
 		output_bus.set_drive_strength(i)
 		output_bus.write(data)
 
+def set_drive_strength(desired_drive_strength):
+	print(str(desired_drive_strength))
+	gpio_bus = [ althea_gpio[i] for i in range(bus_start, bus_start+bus_width) ]
+	mask_bus = buildmask(gpio_bus)
+	output_bus = fastgpio.bus(mask_bus, 1, gpio_bus[0])
+	desired_drive_strength = 2*(desired_drive_strength//2)
+	if desired_drive_strength<2:
+		desired_drive_strength = 2
+	if 16<desired_drive_strength:
+		desired_drive_strength = 16
+	print(str(desired_drive_strength))
+	output_bus.set_drive_strength(desired_drive_strength)
+
 # ---------------------------------------------------------------------------
 
 def check(ref1, ref2, should_print=True, offset=0, width=0):
@@ -538,6 +551,17 @@ def show(start_address, data):
 	for i in range(len(data)):
 		#print("data[" + hex(start_address + i, math.log2(NUM+start_address)/4) + "] " + hex(data[i], bits_word/4))
 		print("data[" + hex(start_address + i, math.log2(start_address + len(data))/4) + "] " + hex(data[i], bits_word/4))
+
+def write_to_half_duplex_bus(start_address, data):
+	half_duplex_bus.write(start_address, data, False)
+
+def write_ones_to_bank_that_is_depth(bank, bank_address_depth):
+	values = [ 0xffffffff for i in range(2**bank_address_depth) ]
+	write_to_half_duplex_bus(bank * 2**bank_address_depth, values)
+
+def write_value_to_bank_that_is_depth(value, bank, bank_address_depth):
+	values = [ value for i in range(2**bank_address_depth) ]
+	write_to_half_duplex_bus(bank * 2**bank_address_depth, values)
 
 default_number_of_retries = 200
 def write_to_half_duplex_bus_and_then_verify(start_address, data, should_print=True, number_of_remaining_retries=default_number_of_retries):
