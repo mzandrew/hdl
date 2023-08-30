@@ -1,7 +1,7 @@
 # written 2021-10-28 by mza
 # based off of mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.ucf
 # for an althea revBLM
-# last updated 2022-11-30 by mza
+# last updated 2023-08-30 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_33 | diff_term=true; # CLOCK100+
@@ -130,7 +130,7 @@ net coax<3> loc=p75  | iostandard=lvttl | drive = 24 | slew = fast; # bank1
 net coax<4> loc=p6   | iostandard=lvttl | drive = 24 | slew = fast; # bank3
 net coax<5> loc=p33  | iostandard=lvttl | drive = 24 | slew = fast; # bank3 - differs from althea revB
 
-net other loc=p143 | iostandard=lvttl | drive = 24 | slew = fast; # bank0 - differs from althea revB and revBL
+net other loc=p143 | iostandard=lvttl | drive = 2 | slew = slow; # bank0 - differs from althea revB and revBL
 
 #net "button" tig;
 #net "rot<?>" tig;
@@ -139,5 +139,7 @@ net other loc=p143 | iostandard=lvttl | drive = 24 | slew = fast; # bank0 - diff
 net "coax_led<?>" tig;
 net "*cdc*" tig;
 
-config vccaux=3.3;
+vccaux=3.3;
+temperature=85c;
+#voltage=1.21v;
 

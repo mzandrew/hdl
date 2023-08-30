@@ -1,7 +1,7 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2023-08-29 by mza
+// last updated 2023-08-30 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -138,7 +138,7 @@ module top #(
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 //	wire [31:0] a_c_;
 //	wire [31:0] _b_d;
-	if (0) begin
+	if (1) begin
 		RAM_s6_8k_16bit_32bit mem0 (.reset(reset_word),
 			.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[15:0]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][15:0]),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b());
@@ -168,7 +168,7 @@ module top #(
 		.data_out(read_data_word[5]), .read_enable(read_strobe[5]), .empty(), .almost_empty(), .empty_or_almost_empty());
 	wire [31:0] bank1 [15:0];
 	wire [31:0] bank2 [15:0];
-//	wire [31:0] bank6 [15:0];
+	wire [31:0] bank6 [15:0];
 	wire [31:0] bank7 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
@@ -184,13 +184,13 @@ module top #(
 		.data_out_b_4(bank2[4]),  .data_out_b_5(bank2[5]),  .data_out_b_6(bank2[6]),  .data_out_b_7(bank2[7]),
 		.data_out_b_8(bank2[8]),  .data_out_b_9(bank2[9]),  .data_out_b_a(bank2[10]), .data_out_b_b(bank2[11]),
 		.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
-//	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
-//		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
-//		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
-//		.data_in_b_4(bank6[4]),  .data_in_b_5(bank6[5]),  .data_in_b_6(bank6[6]),  .data_in_b_7(bank6[7]),
-//		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
-//		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
-//		.write_strobe_b(1'b1));
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
+		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
+		.data_in_b_4(bank6[4]),  .data_in_b_5(bank6[5]),  .data_in_b_6(bank6[6]),  .data_in_b_7(bank6[7]),
+		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
+		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
+		.write_strobe_b(1'b1));
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank7 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[7]),
 		.data_in_b_0(bank7[0]),  .data_in_b_1(bank7[1]),  .data_in_b_2(bank7[2]),  .data_in_b_3(bank7[3]),
@@ -229,6 +229,7 @@ module top #(
 		assign bank1[i]  = { iserdes_in_buffered_and_maybe_inverted_a[i], iserdes_in_maybe_inverted_and_maybe_masked[i], iserdes_in_maybe_inverted[i], iserdes_in[i] };
 		assign iserdes_in_maybe_inverted[i] = iserdes_in[i] ^ {8{inversion_mask[i]}};
 		assign iserdes_in_maybe_inverted_and_maybe_masked[i] = (iserdes_in[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
+		assign indicator[i] = 0;
 	end
 	assign bank1[13] = trigger_count;
 	assign bank1[14] = gate_counter_buffered;
@@ -246,11 +247,12 @@ module top #(
 	//wire [31:0] trigger_duration_in_word_clocks = 25; // 1 us
 	wire        clear_trigger_count             = bank2[4][0];
 	wire [1:0]  select                          = bank2[5][1:0];
-//	wire [31:0] channel_counter [12:1];
+	wire        clear_channel_counters          = bank2[6][0];
+	wire [31:0] channel_counter [12:1];
 	wire [31:0] channel_scaler [12:1];
 	for (i=1; i<=12; i=i+1) begin : channel_counter_scaler_mapping
-		//assign bank6[i] = channel_counter[i];
-		//iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(word_clock), .reset(reset_word), .in(iserdes_in_maybe_inverted[i]), .out(channel_counter[i]));
+		assign bank6[i] = channel_counter[i];
+		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(word_clock), .reset(clear_channel_counters), .in(iserdes_in_maybe_inverted[i]), .out(channel_counter[i]));
 		assign bank7[i] = channel_scaler[i];
 	end
 	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_array12 (.clock(word_clock), .reset(reset_word),
@@ -261,10 +263,10 @@ module top #(
 		.out05(channel_scaler[5]), .out06(channel_scaler[6]),  .out07(channel_scaler[7]),  .out08(channel_scaler[8]),
 		.out09(channel_scaler[9]), .out10(channel_scaler[10]), .out11(channel_scaler[11]), .out12(channel_scaler[12])
 	);
-//	assign bank6[0] = 0;
+	assign bank6[0] = 0;
 	assign bank7[0] = 0;
-	for (i=13; i<=15; i=i+1) begin : dummy_bank7_mapping
-//		assign bank6[i] = 0;
+	for (i=13; i<=15; i=i+1) begin : dummy_bank6_bank7_mapping
+		assign bank6[i] = 0;
 		assign bank7[i] = 0;
 	end
 	assign reset = 0;
@@ -457,8 +459,10 @@ module top #(
 		.word_D3_in(coax_oserdes[3]), .word_D2_in(coax_oserdes[2]), .word_D1_in(coax_oserdes[1]), .word_D0_in(coax_oserdes[0]),
 		.word_E1_out(raw_gate), .word_E0_out(raw_trigger),
 		.word_clockA_out(), .word_clockB_out(word_clock), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
-		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[9]), .A07_out(indicator[8]), .A06_out(indicator[7]),
-		.A05_out(indicator[6]), .A04_out(indicator[5]), .A03_out(indicator[4]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
+//		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[9]), .A07_out(indicator[8]), .A06_out(indicator[7]),
+//		.A05_out(indicator[6]), .A04_out(indicator[5]), .A03_out(indicator[4]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
+		.A11_out(), .A10_out(), .A09_out(), .A08_out(), .A07_out(), .A06_out(),
+		.A05_out(), .A04_out(), .A03_out(), .A02_out(), .A01_out(), .A00_out(),
 		.B5_in(signal[12]), .B4_in(signal[11]), .B3_in(signal[10]), .B2_in(signal[9]), .B1_in(signal[8]), .B0_in(signal[7]),
 		.C5_in(signal[6]), .C4_in(signal[5]), .C3_in(signal[4]), .C2_in(signal[3]), .C1_in(signal[2]), .C0_in(signal[1]),
 		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
@@ -870,33 +874,34 @@ module myalthea #(
 //	assign signal = { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p };
 	localparam ROTATED = 1;
 	if (ROTATED) begin
-		IBUFDS ibufds01 (.I(f_p), .IB(f_n), .O(signal[12]));
-		IBUFDS ibufds02 (.I(e_p), .IB(e_n), .O(signal[11]));
-		IBUFDS ibufds03 (.I(d_p), .IB(d_n), .O(signal[10]));
-		IBUFDS ibufds04 (.I(c_p), .IB(c_n), .O(signal[9]));
-		IBUFDS ibufds05 (.I(b_p), .IB(b_n), .O(signal[8]));
-		IBUFDS ibufds06 (.I(a_p), .IB(a_n), .O(signal[7]));
-		IBUFDS ibufds07 (.I(g_p), .IB(g_n), .O(signal[6]));
-		IBUFDS ibufds08 (.I(h_p), .IB(h_n), .O(signal[5]));
-		IBUFDS ibufds09 (.I(j_p), .IB(j_n), .O(signal[4]));
-		IBUFDS ibufds10 (.I(l_p), .IB(l_n), .O(signal[3]));
-		IBUFDS ibufds11 (.I(k_p), .IB(k_n), .O(signal[2]));
-		IBUFDS ibufds12 (.I(m_p), .IB(m_n), .O(signal[1]));
+		IBUFDS ibufds12 (.I(f_p), .IB(f_n), .O(signal[12])); // p141, p142 - near "other"
+		IBUFDS ibufds11 (.I(e_p), .IB(e_n), .O(signal[11])); // p133, p134
+		IBUFDS ibufds10 (.I(d_p), .IB(d_n), .O(signal[10])); // p139, p140
+		IBUFDS ibufds09 (.I(c_p), .IB(c_n), .O(signal[9]));  // p131, p132
+		IBUFDS ibufds08 (.I(b_p), .IB(b_n), .O(signal[8]));  // p123, p124
+		IBUFDS ibufds07 (.I(a_p), .IB(a_n), .O(signal[7]));  // p116, p117 - near gpio15, gpio18
+		IBUFDS ibufds06 (.I(g_p), .IB(g_n), .O(signal[6]));  // p40, p41
+		IBUFDS ibufds05 (.I(h_p), .IB(h_n), .O(signal[5]));  // p43, p44
+		IBUFDS ibufds04 (.I(j_p), .IB(j_n), .O(signal[4]));  // p45, p46
+		IBUFDS ibufds03 (.I(l_p), .IB(l_n), .O(signal[3]));  // p47, p48
+		IBUFDS ibufds02 (.I(k_p), .IB(k_n), .O(signal[2]));  // p55, p56
+		IBUFDS ibufds01 (.I(m_p), .IB(m_n), .O(signal[1]));  // p57, p58 - near gpio16
+		assign { z, y, x, w, v, u, n, p, q, r, s, t } = indicator;
 	end else begin
-		IBUFDS ibufds01 (.I(f_p), .IB(f_n), .O(signal[1]));
-		IBUFDS ibufds02 (.I(e_p), .IB(e_n), .O(signal[2]));
-		IBUFDS ibufds03 (.I(d_p), .IB(d_n), .O(signal[3]));
-		IBUFDS ibufds04 (.I(c_p), .IB(c_n), .O(signal[4]));
-		IBUFDS ibufds05 (.I(b_p), .IB(b_n), .O(signal[5]));
-		IBUFDS ibufds06 (.I(a_p), .IB(a_n), .O(signal[6]));
-		IBUFDS ibufds07 (.I(g_p), .IB(g_n), .O(signal[7]));
-		IBUFDS ibufds08 (.I(h_p), .IB(h_n), .O(signal[8]));
-		IBUFDS ibufds09 (.I(j_p), .IB(j_n), .O(signal[9]));
-		IBUFDS ibufds10 (.I(l_p), .IB(l_n), .O(signal[10]));
-		IBUFDS ibufds11 (.I(k_p), .IB(k_n), .O(signal[11]));
-		IBUFDS ibufds12 (.I(m_p), .IB(m_n), .O(signal[12]));
+		IBUFDS ibufds01 (.I(f_p), .IB(f_n), .O(signal[1]));  // p141, p142
+		IBUFDS ibufds02 (.I(e_p), .IB(e_n), .O(signal[2]));  // p133, p134
+		IBUFDS ibufds03 (.I(d_p), .IB(d_n), .O(signal[3]));  // p139, p140
+		IBUFDS ibufds04 (.I(c_p), .IB(c_n), .O(signal[4]));  // p131, p132
+		IBUFDS ibufds05 (.I(b_p), .IB(b_n), .O(signal[5]));  // p123, p124
+		IBUFDS ibufds06 (.I(a_p), .IB(a_n), .O(signal[6]));  // p116, p117
+		IBUFDS ibufds07 (.I(g_p), .IB(g_n), .O(signal[7]));  // p40, p41
+		IBUFDS ibufds08 (.I(h_p), .IB(h_n), .O(signal[8]));  // p43, p44
+		IBUFDS ibufds09 (.I(j_p), .IB(j_n), .O(signal[9]));  // p45, p46
+		IBUFDS ibufds10 (.I(l_p), .IB(l_n), .O(signal[10])); // p47, p48
+		IBUFDS ibufds11 (.I(k_p), .IB(k_n), .O(signal[11])); // p55, p56
+		IBUFDS ibufds12 (.I(m_p), .IB(m_n), .O(signal[12])); // p57, p58
+		assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	end
-	assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	top #(
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
