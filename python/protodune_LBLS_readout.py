@@ -382,11 +382,17 @@ def clear_channel_counters():
 
 def readout_counters():
 	bank = 6
-	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 16, False)
+
+def return_counters_string():
+	string = ""
+	for counter in readout_counters():
+		string += str(hex(counter, 8)) + " "
+	return string
 
 def readout_scalers():
 	bank = 7
-	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 16, False)
 
 def return_scalers_string():
 	string = ""
@@ -449,6 +455,7 @@ def show_stuff():
 	#althea.write_value_to_bank_that_is_depth(0b0000010000000000, 0, BANK_ADDRESS_DEPTH) # gpio16 tickles signal[1, 12]
 	#althea.write_value_to_bank_that_is_depth(0b0000001000000000, 0, BANK_ADDRESS_DEPTH) # gpio15 tickles signal[7, 11, 12]
 	#althea.write_value_to_bank_that_is_depth(0b0001000000000000, 0, BANK_ADDRESS_DEPTH) # gpio18 tickles signal[7, 12]
+	#scalers_string = return_counters_string()
 	scalers_string = return_scalers_string()
 	fifo_string = ""
 	#fifo_string = return_fifo_string()
@@ -465,11 +472,12 @@ def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
 	#setup_inversion_mask(0b010101010101)
 	#setup_inversion_mask(0b111111111111)
 	#setup_inversion_mask(0b000000000000)
-	#setup_inversion_mask(0b101000010001)
-	setup_inversion_mask(0b001010010100)
+	setup_inversion_mask(0b101000010001)
+	#setup_inversion_mask(0b001010010100)
+	#setup_inversion_mask(0b100000000000)
 	setup_desired_trigger_quantity(int(1e3))
 	setup_trigger_duration(25)
-	select(1)
+	select(0)
 
 def setup_everything():
 	if 1: # mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM
