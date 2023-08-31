@@ -246,7 +246,7 @@ module top #(
 	wire [31:0] trigger_duration_in_word_clocks = bank2[3][31:0];
 	//wire [31:0] trigger_duration_in_word_clocks = 25; // 1 us
 	wire        clear_trigger_count             = bank2[4][0];
-	wire [1:0]  select                          = bank2[5][1:0];
+	wire [3:0]  select                          = bank2[5][3:0];
 	wire        clear_channel_counters          = bank2[6][0];
 	wire [31:0] channel_counter [12:1];
 	wire [31:0] channel_scaler [12:1];
@@ -254,8 +254,9 @@ module top #(
 		assign bank6[i] = channel_counter[i];
 		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(word_clock), .reset(clear_channel_counters), .in(iserdes_in_maybe_inverted[i]), .out(channel_counter[i]));
 		assign bank7[i] = channel_scaler[i];
+//		iserdes_scaler #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000)) channel_scaler (.clock(word_clock), .reset(1'b0), .in(iserdes_in_maybe_inverted[i]), .out(channel_scaler[i]));
 	end
-	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_array12 (.clock(word_clock), .reset(reset_word),
+	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_array12 (.clock(word_clock), .reset(1'b0),
 		.in01(iserdes_in_maybe_inverted[1]), .in02(iserdes_in_maybe_inverted[2]), .in03(iserdes_in_maybe_inverted[3]), .in04(iserdes_in_maybe_inverted[4]),
 		.in05(iserdes_in_maybe_inverted[5]), .in06(iserdes_in_maybe_inverted[6]), .in07(iserdes_in_maybe_inverted[7]), .in08(iserdes_in_maybe_inverted[8]),
 		.in09(iserdes_in_maybe_inverted[9]), .in10(iserdes_in_maybe_inverted[10]), .in11(iserdes_in_maybe_inverted[11]), .in12(iserdes_in_maybe_inverted[12]),
@@ -264,10 +265,13 @@ module top #(
 		.out09(channel_scaler[9]), .out10(channel_scaler[10]), .out11(channel_scaler[11]), .out12(channel_scaler[12])
 	);
 	assign bank6[0] = 0;
-	assign bank7[0] = 0;
+	assign bank7[0] = 32'habcd0000;
+	assign bank7[13] = 32'habcd0013;
+	assign bank7[14] = 32'habcd0014;
+	assign bank7[15] = 32'habcd0015;
 	for (i=13; i<=15; i=i+1) begin : dummy_bank6_bank7_mapping
-		assign bank6[i] = 0;
-		assign bank7[i] = 0;
+		assign bank6[i] = 32'habcdef06;
+//		assign bank7[i] = 32'habcdef07;
 	end
 	assign reset = 0;
 	//assign reset = ~button;
@@ -418,17 +422,22 @@ module top #(
 			coax_oserdes[2] <= 0;
 			coax_oserdes[3] <= 0;
 		end else begin
-			if (select==2'b00) begin
-				coax_oserdes[0] <= iserdes_in_buffered_and_maybe_inverted_b[1];
+			if (select==3'b000) begin
+				coax_oserdes[0] <= iserdes_in_buffered_and_maybe_inverted_b[12];
+				coax_oserdes[1] <= channel_counter[12][7:0];
+				coax_oserdes[2] <= channel_scaler[12][7:0];
+				coax_oserdes[3] <= previous_time_over_threshold[12];
+			end else if (select==3'b001) begin
+				coax_oserdes[0] <= iserdes_in_buffered_and_maybe_inverted_b[12];
 				coax_oserdes[1] <= {8{any}};
-				coax_oserdes[2] <= {8{iserdes_word_hit[1]}};
-				coax_oserdes[3] <= previous_time_over_threshold[1];
-			end else if (select==2'b01) begin
+				coax_oserdes[2] <= {8{iserdes_word_hit[12]}};
+				coax_oserdes[3] <= previous_time_over_threshold[12];
+			end else if (select==3'b010) begin
 				coax_oserdes[0] <= previous_time_over_threshold[1];
 				coax_oserdes[1] <= previous_time_over_threshold[2];
 				coax_oserdes[2] <= previous_time_over_threshold[3];
 				coax_oserdes[3] <= previous_time_over_threshold[4];
-			end else if (select==2'b10) begin
+			end else if (select==3'b010) begin
 				coax_oserdes[0] <= previous_time_over_threshold[5];
 				coax_oserdes[1] <= previous_time_over_threshold[6];
 				coax_oserdes[2] <= previous_time_over_threshold[7];

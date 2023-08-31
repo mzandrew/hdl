@@ -16,7 +16,7 @@ module half_duplex_rpi_bus #(
 	parameter ERROR_COUNT_PICKOFF = 7,
 	parameter ANTI_META = 3, // a lot of these state machines check against something[PICKOFF:PICKOFF-1]==2'b00, so we need at least 3 here
 	parameter GAP = 0,
-	parameter EXTRA_PICKOFF = 0
+	parameter EXTRA_PICKOFF = 1
 ) (
 	input clock,
 	input reset,

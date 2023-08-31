@@ -2,7 +2,7 @@
 // based on mza-test014.duration-timer.uart.v
 // and mza-test022.frequency-counter.uart.v
 // updated 2020-05-30 by mza
-// last updated 2023-08-29 by mza
+// last updated 2023-08-30 by mza
 
 `ifndef FREQUENCY_COUNTER_LIB
 `define FREQUENCY_COUNTER_LIB
