@@ -229,7 +229,7 @@ module top #(
 		assign bank1[i]  = { iserdes_in_buffered_and_maybe_inverted_a[i], iserdes_in_maybe_inverted_and_maybe_masked[i], iserdes_in_maybe_inverted[i], iserdes_in[i] };
 		assign iserdes_in_maybe_inverted[i] = iserdes_in[i] ^ {8{inversion_mask[i]}};
 		assign iserdes_in_maybe_inverted_and_maybe_masked[i] = (iserdes_in[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
-		assign indicator[i] = 0;
+		//assign indicator[i] = 0;
 	end
 	assign bank1[13] = trigger_count;
 	assign bank1[14] = gate_counter_buffered;
@@ -456,7 +456,8 @@ module top #(
 	wire strobe_is_alignedD;
 	ocyrus_triacontahedron8_split_12_6_6_4_2_BCEinput #(
 		//.SPECIAL_A11("B"), // non-rotated
-		.SPECIAL_A11("C"), // rotated
+		//.SPECIAL_A11("C"), // rotated
+		.SPECIAL_A05("C"), // rotated
 		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE)
 	) orama (
 		.clock_in(clock100), .reset(reset100),
@@ -468,10 +469,10 @@ module top #(
 		.word_D3_in(coax_oserdes[3]), .word_D2_in(coax_oserdes[2]), .word_D1_in(coax_oserdes[1]), .word_D0_in(coax_oserdes[0]),
 		.word_E1_out(raw_gate), .word_E0_out(raw_trigger),
 		.word_clockA_out(), .word_clockB_out(word_clock), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
-//		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[9]), .A07_out(indicator[8]), .A06_out(indicator[7]),
-//		.A05_out(indicator[6]), .A04_out(indicator[5]), .A03_out(indicator[4]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
-		.A11_out(), .A10_out(), .A09_out(), .A08_out(), .A07_out(), .A06_out(),
-		.A05_out(), .A04_out(), .A03_out(), .A02_out(), .A01_out(), .A00_out(),
+		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[9]), .A07_out(indicator[8]), .A06_out(indicator[7]),
+		.A05_out(indicator[6]), .A04_out(indicator[5]), .A03_out(indicator[4]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
+//		.A11_out(), .A10_out(), .A09_out(), .A08_out(), .A07_out(), .A06_out(),
+//		.A05_out(), .A04_out(), .A03_out(), .A02_out(), .A01_out(), .A00_out(),
 		.B5_in(signal[12]), .B4_in(signal[11]), .B3_in(signal[10]), .B2_in(signal[9]), .B1_in(signal[8]), .B0_in(signal[7]),
 		.C5_in(signal[6]), .C4_in(signal[5]), .C3_in(signal[4]), .C2_in(signal[3]), .C1_in(signal[2]), .C0_in(signal[1]),
 		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
@@ -895,7 +896,7 @@ module myalthea #(
 		IBUFDS ibufds03 (.I(l_p), .IB(l_n), .O(signal[3]));  // p47, p48
 		IBUFDS ibufds02 (.I(k_p), .IB(k_n), .O(signal[2]));  // p55, p56
 		IBUFDS ibufds01 (.I(m_p), .IB(m_n), .O(signal[1]));  // p57, p58 - near gpio16
-		assign { z, y, x, w, v, u, n, p, q, r, s, t } = indicator;
+		assign { u, v, w, x, y, z, t, s, r, q, p, n } = indicator;
 	end else begin
 		IBUFDS ibufds01 (.I(f_p), .IB(f_n), .O(signal[1]));  // p141, p142
 		IBUFDS ibufds02 (.I(e_p), .IB(e_n), .O(signal[2]));  // p133, p134
