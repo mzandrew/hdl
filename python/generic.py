@@ -1,17 +1,30 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2020-06-25 by mza
+# last updated 2023-09-05 by mza
 
 import math # floor, ceil, log10
 
 epsilon = 1.0e-6
 
-def hex(number, width=1):
+def hex(number, width=1, leading_zeros_are_spaces=False):
 	#number = int(number)
 	#print(str(number))
 	width = int(width)
 	#print(str(width))
-	return "%0*x" % (width, number)
+	if leading_zeros_are_spaces:
+		input_string = list("%0*x" % (width, number))
+		nonzero_seen = False
+		output_string = []
+		for i in range(width-1):
+			if '0'==input_string[i] and not nonzero_seen:
+				output_string.append(' ')
+			else:
+				nonzero_seen = True
+				output_string.append(input_string[i])
+		output_string.append(input_string[width-1])
+		return "".join(output_string)
+	else:
+		return "%0*x" % (width, number)
 
 def dec(number, width=1):
 	width = int(width)

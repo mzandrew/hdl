@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2023-08-28 by mza
+# last updated 2023-09-05 by mza
 
 target_period = 0.01
 
@@ -387,7 +387,7 @@ def readout_counters():
 def return_counters_string():
 	string = ""
 	for counter in readout_counters():
-		string += str(hex(counter, 8)) + " "
+		string += str(hex(counter, 8, True)) + " "
 	return string
 
 def readout_scalers():
@@ -397,7 +397,7 @@ def readout_scalers():
 def return_scalers_string():
 	string = ""
 	for scaler in readout_scalers():
-		string += str(hex(scaler, 8)) + " "
+		string += str(hex(scaler, 8, True)) + " "
 	return string
 
 def show_scalers():
@@ -420,7 +420,7 @@ def scan_for_tickles():
 	bank = 0
 	number_of_passes = 100
 	incidentals = 5
-	for i in range(16):
+	for i in range(18):
 		token = 1<<i
 		clear_channel_counters()
 		for j in range(number_of_passes):
@@ -468,13 +468,7 @@ def show_stuff():
 def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
 	setup_hit_mask(0b111111111111)
 	#setup_hit_mask(0b000000000001)
-	#setup_inversion_mask(0b101010101010)
-	#setup_inversion_mask(0b010101010101)
-	#setup_inversion_mask(0b111111111111)
-	#setup_inversion_mask(0b000000000000)
-	setup_inversion_mask(0b101000010001)
-	#setup_inversion_mask(0b001010010100)
-	#setup_inversion_mask(0b100000000000)
+	setup_inversion_mask(0b000011000101)
 	setup_desired_trigger_quantity(int(1e3))
 	setup_trigger_duration(25)
 	select(0)
