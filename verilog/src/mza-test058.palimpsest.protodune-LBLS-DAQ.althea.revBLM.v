@@ -238,16 +238,14 @@ module top #(
 	reg [31:0] trigger_active_counter = 0;
 	reg [31:0] trigger_count = 0;
 	reg [7:0] coax_oserdes [3:0];
-	(* KEEP = "TRUE" *)
-//	assign      minuend                         = bank2[0][7:0];
 	wire [12:1] hit_mask                        = bank2[0][11:0];
 	wire [12:1] inversion_mask                  = bank2[1][11:0];
 	wire [31:0] desired_trigger_quantity        = bank2[2][31:0];
 	wire [31:0] trigger_duration_in_word_clocks = bank2[3][31:0];
 	//wire [31:0] trigger_duration_in_word_clocks = 25; // 1 us
-	wire        clear_trigger_count             = bank2[4][0]; // also clears channel_ones_counter
+	wire        clear_trigger_count             = bank2[4][0];
 	wire [3:0]  select                          = bank2[5][3:0];
-	wire        clear_channel_counters          = bank2[6][0];
+	wire        clear_channel_counters          = bank2[6][0]; // also clears channel_ones_counter
 	wire [31:0] channel_counter [12:1];
 	wire [31:0] channel_scaler [12:1];
 	localparam ONES_COUNTER_THRESHOLD = 32'h00000fff;
@@ -318,7 +316,7 @@ module top #(
 			if (reset_word) begin
 				channel_ones_counter[i] <= 0;
 			end else begin
-				if (clear_trigger_count) begin
+				if (clear_channel_counters) begin
 					channel_ones_counter[i] <= 0;
 				end else begin
 					channel_ones_counter[i] <= channel_ones_counter[i] + iserdes_in_ones_counter_before[i];
