@@ -35,6 +35,10 @@ X_POSITION_OF_BANK6_COUNTERS = 250
 Y_POSITION_OF_BANK6_COUNTERS = 250 + FONT_SIZE_BANKS
 X_POSITION_OF_BANK7_SCALERS = 350
 Y_POSITION_OF_BANK7_SCALERS = 250 + FONT_SIZE_BANKS
+X_POSITION_OF_TOT = 450
+Y_POSITION_OF_TOT = 250 + FONT_SIZE_BANKS
+X_POSITION_OF_BANK0_COUNTERS = 550
+Y_POSITION_OF_BANK0_COUNTERS = 250 + FONT_SIZE_BANKS
 
 plot_name = [ [ "" for j in range(ROWS) ] for i in range(COLUMNS) ]
 feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
@@ -304,6 +308,8 @@ def loop():
 			update_bank1_registers()
 			update_bank6_counters()
 			update_bank7_scalers()
+			update_ToT()
+			update_bank0_counters()
 		elif event.type == pygame.MOUSEBUTTONDOWN:
 			do_something()
 	for i in range(COLUMNS):
@@ -335,6 +341,27 @@ def flip():
 		pygame.display.flip()
 		pygame.event.pump()
 		something_was_updated = False
+
+def read_bank0_counters():
+	global bank0_register_values
+	bank = 0
+	bank0_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, 12, False)
+
+bank0_register_object = [ 0 for i in range(len(channel_names)) ]
+
+def update_bank0_counters():
+	global bank0_register_object
+	read_bank0_counters()
+	for i in range(len(channel_names)):
+		try:
+			temp_surface = pygame.Surface(bank0_register_object[i].get_size())
+			temp_surface.fill(black)
+			screen.blit(temp_surface, bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_COUNTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_COUNTERS+FONT_SIZE_BANKS*i)))
+		except Exception as e:
+			#print(str(e))
+			pass
+		bank0_register_object[i] = banks_font.render(hex(bank0_register_values[i], 8, True), False, white)
+		screen.blit(bank0_register_object[i], bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_COUNTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_COUNTERS+FONT_SIZE_BANKS*i)))
 
 def read_bank1_registers():
 	global bank1_register_values
@@ -435,6 +462,43 @@ def readout_fifo_single():
 	readback_8765, = althea.read_data_from_pollable_memory_on_half_duplex_bus(4 * 2**BANK_ADDRESS_DEPTH, 1, False)
 	readback_cba9, = althea.read_data_from_pollable_memory_on_half_duplex_bus(5 * 2**BANK_ADDRESS_DEPTH, 1, False)
 	return (readback_cba9, readback_8765, readback_4321)
+
+def readout_fifo_split():
+	fifo = readout_fifo_single()
+	ToT_reversed = [ 0 for i in range(12) ]
+	for i in range(3):
+		for j in range(4):
+			k = i*4+j
+			ToT_reversed[k] = (fifo[i] >> (8*(3-j)) ) & 0xff
+#	string = ""
+#	for i in range(3):
+#		string += hex(fifo[i], 8, False) + " "
+#	print(string)
+	global ToT
+	ToT = [ ToT_reversed[11-i] for i in range(12) ]
+	return ToT
+
+def show_fifo_split():
+	readout_fifo_split()
+	string = ""
+	for i in range(12):
+		string += hex(ToT[i], 2, True) + " "
+	print(string)
+
+ToT_object = [ 0 for i in range(len(channel_names)) ]
+
+def update_ToT():
+	readout_fifo_split()
+	for i in range(len(channel_names)):
+		try:
+			temp_surface = pygame.Surface(ToT_object[i].get_size())
+			temp_surface.fill(black)
+			screen.blit(temp_surface, ToT_object[i].get_rect(center=(X_POSITION_OF_TOT-ToT_object[i].get_width()//2,Y_POSITION_OF_TOT+FONT_SIZE_BANKS*i)))
+		except Exception as e:
+			#print(str(e))
+			pass
+		ToT_object[i] = banks_font.render(hex(ToT[i], 2, True), False, white)
+		screen.blit(ToT_object[i], ToT_object[i].get_rect(center=(X_POSITION_OF_TOT-ToT_object[i].get_width()//2,Y_POSITION_OF_TOT+FONT_SIZE_BANKS*i)))
 
 def return_fifo_string():
 	fifo_cba9, fifo_8765, fifo_4321 = readout_fifo_single()
@@ -568,13 +632,15 @@ def show_stuff():
 	#print(fifo_string + "     " + scalers_string)
 	#show_fifo()
 	#show_raw_values()
-	#pass
-	readout_fifo_multiple(4)
+	#readout_fifo_multiple(4)
+	#show_fifo_split()
+	pass
 
 def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
 	setup_hit_mask(0b111111111111)
 	#setup_hit_mask(0b000000000001)
-	setup_inversion_mask(0b100011000101)
+	#setup_inversion_mask(0b100011000101)
+	setup_inversion_mask(0b100010000101)
 	setup_desired_trigger_quantity(int(1e3))
 	setup_trigger_duration(25)
 	select(0)
