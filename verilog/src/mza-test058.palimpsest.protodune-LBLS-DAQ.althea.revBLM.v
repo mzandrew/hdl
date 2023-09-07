@@ -138,7 +138,15 @@ module top #(
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 //	wire [31:0] a_c_;
 //	wire [31:0] _b_d;
-	if (1) begin
+	wire [31:0] bank0 [15:0];
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank0 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[0]),
+		.data_in_b_0(bank0[0]),  .data_in_b_1(bank0[1]),  .data_in_b_2(bank0[2]),  .data_in_b_3(bank0[3]),
+		.data_in_b_4(bank0[4]),  .data_in_b_5(bank0[5]),  .data_in_b_6(bank0[6]),  .data_in_b_7(bank0[7]),
+		.data_in_b_8(bank0[8]),  .data_in_b_9(bank0[9]),  .data_in_b_a(bank0[10]), .data_in_b_b(bank0[11]),
+		.data_in_b_c(bank0[12]), .data_in_b_d(bank0[13]), .data_in_b_e(bank0[14]), .data_in_b_f(bank0[15]),
+		.write_strobe_b(1'b1));
+	if (0) begin
 		RAM_s6_8k_16bit_32bit mem0 (.reset(reset_word),
 			.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[15:0]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][15:0]),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b());
@@ -146,7 +154,7 @@ module top #(
 			.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[31:16]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][31:16]),
 			.clock_b(word_clock), .address_b(read_address), .data_out_b());
 	end else begin
-		assign read_data_word[0] = 0;
+		//assign read_data_word[0] = 0;
 	end
 //	for (i=7; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
 //		assign read_data_word[i] = 0;
@@ -224,9 +232,10 @@ module top #(
 	reg [7:0] iserdes_in_buffered_and_maybe_inverted_a [12:1];
 	reg [7:0] iserdes_in_buffered_and_maybe_inverted_b [12:1];
 //	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
-	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[3:0], status4, status8 };
+	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[7:0], status8 };
 	for (i=1; i<=12; i=i+1) begin : raw_readout_registers_mapping
-		assign bank1[i]  = { iserdes_in_buffered_and_maybe_inverted_a[i], iserdes_in_maybe_inverted_and_maybe_masked[i], iserdes_in_maybe_inverted[i], iserdes_in[i] };
+		assign bank0[i] = channel_ones_counter[i];
+		assign bank1[i] = { iserdes_in_buffered_and_maybe_inverted_a[i], iserdes_in_maybe_inverted_and_maybe_masked[i], iserdes_in_maybe_inverted[i], iserdes_in[i] };
 		assign iserdes_in_maybe_inverted[i] = iserdes_in[i] ^ {8{inversion_mask[i]}};
 		assign iserdes_in_maybe_inverted_and_maybe_masked[i] = (iserdes_in[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
 		//assign indicator[i] = 0;
