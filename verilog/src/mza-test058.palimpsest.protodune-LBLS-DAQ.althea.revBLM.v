@@ -1,7 +1,7 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2023-08-30 by mza
+// last updated 2023-09-07 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -232,7 +232,7 @@ module top #(
 		//assign indicator[i] = 0;
 	end
 	assign bank1[13] = trigger_count;
-	assign bank1[14] = gate_counter_buffered;
+	assign bank1[14] = suggested_inversion_map;
 	assign bank1[15] = hit_counter_buffered;
 	reg trigger_active = 0;
 	reg [31:0] trigger_active_counter = 0;
@@ -245,11 +245,13 @@ module top #(
 	wire [31:0] desired_trigger_quantity        = bank2[2][31:0];
 	wire [31:0] trigger_duration_in_word_clocks = bank2[3][31:0];
 	//wire [31:0] trigger_duration_in_word_clocks = 25; // 1 us
-	wire        clear_trigger_count             = bank2[4][0];
+	wire        clear_trigger_count             = bank2[4][0]; // also clears channel_ones_counter
 	wire [3:0]  select                          = bank2[5][3:0];
 	wire        clear_channel_counters          = bank2[6][0];
 	wire [31:0] channel_counter [12:1];
 	wire [31:0] channel_scaler [12:1];
+	localparam ONES_COUNTER_THRESHOLD = 32'h00000fff;
+	reg [12:1] suggested_inversion_map;
 	for (i=1; i<=12; i=i+1) begin : channel_counter_scaler_mapping
 		assign bank6[i] = channel_counter[i];
 		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(word_clock), .reset(clear_channel_counters), .in(iserdes_in_maybe_inverted[i]), .out(channel_counter[i]));
@@ -306,7 +308,34 @@ module top #(
 			end else begin
 				//iserdes_word_hit[i] <= |hitmask[i] && ~|iserdes_in[i]; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
 				//iserdes_word_hit[i] <= hit_mask[i] & inversion_mask[i] ^ (|iserdes_in[i]); // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
-				iserdes_word_hit[i] <= ((|iserdes_in[i]) ^ inversion_mask[i]) & hit_mask[i] & gate; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
+				//iserdes_word_hit[i] <= ((|iserdes_in[i]) ^ inversion_mask[i]) & hit_mask[i] & gate; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
+				iserdes_word_hit[i] <= |iserdes_in_maybe_inverted_and_maybe_masked[i];
+			end
+		end
+	end
+	for (i=1; i<=12; i=i+1) begin : channel_ones_counter_adder
+		always @(posedge word_clock) begin
+			if (reset_word) begin
+				channel_ones_counter[i] <= 0;
+			end else begin
+				if (clear_trigger_count) begin
+					channel_ones_counter[i] <= 0;
+				end else begin
+					channel_ones_counter[i] <= channel_ones_counter[i] + iserdes_in_ones_counter_before[i];
+				end
+			end
+		end
+	end
+	for (i=1; i<=12; i=i+1) begin : suggested_inversion_map_mapping
+		always @(posedge word_clock) begin
+			if (reset_word) begin
+				suggested_inversion_map[i] <= 0;
+			end else begin
+				if (ONES_COUNTER_THRESHOLD<channel_ones_counter[i]) begin
+					suggested_inversion_map[i] <= 1'b1;
+				end else begin
+					suggested_inversion_map[i] <= 0;
+				end
 			end
 		end
 	end
@@ -392,9 +421,12 @@ module top #(
 //	wire [255:0] [12:1];
 	reg [7:0] previous_time_over_threshold [12:1];
 	reg [7:0] time_over_threshold [12:1];
-	wire [3:0] iserdes_in_ones_counter [12:1];
+	reg [31:0] channel_ones_counter [12:1];
+	wire [3:0] iserdes_in_ones_counter_before [12:1];
+	wire [3:0] iserdes_in_ones_counter_after [12:1];
 	for (i=1; i<=12; i=i+1) begin : ones_counter_mapping
-		count_ones c1s (.clock(word_clock), .data_in(iserdes_in_buffered_and_maybe_inverted_a[i]), .count_out(iserdes_in_ones_counter[i]));
+		count_ones c1s_before (.clock(word_clock), .data_in(iserdes_in[i]), .count_out(iserdes_in_ones_counter_before[i]));
+		count_ones c1s_after (.clock(word_clock), .data_in(iserdes_in_buffered_and_maybe_inverted_a[i]), .count_out(iserdes_in_ones_counter_after[i]));
 	end
 	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
 		always @(posedge word_clock) begin
@@ -404,7 +436,7 @@ module top #(
 				time_over_threshold[i] <= 0;
 			end else begin
 				if (trigger_active) begin
-					time_over_threshold[i] <= time_over_threshold[i] + iserdes_in_ones_counter[i];
+					time_over_threshold[i] <= time_over_threshold[i] + iserdes_in_ones_counter_after[i];
 				end else begin
 					previous_time_over_threshold[i] <= time_over_threshold[i];
 					if (time_over_threshold[i]) begin
@@ -437,7 +469,7 @@ module top #(
 				coax_oserdes[1] <= previous_time_over_threshold[2];
 				coax_oserdes[2] <= previous_time_over_threshold[3];
 				coax_oserdes[3] <= previous_time_over_threshold[4];
-			end else if (select==3'b010) begin
+			end else if (select==3'b011) begin
 				coax_oserdes[0] <= previous_time_over_threshold[5];
 				coax_oserdes[1] <= previous_time_over_threshold[6];
 				coax_oserdes[2] <= previous_time_over_threshold[7];
