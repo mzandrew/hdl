@@ -234,7 +234,7 @@ module top #(
 //	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
 	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[7:0], status8 };
 	for (i=1; i<=12; i=i+1) begin : raw_readout_registers_mapping
-		assign bank0[i] = { 16'd0, channel_ones_counter[i] };
+		assign bank0[i] = { 8'd0, channel_ones_counter[i] };
 		assign bank1[i] = { iserdes_in_buffered_and_maybe_inverted_a[i], iserdes_in_maybe_inverted_and_maybe_masked[i], iserdes_in_maybe_inverted[i], iserdes_in[i] };
 		assign iserdes_in_maybe_inverted[i] = iserdes_in[i] ^ {8{inversion_mask[i]}};
 		assign iserdes_in_maybe_inverted_and_maybe_masked[i] = (iserdes_in[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
@@ -252,9 +252,12 @@ module top #(
 	wire [31:0] desired_trigger_quantity        = bank2[2][31:0];
 	wire [31:0] trigger_duration_in_word_clocks = bank2[3][31:0];
 	//wire [31:0] trigger_duration_in_word_clocks = 25; // 1 us
-	wire        clear_trigger_count             = bank2[4][0];
-	wire [3:0]  select                          = bank2[5][3:0];
-	wire        clear_channel_counters          = bank2[6][0]; // also clears channel_ones_counter
+	wire [3:0]  monitor_channel                 = bank2[4];
+	wire        clear_gate_counter              = bank2[5][0];
+	wire        clear_trigger_count             = bank2[5][1];
+	wire        clear_hit_counter               = bank2[5][2];
+	wire        clear_channel_counters          = bank2[5][3];
+	wire        clear_channel_ones_counters     = bank2[5][4];
 	wire [3:0]  coax_mux [3:0];
 	assign coax_mux[0] = bank2[7][3:0];
 	assign coax_mux[1] = bank2[8][3:0];
@@ -262,7 +265,6 @@ module top #(
 	assign coax_mux[3] = bank2[10][3:0];
 	wire [31:0] channel_counter [12:1];
 	wire [31:0] channel_scaler [12:1];
-	localparam ONES_COUNTER_THRESHOLD = 32'h00000fff;
 	reg [12:1] suggested_inversion_map;
 	for (i=1; i<=12; i=i+1) begin : channel_counter_scaler_mapping
 		assign bank6[i] = channel_counter[i];
@@ -329,19 +331,18 @@ module top #(
 			end
 		end
 	end
-	localparam CHANNEL_ONES_COUNTER_THRESHOLD = 16'he000;
 	for (i=1; i<=12; i=i+1) begin : channel_ones_counter_adder
 		always @(posedge word_clock) begin
 			if (reset_word) begin
 				channel_ones_counter[i] <= 0;
 			end else begin
-				if (clear_channel_counters) begin
+				if (clear_channel_ones_counters) begin
 					channel_ones_counter[i] <= 0;
 				end else begin
-					if (channel_ones_counter[i]<CHANNEL_ONES_COUNTER_THRESHOLD) begin
+					if (channel_ones_counter[i]<channel_ones_counter_max_count) begin
 						channel_ones_counter[i] <= channel_ones_counter[i] + iserdes_in_ones_counter_before[i];
 					end else begin
-						channel_ones_counter[i] <= CHANNEL_ONES_COUNTER_THRESHOLD;
+						channel_ones_counter[i] <= channel_ones_counter_max_count;
 					end
 				end
 			end
@@ -352,7 +353,7 @@ module top #(
 			if (reset_word) begin
 				suggested_inversion_map[i] <= 0;
 			end else begin
-				if (ONES_COUNTER_THRESHOLD<channel_ones_counter[i]) begin
+				if (channel_ones_counter_suggestion_threshold<channel_ones_counter[i]) begin
 					suggested_inversion_map[i] <= 1'b1;
 				end else begin
 					suggested_inversion_map[i] <= 0;
@@ -408,9 +409,14 @@ module top #(
 			hit_counter <= 0;
 			hit_counter_buffered <= 0;
 		end else begin
-			hit_counter_buffered <= hit_counter;
-			if (2'b01==anytrain[2:1]) begin
-				hit_counter <= hit_counter + 1'b1;
+			if (clear_hit_counter) begin
+				hit_counter <= 0;
+				hit_counter_buffered <= 0;
+			end else begin
+				hit_counter_buffered <= hit_counter;
+				if (2'b01==anytrain[2:1]) begin
+					hit_counter <= hit_counter + 1'b1;
+				end
 			end
 		end
 	end
@@ -433,16 +439,30 @@ module top #(
 			gate_counter <= 0;
 			gate_counter_buffered <= 0;
 		end else begin
-			gate_counter_buffered <= gate_counter;
-			if (2'b01==gate_train[GATE_TRAIN_PICKOFF+1:GATE_TRAIN_PICKOFF]) begin
-				gate_counter <= gate_counter + 1'b1;
+			if (clear_gate_counter) begin
+				gate_counter <= 0;
+				gate_counter_buffered <= 0;
+			end else begin
+				gate_counter_buffered <= gate_counter;
+				if (2'b01==gate_train[GATE_TRAIN_PICKOFF+1:GATE_TRAIN_PICKOFF]) begin
+					gate_counter <= gate_counter + 1'b1;
+				end
 			end
 		end
 	end
 //	wire [255:0] [12:1];
 	reg [7:0] previous_time_over_threshold [12:1];
 	reg [7:0] time_over_threshold [12:1];
-	reg [15:0] channel_ones_counter [12:1];
+	localparam CHANNEL_ONES_COUNTER_NUMBER_OF_BITS = 24;
+	reg [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter [12:1];
+	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_max_count;
+	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_suggestion_threshold;
+	localparam CHANNEL_ONES_COUNTER_UPPER_NYBBLE = 4'he;
+	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = 0;
+	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
+	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8:0] = 0;
+	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
+	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:0] = 0;
 	wire [3:0] iserdes_in_ones_counter_before [12:1];
 	wire [3:0] iserdes_in_ones_counter_after [12:1];
 	for (i=1; i<=12; i=i+1) begin : ones_counter_mapping
