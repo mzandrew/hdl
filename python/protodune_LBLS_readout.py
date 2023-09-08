@@ -290,6 +290,7 @@ def loop():
 				scan_for_tickles()
 			elif K_c==event.key:
 				clear_channel_counters()
+				clear_channel_ones_counters()
 				print("channel counters cleared")
 		elif event.type == QUIT:
 			running = False
@@ -417,10 +418,25 @@ def setup_trigger_duration(number_of_word_clocks):
 	bank = 2
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 3, [number_of_word_clocks], False)
 
-def clear_trigger_count():
+def clear_something_on_bank2_reg5(bit_number):
 	bank = 2
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 4, [1], False)
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 4, [0], False)
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [1<<bit_number], False)
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [0], False)
+
+def clear_gate_counter():
+	clear_something_on_bank2_reg5(0)
+
+def clear_trigger_count():
+	clear_something_on_bank2_reg5(1)
+
+def clear_hit_counter():
+	clear_something_on_bank2_reg5(2)
+
+def clear_channel_counters():
+	clear_something_on_bank2_reg5(3)
+
+def clear_channel_ones_counters():
+	clear_something_on_bank2_reg5(4)
 
 def select(value):
 	print("select: " + str(value))
@@ -506,11 +522,6 @@ def return_fifo_string():
 
 def show_fifo():
 	print(return_fifo_string())
-
-def clear_channel_counters():
-	bank = 2
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 6, [1], False)
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 6, [0], False)
 
 def readout_counters():
 	bank = 6
