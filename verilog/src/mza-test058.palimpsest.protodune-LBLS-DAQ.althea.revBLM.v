@@ -1,7 +1,7 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2023-09-07 by mza
+// last updated 2023-09-08 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -234,7 +234,7 @@ module top #(
 //	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
 	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[7:0], status8 };
 	for (i=1; i<=12; i=i+1) begin : raw_readout_registers_mapping
-		assign bank0[i] = channel_ones_counter[i];
+		assign bank0[i] = { 16'd0, channel_ones_counter[i] };
 		assign bank1[i] = { iserdes_in_buffered_and_maybe_inverted_a[i], iserdes_in_maybe_inverted_and_maybe_masked[i], iserdes_in_maybe_inverted[i], iserdes_in[i] };
 		assign iserdes_in_maybe_inverted[i] = iserdes_in[i] ^ {8{inversion_mask[i]}};
 		assign iserdes_in_maybe_inverted_and_maybe_masked[i] = (iserdes_in[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
@@ -255,6 +255,11 @@ module top #(
 	wire        clear_trigger_count             = bank2[4][0];
 	wire [3:0]  select                          = bank2[5][3:0];
 	wire        clear_channel_counters          = bank2[6][0]; // also clears channel_ones_counter
+	wire [3:0]  coax_mux [3:0];
+	assign coax_mux[0] = bank2[7][3:0];
+	assign coax_mux[1] = bank2[8][3:0];
+	assign coax_mux[2] = bank2[9][3:0];
+	assign coax_mux[3] = bank2[10][3:0];
 	wire [31:0] channel_counter [12:1];
 	wire [31:0] channel_scaler [12:1];
 	localparam ONES_COUNTER_THRESHOLD = 32'h00000fff;
@@ -273,6 +278,10 @@ module top #(
 		.out05(channel_scaler[5]), .out06(channel_scaler[6]),  .out07(channel_scaler[7]),  .out08(channel_scaler[8]),
 		.out09(channel_scaler[9]), .out10(channel_scaler[10]), .out11(channel_scaler[11]), .out12(channel_scaler[12])
 	);
+	assign bank0[0] = 0;
+	assign bank0[13] = 0;
+	assign bank0[14] = 0;
+	assign bank0[15] = 0;
 	assign bank6[0] = 0;
 	assign bank7[0] = 32'habcd0000;
 	assign bank7[13] = 32'habcd0013;
@@ -320,6 +329,7 @@ module top #(
 			end
 		end
 	end
+	localparam CHANNEL_ONES_COUNTER_THRESHOLD = 16'he000;
 	for (i=1; i<=12; i=i+1) begin : channel_ones_counter_adder
 		always @(posedge word_clock) begin
 			if (reset_word) begin
@@ -328,7 +338,11 @@ module top #(
 				if (clear_channel_counters) begin
 					channel_ones_counter[i] <= 0;
 				end else begin
-					channel_ones_counter[i] <= channel_ones_counter[i] + iserdes_in_ones_counter_before[i];
+					if (channel_ones_counter[i]<CHANNEL_ONES_COUNTER_THRESHOLD) begin
+						channel_ones_counter[i] <= channel_ones_counter[i] + iserdes_in_ones_counter_before[i];
+					end else begin
+						channel_ones_counter[i] <= CHANNEL_ONES_COUNTER_THRESHOLD;
+					end
 				end
 			end
 		end
@@ -428,7 +442,7 @@ module top #(
 //	wire [255:0] [12:1];
 	reg [7:0] previous_time_over_threshold [12:1];
 	reg [7:0] time_over_threshold [12:1];
-	reg [31:0] channel_ones_counter [12:1];
+	reg [15:0] channel_ones_counter [12:1];
 	wire [3:0] iserdes_in_ones_counter_before [12:1];
 	wire [3:0] iserdes_in_ones_counter_after [12:1];
 	for (i=1; i<=12; i=i+1) begin : ones_counter_mapping
@@ -454,38 +468,23 @@ module top #(
 			end
 		end
 	end
-	always @(posedge word_clock) begin
-		if (reset_word) begin
-			coax_oserdes[0] <= 0;
-			coax_oserdes[1] <= 0;
-			coax_oserdes[2] <= 0;
-			coax_oserdes[3] <= 0;
-		end else begin
-			if (select==3'b000) begin
-				coax_oserdes[0] <= iserdes_in_buffered_and_maybe_inverted_b[12];
-				coax_oserdes[1] <= channel_counter[12][7:0];
-				coax_oserdes[2] <= channel_scaler[12][7:0];
-				coax_oserdes[3] <= previous_time_over_threshold[12];
-			end else if (select==3'b001) begin
-				coax_oserdes[0] <= iserdes_in_buffered_and_maybe_inverted_b[12];
-				coax_oserdes[1] <= {8{any}};
-				coax_oserdes[2] <= {8{iserdes_word_hit[12]}};
-				coax_oserdes[3] <= previous_time_over_threshold[12];
-			end else if (select==3'b010) begin
-				coax_oserdes[0] <= previous_time_over_threshold[1];
-				coax_oserdes[1] <= previous_time_over_threshold[2];
-				coax_oserdes[2] <= previous_time_over_threshold[3];
-				coax_oserdes[3] <= previous_time_over_threshold[4];
-			end else if (select==3'b011) begin
-				coax_oserdes[0] <= previous_time_over_threshold[5];
-				coax_oserdes[1] <= previous_time_over_threshold[6];
-				coax_oserdes[2] <= previous_time_over_threshold[7];
-				coax_oserdes[3] <= previous_time_over_threshold[8];
+	for (i=0; i<4; i=i+1) begin : coax_mux_mapping
+		always @(posedge word_clock) begin
+			if (reset_word) begin
+				coax_oserdes[i] <= 0;
 			end else begin
-				coax_oserdes[0] <= previous_time_over_threshold[9];
-				coax_oserdes[1] <= previous_time_over_threshold[10];
-				coax_oserdes[2] <= previous_time_over_threshold[11];
-				coax_oserdes[3] <= previous_time_over_threshold[12];
+				if (coax_mux[i]==4'd0) begin
+					coax_oserdes[i] <= {8{any}};
+				end else if (coax_mux[i]==4'd13) begin
+					coax_oserdes[i] <= iserdes_in_buffered_and_maybe_inverted_b[12];
+				end else if (coax_mux[i]==4'd14) begin
+					coax_oserdes[i] <= channel_counter[12][7:0];
+				end else if (coax_mux[i]==4'd15) begin
+					coax_oserdes[i] <= channel_scaler[12][7:0];
+				end else begin
+					coax_oserdes[i] <= previous_time_over_threshold[coax_mux[i]];
+				end
+//				coax_oserdes[2] <= {8{iserdes_word_hit[12]}};
 			end
 		end
 	end
