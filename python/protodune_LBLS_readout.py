@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2023-09-07 by mza
+# last updated 2023-09-08 by mza
 
 target_period = 0.1
 
@@ -345,7 +345,7 @@ def flip():
 def read_bank0_counters():
 	global bank0_register_values
 	bank = 0
-	bank0_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, 12, False)
+	bank0_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
 
 bank0_register_object = [ 0 for i in range(len(channel_names)) ]
 
@@ -639,8 +639,8 @@ def show_stuff():
 def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
 	setup_hit_mask(0b111111111111)
 	#setup_hit_mask(0b000000000001)
-	#setup_inversion_mask(0b100011000101)
-	setup_inversion_mask(0b100010000101)
+	setup_inversion_mask(0b100011000101)
+
 	setup_desired_trigger_quantity(int(1e3))
 	setup_trigger_duration(25)
 	select(0)
