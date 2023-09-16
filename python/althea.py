@@ -525,10 +525,10 @@ def setup_half_duplex_bus_test058():
 		transfers_per_address_word=1,
 		transfers_per_data_word=transfers_per_data_word,
 		address_autoincrement_mode=1,
-		register_select=3,
+		register_select=23,
 		read=5,
 		enable=4,
-		ack_valid=2,
+		ack_valid=22,
 		verbosity=2
 	)
 
