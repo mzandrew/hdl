@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2023-09-08 by mza
+# last updated 2023-09-15 by mza
 
 target_period = 0.1
 
@@ -97,6 +97,7 @@ for mysignal in set(signal.Signals)-{signal.SIGKILL, signal.SIGSTOP}:
 	signal.signal(mysignal, signal_handler)
 
 import sys
+sys.path.append("../../bin/embedded")
 import time
 import random
 import os
@@ -133,6 +134,7 @@ from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT
 from generic import * # hex, eng
 import althea
 BANK_ADDRESS_DEPTH = 13
+import ltc2657
 
 def update_plot(i, j):
 	for k in range(len(feed_name[i][j])):
@@ -262,6 +264,10 @@ def setup():
 			sys.stdout.flush()
 	althea.setup_half_duplex_bus("test058")
 	setup_trigger_mask_inversion_mask_trigger_quantity_and_duration()
+	import board
+	i2c = board.I2C()
+	ltc2657.setup(i2c)
+	set_threshold_voltage(1.15)
 	global should_check_for_new_data
 	should_check_for_new_data = pygame.USEREVENT + 1
 	#print("target_period: " + str(target_period))
@@ -287,7 +293,8 @@ def loop():
 			elif K_SPACE==event.key:
 				should_update_plots = [ [ True for j in range(ROWS) ] for i in range(COLUMNS) ]
 			elif K_t==event.key:
-				scan_for_tickles()
+				#scan_for_tickles()
+				threshold_scan()
 			elif K_c==event.key:
 				clear_channel_counters()
 				clear_channel_ones_counters()
@@ -629,6 +636,35 @@ def scan_for_tickles():
 #gpio20:                                                                                                    0002f1b2 
 #gpio21:                                                                                                             
 
+def set_threshold_voltage(voltage):
+	#print(str(voltage))
+	ltc2657.set_voltage_on_all_channels(voltage)
+
+threshold_minimum_voltage = 1.2100
+threshold_maximum_voltage = 1.2203
+threshold_step_size_in_volts = 0.00004
+number_of_threshold_steps = int(1+(threshold_maximum_voltage-threshold_minimum_voltage)/threshold_step_size_in_volts)
+print(str(number_of_threshold_steps))
+
+def threshold_scan():
+	print("running threshold scan...")
+	bank = 0
+	incidentals = 0
+	voltage = threshold_minimum_voltage
+	for i in range(number_of_threshold_steps):
+		set_threshold_voltage(voltage)
+		clear_channel_counters()
+		time.sleep(1)
+		counters = readout_counters()
+		string = ""
+		for k in range(12):
+			if counters[k]<=incidentals:
+				string += "         "
+			else:
+				string += hex(counters[k], 8, True) + " "
+		print("threshold voltage %.5f: %s" % (voltage, string))
+		voltage += threshold_step_size_in_volts
+
 def show_stuff():
 	#althea.write_ones_to_bank_that_is_depth(0, BANK_ADDRESS_DEPTH)
 	#althea.write_value_to_bank_that_is_depth(0b0000010000000000, 0, BANK_ADDRESS_DEPTH) # gpio16 tickles signal[1, 12]
@@ -650,8 +686,8 @@ def show_stuff():
 def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
 	setup_hit_mask(0b111111111111)
 	#setup_hit_mask(0b000000000001)
-	setup_inversion_mask(0b000000000000)
-
+	#setup_inversion_mask(0b000000000000)
+	setup_inversion_mask(0b111111111111)
 	setup_desired_trigger_quantity(int(1e3))
 	setup_trigger_duration(25)
 	select(0)
