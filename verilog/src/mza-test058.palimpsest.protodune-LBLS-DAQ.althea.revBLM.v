@@ -1,7 +1,7 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2023-09-08 by mza
+// last updated 2023-09-15 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -892,8 +892,8 @@ module myalthea #(
 	input clock100_p, clock100_n,
 	inout [5:0] coax,
 	// other IOs:
-	output rpi_gpio2_i2c1_sda, // ack_valid
-	input rpi_gpio3_i2c1_scl, // register_select
+	output rpi_gpio22, // ack_valid
+	input rpi_gpio23, // register_select
 	input rpi_gpio4_gpclk0, // enable
 	input rpi_gpio5, // read
 	// 16 bit bus:
@@ -993,8 +993,8 @@ module myalthea #(
 //		.diff_pair_right_n({ m_n, k_n, l_n, j_n, h_n, g_n }),
 //		.single_ended_left({ z, y, x, w, v, u }),
 //		.single_ended_right({ n, p, q, r, s, t }),
-		.register_select(rpi_gpio3_i2c1_scl), .read(rpi_gpio5),
-		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio2_i2c1_sda),
+		.register_select(rpi_gpio23), .read(rpi_gpio5),
+		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio22),
 //		.rot(rot),
 		.other(other),
 //		.led(internal_led),
