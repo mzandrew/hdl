@@ -3,9 +3,15 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2023-09-15 by mza
+# last updated 2023-09-29 by mza
 
-target_period = 0.1
+gui_update_period = 0.2
+
+raw_threshold_scan_filename = "protodune.ampoliros12.raw_threshold_scan"
+thresholds_for_peak_scalers_filename = "protodune.ampoliros12.thresholds_for_peak_scalers"
+threshold_scan_accumulation_time = 0.25
+threshold_voltage_distance_from_peak_to_null = 0.003
+threshold_step_size_in_volts = 0.00004
 
 SCREEN_WIDTH = 720
 SCREEN_HEIGHT = 720
@@ -89,7 +95,7 @@ import signal
 def signal_handler(signum, frame):
 	print("signal handler: got signal " + str(signum))
 	sys.stdout.flush()
-	if 15==signum:
+	if 15==signum or 2==signum:
 		pygame.quit()
 		sys.exit(signum)
 # from https://stackoverflow.com/a/34568177/5728815
@@ -267,11 +273,11 @@ def setup():
 	import board
 	i2c = board.I2C()
 	ltc2657.setup(i2c)
-	set_threshold_voltage(1.15)
+	set_threshold_voltages(1.15)
 	global should_check_for_new_data
 	should_check_for_new_data = pygame.USEREVENT + 1
-	#print("target_period: " + str(target_period))
-	pygame.time.set_timer(should_check_for_new_data, int(target_period*1000/COLUMNS/ROWS))
+	#print("gui_update_period: " + str(gui_update_period))
+	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
 
 ij = 0
 def loop():
@@ -294,7 +300,8 @@ def loop():
 				should_update_plots = [ [ True for j in range(ROWS) ] for i in range(COLUMNS) ]
 			elif K_t==event.key:
 				#scan_for_tickles()
-				threshold_scan()
+				#simple_threshold_scan()
+				sophisticated_threshold_scan()
 			elif K_c==event.key:
 				clear_channel_counters()
 				clear_channel_ones_counters()
@@ -636,34 +643,105 @@ def scan_for_tickles():
 #gpio20:                                                                                                    0002f1b2 
 #gpio21:                                                                                                             
 
-def set_threshold_voltage(voltage):
+def set_threshold_voltages(voltage):
 	#print(str(voltage))
 	ltc2657.set_voltage_on_all_channels(voltage)
 
-threshold_minimum_voltage = 1.2100
-threshold_maximum_voltage = 1.2203
-threshold_step_size_in_volts = 0.00004
-number_of_threshold_steps = int(1+(threshold_maximum_voltage-threshold_minimum_voltage)/threshold_step_size_in_volts)
-print(str(number_of_threshold_steps))
+def set_threshold_voltage(channel, voltage):
+	#print(str(channel) + " " + str(voltage), end=" ")
+	address = 0x10 + 2 * (channel // 6) # first 6 channels are on i2c address 0x10; next 6 are at address 0x12
+	channel %= 6
+	#print(hex(address) + " " + str(channel))
+	ltc2657.set_voltage_on_channel(address, channel, voltage)
 
-def threshold_scan():
+def simple_threshold_scan():
 	print("running threshold scan...")
+	threshold_minimum_voltage = 1.2100
+	threshold_maximum_voltage = 1.2203
+	number_of_threshold_steps = int(1+(threshold_maximum_voltage-threshold_minimum_voltage)/threshold_step_size_in_volts)
+	print(str(number_of_threshold_steps))
+	max_scaler_seen = [ 0 for i in range(12) ]
+	voltage_at_peak_scaler = [ 0 for i in range(12) ]
 	bank = 0
 	incidentals = 0
 	voltage = threshold_minimum_voltage
-	for i in range(number_of_threshold_steps):
-		set_threshold_voltage(voltage)
-		clear_channel_counters()
-		time.sleep(1)
-		counters = readout_counters()
+	with open(raw_threshold_scan_filename, "w") as raw_threshold_scan_file:
+		for i in range(number_of_threshold_steps):
+			set_threshold_voltages(voltage)
+			clear_channel_counters()
+			time.sleep(threshold_scan_accumulation_time)
+			counters = readout_counters()
+			string = ""
+			for k in range(12):
+				if counters[k]<=incidentals:
+					string += "         "
+				else:
+					string += hex(counters[k], 8, True) + " "
+				if max_scaler_seen[k]<counters[k]:
+					max_scaler_seen[k] = counters[k]
+					voltage_at_peak_scaler[k] = voltage
+					#print(str(k) + " " + str(max_scaler_seen[k]) + " " + str(voltage_at_peak_scaler[k]))
+			print("threshold voltage %.5f: %s" % (voltage, string))
+			raw_threshold_scan_file.write(string + "\n")
+			if 0==i%10:
+				raw_threshold_scan_file.flush()
+			voltage += threshold_step_size_in_volts
+	with open(thresholds_for_peak_scalers_filename, "w") as thresholds_for_peak_scalers_file:
 		string = ""
 		for k in range(12):
-			if counters[k]<=incidentals:
-				string += "         "
-			else:
-				string += hex(counters[k], 8, True) + " "
-		print("threshold voltage %.5f: %s" % (voltage, string))
-		voltage += threshold_step_size_in_volts
+			string += " %.5f " % voltage_at_peak_scaler[k]
+		print(string)
+		thresholds_for_peak_scalers_file.write(string + "\n")
+
+def sophisticated_threshold_scan():
+	print("running threshold scan...")
+	max_scaler_seen = [ 0 for i in range(12) ]
+	voltage_at_peak_scaler = [ 0 for i in range(12) ]
+	bank = 0
+	incidentals = 0
+	with open(thresholds_for_peak_scalers_filename, "r") as thresholds_for_peak_scalers_file:
+		string = thresholds_for_peak_scalers_file.read(256)
+		voltage_at_peak_scaler = string.split(" ")
+		voltage_at_peak_scaler = [ i for i in voltage_at_peak_scaler if i!='' ]
+		voltage_at_peak_scaler.remove('\n')
+		voltage_at_peak_scaler = [ float(voltage_at_peak_scaler[k]) for k in range(12) ]
+		print(" ", end="")
+		for k in range(12):
+			print("  " + str(voltage_at_peak_scaler[k]), end="")
+		print("")
+	voltage = [ voltage_at_peak_scaler[k] - threshold_voltage_distance_from_peak_to_null for k in range(12) ]
+	max_number_of_threshold_steps = 160
+	with open(raw_threshold_scan_filename, "w") as raw_threshold_scan_file:
+		for i in range(max_number_of_threshold_steps):
+			#string = ""
+			for k in range(12):
+				set_threshold_voltage(k, voltage[k])
+				#string += " %.5f " % voltage[k]
+			#print(string)
+			clear_channel_counters()
+			time.sleep(threshold_scan_accumulation_time)
+			counters = readout_counters()
+			string = ""
+			for k in range(12):
+				if counters[k]<=incidentals:
+					string += "         "
+				else:
+					string += hex(counters[k], 8, True) + " "
+				if max_scaler_seen[k]<counters[k]:
+					max_scaler_seen[k] = counters[k]
+					voltage_at_peak_scaler[k] = voltage[k]
+			print(string)
+			raw_threshold_scan_file.write(string + "\n")
+			if 0==i%10:
+				raw_threshold_scan_file.flush()
+			for k in range(12):
+				voltage[k] += threshold_step_size_in_volts
+	with open(thresholds_for_peak_scalers_filename, "w") as thresholds_for_peak_scalers_file:
+		string = ""
+		for k in range(12):
+			string += " %.5f " % voltage_at_peak_scaler[k]
+		print(string)
+		thresholds_for_peak_scalers_file.write(string + "\n")
 
 def show_stuff():
 	#althea.write_ones_to_bank_that_is_depth(0, BANK_ADDRESS_DEPTH)

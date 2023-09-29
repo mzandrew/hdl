@@ -1,3 +1,5 @@
+*.raw_threshold_scan
+*.thresholds_for_peak_scalers
 *.pyc
 *.txt
 *.csv
