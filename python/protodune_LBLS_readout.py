@@ -16,6 +16,7 @@ max_number_of_threshold_steps = 100
 incidentals = 2
 display_precision_of_hex_counts = 8
 display_precision_of_DAC_voltages = 6
+bump_amount = 0.000250
 
 # typical threshold scan has peak scalers at these voltages:
 # 1.215078 1.214924 1.217697 1.211535 1.212697 1.213695 1.216734 1.218696 1.214115 1.212620 1.218383 1.215811
@@ -143,7 +144,7 @@ if should_use_touchscreen:
 import pygame # sudo apt install -y python3-pygame # gets 1.9.6 as of early 2023
 # pip3 install pygame # gets 2.1.2 as of early 2023
 # sudo apt install -y libmad0 libmikmod3 libportmidi0 libsdl-image1.2 libsdl-mixer1.2 libsdl-ttf2.0 libsdl1.2debian
-from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_q, K_BREAK, K_SPACE, K_t, K_c, K_m
+from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_q, K_BREAK, K_SPACE, K_t, K_c, K_m, K_RIGHTBRACKET, K_LEFTBRACKET
 from generic import * # hex, eng
 import althea
 BANK_ADDRESS_DEPTH = 13
@@ -315,6 +316,10 @@ def loop():
 				print("channel counters cleared")
 			elif K_m==event.key:
 				set_thresholds_for_this_scaler_rate_during_this_accumulation_time(10, 0.5)
+			elif K_RIGHTBRACKET==event.key:
+				bump_thresholds_higher_by(bump_amount)
+			elif K_LEFTBRACKET==event.key:
+				bump_thresholds_lower_by(bump_amount)
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -653,10 +658,14 @@ def scan_for_tickles():
 #gpio21:                                                                                                             
 
 def set_threshold_voltages(voltage):
+	global current_threshold_voltage
+	current_threshold_voltage = [ voltage for i in range(12) ]
 	#print(str(voltage))
 	ltc2657.set_voltage_on_all_channels(voltage)
 
 def set_threshold_voltage(channel, voltage):
+	global current_threshold_voltage
+	current_threshold_voltage[channel] = voltage
 	#print(str(channel) + " " + str(voltage), end=" ")
 	address = 0x10 + 2 * (channel // 6) # first 6 channels are on i2c address 0x10; next 6 are at address 0x12
 	channel %= 6
@@ -683,6 +692,12 @@ def prepare_string_to_show_counters_or_scalers(values):
 			string += " %*s" % (display_precision_of_hex_counts, "")
 		else:
 			string += hex(values[k], display_precision_of_hex_counts, True) + " "
+	return string
+
+def prepare_string_with_voltages(voltage):
+	string = ""
+	for k in range(12):
+		string += "%.*f " % (display_precision_of_DAC_voltages, voltage[k])
 	return string
 
 def simple_threshold_scan():
@@ -713,9 +728,7 @@ def simple_threshold_scan():
 				raw_threshold_scan_file.flush()
 			voltage += threshold_step_size_in_volts
 	with open(thresholds_for_peak_scalers_filename, "w") as thresholds_for_peak_scalers_file:
-		string = ""
-		for k in range(12):
-			string += "%.*f " % (display_precision_of_DAC_voltages, voltage_at_peak_scaler[k])
+		string = prepare_string_with_voltages(voltage_at_peak_scaler)
 		print(string)
 		thresholds_for_peak_scalers_file.write(string + "\n")
 
@@ -748,9 +761,7 @@ def sophisticated_threshold_scan():
 			for k in range(12):
 				voltage[k] += threshold_step_size_in_volts
 	with open(thresholds_for_peak_scalers_filename, "w") as thresholds_for_peak_scalers_file:
-		string = ""
-		for k in range(12):
-			string += "%.*f " % (display_precision_of_DAC_voltages, voltage_at_peak_scaler[k])
+		string = prepare_string_with_voltages(voltage_at_peak_scaler)
 		print(string)
 		thresholds_for_peak_scalers_file.write(string + "\n")
 
@@ -780,6 +791,20 @@ def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_ra
 		if out_of_whack<12*span_up*span_down:
 			stable = True
 		time.sleep(0.1)
+
+def bump_thresholds_lower_by(offset_voltage):
+	voltage = [ current_threshold_voltage[k] - offset_voltage for k in range(12) ]
+	string = prepare_string_with_voltages(voltage)
+	print(string)
+	for k in range(12):
+		set_threshold_voltage(k, voltage[k])
+
+def bump_thresholds_higher_by(offset_voltage):
+	voltage = [ current_threshold_voltage[k] + offset_voltage for k in range(12) ]
+	string = prepare_string_with_voltages(voltage)
+	print(string)
+	for k in range(12):
+		set_threshold_voltage(k, voltage[k])
 
 def show_stuff():
 	#althea.write_ones_to_bank_that_is_depth(0, BANK_ADDRESS_DEPTH)
