@@ -1,7 +1,8 @@
 `timescale 1ns / 1ps
 
 // written 2022-11-16 by mza
-// last updated 2022-12-30 by mza
+// ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
+// last updated 2023-10-20 by mza
 
 module icyrus7series10bit (
 	input half_bit_clock_p, half_bit_clock_n,
