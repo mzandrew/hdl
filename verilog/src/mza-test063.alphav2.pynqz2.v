@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2023-10-23 by mza and makiko
+// last updated 2023-10-24 by mza and makiko
 
 module icyrus7series10bit (
 	input half_bit_clock_p, half_bit_clock_n,
@@ -250,7 +250,7 @@ module clock_out_test (
 	wire tok_b_f2m;
 	wire sync;
 	wire auxtrig;
-	wire actual_auxtrig, actual_pclk_t, actual_sclk;
+	wire actual_auxtrig, actual_pclk_t, actual_pclk_m, actual_pclk_b, actual_sclk;
 	wire dreset; // auxtrig, pclk_t, sclk;
 	wire gpio17;
 	// HDMI -------------------------------------
@@ -272,14 +272,14 @@ module clock_out_test (
 	wire tok_a_b2f = ar_sda; // rpio_00_r input to fpga
 	wire tok_b_m2f = ar_scl; // rpio_01_r
 //	wire rpio_02_r, // single-ended sysclk
-	assign rpio_03_r = pclk_m; // output to middle alpha
+	assign rpio_03_r = actual_pclk_m; // output to middle alpha
 	assign rpio_04_r = actual_pclk_t;
 	assign rpio_05_r = tok_a_f2t;
 //	assign rpio_06_r = testmode;
 //	wire rpio_07_r, // t_sin ct5tea
 //	wire rpio_08_r, // t_sclk ct5tea
 //	wire rpio_09_r, // t_pclk ct5tea
-	assign rpio_10_r = pclk_b;
+	assign rpio_10_r = actual_pclk_b;
 	assign rpio_11_r = tok_b_f2m;
 	assign rpio_12_r = sync;
 	assign rpio_13_r = sda;
@@ -298,22 +298,24 @@ module clock_out_test (
 //	wire rpio_26_r, // dat_b_f2m
 //	wire rpio_27_r, // dat_a_t2f
 	// defaults ---------------------------------
-	assign dreset = 1'b0;
+//	assign dreset = 1'b0;
 	assign sda = 1'bz;
 	assign scl = 1'bz;
 	assign pclk_t = 1'b0;
 	assign actual_pclk_t = pclk_t | dreset;
 	assign pclk_m = 1'b0;
+	assign actual_pclk_m = pclk_m | dreset;
 	assign pclk_b = 1'b0;
+	assign actual_pclk_b = pclk_b | dreset;
 	assign sclk = 1'b0;
 	assign actual_sclk = sclk | dreset;
 	assign sin = 1'b0;
-	assign tok_a_f2t = 1'b0;
+//	assign tok_a_f2t = 1'b0;
 	assign testmode = 1'b0;
-	assign sync = 1'b0;
+//	assign sync = 1'b0;
 	assign auxtrig = 1'b0;
 	assign actual_auxtrig = auxtrig | dreset;
-	assign dreset = 1'b0;
+//	assign dreset = 1'b0;
 	assign trig_top = 1'b0;
 	assign trig_mid = 1'b0;
 	assign trig_bot = 1'b0;
@@ -348,7 +350,7 @@ module clock_out_test (
 	assign led[1] = mmcm_locked;
 	assign led[0] = clock_enable;
 	wire sysclk_raw;
-	BUFG(.I(sysclk_raw), .O(sysclk));
+	BUFG bufg_sysclk (.I(sysclk_raw), .O(sysclk));
 	MMCM #(
 		.M(6.0), .D(1), .CLOCK_PERIOD_NS(7.86), .CLKOUT4_DIVIDE(25) // 127.22 * 6.0 / 1 / 25 = 30.53
 			) mymmcm (
@@ -356,5 +358,95 @@ module clock_out_test (
 		.clock0_out_p(), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
 		.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
 		.clock4_out(sysclk_raw), .clock5_out(), .clock6_out());
+	localparam RESET_BUTTON_PICKOFF = 6;
+	reg [RESET_BUTTON_PICKOFF:0] reset_button_pipeline = 0;
+	reg startup_sequence = 0;
+	always @(posedge clock) begin
+		if (reset) begin
+			reset_button_pipeline <= 0;
+			startup_sequence <= 0;
+		end else begin
+			startup_sequence <= 0;
+			if (reset_button_pipeline[RESET_BUTTON_PICKOFF:RESET_BUTTON_PICKOFF-1]==2'b01) begin
+				startup_sequence <= 1;
+			end
+			reset_button_pipeline <= { reset_button_pipeline[RESET_BUTTON_PICKOFF-1:0], btn[1] };
+		end
+	end
+	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence(startup_sequence), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t));
+endmodule
+
+module alphav2_control_tb;
+	reg clock = 0;
+	reg reset = 1;
+	reg startup_sequence = 0;
+	wire sync, dreset, tok_a_f2t;
+	initial begin
+		reset <= 1;
+		#101;
+		reset <= 0;
+		#100;
+		startup_sequence <= 1;
+		#4;
+		startup_sequence <= 0;
+		#400;
+		startup_sequence <= 1;
+		#4;
+		startup_sequence <= 0;
+		#400;
+	end
+	always begin
+		clock <= ~clock;
+		#2;
+	end
+	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence(startup_sequence), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t));
+endmodule
+
+module alphav2_control (
+	input clock, reset, startup_sequence,
+	output reg sync, dreset, tok_a_f2t
+);
+	reg [31:0] counter = 0;
+	reg mode = 0;
+//	reg dunno = 0;
+	always @(posedge clock) begin
+		if (reset) begin
+			counter <= 0;
+			mode <= 0;
+			sync <= 0;
+			dreset <= 0;
+			tok_a_f2t <= 0;
+//			dunno <= 0;
+		end else begin
+			counter <= counter + 1'b1;
+//			dunno <= 0;
+			if (mode==1'b1) begin
+				if (10<counter & counter<20) begin
+					dreset <= 1'b1;
+				end else if (20<counter & counter<30) begin
+					dreset <= 0;
+				end else if (30<counter & counter<40) begin
+					sync <= 1'b1;
+				end else if (40<counter & counter<50) begin
+					sync <= 0;
+				end else if (50<counter & counter<60) begin
+					tok_a_f2t <= 1'b1;
+				end else if (60<counter & counter<70) begin
+					tok_a_f2t <= 0;
+				end else if (70<counter) begin
+					mode <= 1'b0;
+//				end else begin
+//					dunno <= 1;
+				end
+			end
+			if (startup_sequence) begin
+				counter <= 0;
+				mode <= 1'b1;
+				sync <= 0;
+				dreset <= 0;
+				tok_a_f2t <= 0;
+			end
+		end
+	end
 endmodule
 
