@@ -193,8 +193,8 @@ endmodule
 
 module clock_out_test (
 //	input sysclk, // unreliable 125 MHz, comes from RTL8211 (ethernet) via 50 MHz osc
-	input [5:4] jb, // pmod_osc pmod_port_B
-//	input [5:4] ja, // 127.216 MHz, comes from PMODA
+//	input [5:4] jb, // pmod_osc pmod_port_B
+	input [5:4] ja, // 127.216 MHz, comes from PMODA
 //	input [7:6] ja, // 42.3724 MHz, comes from PMODA
 	input [3:0] btn, // buttons
 	input [1:0] sw, // switches
@@ -207,7 +207,7 @@ module clock_out_test (
 	output rpio_03_r, // pclk_m
 	output rpio_04_r, // pclk_t
 	output rpio_05_r, // tok_a_f2t
-	output rpio_06_r, // testmode
+//	output rpio_06_r, // testmode
 //	output rpio_07_r, // t_sin ct5tea
 //	output rpio_08_r, // t_sclk ct5tea
 //	output rpio_09_r, // t_pclk ct5tea
@@ -275,7 +275,7 @@ module clock_out_test (
 	assign rpio_03_r = pclk_m; // output to middle alpha
 	assign rpio_04_r = actual_pclk_t;
 	assign rpio_05_r = tok_a_f2t;
-	assign rpio_06_r = testmode;
+//	assign rpio_06_r = testmode;
 //	wire rpio_07_r, // t_sin ct5tea
 //	wire rpio_08_r, // t_sclk ct5tea
 //	wire rpio_09_r, // t_pclk ct5tea
@@ -317,7 +317,7 @@ module clock_out_test (
 	assign trig_top = 1'b0;
 	assign trig_mid = 1'b0;
 	assign trig_bot = 1'b0;
-	assign sysclk = 1'b0;
+//	assign sysclk = 1'b0;
 	assign sstclk = 1'b0;
 	assign dat_b_f2m = 1'b0;
 	assign dat_a_f2b = 1'b0;
@@ -325,7 +325,7 @@ module clock_out_test (
 	// ------------------------------------------
 	wire reset = btn[0];
 	wire clock;
-	IBUFGDS clock_in_diff (.I(jb[4]), .IB(jb[5]), .O(clock));
+	IBUFGDS clock_in_diff (.I(ja[4]), .IB(ja[5]), .O(clock));
 	//IBUFG clock_in_se (.I(ja[7]), .O(clock));
 //	OBUFDS (.I(clock), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
 	wire clock_enable;
@@ -342,9 +342,19 @@ module clock_out_test (
 	//assign hdmi_tx_cec = clock_oddr3;
 	//assign hdmi_tx_cec = 0;
 	//assign hdmi_rx_cec = clock_oddr3;
+	wire mmcm_locked;
 	assign led[3] = 1'b0;
 	assign led[2] = 1'b0;
-	assign led[1] = 1'b0;
+	assign led[1] = mmcm_locked;
 	assign led[0] = clock_enable;
+	wire sysclk_raw;
+	BUFG(.I(sysclk_raw), .O(sysclk));
+	MMCM #(
+		.M(6.0), .D(1), .CLOCK_PERIOD_NS(7.86), .CLKOUT4_DIVIDE(25) // 127.22 * 6.0 / 1 / 25 = 30.53
+			) mymmcm (
+		.clock_in(clock), .reset(reset), .locked(mmcm_locked),
+		.clock0_out_p(), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
+		.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
+		.clock4_out(sysclk_raw), .clock5_out(), .clock6_out());
 endmodule
 
