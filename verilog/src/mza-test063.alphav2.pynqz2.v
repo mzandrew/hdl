@@ -214,7 +214,7 @@ module clock_out_test (
 	output rpio_10_r, // pclk_b
 	output rpio_11_r, // tok_b_f2m
 	output rpio_12_r, // sync
-	output rpio_13_r, // sda
+	inout rpio_13_r, // sda
 //	output rpio_14_r, // trig_top
 	output rpio_15_r, // sclk
 //	output rpio_16_r, // dat_b_m2f
@@ -244,6 +244,8 @@ module clock_out_test (
 );
 	wire pclk_t, pclk_m, pclk_b, sin, sclk;
 	wire sda;
+	wire sda_in;
+	wire sda_out;
 	wire scl;
 	wire tok_a_f2t;
 	wire testmode;
@@ -300,7 +302,7 @@ module clock_out_test (
 	// defaults ---------------------------------
 //	assign dreset = 1'b0;
 	assign sda = 1'bz;
-	assign scl = 1'bz;
+//	assign scl = 1'bz;
 	assign pclk_t = 1'b0;
 	assign actual_pclk_t = pclk_t | dreset;
 	assign pclk_m = 1'b0;
@@ -373,7 +375,7 @@ module clock_out_test (
 			reset_button_pipeline <= { reset_button_pipeline[RESET_BUTTON_PICKOFF-1:0], btn[1] };
 		end
 	end
-	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence(startup_sequence), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t));
+	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence(startup_sequence), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out));
 endmodule
 
 module alphav2_control_tb;
@@ -399,16 +401,18 @@ module alphav2_control_tb;
 		clock <= ~clock;
 		#2;
 	end
-	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence(startup_sequence), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t));
+	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence(startup_sequence), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out));
 endmodule
 
 module alphav2_control (
 	input clock, reset, startup_sequence,
-	output reg sync, dreset, tok_a_f2t
+	input sda_in,
+	output reg sync, dreset, tok_a_f2t, scl, sda_out
 );
 	reg [31:0] counter = 0;
 	reg mode = 0;
 //	reg dunno = 0;
+	localparam TIMING_CONSTANT = 100;
 	always @(posedge clock) begin
 		if (reset) begin
 			counter <= 0;
@@ -421,19 +425,19 @@ module alphav2_control (
 			counter <= counter + 1'b1;
 //			dunno <= 0;
 			if (mode==1'b1) begin
-				if (10<counter & counter<20) begin
+				if (1*TIMING_CONSTANT<counter & counter<2*TIMING_CONSTANT) begin
 					dreset <= 1'b1;
-				end else if (20<counter & counter<30) begin
+				end else if (2*TIMING_CONSTANT<counter & counter<3*TIMING_CONSTANT) begin
 					dreset <= 0;
-				end else if (30<counter & counter<40) begin
+				end else if (3*TIMING_CONSTANT<counter & counter<4*TIMING_CONSTANT) begin
 					sync <= 1'b1;
-				end else if (40<counter & counter<50) begin
+				end else if (4*TIMING_CONSTANT<counter & counter<5*TIMING_CONSTANT) begin
 					sync <= 0;
-				end else if (50<counter & counter<60) begin
+				end else if (5*TIMING_CONSTANT<counter & counter<6*TIMING_CONSTANT) begin
 					tok_a_f2t <= 1'b1;
-				end else if (60<counter & counter<70) begin
+				end else if (6*TIMING_CONSTANT<counter & counter<7*TIMING_CONSTANT) begin
 					tok_a_f2t <= 0;
-				end else if (70<counter) begin
+				end else if (7*TIMING_CONSTANT<counter) begin
 					mode <= 1'b0;
 //				end else begin
 //					dunno <= 1;
@@ -446,6 +450,23 @@ module alphav2_control (
 				dreset <= 0;
 				tok_a_f2t <= 0;
 			end
+		end
+	end
+	reg [31:0] i2c_counter = 0;
+	reg [6:0] i2c_address = 0;
+	reg [7:0] i2c_data = 0;
+	localparam I2C_GRANULARITY = 100;
+	always @(posedge clock) begin
+		if (reset) begin
+			i2c_counter <= 0;
+			i2c_address <= 0;
+			i2c_data <= 0;
+			scl <= 1'bz;
+			sda_out <= 1'bz;
+		end else begin
+//			if (2*I2C_GRANULARITY<counter & 3*I2C_GRANULARITY<counter) begin
+
+//			end
 		end
 	end
 endmodule
