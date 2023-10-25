@@ -623,6 +623,7 @@ module alphav2_control (
 				end else if (60*TIMING_CONSTANT<counter2 & counter2<61*TIMING_CONSTANT) begin
 					sclk <= 1'b0;
 					bit_counter <= bit_counter + 1'b1;
+					mode2 <= 1'b0;
 				end
 			end
 			if (startup_sequence_2) begin
