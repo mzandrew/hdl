@@ -4,6 +4,9 @@
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
 // last updated 2023-10-24 by mza and makiko
 
+// circuitpython to scan i2c bus:
+// import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
+
 module icyrus7series10bit (
 	input half_bit_clock_p, half_bit_clock_n,
 	//output word_clock,
@@ -242,7 +245,7 @@ module clock_out_test (
 //	inout hdmi_rx_scl, // 
 //	inout hdmi_rx_sda // 
 );
-	wire pclk_t, pclk_m, pclk_b, sin, sclk;
+	wire pclk, pclk_t, pclk_m, pclk_b, sin, sclk;
 	wire sda;
 	wire sda_in;
 	wire sda_out;
@@ -253,7 +256,7 @@ module clock_out_test (
 	wire sync;
 	wire auxtrig;
 	wire actual_auxtrig, actual_pclk_t, actual_pclk_m, actual_pclk_b, actual_sclk;
-	wire dreset; // auxtrig, pclk_t, sclk;
+	wire dreset; // auxtrig, pclk, sclk;
 	wire gpio17;
 	// HDMI -------------------------------------
 	wire trig_top, trig_bot;
@@ -303,19 +306,22 @@ module clock_out_test (
 //	assign dreset = 1'b0;
 	assign sda = 1'bz;
 //	assign scl = 1'bz;
-	assign pclk_t = 1'b0;
+//	assign pclk_t = 1'b0;
+	assign pclk_t = pclk;
 	assign actual_pclk_t = pclk_t | dreset;
-	assign pclk_m = 1'b0;
+//	assign pclk_m = 1'b0;
+	assign pclk_m = pclk;
 	assign actual_pclk_m = pclk_m | dreset;
-	assign pclk_b = 1'b0;
+//	assign pclk_b = 1'b0;
+	assign pclk_b = pclk;
 	assign actual_pclk_b = pclk_b | dreset;
-	assign sclk = 1'b0;
+//	assign sclk = 1'b0;
 	assign actual_sclk = sclk | dreset;
-	assign sin = 1'b0;
+//	assign sin = 1'b0;
 //	assign tok_a_f2t = 1'b0;
 	assign testmode = 1'b0;
 //	assign sync = 1'b0;
-	assign auxtrig = 1'b0;
+//	assign auxtrig = 1'b0;
 	assign actual_auxtrig = auxtrig | dreset;
 //	assign dreset = 1'b0;
 	assign trig_top = 1'b0;
@@ -361,94 +367,271 @@ module clock_out_test (
 		.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
 		.clock4_out(sysclk_raw), .clock5_out(), .clock6_out());
 	localparam RESET_BUTTON_PICKOFF = 6;
-	reg [RESET_BUTTON_PICKOFF:0] reset_button_pipeline = 0;
-	reg startup_sequence = 0;
+	reg [RESET_BUTTON_PICKOFF:0] reset_button1_pipeline = 0;
+	reg [RESET_BUTTON_PICKOFF:0] reset_button2_pipeline = 0;
+	reg startup_sequence_1 = 0;
+	reg startup_sequence_2 = 0;
 	always @(posedge clock) begin
 		if (reset) begin
-			reset_button_pipeline <= 0;
-			startup_sequence <= 0;
+			reset_button1_pipeline <= 0;
+			reset_button2_pipeline <= 0;
+			startup_sequence_1 <= 0;
+			startup_sequence_2 <= 0;
 		end else begin
-			startup_sequence <= 0;
-			if (reset_button_pipeline[RESET_BUTTON_PICKOFF:RESET_BUTTON_PICKOFF-1]==2'b01) begin
-				startup_sequence <= 1;
+			startup_sequence_1 <= 0;
+			startup_sequence_2 <= 0;
+			if (reset_button1_pipeline[RESET_BUTTON_PICKOFF:RESET_BUTTON_PICKOFF-1]==2'b01) begin
+				startup_sequence_1 <= 1;
 			end
-			reset_button_pipeline <= { reset_button_pipeline[RESET_BUTTON_PICKOFF-1:0], btn[1] };
+			if (reset_button2_pipeline[RESET_BUTTON_PICKOFF:RESET_BUTTON_PICKOFF-1]==2'b01) begin
+				startup_sequence_2 <= 1;
+			end
+			reset_button1_pipeline <= { reset_button1_pipeline[RESET_BUTTON_PICKOFF-1:0], btn[1] };
+			reset_button2_pipeline <= { reset_button2_pipeline[RESET_BUTTON_PICKOFF-1:0], btn[2] };
 		end
 	end
-	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence(startup_sequence), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out));
+	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk));
 endmodule
 
 module alphav2_control_tb;
 	reg clock = 0;
 	reg reset = 1;
-	reg startup_sequence = 0;
+	reg startup_sequence_1 = 0;
 	wire sync, dreset, tok_a_f2t;
 	initial begin
 		reset <= 1;
 		#101;
 		reset <= 0;
 		#100;
-		startup_sequence <= 1;
+		startup_sequence_1 <= 1;
 		#4;
-		startup_sequence <= 0;
+		startup_sequence_1 <= 0;
 		#400;
-		startup_sequence <= 1;
+		startup_sequence_1 <= 1;
 		#4;
-		startup_sequence <= 0;
+		startup_sequence_1 <= 0;
 		#400;
 	end
 	always begin
 		clock <= ~clock;
 		#2;
 	end
-	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence(startup_sequence), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out));
+	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk));
 endmodule
 
 module alphav2_control (
-	input clock, reset, startup_sequence,
+	input clock, reset, startup_sequence_1, startup_sequence_2,
 	input sda_in,
-	output reg sync, dreset, tok_a_f2t, scl, sda_out
+	output reg sync, dreset, tok_a_f2t, scl, sda_out, sin, pclk, sclk
 );
-	reg [31:0] counter = 0;
-	reg mode = 0;
+	reg [31:0] counter1 = 0;
+	reg [31:0] counter2 = 0;
+	reg mode1 = 0;
+	reg mode2 = 0;
 //	reg dunno = 0;
 	localparam TIMING_CONSTANT = 100;
 	always @(posedge clock) begin
 		if (reset) begin
-			counter <= 0;
-			mode <= 0;
+			counter1 <= 0;
+			mode1 <= 0;
 			sync <= 0;
 			dreset <= 0;
 			tok_a_f2t <= 0;
 //			dunno <= 0;
 		end else begin
-			counter <= counter + 1'b1;
+			counter1 <= counter1 + 1'b1;
 //			dunno <= 0;
-			if (mode==1'b1) begin
-				if (1*TIMING_CONSTANT<counter & counter<2*TIMING_CONSTANT) begin
+			if (mode1==1'b1) begin
+				if (1*TIMING_CONSTANT<counter1 & counter1<2*TIMING_CONSTANT) begin
 					dreset <= 1'b1;
-				end else if (2*TIMING_CONSTANT<counter & counter<3*TIMING_CONSTANT) begin
+				end else if (2*TIMING_CONSTANT<counter1 & counter1<3*TIMING_CONSTANT) begin
 					dreset <= 0;
-				end else if (3*TIMING_CONSTANT<counter & counter<4*TIMING_CONSTANT) begin
+				end else if (3*TIMING_CONSTANT<counter1 & counter1<4*TIMING_CONSTANT) begin
 					sync <= 1'b1;
-				end else if (4*TIMING_CONSTANT<counter & counter<5*TIMING_CONSTANT) begin
+				end else if (4*TIMING_CONSTANT<counter1 & counter1<5*TIMING_CONSTANT) begin
 					sync <= 0;
-				end else if (5*TIMING_CONSTANT<counter & counter<6*TIMING_CONSTANT) begin
+				end else if (5*TIMING_CONSTANT<counter1 & counter1<6*TIMING_CONSTANT) begin
 					tok_a_f2t <= 1'b1;
-				end else if (6*TIMING_CONSTANT<counter & counter<7*TIMING_CONSTANT) begin
+				end else if (6*TIMING_CONSTANT<counter1 & counter1<7*TIMING_CONSTANT) begin
 					tok_a_f2t <= 0;
-				end else if (7*TIMING_CONSTANT<counter) begin
-					mode <= 1'b0;
+				end else if (7*TIMING_CONSTANT<counter1) begin
+					mode1 <= 1'b0;
 //				end else begin
 //					dunno <= 1;
 				end
 			end
-			if (startup_sequence) begin
-				counter <= 0;
-				mode <= 1'b1;
+			if (startup_sequence_1) begin
+				counter1 <= 0;
+				mode1 <= 1'b1;
 				sync <= 0;
 				dreset <= 0;
 				tok_a_f2t <= 0;
+			end
+		end
+	end
+	wire [15:0] data_word = 16'ha05;
+	reg [3:0] bit_counter = 0;
+	always @(posedge clock) begin
+		if (reset) begin
+			mode2 <= 0;
+			counter2 <= 0;
+			sin <= 0;
+			sclk <= 0;
+			pclk <= 0;
+			bit_counter <= 0;
+		end else begin
+			counter2 <= counter2 + 1'b1;
+			if (mode2==1'b1) begin
+				if (1*TIMING_CONSTANT<counter2 & counter2<2*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (2*TIMING_CONSTANT<counter2 & counter2<3*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (3*TIMING_CONSTANT<counter2 & counter2<4*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (4*TIMING_CONSTANT<counter2 & counter2<5*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (5*TIMING_CONSTANT<counter2 & counter2<6*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (6*TIMING_CONSTANT<counter2 & counter2<7*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (7*TIMING_CONSTANT<counter2 & counter2<8*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (8*TIMING_CONSTANT<counter2 & counter2<9*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (9*TIMING_CONSTANT<counter2 & counter2<10*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (10*TIMING_CONSTANT<counter2 & counter2<11*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (11*TIMING_CONSTANT<counter2 & counter2<12*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (12*TIMING_CONSTANT<counter2 & counter2<13*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (13*TIMING_CONSTANT<counter2 & counter2<14*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (14*TIMING_CONSTANT<counter2 & counter2<15*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (15*TIMING_CONSTANT<counter2 & counter2<16*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (16*TIMING_CONSTANT<counter2 & counter2<17*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (17*TIMING_CONSTANT<counter2 & counter2<18*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (18*TIMING_CONSTANT<counter2 & counter2<19*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (19*TIMING_CONSTANT<counter2 & counter2<20*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (20*TIMING_CONSTANT<counter2 & counter2<21*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (21*TIMING_CONSTANT<counter2 & counter2<22*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (22*TIMING_CONSTANT<counter2 & counter2<23*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (23*TIMING_CONSTANT<counter2 & counter2<24*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (24*TIMING_CONSTANT<counter2 & counter2<25*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (25*TIMING_CONSTANT<counter2 & counter2<26*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (26*TIMING_CONSTANT<counter2 & counter2<27*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (27*TIMING_CONSTANT<counter2 & counter2<28*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (28*TIMING_CONSTANT<counter2 & counter2<29*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (29*TIMING_CONSTANT<counter2 & counter2<30*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (30*TIMING_CONSTANT<counter2 & counter2<31*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (31*TIMING_CONSTANT<counter2 & counter2<32*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (32*TIMING_CONSTANT<counter2 & counter2<33*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (33*TIMING_CONSTANT<counter2 & counter2<34*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (34*TIMING_CONSTANT<counter2 & counter2<35*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (35*TIMING_CONSTANT<counter2 & counter2<36*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (36*TIMING_CONSTANT<counter2 & counter2<37*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (37*TIMING_CONSTANT<counter2 & counter2<38*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (38*TIMING_CONSTANT<counter2 & counter2<39*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (39*TIMING_CONSTANT<counter2 & counter2<40*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (40*TIMING_CONSTANT<counter2 & counter2<41*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (41*TIMING_CONSTANT<counter2 & counter2<42*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (42*TIMING_CONSTANT<counter2 & counter2<43*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (43*TIMING_CONSTANT<counter2 & counter2<44*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (44*TIMING_CONSTANT<counter2 & counter2<45*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (45*TIMING_CONSTANT<counter2 & counter2<46*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (46*TIMING_CONSTANT<counter2 & counter2<47*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (47*TIMING_CONSTANT<counter2 & counter2<48*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (48*TIMING_CONSTANT<counter2 & counter2<49*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				// dummy bits follow --------------------------------
+				end else if (49*TIMING_CONSTANT<counter2 & counter2<50*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (50*TIMING_CONSTANT<counter2 & counter2<51*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (51*TIMING_CONSTANT<counter2 & counter2<52*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (52*TIMING_CONSTANT<counter2 & counter2<53*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (53*TIMING_CONSTANT<counter2 & counter2<54*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (54*TIMING_CONSTANT<counter2 & counter2<55*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (55*TIMING_CONSTANT<counter2 & counter2<56*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (56*TIMING_CONSTANT<counter2 & counter2<57*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (57*TIMING_CONSTANT<counter2 & counter2<58*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end else if (58*TIMING_CONSTANT<counter2 & counter2<59*TIMING_CONSTANT) begin
+					sin <= data_word[bit_counter];
+				end else if (59*TIMING_CONSTANT<counter2 & counter2<60*TIMING_CONSTANT) begin
+					sclk <= 1'b1;
+				end else if (60*TIMING_CONSTANT<counter2 & counter2<61*TIMING_CONSTANT) begin
+					sclk <= 1'b0;
+					bit_counter <= bit_counter + 1'b1;
+				end
+			end
+			if (startup_sequence_2) begin
+				counter2 <= 0;
+				mode2 <= 1'b1;
+				sin <= 0;
+				sclk <= 0;
+				pclk <= 0;
+				bit_counter <= 0;
 			end
 		end
 	end
