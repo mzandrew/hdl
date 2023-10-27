@@ -469,7 +469,7 @@ module alphav2_control (
 			end
 		end
 	end
-	wire [15:0] data_word = 16'ha05;
+	wire [15:0] data_word = 16'hf0a5;
 	reg [3:0] bit_counter = 0;
 	always @(posedge clock) begin
 		if (reset) begin
