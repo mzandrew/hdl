@@ -220,7 +220,7 @@ module clock_out_test #(
 	output rpio_11_r, // tok_b_f2m
 	output rpio_12_r, // sync
 	inout rpio_13_r, // sda
-//	output rpio_14_r, // trig_top
+	output rpio_14_r, // trig_top
 	output rpio_15_r, // sclk
 //	output rpio_16_r, // dat_b_m2f
 	output rpio_17_r, // gpio17
@@ -326,7 +326,7 @@ module clock_out_test #(
 //	assign auxtrig = 1'b0;
 	assign actual_auxtrig = auxtrig | dreset;
 //	assign dreset = 1'b0;
-	assign trig_top = 1'b0;
+//	assign trig_top = 1'b0;
 	assign trig_mid = 1'b0;
 	assign trig_bot = 1'b0;
 //	assign sysclk = 1'b0;
@@ -401,7 +401,7 @@ module clock_out_test #(
 			reset_button2_pipeline <= { reset_button2_pipeline[RESET_BUTTON_PICKOFF-1:0], btn[2] };
 		end
 	end
-	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk));
+	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
 endmodule
 
 module alphav2_control_tb;
@@ -427,13 +427,13 @@ module alphav2_control_tb;
 		clock <= ~clock;
 		#2;
 	end
-	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk));
+	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
 endmodule
 
 module alphav2_control (
 	input clock, reset, startup_sequence_1, startup_sequence_2,
 	input sda_in,
-	output reg sync, dreset, tok_a_f2t, scl, sda_out, sin, pclk, sclk
+	output reg sync, dreset, tok_a_f2t, scl, sda_out, sin, pclk, sclk, trig_top
 );
 	reg [31:0] counter1 = 0;
 	reg [31:0] counter2 = 0;
@@ -448,6 +448,7 @@ module alphav2_control (
 			sync <= 0;
 			dreset <= 0;
 			tok_a_f2t <= 0;
+			trig_top <= 0;
 //			dunno <= 0;
 		end else begin
 			counter1 <= counter1 + 1'b1;
@@ -465,7 +466,15 @@ module alphav2_control (
 					tok_a_f2t <= 1'b1;
 				end else if (6*TIMING_CONSTANT<counter1 & counter1<7*TIMING_CONSTANT) begin
 					tok_a_f2t <= 0;
-				end else if (7*TIMING_CONSTANT<counter1) begin
+				end else if (7*TIMING_CONSTANT<counter1 & counter1<8*TIMING_CONSTANT) begin
+					trig_top <= 1'b1;
+				end else if (8*TIMING_CONSTANT<counter1 & counter1<1129*TIMING_CONSTANT) begin
+					trig_top <= 0;
+				end else if (1129*TIMING_CONSTANT<counter1 & counter1<1130*TIMING_CONSTANT) begin
+					tok_a_f2t <= 1'b1;
+				end else if (1130*TIMING_CONSTANT<counter1 & counter1<1131*TIMING_CONSTANT) begin
+					tok_a_f2t <= 0;
+				end else if (1131*TIMING_CONSTANT<counter1) begin
 					mode1 <= 1'b0;
 //				end else begin
 //					dunno <= 1;
@@ -477,6 +486,7 @@ module alphav2_control (
 				sync <= 0;
 				dreset <= 0;
 				tok_a_f2t <= 0;
+				trig_top <= 0;
 			end
 		end
 	end
