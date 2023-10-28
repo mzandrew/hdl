@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2023-10-24 by mza and makiko
+// last updated 2023-10-27 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -194,7 +194,9 @@ module MMCM #(
 	);
 endmodule
 
-module clock_out_test (
+module clock_out_test #(
+	parameter ALPHA_V = 2
+) (
 //	input sysclk, // unreliable 125 MHz, comes from RTL8211 (ethernet) via 50 MHz osc
 //	input [5:4] jb, // pmod_osc pmod_port_B
 	input [5:4] ja, // 127.216 MHz, comes from PMODA
@@ -206,11 +208,11 @@ module clock_out_test (
 //	output hdmi_tx_cec, // dummy data
 	output ar_sda, // rpio_00_r tok_a_b2f input
 	output ar_scl, // rpio_01_r tok_b_m2f input
-//	output rpio_02_r, // single-ended sysclk
+	output rpio_02_r, // single-ended sysclk
 	output rpio_03_r, // pclk_m
 	output rpio_04_r, // pclk_t
 	output rpio_05_r, // tok_a_f2t
-//	output rpio_06_r, // testmode
+//	output rpio_06_r, // testmode - conflicts with ja[5:4]
 //	output rpio_07_r, // t_sin ct5tea
 //	output rpio_08_r, // t_sclk ct5tea
 //	output rpio_09_r, // t_pclk ct5tea
@@ -276,7 +278,7 @@ module clock_out_test (
 	// RPI --------------------------------------
 	wire tok_a_b2f = ar_sda; // rpio_00_r input to fpga
 	wire tok_b_m2f = ar_scl; // rpio_01_r
-//	wire rpio_02_r, // single-ended sysclk
+	assign rpio_02_r = sysclk; // single-ended sysclk
 	assign rpio_03_r = actual_pclk_m; // output to middle alpha
 	assign rpio_04_r = actual_pclk_t;
 	assign rpio_05_r = tok_a_f2t;
@@ -288,13 +290,13 @@ module clock_out_test (
 	assign rpio_11_r = tok_b_f2m;
 	assign rpio_12_r = sync;
 	assign rpio_13_r = sda;
-//	wire rpio_14_r, // trig_top
+	assign rpio_14_r = trig_top; // trigtop
 	assign rpio_15_r = actual_sclk;
 //	wire rpio_16_r, // dat_b_m2f
 	assign rpio_17_r = gpio17;
 	assign rpio_18_r = sin;
 	assign rpio_19_r = scl;
-//	wire rpio_20_r, // trig_bot
+	assign rpio_20_r = trig_bot; // trigbot
 //	wire rpio_21_r, // dat_a_f2b
 //	wire rpio_22_r, // sstclk
 	assign rpio_23_r = actual_auxtrig;
@@ -359,13 +361,22 @@ module clock_out_test (
 	assign led[0] = clock_enable;
 	wire sysclk_raw;
 	BUFG bufg_sysclk (.I(sysclk_raw), .O(sysclk));
+	//localparam DIVIDE_RATIO = 3; // 127.22 * 6.0 / 1 / 3 = 254
+	//localparam DIVIDE_RATIO = 6; // 127.22 * 6.0 / 1 / 6 = 127
+	//localparam DIVIDE_RATIO = 9; // 127.22 * 6.0 / 1 / 9 = 85
+	//localparam DIVIDE_RATIO = 10; // 127.22 * 6.0 / 1 / 10 = 76
+	localparam DIVIDE_RATIO = 10.5; // 127.22 * 6.0 / 1 / 10 = 80
+	//localparam DIVIDE_RATIO = 11; // 127.22 * 6.0 / 1 / 11 = 69
+	//localparam DIVIDE_RATIO = 12; // 127.22 * 6.0 / 1 / 12 = 64
+	//localparam DIVIDE_RATIO = 25; // 127.22 * 6.0 / 1 / 25 = 30.53
+	// 600 - 1200 MHz range VCO frequency
 	MMCM #(
-		.M(6.0), .D(1), .CLOCK_PERIOD_NS(7.86), .CLKOUT4_DIVIDE(25) // 127.22 * 6.0 / 1 / 25 = 30.53
+		.M(6.0), .D(1), .CLOCK_PERIOD_NS(7.86), .CLKOUT0_DIVIDE(DIVIDE_RATIO)
 			) mymmcm (
 		.clock_in(clock), .reset(reset), .locked(mmcm_locked),
-		.clock0_out_p(), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
+		.clock0_out_p(sysclk_raw), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
 		.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
-		.clock4_out(sysclk_raw), .clock5_out(), .clock6_out());
+		.clock4_out(), .clock5_out(), .clock6_out());
 	localparam RESET_BUTTON_PICKOFF = 6;
 	reg [RESET_BUTTON_PICKOFF:0] reset_button1_pipeline = 0;
 	reg [RESET_BUTTON_PICKOFF:0] reset_button2_pipeline = 0;
