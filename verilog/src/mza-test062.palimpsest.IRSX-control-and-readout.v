@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2023-10-09 by mza
+// last updated 2023-11-07 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -30,10 +30,10 @@ module top #(
 	parameter ADDRESS_DEPTH_OSERDES = BANK_ADDRESS_DEPTH + LOG2_OF_BUS_WIDTH + LOG2_OF_TRANSACTIONS_PER_DATA_WORD - LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH, // 13 - 4 + 1 - 6 = 4
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter TESTBENCH = 0,
-	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
+	parameter COUNTER127_BIT_PICKOFF = TESTBENCH ? 5 : 23,
 	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
-	input clock100_p, clock100_n,
+	input clock127_p, clock127_n,
 	input button,
 	inout [5:0] coax,
 //	input [2:0] rot,
@@ -51,7 +51,7 @@ module top #(
 	wire reset;
 	assign reset = ~button;
 	// PLL_ADV VCO range is 400 MHz to 1080 MHz
-	localparam PERIOD = 10.0;
+	localparam PERIOD = 7.8;
 	localparam MULTIPLY = 8;
 	localparam DIVIDE = 2;
 	localparam EXTRA_DIVIDE = 16;
@@ -63,15 +63,15 @@ module top #(
 	wire pll_oserdes_locked;
 	wire pll_oserdes_locked_other;
 	// ----------------------------------------------------------------------
-	wire reset100;
-	wire clock100;
-	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock100), .reset_output(reset100));
+	wire reset127;
+	wire clock127;
+	IBUFGDS mybuf0 (.I(clock127_p), .IB(clock127_n), .O(clock127));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock127), .reset_output(reset127));
 	wire word_clock;
-	assign word_clock = clock100;
+	assign word_clock = clock127;
 	// ----------------------------------------------------------------------
 	wire reset_word;
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset100), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock), .reset_output(reset_word));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset127), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock), .reset_output(reset_word));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
 	wire [BANK_ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[BANK_ADDRESS_DEPTH-1:0];
@@ -121,7 +121,7 @@ module top #(
 //	assign sclk = 0;
 //	assign pclk = 0;
 //	assign regclr = 0;
-	irsx_register_interface irsx_reg (.clock(clock100), .reset(reset100),
+	irsx_register_interface irsx_reg (.clock(clock127), .reset(reset127),
 		.data_in(write_data_word[11:0]), .data_out(read_data_word[0][11:0]), .address(address_word_full[7:0]), .write_enable(write_strobe[0]),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
 	// ----------------------------------------------------------------------
@@ -160,8 +160,8 @@ module top_tb;
 	localparam TRANSACTIONS_PER_DATA_WORD = 2;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
-	reg clock100_p = 0;
-	reg clock100_n = 1;
+	reg clock127_p = 0;
+	reg clock127_n = 1;
 	reg button = 1;
 	wire [5:0] coax;
 	wire [3:0] coax_led;
@@ -183,7 +183,7 @@ module top_tb;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] rdata = 0;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are controller
 	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
-		.clock100_p(clock100_p), .clock100_n(clock100_n),
+		.clock127_p(clock127_p), .clock127_n(clock127_n),
 		// .button(button),
 		.coax(coax),
 		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
@@ -343,10 +343,10 @@ module top_tb;
 	initial begin
 		// inject global reset
 		#300; button <= 0; #300; button <= 1;
-		#512; // wait for reset100
+		#512; // wait for reset127
 		#512; // wait for reset125
 		//#300; button <= 0; #300; button <= 1;
-		//#512; // wait for reset100
+		//#512; // wait for reset127
 		//#512; // wait for reset125
 		// test the interface
 		if (ADDRESS_AUTOINCREMENT_MODE) begin
@@ -440,8 +440,8 @@ module top_tb;
 	end
 	always begin
 		#HALF_PERIOD_OF_PERIPHERAL;
-		clock100_p <= #1.5 ~clock100_p;
-		clock100_n <= #2.5 ~clock100_n;
+		clock127_p <= #1.5 ~clock127_p;
+		clock127_n <= #2.5 ~clock127_n;
 	end
 	always begin
 		#HALF_PERIOD_OF_CONTROLLER;
@@ -452,7 +452,7 @@ endmodule
 module myalthea #(
 	parameter NOTHING = 0
 ) (
-	input clock100_p, clock100_n,
+	input clock127_p, clock127_n,
 	inout [5:0] coax,
 	// other IOs:
 	output rpi_gpio22, // ack_valid
@@ -521,7 +521,7 @@ module myalthea #(
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) althea (
-		.clock100_p(clock100_p), .clock100_n(clock100_n),
+		.clock127_p(clock127_p), .clock127_n(clock127_n),
 		.button(button),
 		.coax(coax),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout),

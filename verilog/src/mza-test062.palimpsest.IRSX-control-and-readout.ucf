@@ -2,13 +2,13 @@
 # based off of mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.ucf
 # for an althea revBLM
 # see ug385 page 24 for spartan6 tqg133 package pins to bank mapping
-# last updated 2023-09-15 by mza
+# last updated 2023-11-07 by mza
 
-# 100 MHz local oscillator:
-net clock100_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK100+
-net clock100_n loc=p126 | iostandard=lvds_25 | diff_term=true; # CLOCK100-
-net "clock100_p" tnm_net = tnm_clock100_p;
-timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
+# 127 MHz local oscillator:
+net clock127_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK127+
+net clock127_n loc=p126 | iostandard=lvds_25 | diff_term=true; # CLOCK127-
+net "clock127_p" tnm_net = tnm_clock127_p;
+timespec "ts_clock127_p" = period "tnm_clock127_p" 7.8 ns high 50%; # 127 MHz
 
 #net "_p" tnm_net = tnm_remote_clock_p;
 #timespec "ts_remote_clock_p" = period "tnm_remote_clock_p" 1.965 ns high 50%; # 508.9 MHz
