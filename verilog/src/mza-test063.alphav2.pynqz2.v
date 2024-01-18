@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2023-10-27 by mza and makiko
+// last updated 2024-01-17 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -109,8 +109,8 @@ endmodule
 //	.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
 //	.clock4_out(), .clock5_out(), .clock6_out());
 module MMCM #(
-	parameter M = 10.0, // overall multiply [2.0,64.0]
 	parameter D = 1, // overall divide [1,106]
+	parameter M = 10.0, // overall multiply [2.0,64.0]
 	parameter CLKOUT0_DIVIDE = 1.0, // this one is fractional [1.0,128.0]
 	parameter CLKOUT1_DIVIDE = 1, // [1,128]
 	parameter CLKOUT2_DIVIDE = 1,
@@ -120,7 +120,7 @@ module MMCM #(
 	parameter CLKOUT6_DIVIDE = 1,
 	parameter CLOCK_PERIOD_NS = 10.0
 ) (
-	input clock_in, // input=[10,800]MHz; PFD=[10,450]MHZ; VCO=[600,1200]MHz; OUT=[4.69,800]MHz for a "-1" grade zynq-7020
+	input clock_in, // input=[10,800]MHz; PFD=[10,450]MHz; VCO=[600,1200]MHz; OUT=[4.69,800]MHz for a "-1" grade zynq-7020
 	input reset,
 	output locked,
 	output clock0_out_p, clock0_out_n,
@@ -136,7 +136,7 @@ module MMCM #(
 	MMCME2_BASE #(
 		.STARTUP_WAIT("FALSE"), // Delays DONE until MMCM is locked (FALSE, TRUE)
 		.BANDWIDTH("OPTIMIZED"), // Jitter programming (OPTIMIZED, HIGH, LOW)
-		.REF_JITTER1(0.0), // Reference input jitter in UI (0.000-0.999).
+		.REF_JITTER1(0.1), // Reference input jitter in UI (0.000-0.999).
 		.DIVCLK_DIVIDE(D), // Master division value (1-106)
 		.CLKFBOUT_MULT_F(M), // Multiply value for all CLKOUT (2.000-64.000).
 		.CLKFBOUT_PHASE(0.0), // Phase offset in degrees of CLKFB (-360.000-360.000).
@@ -167,30 +167,140 @@ module MMCM #(
 		.CLKOUT6_PHASE(0.0),
 		.CLKOUT4_CASCADE("FALSE") // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
 	) MMCME2_BASE_inst (
-		// Clock Outputs: 1-bit (each) output: User configurable clock outputs
-		.CLKOUT0(clock0_out_p), // 1-bit output: CLKOUT0
+		 .CLKOUT0(clock0_out_p), // 1-bit output: CLKOUT0
 		.CLKOUT0B(clock0_out_n), // 1-bit output: Inverted CLKOUT0
-		.CLKOUT1(clock1_out_p), // 1-bit output: CLKOUT1
+		 .CLKOUT1(clock1_out_p), // 1-bit output: CLKOUT1
 		.CLKOUT1B(clock1_out_n), // 1-bit output: Inverted CLKOUT1
-		.CLKOUT2(clock2_out_p), // 1-bit output: CLKOUT2
+		 .CLKOUT2(clock2_out_p), // 1-bit output: CLKOUT2
 		.CLKOUT2B(clock2_out_n), // 1-bit output: Inverted CLKOUT2
-		.CLKOUT3(clock3_out_p), // 1-bit output: CLKOUT3
+		 .CLKOUT3(clock3_out_p), // 1-bit output: CLKOUT3
 		.CLKOUT3B(clock3_out_n), // 1-bit output: Inverted CLKOUT3
-		.CLKOUT4(clock4_out), // 1-bit output: CLKOUT4
-		.CLKOUT5(clock5_out), // 1-bit output: CLKOUT5
-		.CLKOUT6(clock6_out), // 1-bit output: CLKOUT6
-		// Feedback Clocks: 1-bit (each) output: Clock feedback ports
+		 .CLKOUT4(clock4_out), // 1-bit output: CLKOUT4
+		 .CLKOUT5(clock5_out), // 1-bit output: CLKOUT5
+		 .CLKOUT6(clock6_out), // 1-bit output: CLKOUT6
 		.CLKFBOUT(clkfb), // 1-bit output: Feedback clock
 		.CLKFBOUTB(), // 1-bit output: Inverted CLKFBOUT
-		// Status Ports: 1-bit (each) output: MMCM status ports
+		.CLKFBIN(clkfb), // 1-bit input: Feedback clock
 		.LOCKED(locked), // 1-bit output: LOCK
-		// Clock Inputs: 1-bit (each) input: Clock input
 		.CLKIN1(clock_in), // 1-bit input: Clock
-		// Control Ports: 1-bit (each) input: MMCM control ports
+		.PWRDWN(1'b0), // 1-bit input: Power-down
+		.RST(reset) // 1-bit input: Reset
+	);
+endmodule
+
+module MMCM_advanced #(
+	parameter D = 1, // overall divide [1,106]
+	parameter M = 10.0, // overall multiply [2.0,64.0]
+	parameter CLKOUT0_DIVIDE = 1.0, // this one is fractional [1.0,128.0]
+	parameter CLKOUT1_DIVIDE = 1, // [1,128]
+	parameter CLKOUT2_DIVIDE = 1,
+	parameter CLKOUT3_DIVIDE = 1,
+	parameter CLKOUT4_DIVIDE = 1,
+	parameter CLKOUT5_DIVIDE = 1,
+	parameter CLKOUT6_DIVIDE = 1,
+	parameter CLOCK1_PERIOD_NS = 10.0,
+	parameter CLOCK2_PERIOD_NS = 10.0
+) (
+	input clock1_in, // input=[10,800]MHz; PFD=[10,450]MHz; VCO=[600,1200]MHz; OUT=[4.69,800]MHz for a "-1" grade zynq-7020
+	input reset,
+	output locked,
+	output clock0_out_p, clock0_out_n,
+	output clock1_out_p, clock1_out_n,
+	output clock2_out_p, clock2_out_n,
+	output clock3_out_p, clock3_out_n,
+	output clock4_out,
+	output clock5_out,
+	output clock6_out
+);
+	wire clkfb;
+	wire [15:0] drp_DO, drp_DI;
+	wire [6:0] drp_DADDR;
+	wire drp_DCLK, drp_DEN, drp_DWE, drp_DRDY;
+	assign drp_DCLK = 0;
+	assign drp_DEN = 0;
+	assign drp_DWE = 0;
+	assign drp_DADDR = 0;
+	assign drp_DI = 0;
+	// MMCME2_ADV: Advanced Mixed Mode Clock Manager 7 Series
+	// modified from Xilinx HDL Language Template, version 2023.2 (ug953)
+	MMCME2_ADV #(
+		.BANDWIDTH("OPTIMIZED"), // Jitter programming (OPTIMIZED, HIGH, LOW)
+		.DIVCLK_DIVIDE(D), // Master division value (1-106)
+		.CLKFBOUT_MULT_F(M), // Multiply value for all CLKOUT (2.000-64.000).
+		.CLKFBOUT_PHASE(0.0), // Phase offset in degrees of CLKFB (-360.000-360.000).
+		.CLKIN1_PERIOD(CLOCK1_PERIOD_NS), // CLKIN_PERIOD: Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
+		.CLKIN2_PERIOD(CLOCK2_PERIOD_NS),
+		.CLKOUT0_DIVIDE_F(CLKOUT0_DIVIDE), // Divide amount for CLKOUT0 (1.000-128.000).
+		.CLKOUT1_DIVIDE(CLKOUT1_DIVIDE), // CLKOUT0_DIVIDE - CLKOUT6_DIVIDE: Divide amount for CLKOUT (1-128)
+		.CLKOUT2_DIVIDE(CLKOUT2_DIVIDE),
+		.CLKOUT3_DIVIDE(CLKOUT3_DIVIDE),
+		.CLKOUT4_DIVIDE(CLKOUT4_DIVIDE),
+		.CLKOUT5_DIVIDE(CLKOUT5_DIVIDE),
+		.CLKOUT6_DIVIDE(CLKOUT6_DIVIDE),
+		.CLKOUT0_DUTY_CYCLE(0.5), // CLKOUT0_DUTY_CYCLE - CLKOUT6_DUTY_CYCLE: Duty cycle for CLKOUT outputs (0.01-0.99).
+		.CLKOUT1_DUTY_CYCLE(0.5),
+		.CLKOUT2_DUTY_CYCLE(0.5),
+		.CLKOUT3_DUTY_CYCLE(0.5),
+		.CLKOUT4_DUTY_CYCLE(0.5),
+		.CLKOUT5_DUTY_CYCLE(0.5),
+		.CLKOUT6_DUTY_CYCLE(0.5),
+		.CLKOUT0_PHASE(0.0), // CLKOUT0_PHASE - CLKOUT6_PHASE: Phase offset for CLKOUT outputs (-360.000-360.000).
+		.CLKOUT1_PHASE(0.0),
+		.CLKOUT2_PHASE(0.0),
+		.CLKOUT3_PHASE(0.0),
+		.CLKOUT4_PHASE(0.0),
+		.CLKOUT5_PHASE(0.0),
+		.CLKOUT6_PHASE(0.0),
+		.CLKOUT4_CASCADE("FALSE"), // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
+		.COMPENSATION("ZHOLD"), // ZHOLD, BUF_IN, EXTERNAL, INTERNAL
+		.REF_JITTER1(0.1), // REF_JITTER: Reference input jitter in UI (0.000-0.999).
+		.REF_JITTER2(0.1),
+		.STARTUP_WAIT("FALSE"), // Delays DONE until MMCM is locked (FALSE, TRUE)
+		.SS_EN("FALSE"), // Enables spread spectrum (FALSE, TRUE)
+		.SS_MODE("CENTER_HIGH"), // CENTER_HIGH, CENTER_LOW, DOWN_HIGH, DOWN_LOW
+		.SS_MOD_PERIOD(10000), // Spread spectrum modulation period (ns) (VALUES)
+		.CLKFBOUT_USE_FINE_PS("FALSE"), // USE_FINE_PS: Fine phase shift enable (TRUE/FALSE)
+		.CLKOUT0_USE_FINE_PS("FALSE"),
+		.CLKOUT1_USE_FINE_PS("FALSE"),
+		.CLKOUT2_USE_FINE_PS("FALSE"),
+		.CLKOUT3_USE_FINE_PS("FALSE"),
+		.CLKOUT4_USE_FINE_PS("FALSE"),
+		.CLKOUT5_USE_FINE_PS("FALSE"),
+		.CLKOUT6_USE_FINE_PS("FALSE")
+	) MMCME2_ADV_inst (
+		 .CLKOUT0(clock0_out_p), // 1-bit output: CLKOUT0
+		.CLKOUT0B(clock0_out_n), // 1-bit output: Inverted CLKOUT0
+		 .CLKOUT1(clock1_out_p), // 1-bit output: CLKOUT1
+		.CLKOUT1B(clock1_out_n), // 1-bit output: Inverted CLKOUT1
+		 .CLKOUT2(clock2_out_p), // 1-bit output: CLKOUT2
+		.CLKOUT2B(clock2_out_n), // 1-bit output: Inverted CLKOUT2
+		 .CLKOUT3(clock3_out_p), // 1-bit output: CLKOUT3
+		.CLKOUT3B(clock3_out_n), // 1-bit output: Inverted CLKOUT3
+		 .CLKOUT4(clock4_out), // 1-bit output: CLKOUT4
+		 .CLKOUT5(clock5_out), // 1-bit output: CLKOUT5
+		 .CLKOUT6(clock6_out), // 1-bit output: CLKOUT6
+		.PSCLK(1'b0), // 1-bit input: Phase shift clock
+		.PSEN(1'b0), // 1-bit input: Phase shift enable
+		.PSINCDEC(1'b0), // 1-bit input: Phase shift increment/decrement
+		.PSDONE(), // 1-bit output: Phase shift done
+		.CLKFBIN(clk_fb), // 1-bit input: Feedback clock
+		.CLKFBOUT(clk_fb), // 1-bit output: Feedback clock
+		.CLKFBOUTB(), // 1-bit output: Inverted CLKFBOUT
+		.CLKFBSTOPPED(CLKFBSTOPPED), // 1-bit output: Feedback clock stopped
+		.CLKINSTOPPED(CLKINSTOPPED), // 1-bit output: Input clock stopped
+		.LOCKED(locked), // 1-bit output: LOCK
+		.CLKIN1(clock1_in), // 1-bit input: Primary clock
+		.CLKIN2(1'b0), // 1-bit input: Secondary clock
+		.CLKINSEL(1'b1), // 1-bit input: Clock select, 1=CLKIN1 0=CLKIN2
 		.PWRDWN(1'b0), // 1-bit input: Power-down
 		.RST(reset), // 1-bit input: Reset
-		// Feedback Clocks: 1-bit (each) input: Clock feedback ports
-		.CLKFBIN(clkfb) // 1-bit input: Feedback clock
+		.DO(drp_DO), // 16-bit output: DRP data
+		.DRDY(drp_DRDY), // 1-bit output: DRP ready
+		.DADDR(drp_DADDR), // 7-bit input: DRP address
+		.DCLK(drp_DCLK), // 1-bit input: DRP clock
+		.DEN(drp_DEN), // 1-bit input: DRP enable
+		.DI(drp_DI), // 16-bit input: DRP data
+		.DWE(drp_DWE) // 1-bit input: DRP write enable
 	);
 endmodule
 
@@ -199,8 +309,9 @@ module clock_out_test #(
 ) (
 //	input sysclk, // unreliable 125 MHz, comes from RTL8211 (ethernet) via 50 MHz osc
 //	input [5:4] jb, // pmod_osc pmod_port_B
-	input [5:4] ja, // 127.216 MHz, comes from PMODA
-//	input [7:6] ja, // 42.3724 MHz, comes from PMODA
+	input [7:0] jb, // PMODB
+	input [5:4] ja, // 100.0 MHz, comes from PMODA
+//	input [7:6] ja,
 	input [3:0] btn, // buttons
 	input [1:0] sw, // switches
 	output [3:0] led,
@@ -247,6 +358,7 @@ module clock_out_test #(
 //	inout hdmi_rx_scl, // 
 //	inout hdmi_rx_sda // 
 );
+	wire [3:0] rot = { jb[7], jb[3], jb[1], jb[0] };
 	wire pclk, pclk_t, pclk_m, pclk_b, sin, sclk;
 	wire sda;
 	wire sda_in;
@@ -341,7 +453,8 @@ module clock_out_test #(
 	//IBUFG clock_in_se (.I(ja[7]), .O(clock));
 //	OBUFDS (.I(clock), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
 	wire clock_enable;
-	assign clock_enable = sw[0];
+	//assign clock_enable = sw[0];
+	assign clock_enable = 1'b1;
 	wire clock_oddr1;
 	wire clock_oddr2;
 	wire clock_oddr3;
@@ -354,29 +467,107 @@ module clock_out_test #(
 	//assign hdmi_tx_cec = clock_oddr3;
 	//assign hdmi_tx_cec = 0;
 	//assign hdmi_rx_cec = clock_oddr3;
-	wire mmcm_locked;
+	wire mmcm_locked0, mmcm_locked1;
 	assign led[3] = 1'b0;
 	assign led[2] = 1'b0;
-	assign led[1] = mmcm_locked;
-	assign led[0] = clock_enable;
-	wire sysclk_raw;
-	BUFG bufg_sysclk (.I(sysclk_raw), .O(sysclk));
-	//localparam DIVIDE_RATIO = 3; // 127.22 * 6.0 / 1 / 3 = 254
-	//localparam DIVIDE_RATIO = 6; // 127.22 * 6.0 / 1 / 6 = 127
-	//localparam DIVIDE_RATIO = 9; // 127.22 * 6.0 / 1 / 9 = 85
-	//localparam DIVIDE_RATIO = 10; // 127.22 * 6.0 / 1 / 10 = 76
-	localparam DIVIDE_RATIO = 10.5; // 127.22 * 6.0 / 1 / 10 = 80
-	//localparam DIVIDE_RATIO = 11; // 127.22 * 6.0 / 1 / 11 = 69
-	//localparam DIVIDE_RATIO = 12; // 127.22 * 6.0 / 1 / 12 = 64
-	//localparam DIVIDE_RATIO = 25; // 127.22 * 6.0 / 1 / 25 = 30.53
+	assign led[1] = mmcm_locked1;
+	assign led[0] = mmcm_locked0;
+//	wire sysclk_raw;
+//	BUFG bufg_sysclk (.I(sysclk_raw), .O(sysclk));
+	//localparam DIVIDE_RATIO =  2.40; // 100.0 * 6.0 / 1 / DIVIDE_RATIO = 250
+	//localparam DIVIDE_RATIO =  4.80; // 100.0 * 6.0 / 1 / DIVIDE_RATIO = 125
+	//localparam DIVIDE_RATIO =  7.06; // 100.0 * 6.0 / 1 / DIVIDE_RATIO =  85
+	//localparam DIVIDE_RATIO =  7.50; // 100.0 * 6.0 / 1 / DIVIDE_RATIO =  80 never
+	//localparam DIVIDE_RATIO =  8.00; // 100.0 * 6.0 / 1 / DIVIDE_RATIO =  75 never
+	//localparam DIVIDE_RATIO =  8.57; // 100.0 * 6.0 / 1 / DIVIDE_RATIO =  70 rarely
+	//localparam DIVIDE_RATIO =  9.23; // 100.0 * 6.0 / 1 / DIVIDE_RATIO =  65 very rarely
+	//localparam DIVIDE_RATIO = 13.33; // 100.0 * 6.0 / 1 / DIVIDE_RATIO =  45 rarely
+	//localparam DIVIDE_RATIO = 15.00; // 100.0 * 6.0 / 1 / DIVIDE_RATIO =  40 rarely
+	//localparam DIVIDE_RATIO = 20.00; // 100.0 * 6.0 / 1 / DIVIDE_RATIO =  30 sometimes
+	//localparam DIVIDE_RATIO = 10.5; // 127.22 * 6.0 / 1 / 10.5 = 80
 	// 600 - 1200 MHz range VCO frequency
-	MMCM #(
-		.M(6.0), .D(1), .CLOCK_PERIOD_NS(7.86), .CLKOUT0_DIVIDE(DIVIDE_RATIO)
-			) mymmcm (
-		.clock_in(clock), .reset(reset), .locked(mmcm_locked),
-		.clock0_out_p(sysclk_raw), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
-		.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
-		.clock4_out(), .clock5_out(), .clock6_out());
+	wire c0, c1, c2, c3, c4, c5, c6, c7;
+	wire c8, c9, ca, cb, cc, cd, ce, cf, cg, ch;
+//	assign ca = 0;
+//	assign cb = 0;
+//	assign cc = 0;
+//	assign cd = 0;
+//	assign ce = 0;
+//	assign cf = 0;
+	MMCM_advanced #(
+		.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.24),
+		.CLKOUT0_DIVIDE(51), // 20
+		.CLKOUT1_DIVIDE(26), // 39
+		.CLKOUT2_DIVIDE(17), // 60
+		.CLKOUT3_DIVIDE(13), // 79
+		.CLKOUT4_DIVIDE(10), // 102
+		.CLKOUT5_DIVIDE(1), // 1024
+		.CLKOUT6_DIVIDE(1)  // 1024
+			) mymmcm0 (
+		.clock1_in(clock), .reset(reset), .locked(mmcm_locked0),
+		.clock0_out_p(c0), .clock0_out_n(), .clock1_out_p(c1), .clock1_out_n(),
+		.clock2_out_p(c2), .clock2_out_n(), .clock3_out_p(c3), .clock3_out_n(),
+		.clock4_out(c4), .clock5_out(), .clock6_out());
+	MMCM_advanced #(
+		.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.24),
+		.CLKOUT0_DIVIDE(9), // 114
+		.CLKOUT1_DIVIDE(7), // 146
+		.CLKOUT2_DIVIDE(6), // 171
+		.CLKOUT3_DIVIDE(5), // 205
+		.CLKOUT4_DIVIDE(4), // 256
+		.CLKOUT5_DIVIDE(1), // 1024
+		.CLKOUT6_DIVIDE(1)  // 1024
+			) mymmcm1 (
+		.clock1_in(clock), .reset(reset), .locked(mmcm_locked1),
+		.clock0_out_p(c5), .clock0_out_n(), .clock1_out_p(c6), .clock1_out_n(),
+		.clock2_out_p(c7), .clock2_out_n(), .clock3_out_p(c8), .clock3_out_n(),
+		.clock4_out(c9), .clock5_out(), .clock6_out());
+	//wire clock_0s;
+	//wire clock_1s;
+	//wire clock_2s;
+	//wire clock_3s;
+//	wire clock_4s;
+//	wire clock_5s;
+//	wire clock_6s;
+//	wire clock_7s;
+	//wire clock_0xx, clock_1xx; //, clock_2xx, clock_3xx;
+//	wire clock_0xxx, clock_1xxx;
+	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx0s (.I0(c0), .I1(c1), .S(rot[0]), .O(clock_0s));
+	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx1s (.I0(c2), .I1(c3), .S(rot[0]), .O(clock_1s));
+	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx2s (.I0(c4), .I1(c5), .S(rot[0]), .O(clock_2s));
+	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx3s (.I0(c6), .I1(c7), .S(rot[0]), .O(clock_3s));
+//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx4s (.I0(c8), .I1(c9), .S(rot[0]), .O(clock_1xxx));
+//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx5s (.I0(ca), .I1(cb), .S(rot[0]), .O(clock_5s));
+//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx6s (.I0(cc), .I1(cd), .S(rot[0]), .O(clock_6s));
+//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx7s (.I0(ce), .I1(cf), .S(rot[0]), .O(clock_7s));
+	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_x0sx (.I0(clock_0s), .I1(clock_1s), .S(rot[1]), .O(clock_0xx));
+	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_x1sx (.I0(clock_2s), .I1(clock_3s), .S(rot[1]), .O(clock_1xx));
+//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_x2sx (.I0(clock_4s), .I1(clock_5s), .S(rot[1]), .O(clock_2xx));
+//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_x3sx (.I0(clock_6s), .I1(clock_7s), .S(rot[1]), .O(clock_3xx));
+	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_0sxx (.I0(clock_0xx), .I1(clock_1xx), .S(rot[2]), .O(sysclk));
+//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_1sxx (.I0(clock_2xx), .I1(clock_3xx), .S(rot[2]), .O(clock_1xxx));
+//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_other (.I0(clock_0xxx), .I1(clock_1xxx), .S(rot[3]), .O(sysclk));
+	//assign sysclk = 0;
+	reg [15:0] select = 0;
+	reg [15:0] select_buffered = 0;
+	always @(posedge clock) begin
+		select <= 0;
+		if (reset) begin
+		end else begin
+			select[rot] <= 1'b1;
+		end
+		select_buffered <= select;
+	end
+	// as recommended by https://docs.xilinx.com/r/en-US/ug949-vivado-design-methodology/Clock-Multiplexing
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_a (.I0(c0), .I1(c1), .S(select_buffered[0]), .O(ca));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_b (.I0(ca), .I1(c2), .S(select_buffered[1]), .O(cb));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_c (.I0(cb), .I1(c3), .S(select_buffered[2]), .O(cc));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_d (.I0(cc), .I1(c4), .S(select_buffered[3]), .O(cd));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_e (.I0(cd), .I1(c5), .S(select_buffered[4]), .O(ce));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_f (.I0(ce), .I1(c6), .S(select_buffered[5]), .O(cf));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_g (.I0(cf), .I1(c7), .S(select_buffered[6]), .O(cg));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_h (.I0(cg), .I1(c8), .S(select_buffered[7]), .O(ch));
+	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel   (.I0(ch), .I1(c9), .S(select_buffered[8]), .O(sysclk));
 	localparam RESET_BUTTON_PICKOFF = 6;
 	reg [RESET_BUTTON_PICKOFF:0] reset_button1_pipeline = 0;
 	reg [RESET_BUTTON_PICKOFF:0] reset_button2_pipeline = 0;
@@ -440,7 +631,7 @@ module alphav2_control (
 	reg mode1 = 0;
 	reg mode2 = 0;
 //	reg dunno = 0;
-	localparam TIMING_CONSTANT = 100;
+	localparam TIMING_CONSTANT = 100; // 20=bad; 70=bad; 100=good; 150=bad; 200=worse
 	always @(posedge clock) begin
 		if (reset) begin
 			counter1 <= 0;

@@ -1,6 +1,6 @@
 # started 2022-11-16 by mza
 # taken from "master xdc" at https://www.tulembedded.com/FPGA/ProductsPYNQ-Z2.html
-# last updated 2023-10-23 by mza and makiko
+# last updated 2024-01-17 by mza and makiko
 
 ## This file is a general .xdc for the PYNQ-Z2 board 
 ## To use it in a project:
@@ -48,17 +48,18 @@ set_property -dict { PACKAGE_PIN U19   IOSTANDARD TMDS_33  } [get_ports { ja[5] 
 #set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS33 } [get_ports { ja[7] }]; #IO_L22N_T3_34 Sch=ja_n[4] pmodA_pin10 clock_pmod_pin6
 
 #create_clock -add -name alt_clk_pin -period 7.861 -waveform {0 3.93} [get_ports { ja[4] }];
+create_clock -add -name alt_clk_pin -period 10.0 -waveform {0 5.0} [get_ports { ja[4] }];
 #create_clock -add -name alt_alt_clk_pin -period 23.6 -waveform {0 11.8} [get_ports { ja[7] }];
 
 ##PmodB
-#set_property -dict { PACKAGE_PIN W14   IOSTANDARD LVCMOS33 } [get_ports { jb[0] }]; #IO_L8P_T1_34 Sch=jb_p[1]
-#set_property -dict { PACKAGE_PIN Y14   IOSTANDARD LVCMOS33 } [get_ports { jb[1] }]; #IO_L8N_T1_34 Sch=jb_n[1]
-#set_property -dict { PACKAGE_PIN T11   IOSTANDARD LVCMOS33 } [get_ports { jb[2] }]; #IO_L1P_T0_34 Sch=jb_p[2]
-#set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS33 } [get_ports { jb[3] }]; #IO_L1N_T0_34 Sch=jb_n[2]
-#set_property -dict { PACKAGE_PIN V16   IOSTANDARD TMDS_33 } [get_ports { jb[4] }]; #IO_L18P_T2_34 Sch=jb_p[3]
-#set_property -dict { PACKAGE_PIN W16   IOSTANDARD TMDS_33 } [get_ports { jb[5] }]; #IO_L18N_T2_34 Sch=jb_n[3]
-#set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 } [get_ports { jb[6] }]; #IO_L4P_T0_34 Sch=jb_p[4]
-#set_property -dict { PACKAGE_PIN W13   IOSTANDARD LVCMOS33 } [get_ports { jb[7] }]; #IO_L4N_T0_34 Sch=jb_n[4]
+set_property -dict { PACKAGE_PIN W14   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { jb[0] }]; #IO_L8P_T1_34 Sch=jb_p[1]
+set_property -dict { PACKAGE_PIN Y14   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { jb[1] }]; #IO_L8N_T1_34 Sch=jb_n[1]
+set_property -dict { PACKAGE_PIN T11   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { jb[2] }]; #IO_L1P_T0_34 Sch=jb_p[2]
+set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { jb[3] }]; #IO_L1N_T0_34 Sch=jb_n[2]
+set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { jb[4] }]; #IO_L18P_T2_34 Sch=jb_p[3]
+set_property -dict { PACKAGE_PIN W16   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { jb[5] }]; #IO_L18N_T2_34 Sch=jb_n[3]
+set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { jb[6] }]; #IO_L4P_T0_34 Sch=jb_p[4]
+set_property -dict { PACKAGE_PIN W13   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { jb[7] }]; #IO_L4N_T0_34 Sch=jb_n[4]
 
 ##Audio 
 #set_property -dict { PACKAGE_PIN M17   IOSTANDARD LVCMOS33 } [get_ports { adr0 }]; #IO_L8P_T1_AD10P_35 Sch=adr0
@@ -143,7 +144,7 @@ set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS33 } [get_ports { rpio_1
 set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS33 } [get_ports { rpio_17_r }]; #IO_L11P_T1_SRCC_13 Sch=rpio_17_r
 set_property -dict { PACKAGE_PIN C20   IOSTANDARD LVCMOS33 } [get_ports { rpio_18_r }]; #IO_L1P_T0_AD0P_35 Sch=rpio_18_r
 set_property -dict { PACKAGE_PIN Y8    IOSTANDARD LVCMOS33 } [get_ports { rpio_19_r }]; #IO_L14N_T2_SRCC_13 Sch=rpio_19_r
-set_property -dict { PACKAGE_PIN A20   IOSTANDARD LVCMOS33 } [get_ports { rpio_20_r }]; #IO_L2N_T0_AD8N_35 Sch=rpio_20_r
+#set_property -dict { PACKAGE_PIN A20   IOSTANDARD LVCMOS33 } [get_ports { rpio_20_r }]; #IO_L2N_T0_AD8N_35 Sch=rpio_20_r
 #set_property -dict { PACKAGE_PIN Y9    IOSTANDARD LVCMOS33 } [get_ports { rpio_21_r }]; #IO_L14P_T2_SRCC_13 Sch=rpio_21_r
 #set_property -dict { PACKAGE_PIN U8    IOSTANDARD LVCMOS33 } [get_ports { rpio_22_r }]; #IO_L17N_T2_13 Sch=rpio_22_r
 set_property -dict { PACKAGE_PIN W6    IOSTANDARD LVCMOS33 } [get_ports { rpio_23_r }]; #IO_IO_L22N_T3_13 Sch=rpio_23_r
@@ -171,15 +172,15 @@ set_property -dict { PACKAGE_PIN N20   IOSTANDARD TMDS_33 } [get_ports { hdmi_rx
 #set_property -dict { PACKAGE_PIN U14   IOSTANDARD LVCMOS33 } [get_ports { hdmi_rx_scl }]; #IO_L11P_T1_SRCC_34 Sch=hdmi_rx_scl
 #set_property -dict { PACKAGE_PIN U15   IOSTANDARD LVCMOS33 } [get_ports { hdmi_rx_sda }]; #IO_L11N_T1_SRCC_34 Sch=hdmi_rx_sda
 
-#create_clock -add -name src_clk_pin -period 0.786 -waveform {0 0.393} [get_ports { hdmi_rx_clk_p }]; # 1.27221875 MHz; actual data rate
+#create_clock -add -name src_clk_pin -period 0.786 -waveform {0 0.393} [get_ports { hdmi_rx_clk_p }]; # 1.27221875 GHz; actual data rate
 #create_clock -add -name src_clk_pin -period 1.572 -waveform {0 0.786} [get_ports { hdmi_rx_clk_p }]; # 636.109375 MHz; half data rate
 #create_clock -add -name src_clk_pin -period 1.667 -waveform {0 0.833} [get_ports { hdmi_rx_clk_p }]; # 600 MHz; at the limit of what will pass timing
-create_clock -add -name src_clk_pin -period 1.965 -waveform {0 0.983} [get_ports { hdmi_rx_clk_p }]; # 508.8875 MHz; SuperKEKB RF clock
+#create_clock -add -name src_clk_pin -period 1.965 -waveform {0 0.983} [get_ports { hdmi_rx_clk_p }]; # 508.8875 MHz; SuperKEKB RF clock
 #create_clock -add -name src_clk_pin -period 1.6 -waveform {0 0.8} [get_ports { hdmi_rx_clk_p }]; # 625 MHz; too fast for a z7020
 
 # adding the following two lines:
-set_property CLOCK_BUFFER_TYPE NONE [get_nets -of [get_pins mymmcm/MMCME2_BASE_inst/CLKOUT0B]];
-set_property CLOCK_BUFFER_TYPE NONE [get_nets -of [get_pins mymmcm/MMCME2_BASE_inst/CLKOUT0]];
+#set_property CLOCK_BUFFER_TYPE NONE [get_nets -of [get_pins mymmcm/MMCME2_BASE_inst/CLKOUT0B]];
+#set_property CLOCK_BUFFER_TYPE NONE [get_nets -of [get_pins mymmcm/MMCME2_BASE_inst/CLKOUT0]];
 # allows it to pass timing, avoiding driving a 508.8875 MHz clock on a BUFG (max on a -1 device is 464 MHz), but leads to:
 # [Opt 31-313] Attribute CLOCK_BUFFER_TYPE set to NONE on net mymmcm/half_bit_clock_p or port driving net prevents insertion of buffer
 # [Place 30-673] MMCM instance "mymmcm/MMCME2_BASE_inst" has outputs that directly drive clock pins without going through clock buffers first. This might lead to an unroutable placement if the clock loads aren't grouped into a single clock region. If unintended, please define a clock buffer (BUFG/BUFH) for the MMCM outputs to avoid clock placement issues.
