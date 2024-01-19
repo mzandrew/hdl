@@ -495,59 +495,33 @@ module clock_out_test #(
 //	assign ce = 0;
 //	assign cf = 0;
 	MMCM_advanced #(
-		.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.24),
-		.CLKOUT0_DIVIDE(51), // 20
-		.CLKOUT1_DIVIDE(26), // 39
-		.CLKOUT2_DIVIDE(17), // 60
-		.CLKOUT3_DIVIDE(13), // 79
-		.CLKOUT4_DIVIDE(10), // 102
-		.CLKOUT5_DIVIDE(1), // 1024
-		.CLKOUT6_DIVIDE(1)  // 1024
+		.CLOCK1_PERIOD_NS(10.0), .D(1), .M(12.00),
+		.CLKOUT0_DIVIDE(27), // 44 MHz
+		.CLKOUT1_DIVIDE(25), // 48
+		.CLKOUT2_DIVIDE(24), // 52
+		.CLKOUT3_DIVIDE(21), // 57
+		.CLKOUT4_DIVIDE(19), // 63
+		.CLKOUT5_DIVIDE(1), // 1200
+		.CLKOUT6_DIVIDE(1)  // 1200
 			) mymmcm0 (
 		.clock1_in(clock), .reset(reset), .locked(mmcm_locked0),
 		.clock0_out_p(c0), .clock0_out_n(), .clock1_out_p(c1), .clock1_out_n(),
 		.clock2_out_p(c2), .clock2_out_n(), .clock3_out_p(c3), .clock3_out_n(),
 		.clock4_out(c4), .clock5_out(), .clock6_out());
 	MMCM_advanced #(
-		.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.24),
-		.CLKOUT0_DIVIDE(9), // 114
-		.CLKOUT1_DIVIDE(7), // 146
-		.CLKOUT2_DIVIDE(6), // 171
-		.CLKOUT3_DIVIDE(5), // 205
-		.CLKOUT4_DIVIDE(4), // 256
-		.CLKOUT5_DIVIDE(1), // 1024
-		.CLKOUT6_DIVIDE(1)  // 1024
+		.CLOCK1_PERIOD_NS(10.0), .D(1), .M(12.00),
+		.CLKOUT0_DIVIDE(18), // 67 MHz
+		.CLKOUT1_DIVIDE(17), // 71
+		.CLKOUT2_DIVIDE(16), // 75
+		.CLKOUT3_DIVIDE(15), // 80
+		.CLKOUT4_DIVIDE(14), // 86
+		.CLKOUT5_DIVIDE(1), // 1200
+		.CLKOUT6_DIVIDE(1)  // 1200
 			) mymmcm1 (
 		.clock1_in(clock), .reset(reset), .locked(mmcm_locked1),
 		.clock0_out_p(c5), .clock0_out_n(), .clock1_out_p(c6), .clock1_out_n(),
 		.clock2_out_p(c7), .clock2_out_n(), .clock3_out_p(c8), .clock3_out_n(),
 		.clock4_out(c9), .clock5_out(), .clock6_out());
-	//wire clock_0s;
-	//wire clock_1s;
-	//wire clock_2s;
-	//wire clock_3s;
-//	wire clock_4s;
-//	wire clock_5s;
-//	wire clock_6s;
-//	wire clock_7s;
-	//wire clock_0xx, clock_1xx; //, clock_2xx, clock_3xx;
-//	wire clock_0xxx, clock_1xxx;
-	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx0s (.I0(c0), .I1(c1), .S(rot[0]), .O(clock_0s));
-	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx1s (.I0(c2), .I1(c3), .S(rot[0]), .O(clock_1s));
-	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx2s (.I0(c4), .I1(c5), .S(rot[0]), .O(clock_2s));
-	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx3s (.I0(c6), .I1(c7), .S(rot[0]), .O(clock_3s));
-//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx4s (.I0(c8), .I1(c9), .S(rot[0]), .O(clock_1xxx));
-//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx5s (.I0(ca), .I1(cb), .S(rot[0]), .O(clock_5s));
-//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx6s (.I0(cc), .I1(cd), .S(rot[0]), .O(clock_6s));
-//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_xx7s (.I0(ce), .I1(cf), .S(rot[0]), .O(clock_7s));
-	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_x0sx (.I0(clock_0s), .I1(clock_1s), .S(rot[1]), .O(clock_0xx));
-	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_x1sx (.I0(clock_2s), .I1(clock_3s), .S(rot[1]), .O(clock_1xx));
-//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_x2sx (.I0(clock_4s), .I1(clock_5s), .S(rot[1]), .O(clock_2xx));
-//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_x3sx (.I0(clock_6s), .I1(clock_7s), .S(rot[1]), .O(clock_3xx));
-	//BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_0sxx (.I0(clock_0xx), .I1(clock_1xx), .S(rot[2]), .O(sysclk));
-//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_1sxx (.I0(clock_2xx), .I1(clock_3xx), .S(rot[2]), .O(clock_1xxx));
-//	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_other (.I0(clock_0xxx), .I1(clock_1xxx), .S(rot[3]), .O(sysclk));
-	//assign sysclk = 0;
 	reg [15:0] select = 0;
 	reg [15:0] select_buffered = 0;
 	always @(posedge clock) begin
