@@ -1,7 +1,7 @@
 # written 2024-01-19 by mza
 # based off of mza-test045
 # for an althea revA connected to two geniris boards connected to two hdmi breakout boards
-# last updated 2024-01-19 by mza
+# last updated 2024-01-22 by mza
 
 # 50 MHz local oscillator:
 #net clock50_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK50+
@@ -21,18 +21,18 @@
 #timespec "ts_clock10" = period "tnm_clock10" 100.0 ns high 50%; # 10 MHz from rpi_gpio4_gpclk0
 
 # first column, closest to FPGA on left side of board
-net a_n loc=p111 | iostandard=tmds_33; # A- bank0 TR
-net a_p loc=p112 | iostandard=tmds_33; # A+ bank0 TR
-net c_n loc=p116 | iostandard=tmds_33; # C- bank0 TR
-net c_p loc=p117 | iostandard=tmds_33; # C+ bank0 TR
-net d_n loc=p123 | iostandard=tmds_33; # D- bank0 TR GCLK
-net d_p loc=p124 | iostandard=tmds_33; # D+ bank0 TR GCLK
-net f_n loc=p141 | iostandard=tmds_33; # F- bank0 TL
-net f_p loc=p142 | iostandard=tmds_33; # F+ bank0 TL
+net a_n loc=p111 | iostandard=tmds_33 | diff_term=true; # A- bank0 TR
+net a_p loc=p112 | iostandard=tmds_33 | diff_term=true; # A+ bank0 TR
+net c_n loc=p116 | iostandard=tmds_33 | diff_term=true; # C- bank0 TR
+net c_p loc=p117 | iostandard=tmds_33 | diff_term=true; # C+ bank0 TR
+net d_n loc=p123 | iostandard=tmds_33 | diff_term=true; # D- bank0 TR GCLK
+net d_p loc=p124 | iostandard=tmds_33 | diff_term=true; # D+ bank0 TR GCLK
+net f_n loc=p141 | iostandard=tmds_33 | diff_term=true; # F- bank0 TL
+net f_p loc=p142 | iostandard=tmds_33 | diff_term=true; # F+ bank0 TL
 
 # second column, on left side of board
-net b_n loc=p114 | iostandard=tmds_33; # B- bank0 TR
-net b_p loc=p115 | iostandard=tmds_33; # B+ bank0 TR
+net b_n loc=p114 | iostandard=tmds_33 | diff_term=true; # B- bank0 TR
+net b_p loc=p115 | iostandard=tmds_33 | diff_term=true; # B+ bank0 TR
 net e_n loc=p137 | iostandard=lvcmos33; # E- bank0 TL
 net e_p loc=p138 | iostandard=lvcmos33; # E+ bank0 TL
 

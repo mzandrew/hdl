@@ -1,0 +1,42 @@
+# written 2020-06-20 by mza
+# based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.openocd-cfg
+# last updated 2020-06-20 by mza
+
+source [find interface/ftdi/digilent-hs1.cfg]
+#source [find interface/ftdi/digilent-hs2.cfg]
+#source [find interface/ftdi/digilent_jtag_hs3.cfg]
+
+##source [find interface/raspberrypi2-native.cfg]
+#adapter driver bcm2835gpio
+#bcm2835gpio_peripheral_base 0x20000000; # rpi1
+#bcm2835gpio_peripheral_base 0x3F000000; # rpi2
+##bcm2835gpio_peripheral_base 0x3E000000; # ?
+##bcm2835gpio_peripheral_base 0xFE000000; # rpi4
+#bcm2835gpio_speed_coeffs 113714 28; # Raspi1 BCM2835: (700Mhz)
+#bcm2835gpio_speed_coeffs 146203 36; # Raspi2 BCM2836 (900Mhz)
+#bcm2835gpio_speed_coeffs 194938 48; # Raspi3 BCM2837 (1200Mhz)
+adapter speed 1000
+# gpio/bcm #s         tck tms tdi tdo
+#bcm2835gpio_jtag_nums 18  25  17  27
+##bcm2835gpio_swd_nums
+##bcm2835gpio_trst_num
+##reset_config trst_only
+reset_config none
+
+#adapter driver sysfsgpio
+# gpio/bcm #s        tck tms tdi tdo
+#sysfsgpio_jtag_nums  18  25  17  27
+#sysfsgpio_swd_nums 11 25
+#reset_config none
+
+transport select jtag
+
+source [find cpld/xilinx-xc6s.cfg]
+#source [find cpld/jtagspi.cfg]
+
+init
+xc6s_program xc6s.tap
+pld load 0 ./mza-test064.TMDS-to-LVDS.althea.revA/myalthea.bit
+
+exit
+
