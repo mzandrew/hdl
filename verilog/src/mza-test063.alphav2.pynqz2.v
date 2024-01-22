@@ -378,8 +378,11 @@ module clock_out_test #(
 	OBUFDS obuf_trigtop (.I(trig_top), .O(hdmi_rx_d2_p), .OB(hdmi_rx_d2_n));
 	OBUFDS obuf_trigbot (.I(trig_bot), .O(hdmi_tx_d_p[2]), .OB(hdmi_tx_d_n[2]));
 	wire sysclk, sstclk;
-	OBUFDS obuf_sysclk (.I(sysclk), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
-	OBUFDS obuf_sstclk (.I(sstclk), .O(hdmi_rx_clk_p), .OB(hdmi_rx_clk_n));
+	wire sysclk_for_output, sstclk_for_output;
+	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(sysclk_for_output));
+	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sstclk (.C(sstclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(sstclk_for_output));
+	OBUFDS obuf_sysclk (.I(sysclk_for_output), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
+	OBUFDS obuf_sstclk (.I(sstclk_for_output), .O(hdmi_rx_clk_p), .OB(hdmi_rx_clk_n));
 	wire dat_b_m2f;
 	IBUFDS ibuf_dat_b_m2f (.I(hdmi_rx_d_p[0]), .IB(hdmi_rx_d_n[0]), .O(dat_b_m2f));
 	wire dat_a_t2f;
