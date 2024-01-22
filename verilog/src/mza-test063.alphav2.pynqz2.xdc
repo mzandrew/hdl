@@ -36,10 +36,10 @@ set_property -dict { PACKAGE_PIN L20   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_
 set_property -dict { PACKAGE_PIN L19   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { btn[3] }]; #IO_L9P_T1_DQS_AD3P_35 Sch=btn[3]
 
 ##PmodA
-#set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS33 } [get_ports { ja[0] }]; #IO_L17P_T2_34 Sch=ja_p[1] pmodA_pin1 clock_pmod_pin1
-#set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS33 } [get_ports { ja[1] }]; #IO_L17N_T2_34 Sch=ja_n[1] pmodA_pin2 clock_pmod_pin3
-#set_property -dict { PACKAGE_PIN Y16   IOSTANDARD LVCMOS33 } [get_ports { ja[2] }]; #IO_L7P_T1_34 Sch=ja_p[2] pmodA_pin3 clock_pmod_pin5
-#set_property -dict { PACKAGE_PIN Y17   IOSTANDARD LVCMOS33 } [get_ports { ja[3] }]; #IO_L7N_T1_34 Sch=ja_n[2] pmodA_pin4 clock_pmod_pin7
+#set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS33 SLEW FAST DRIVE 24 } [get_ports { ja[0] }]; #IO_L17P_T2_34 Sch=ja_p[1] pmodA_pin1 clock_pmod_pin1 conflicts with rpio_04_r 
+#set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS33 SLEW FAST DRIVE 16 } [get_ports { jc[1] }]; #IO_L17N_T2_34 Sch=ja_n[1] pmodA_pin2 clock_pmod_pin3 conflicts with rpio_05_r 
+#set_property -dict { PACKAGE_PIN Y16   IOSTANDARD LVCMOS33 SLEW FAST DRIVE 16 } [get_ports { jc[2] }]; #IO_L7P_T1_34 Sch=ja_p[2] pmodA_pin3 clock_pmod_pin5
+#set_property -dict { PACKAGE_PIN Y17   IOSTANDARD LVCMOS33 SLEW FAST DRIVE 16 } [get_ports { jc[3] }]; #IO_L7N_T1_34 Sch=ja_n[2] pmodA_pin4 clock_pmod_pin7
 #set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS33 } [get_ports { ja[4] }]; #IO_L12P_T1_MRCC_34 Sch=ja_p[3] pmodA_pin7 clock_pmod_pin0
 #set_property -dict { PACKAGE_PIN U19   IOSTANDARD LVCMOS33 } [get_ports { ja[5] }]; #IO_L12N_T1_MRCC_34 Sch=ja_n[3] pmodA_pin8 clock_pmod_pin2
 set_property -dict { PACKAGE_PIN U18   IOSTANDARD TMDS_33  } [get_ports { ja[4] }]; #IO_L12P_T1_MRCC_34 Sch=ja_p[3] pmodA_pin7 clock_pmod_pin0
@@ -122,14 +122,14 @@ set_property -dict { PACKAGE_PIN W13   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_
 #set_property -dict { PACKAGE_PIN F16   IOSTANDARD LVCMOS33 } [get_ports { ck_ss }]; #IO_L6P_T0_35 Sch=ss
 
 ## Arduino I2C
-set_property -dict { PACKAGE_PIN P16   IOSTANDARD LVCMOS33 } [get_ports { ar_scl }]; #IO_L24N_T3_34 Sch=ar_scl
-set_property -dict { PACKAGE_PIN P15   IOSTANDARD LVCMOS33 } [get_ports { ar_sda }]; #IO_L24P_T3_34 Sch=ar_sda
+set_property -dict { PACKAGE_PIN P16   IOSTANDARD LVCMOS33 } [get_ports { ar_scl }]; #IO_L24N_T3_34 Sch=ar_scl rpio_01_r
+set_property -dict { PACKAGE_PIN P15   IOSTANDARD LVCMOS33 } [get_ports { ar_sda }]; #IO_L24P_T3_34 Sch=ar_sda rpio_00_r
 
 ##Raspberry Digital I/O 
-set_property -dict { PACKAGE_PIN W18   IOSTANDARD LVCMOS33 } [get_ports { rpio_02_r }]; #IO_L22P_T3_34 Sch=rpio_02_r
+#set_property -dict { PACKAGE_PIN W18   IOSTANDARD LVCMOS33 } [get_ports { rpio_02_r }]; #IO_L22P_T3_34 Sch=rpio_02_r
 set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS33 } [get_ports { rpio_03_r }]; #IO_L22N_T3_34 Sch=rpio_03_r conflicts with ja[6]
-set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS33 } [get_ports { rpio_04_r }]; #IO_L17P_T2_34 Sch=rpio_04_r
-set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS33 } [get_ports { rpio_05_r }]; #IO_L17N_T2_34 Sch=rpio_05_r
+set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS33 } [get_ports { rpio_04_r }]; #IO_L17P_T2_34 Sch=rpio_04_r conflicts with ja[0]
+set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS33 } [get_ports { rpio_05_r }]; #IO_L17N_T2_34 Sch=rpio_05_r conflicts with ja[1]
 #set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS33 } [get_ports { rpio_06_r }]; #IO_L22P_T3_13 Sch=rpio_06_r
 #set_property -dict { PACKAGE_PIN U19   IOSTANDARD LVCMOS33 } [get_ports { rpio_07_r }]; #IO_L12P_T1_MRCC_34 Sch=rpio_07_r
 #set_property -dict { PACKAGE_PIN F19   IOSTANDARD LVCMOS33 } [get_ports { rpio_08_r }]; #IO_L12N_T1_MRCC_34 Sch=rpio_08_r

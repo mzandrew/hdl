@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2024-01-17 by mza and makiko
+// last updated 2024-01-22 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -311,6 +311,7 @@ module clock_out_test #(
 //	input [5:4] jb, // pmod_osc pmod_port_B
 	input [7:0] jb, // PMODB
 	input [5:4] ja, // 100.0 MHz, comes from PMODA
+//	output [3:2] jc, // ja[3] is the clock output, renamed jc here for verilog in/out reasons
 //	input [7:6] ja,
 	input [3:0] btn, // buttons
 	input [1:0] sw, // switches
@@ -319,7 +320,7 @@ module clock_out_test #(
 //	output hdmi_tx_cec, // dummy data
 	output ar_sda, // rpio_00_r tok_a_b2f input
 	output ar_scl, // rpio_01_r tok_b_m2f input
-	output rpio_02_r, // single-ended sysclk
+//	output rpio_02_r, // single-ended sysclk
 	output rpio_03_r, // pclk_m
 	output rpio_04_r, // pclk_t
 	output rpio_05_r, // tok_a_f2t
@@ -390,7 +391,7 @@ module clock_out_test #(
 	// RPI --------------------------------------
 	wire tok_a_b2f = ar_sda; // rpio_00_r input to fpga
 	wire tok_b_m2f = ar_scl; // rpio_01_r
-	assign rpio_02_r = sysclk; // single-ended sysclk
+//	assign rpio_02_r = sysclk; // single-ended sysclk
 	assign rpio_03_r = actual_pclk_m; // output to middle alpha
 	assign rpio_04_r = actual_pclk_t;
 	assign rpio_05_r = tok_a_f2t;
@@ -495,12 +496,12 @@ module clock_out_test #(
 //	assign ce = 0;
 //	assign cf = 0;
 	MMCM_advanced #(
-		.CLOCK1_PERIOD_NS(10.0), .D(1), .M(12.00),
-		.CLKOUT0_DIVIDE(27), // 44 MHz
-		.CLKOUT1_DIVIDE(25), // 48
-		.CLKOUT2_DIVIDE(24), // 52
-		.CLKOUT3_DIVIDE(21), // 57
-		.CLKOUT4_DIVIDE(19), // 63
+		.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.24),
+		.CLKOUT0_DIVIDE(12), //  85 MHz
+		.CLKOUT1_DIVIDE(11), //  93
+		.CLKOUT2_DIVIDE(10), // 102
+		.CLKOUT3_DIVIDE(9),  // 114
+		.CLKOUT4_DIVIDE(8),  // 128
 		.CLKOUT5_DIVIDE(1), // 1200
 		.CLKOUT6_DIVIDE(1)  // 1200
 			) mymmcm0 (
@@ -509,12 +510,12 @@ module clock_out_test #(
 		.clock2_out_p(c2), .clock2_out_n(), .clock3_out_p(c3), .clock3_out_n(),
 		.clock4_out(c4), .clock5_out(), .clock6_out());
 	MMCM_advanced #(
-		.CLOCK1_PERIOD_NS(10.0), .D(1), .M(12.00),
-		.CLKOUT0_DIVIDE(18), // 67 MHz
-		.CLKOUT1_DIVIDE(17), // 71
-		.CLKOUT2_DIVIDE(16), // 75
-		.CLKOUT3_DIVIDE(15), // 80
-		.CLKOUT4_DIVIDE(14), // 86
+		.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.24),
+		.CLKOUT0_DIVIDE(7), // 146 MHz
+		.CLKOUT1_DIVIDE(6), // 171
+		.CLKOUT2_DIVIDE(5), // 205
+		.CLKOUT3_DIVIDE(4), // 256
+		.CLKOUT4_DIVIDE(4), // 256
 		.CLKOUT5_DIVIDE(1), // 1200
 		.CLKOUT6_DIVIDE(1)  // 1200
 			) mymmcm1 (
@@ -542,6 +543,10 @@ module clock_out_test #(
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_g (.I0(cf), .I1(c7), .S(select_buffered[6]), .O(cg));
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_h (.I0(cg), .I1(c8), .S(select_buffered[7]), .O(ch));
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel   (.I0(ch), .I1(c9), .S(select_buffered[8]), .O(sysclk));
+//	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk0 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[0]));
+//	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk1 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[1]));
+//	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk2 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[2]));
+//	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk3 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[3]));
 	localparam RESET_BUTTON_PICKOFF = 6;
 	reg [RESET_BUTTON_PICKOFF:0] reset_button1_pipeline = 0;
 	reg [RESET_BUTTON_PICKOFF:0] reset_button2_pipeline = 0;
