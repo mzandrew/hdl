@@ -1,6 +1,6 @@
 # started 2022-11-16 by mza
-# taken from "master xdc" at https://www.tulembedded.com/FPGA/ProductsPYNQ-Z2.html
-# last updated 2024-01-17 by mza and makiko
+# taken from "master xdc" at https://www.tulembedded.com/FPGA/ProductsPYNQ-Z2.html (XC7Z020-1CLG400C)
+# last updated 2024-01-26 by mza and makiko
 
 ## This file is a general .xdc for the PYNQ-Z2 board 
 ## To use it in a project:
@@ -129,7 +129,7 @@ set_property -dict { PACKAGE_PIN P15   IOSTANDARD LVCMOS33 } [get_ports { ar_sda
 #set_property -dict { PACKAGE_PIN W18   IOSTANDARD LVCMOS33 } [get_ports { rpio_02_r }]; #IO_L22P_T3_34 Sch=rpio_02_r
 set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS33 } [get_ports { rpio_03_r }]; #IO_L22N_T3_34 Sch=rpio_03_r conflicts with ja[6]
 set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS33 } [get_ports { rpio_04_r }]; #IO_L17P_T2_34 Sch=rpio_04_r conflicts with ja[0]
-set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS33 } [get_ports { rpio_05_r }]; #IO_L17N_T2_34 Sch=rpio_05_r conflicts with ja[1]
+set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_05_r }]; #IO_L17N_T2_34 Sch=rpio_05_r conflicts with ja[1]
 #set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS33 } [get_ports { rpio_06_r }]; #IO_L22P_T3_13 Sch=rpio_06_r
 #set_property -dict { PACKAGE_PIN U19   IOSTANDARD LVCMOS33 } [get_ports { rpio_07_r }]; #IO_L12P_T1_MRCC_34 Sch=rpio_07_r
 #set_property -dict { PACKAGE_PIN F19   IOSTANDARD LVCMOS33 } [get_ports { rpio_08_r }]; #IO_L12N_T1_MRCC_34 Sch=rpio_08_r
@@ -212,4 +212,5 @@ set_property -dict { PACKAGE_PIN J18   IOSTANDARD TMDS_33  } [get_ports { hdmi_t
 
 set_property CFGBVS VCCO [current_design];
 set_property CONFIG_VOLTAGE 3.3 [current_design];
+set_false_path -from [get_clocks {*}] -to [get_cells -hierarchical *jb*];
 
