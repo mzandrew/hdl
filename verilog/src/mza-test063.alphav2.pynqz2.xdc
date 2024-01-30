@@ -1,6 +1,6 @@
 # started 2022-11-16 by mza
 # taken from "master xdc" at https://www.tulembedded.com/FPGA/ProductsPYNQ-Z2.html (XC7Z020-1CLG400C)
-# last updated 2024-01-26 by mza and makiko
+# last updated 2024-01-30 by mza and makiko
 
 ## This file is a general .xdc for the PYNQ-Z2 board 
 ## To use it in a project:
@@ -138,7 +138,7 @@ set_property -dict { PACKAGE_PIN V8    IOSTANDARD LVCMOS33 } [get_ports { rpio_1
 set_property -dict { PACKAGE_PIN W10   IOSTANDARD LVCMOS33 } [get_ports { rpio_11_r }]; #IO_L16P_T2_13 Sch=rpio_11_r
 set_property -dict { PACKAGE_PIN B20   IOSTANDARD LVCMOS33 } [get_ports { rpio_12_r }]; #IO_L1N_T0_AD0N_35 Sch=rpio_12_r
 set_property -dict { PACKAGE_PIN W8    IOSTANDARD LVCMOS33 } [get_ports { rpio_13_r }]; #IO_L15N_T2_DQS_13 Sch=rpio_13_r
-set_property -dict { PACKAGE_PIN V6    IOSTANDARD LVCMOS33 } [get_ports { rpio_14_r }]; #IO_L22P_T3_13 Sch=rpio_14_r
+#set_property -dict { PACKAGE_PIN V6    IOSTANDARD LVCMOS33 } [get_ports { rpio_14_r }]; #IO_L22P_T3_13 Sch=rpio_14_r
 set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS33 } [get_ports { rpio_15_r }]; #IO_L13N_T2_MRCC_13 Sch=rpio_15_r
 #set_property -dict { PACKAGE_PIN B19   IOSTANDARD LVCMOS33 } [get_ports { rpio_16_r }]; #IO_L2P_T0_AD8P_35 Sch=rpio_16_r
 set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS33 } [get_ports { rpio_17_r }]; #IO_L11P_T1_SRCC_13 Sch=rpio_17_r
@@ -212,5 +212,5 @@ set_property -dict { PACKAGE_PIN J18   IOSTANDARD TMDS_33  } [get_ports { hdmi_t
 
 set_property CFGBVS VCCO [current_design];
 set_property CONFIG_VOLTAGE 3.3 [current_design];
-set_false_path -from [get_clocks {*}] -to [get_cells -hierarchical *jb*];
+#set_false_path -from [get_clocks {*}] -to [get_cells -hierarchical *jb*];
 

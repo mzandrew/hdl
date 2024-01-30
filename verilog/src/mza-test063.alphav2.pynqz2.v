@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2024-01-29 by mza and makiko
+// last updated 2024-01-30 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -360,7 +360,8 @@ module clock_out_test #(
 //	inout hdmi_rx_scl, // 
 //	inout hdmi_rx_sda // 
 );
-	wire [3:0] rot = { jb[7], jb[3], jb[1], jb[0] };
+	//wire [3:0] rot = { jb[7], jb[3], jb[1], jb[0] }; // as it should be {7,6,5,4,3,2,1,0}
+	wire [3:0] rot = { jb[3], jb[1], jb[0], jb[4] }; // pmod breakout board has top and bottom rows swapped {6,4,2,0,7,5,3,1}
 	wire pclk, pclk_t, pclk_m, pclk_b, sin, sclk;
 	wire sda;
 	wire sda_in;
@@ -473,11 +474,6 @@ module clock_out_test #(
 	//assign hdmi_tx_cec = clock_oddr3;
 	//assign hdmi_tx_cec = 0;
 	//assign hdmi_rx_cec = clock_oddr3;
-	wire mmcm_locked0, mmcm_locked1;
-	assign led[3] = 1'b0;
-	assign led[2] = 1'b0;
-	assign led[1] = mmcm_locked1;
-	assign led[0] = mmcm_locked0;
 //	wire sysclk_raw;
 //	BUFG bufg_sysclk (.I(sysclk_raw), .O(sysclk));
 	//localparam DIVIDE_RATIO =  2.40; // 100.0 * 6.0 / 1 / DIVIDE_RATIO = 250
@@ -501,6 +497,7 @@ module clock_out_test #(
 //	assign ce = 0;
 //	assign cf = 0;
 	if (0) begin
+		wire mmcm_locked0, mmcm_locked1;
 		MMCM_advanced #(
 			.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.24),
 			.CLKOUT0_DIVIDE(12), //  85 MHz
@@ -552,6 +549,10 @@ module clock_out_test #(
 	end else begin
 		assign sysclk = clock;
 	end
+	assign led[3] = rot[3];
+	assign led[2] = rot[2];
+	assign led[1] = rot[1];
+	assign led[0] = rot[0];
 //	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk0 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[0]));
 //	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk1 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[1]));
 //	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk2 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[2]));
