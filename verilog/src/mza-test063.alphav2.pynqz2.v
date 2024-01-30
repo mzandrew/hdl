@@ -361,7 +361,7 @@ module clock_out_test #(
 //	inout hdmi_rx_sda // 
 );
 	//wire [3:0] rot = { jb[7], jb[3], jb[1], jb[0] }; // as it should be {7,6,5,4,3,2,1,0}
-	wire [3:0] rot = { jb[3], jb[1], jb[0], jb[4] }; // pmod breakout board has top and bottom rows swapped {6,4,2,0,7,5,3,1}
+	wire [3:0] rot = { jb[3], jb[1], jb[0], jb[4] }; // pmod 0.05" breakout board has different wiring {6,4,2,0,7,5,3,1}
 	wire pclk, pclk_t, pclk_m, pclk_b, sin, sclk;
 	wire sda;
 	wire sda_in;
@@ -549,10 +549,14 @@ module clock_out_test #(
 	end else begin
 		assign sysclk = clock;
 	end
-	assign led[3] = rot[3];
-	assign led[2] = rot[2];
-	assign led[1] = rot[1];
-	assign led[0] = rot[0];
+	reg [3:0] rot_buffered = 0;
+	always @(posedge clock) begin
+		rot_buffered <= rot;
+	end
+	assign led[3] = rot_buffered[3];
+	assign led[2] = rot_buffered[2];
+	assign led[1] = rot_buffered[1];
+	assign led[0] = rot_buffered[0];
 //	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk0 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[0]));
 //	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk1 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[1]));
 //	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk2 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[2]));
