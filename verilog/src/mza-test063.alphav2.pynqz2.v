@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2024-01-26 by mza and makiko
+// last updated 2024-01-29 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -333,7 +333,7 @@ module clock_out_test #(
 	output rpio_11_r, // tok_b_f2m
 	output rpio_12_r, // sync
 	inout rpio_13_r, // sda
-	output rpio_14_r, // trig_top
+//	output rpio_14_r, // trig_top
 	output rpio_15_r, // sclk
 //	output rpio_16_r, // dat_b_m2f
 	output rpio_17_r, // gpio17
@@ -343,7 +343,7 @@ module clock_out_test #(
 //	output rpio_21_r, // dat_a_f2b
 //	output rpio_22_r, // sstclk
 	output rpio_23_r, // gpio23 / auxtrig
-//	output rpio_24_r, // trig_mid // driven by SN65EPT23
+	output rpio_24_r, // trig_mid // driven by SN65EPT23; also goes to CT5TEA
 //	output rpio_25_r, // t_shout ct5tea
 //	output rpio_26_r, // dat_b_f2m
 //	output rpio_27_r, // dat_a_t2f
@@ -375,7 +375,7 @@ module clock_out_test #(
 	wire dreset; // auxtrig, pclk, sclk;
 	wire gpio17;
 	// HDMI -------------------------------------
-	wire trig_top, trig_bot;
+	wire trig_top, trig_mid, trig_bot;
 	OBUFDS obuf_trigtop (.I(trig_top), .O(hdmi_rx_d2_p), .OB(hdmi_rx_d2_n));
 	OBUFDS obuf_trigbot (.I(trig_bot), .O(hdmi_tx_d_p[2]), .OB(hdmi_tx_d_n[2]));
 	wire sysclk, sstclk;
@@ -417,7 +417,7 @@ module clock_out_test #(
 //	assign rpio_21_r, // dat_a_f2b
 //	assign rpio_22_r, // sstclk
 	assign rpio_23_r = actual_auxtrig; // gpio23
-//	assign rpio_24_r = trig_mid; // driven by SN65EPT23
+	assign rpio_24_r = trig_mid; // driven by SN65EPT23; also goes to CT5TEA
 //	assign rpio_25_r, // t_shout ct5tea
 //	assign rpio_26_r, // dat_b_f2m
 //	assign rpio_27_r, // dat_a_t2f
@@ -444,8 +444,8 @@ module clock_out_test #(
 	assign actual_auxtrig = auxtrig | dreset;
 //	assign dreset = 1'b0;
 //	assign trig_top = 1'b0;
-	assign trig_mid = 1'b0;
-	assign trig_bot = 1'b0;
+//	assign trig_mid = 1'b0;
+//	assign trig_bot = 1'b0;
 //	assign sysclk = 1'b0;
 	assign sstclk = 1'b0;
 	assign dat_b_f2m = 1'b0;
@@ -580,7 +580,11 @@ module clock_out_test #(
 			button2_pipeline <= { button2_pipeline[BUTTON_PICKOFF-1:0], btn[2] };
 		end
 	end
-	alphav2_control alpv2 (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
+	wire trig;
+	alphav2_control alpv2 (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig));
+	assign trig_top = trig;
+	assign trig_mid = sw[0] ? trig : 1'b0;
+	assign trig_bot = sw[1] ? trig : 1'b0;
 endmodule
 
 module alphav2_control_tb;
@@ -674,10 +678,10 @@ module alphav2_control (
 		end
 	end
 	localparam LEGACY_SERIAL_CONSTANT = 5;
-	wire [11:0] CMPbias_data = 12'h1ff; wire [1:0] CMPbias_address = 2'b00;
-	wire [11:0] ISEL_data    = 12'h5ff; wire [1:0] ISEL_address    = 2'b01;
-	wire [11:0] SBbias_data  = 12'h3ff; wire [1:0] SBbias_address  = 2'b10;
-	wire [11:0] DBbias_data  = 12'h4ff; wire [1:0] DBbias_address  = 2'b11;
+	wire [11:0] CMPbias_data = 12'h9ff; wire [1:0] CMPbias_address = 2'b00;
+	wire [11:0] ISEL_data    = 12'h9ff; wire [1:0] ISEL_address    = 2'b01;
+	wire [11:0] SBbias_data  = 12'h9ff; wire [1:0] SBbias_address  = 2'b10;
+	wire [11:0] DBbias_data  = 12'h9ff; wire [1:0] DBbias_address  = 2'b11;
 	wire [15:0] data_word [3:0];
 	assign data_word[0] = { 2'b00, CMPbias_address, CMPbias_data };
 	assign data_word[1] = { 2'b00, ISEL_address, ISEL_data };
