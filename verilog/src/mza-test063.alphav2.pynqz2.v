@@ -467,7 +467,7 @@ module clock_out_test #(
 	//ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_inst1 (.C(clock), .CE(clock_enable), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_oddr1));
 	//ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_inst2 (.C(clock), .CE(clock_enable), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_oddr2));
 	//ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_inst3 (.C(clock), .CE(clock_enable), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_oddr3));
-	assign gpio17 = 1'b1; // alphav2 pin43 = LS_I2C (selects between legacy serial and i2c control over 4 registers: CMPbias, ISEL, SBbias, DBbias)
+	assign gpio17 = sw[0] ? 1'b1 : 1'b0; // alphav2 pin43 = LS_I2C (selects between legacy serial and i2c control over 4 registers: CMPbias, ISEL, SBbias, DBbias)
 	//assign gpio17 = clock_oddr1;
 	//OBUFDS (.I(clock_oddr1), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
 	//OBUFDS (.I(1'b0), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
@@ -553,6 +553,14 @@ module clock_out_test #(
 	always @(posedge clock) begin
 		rot_buffered <= rot;
 	end
+	wire [3:0] CMPbias_MSN = 4'h8;
+	wire [3:0] ISEL_MSN    = rot_buffered;
+	wire [3:0] SBbias_MSN  = 4'h8;
+	wire [3:0] DBbias_MSN  = 4'h8;
+	wire [11:0] CMPbias = {CMPbias_MSN, 8'h44};
+	wire [11:0] ISEL    = {ISEL_MSN,    8'h44};
+	wire [11:0] SBbias  = {SBbias_MSN,  8'h44};
+	wire [11:0] DBbias  = {DBbias_MSN,  8'h44};
 	assign led[3] = rot_buffered[3];
 	assign led[2] = rot_buffered[2];
 	assign led[1] = rot_buffered[1];
@@ -586,9 +594,10 @@ module clock_out_test #(
 		end
 	end
 	wire trig;
-	alphav2_control alpv2 (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig));
+	alphav2_control alpv2 (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 	assign trig_top = trig;
-	assign trig_mid = sw[0] ? trig : 1'b0;
+	//assign trig_mid = sw[0] ? trig : 1'b0; // trig_mid is on a 3.3V bank but only ever reaches 200mV
+	assign trig_mid = 1'b0;
 	assign trig_bot = sw[1] ? trig : 1'b0;
 endmodule
 
@@ -623,6 +632,7 @@ endmodule
 module alphav2_control (
 	input clock, reset, startup_sequence_1, startup_sequence_2,
 	input sda_in,
+	input [11:0] CMPbias, ISEL, SBbias, DBbias,
 	output reg sync, dreset, tok_a_f2t, scl, sda_out, sin, pclk, sclk, trig_top
 );
 	reg [31:0] counter1 = 0;
@@ -682,16 +692,16 @@ module alphav2_control (
 			end
 		end
 	end
-	localparam LEGACY_SERIAL_CONSTANT = 5;
-	wire [11:0] CMPbias_data = 12'h9ff; wire [1:0] CMPbias_address = 2'b00;
-	wire [11:0] ISEL_data    = 12'h9ff; wire [1:0] ISEL_address    = 2'b01;
-	wire [11:0] SBbias_data  = 12'h9ff; wire [1:0] SBbias_address  = 2'b10;
-	wire [11:0] DBbias_data  = 12'h9ff; wire [1:0] DBbias_address  = 2'b11;
+	localparam LEGACY_SERIAL_CONSTANT = 50;
+	wire [1:0] CMPbias_address = 2'b00;
+	wire [1:0] ISEL_address    = 2'b01;
+	wire [1:0] SBbias_address  = 2'b10;
+	wire [1:0] DBbias_address  = 2'b11;
 	wire [15:0] data_word [3:0];
-	assign data_word[0] = { 2'b00, CMPbias_address, CMPbias_data };
-	assign data_word[1] = { 2'b00, ISEL_address, ISEL_data };
-	assign data_word[2] = { 2'b00, SBbias_address, SBbias_data };
-	assign data_word[3] = { 2'b00, DBbias_address, DBbias_data };
+	assign data_word[0] = { 2'b00, CMPbias_address, CMPbias };
+	assign data_word[1] = { 2'b00, ISEL_address,    ISEL };
+	assign data_word[2] = { 2'b00, SBbias_address,  SBbias };
+	assign data_word[3] = { 2'b00, DBbias_address,  DBbias };
 	reg [3:0] bit_counter = 0;
 	reg [1:0] word_counter = 0;
 	always @(posedge clock) begin
@@ -819,9 +829,9 @@ module alphav2_control (
 					sclk <= 1'b0;
 				end else if (50*LEGACY_SERIAL_CONSTANT==counter2) begin
 					pclk <= 1'b1;
-				end else if (51*LEGACY_SERIAL_CONSTANT==counter2) begin
+				end else if (61*LEGACY_SERIAL_CONSTANT==counter2) begin
 					pclk <= 1'b0;
-				end else if (52*LEGACY_SERIAL_CONSTANT==counter2) begin
+				end else if (62*LEGACY_SERIAL_CONSTANT==counter2) begin
 					if (word_counter==2'b11) begin
 						mode2 <= 1'b0;
 					end else begin
@@ -860,7 +870,6 @@ module alphav2_control (
 			sda_out <= 1'bz;
 		end else begin
 //			if (2*I2C_GRANULARITY<counter & 3*I2C_GRANULARITY<counter) begin
-
 //			end
 		end
 	end
