@@ -1,6 +1,6 @@
 # started 2022-11-16 by mza
 # taken from "master xdc" at https://www.tulembedded.com/FPGA/ProductsPYNQ-Z2.html (XC7Z020-1CLG400C)
-# last updated 2024-01-30 by mza and makiko
+# last updated 2024-02-02 by mza and makiko
 
 ## This file is a general .xdc for the PYNQ-Z2 board 
 ## To use it in a project:
@@ -24,10 +24,10 @@ set_property -dict { PACKAGE_PIN M19   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_
 #set_property -dict { PACKAGE_PIN M15   IOSTANDARD LVCMOS33 } [get_ports { led5_r }]; #IO_L23N_T3_35 Sch=led5_r
 
 ##LEDs
-set_property -dict { PACKAGE_PIN R14   IOSTANDARD LVCMOS33 } [get_ports { led[0] }]; #IO_L6N_T0_VREF_34 Sch=led[0]
-set_property -dict { PACKAGE_PIN P14   IOSTANDARD LVCMOS33 } [get_ports { led[1] }]; #IO_L6P_T0_34 Sch=led[1]
-set_property -dict { PACKAGE_PIN N16   IOSTANDARD LVCMOS33 } [get_ports { led[2] }]; #IO_L21N_T3_DQS_AD14N_35 Sch=led[2]
-set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 } [get_ports { led[3] }]; #IO_L23P_T3_35 Sch=led[3]
+set_property -dict { PACKAGE_PIN R14   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { led[0] }]; #IO_L6N_T0_VREF_34 Sch=led[0]
+set_property -dict { PACKAGE_PIN P14   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { led[1] }]; #IO_L6P_T0_34 Sch=led[1]
+set_property -dict { PACKAGE_PIN N16   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { led[2] }]; #IO_L21N_T3_DQS_AD14N_35 Sch=led[2]
+set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { led[3] }]; #IO_L23P_T3_35 Sch=led[3]
 
 ##Buttons
 set_property -dict { PACKAGE_PIN D19   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { btn[0] }]; #IO_L4P_T0_35 Sch=btn[0]
@@ -122,37 +122,37 @@ set_property -dict { PACKAGE_PIN W13   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_
 #set_property -dict { PACKAGE_PIN F16   IOSTANDARD LVCMOS33 } [get_ports { ck_ss }]; #IO_L6P_T0_35 Sch=ss
 
 ## Arduino I2C
-set_property -dict { PACKAGE_PIN P16   IOSTANDARD LVCMOS33 } [get_ports { ar_scl }]; #IO_L24N_T3_34 Sch=ar_scl rpio_01_r
-set_property -dict { PACKAGE_PIN P15   IOSTANDARD LVCMOS33 } [get_ports { ar_sda }]; #IO_L24P_T3_34 Sch=ar_sda rpio_00_r
+set_property -dict { PACKAGE_PIN P16   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { ar_scl }]; #IO_L24N_T3_34 Sch=ar_scl rpio_01_r
+set_property -dict { PACKAGE_PIN P15   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { ar_sda }]; #IO_L24P_T3_34 Sch=ar_sda rpio_00_r
 
 ##Raspberry Digital I/O 
-#set_property -dict { PACKAGE_PIN W18   IOSTANDARD LVCMOS33 } [get_ports { rpio_02_r }]; #IO_L22P_T3_34 Sch=rpio_02_r
-set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS33 } [get_ports { rpio_03_r }]; #IO_L22N_T3_34 Sch=rpio_03_r conflicts with ja[6]
-set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS33 } [get_ports { rpio_04_r }]; #IO_L17P_T2_34 Sch=rpio_04_r conflicts with ja[0]
+#set_property -dict { PACKAGE_PIN W18   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_02_r }]; #IO_L22P_T3_34 Sch=rpio_02_r
+set_property -dict { PACKAGE_PIN W19   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_03_r }]; #IO_L22N_T3_34 Sch=rpio_03_r conflicts with ja[6]
+set_property -dict { PACKAGE_PIN Y18   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_04_r }]; #IO_L17P_T2_34 Sch=rpio_04_r conflicts with ja[0]
 set_property -dict { PACKAGE_PIN Y19   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_05_r }]; #IO_L17N_T2_34 Sch=rpio_05_r conflicts with ja[1]
-#set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS33 } [get_ports { rpio_06_r }]; #IO_L22P_T3_13 Sch=rpio_06_r
-#set_property -dict { PACKAGE_PIN U19   IOSTANDARD LVCMOS33 } [get_ports { rpio_07_r }]; #IO_L12P_T1_MRCC_34 Sch=rpio_07_r
-#set_property -dict { PACKAGE_PIN F19   IOSTANDARD LVCMOS33 } [get_ports { rpio_08_r }]; #IO_L12N_T1_MRCC_34 Sch=rpio_08_r
-#set_property -dict { PACKAGE_PIN V10   IOSTANDARD LVCMOS33 } [get_ports { rpio_09_r }]; #IO_L21N_T3_DQS_13 Sch=rpio_09_r
-set_property -dict { PACKAGE_PIN V8    IOSTANDARD LVCMOS33 } [get_ports { rpio_10_r }]; #IO_L15P_T2_DQS_13 Sch=rpio_10_r
-set_property -dict { PACKAGE_PIN W10   IOSTANDARD LVCMOS33 } [get_ports { rpio_11_r }]; #IO_L16P_T2_13 Sch=rpio_11_r
-set_property -dict { PACKAGE_PIN B20   IOSTANDARD LVCMOS33 } [get_ports { rpio_12_r }]; #IO_L1N_T0_AD0N_35 Sch=rpio_12_r
-set_property -dict { PACKAGE_PIN W8    IOSTANDARD LVCMOS33 } [get_ports { rpio_13_r }]; #IO_L15N_T2_DQS_13 Sch=rpio_13_r
-#set_property -dict { PACKAGE_PIN V6    IOSTANDARD LVCMOS33 } [get_ports { rpio_14_r }]; #IO_L22P_T3_13 Sch=rpio_14_r
-set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS33 } [get_ports { rpio_15_r }]; #IO_L13N_T2_MRCC_13 Sch=rpio_15_r
-#set_property -dict { PACKAGE_PIN B19   IOSTANDARD LVCMOS33 } [get_ports { rpio_16_r }]; #IO_L2P_T0_AD8P_35 Sch=rpio_16_r
-set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS33 } [get_ports { rpio_17_r }]; #IO_L11P_T1_SRCC_13 Sch=rpio_17_r
-set_property -dict { PACKAGE_PIN C20   IOSTANDARD LVCMOS33 } [get_ports { rpio_18_r }]; #IO_L1P_T0_AD0P_35 Sch=rpio_18_r
-set_property -dict { PACKAGE_PIN Y8    IOSTANDARD LVCMOS33 } [get_ports { rpio_19_r }]; #IO_L14N_T2_SRCC_13 Sch=rpio_19_r
-#set_property -dict { PACKAGE_PIN A20   IOSTANDARD LVCMOS33 } [get_ports { rpio_20_r }]; #IO_L2N_T0_AD8N_35 Sch=rpio_20_r
-#set_property -dict { PACKAGE_PIN Y9    IOSTANDARD LVCMOS33 } [get_ports { rpio_21_r }]; #IO_L14P_T2_SRCC_13 Sch=rpio_21_r
-#set_property -dict { PACKAGE_PIN U8    IOSTANDARD LVCMOS33 } [get_ports { rpio_22_r }]; #IO_L17N_T2_13 Sch=rpio_22_r
-set_property -dict { PACKAGE_PIN W6    IOSTANDARD LVCMOS33 } [get_ports { rpio_23_r }]; #IO_IO_L22N_T3_13 Sch=rpio_23_r
-set_property -dict { PACKAGE_PIN Y7    IOSTANDARD LVCMOS33 } [get_ports { rpio_24_r }]; #IO_L13P_T2_MRCC_13 Sch=rpio_24_r
-#set_property -dict { PACKAGE_PIN F20   IOSTANDARD LVCMOS33 } [get_ports { rpio_25_r }]; #IO_L15N_T2_DQS_AD12N_35 Sch=rpio_25_r
-#set_property -dict { PACKAGE_PIN W9    IOSTANDARD LVCMOS33 } [get_ports { rpio_26_r }]; #IO_L16N_T2_13 Sch=rpio_26_r
-#set_property -dict { PACKAGE_PIN Y16   IOSTANDARD LVCMOS33 } [get_ports { rpio_sd_r }]; #IO_L7P_T1_34 Sch=rpio_sd_r
-#set_property -dict { PACKAGE_PIN Y17   IOSTANDARD LVCMOS33 } [get_ports { rpio_sc_r }]; #IO_L7N_T1_34 Sch=rpio_sc_r
+#set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_06_r }]; #IO_L22P_T3_13 Sch=rpio_06_r
+#set_property -dict { PACKAGE_PIN U19   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_07_r }]; #IO_L12P_T1_MRCC_34 Sch=rpio_07_r
+#set_property -dict { PACKAGE_PIN F19   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_08_r }]; #IO_L12N_T1_MRCC_34 Sch=rpio_08_r
+#set_property -dict { PACKAGE_PIN V10   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_09_r }]; #IO_L21N_T3_DQS_13 Sch=rpio_09_r
+set_property -dict { PACKAGE_PIN V8    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_10_r }]; #IO_L15P_T2_DQS_13 Sch=rpio_10_r
+set_property -dict { PACKAGE_PIN W10   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_11_r }]; #IO_L16P_T2_13 Sch=rpio_11_r
+set_property -dict { PACKAGE_PIN B20   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_12_r }]; #IO_L1N_T0_AD0N_35 Sch=rpio_12_r
+set_property -dict { PACKAGE_PIN W8    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_13_r }]; #IO_L15N_T2_DQS_13 Sch=rpio_13_r
+#set_property -dict { PACKAGE_PIN V6    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_14_r }]; #IO_L22P_T3_13 Sch=rpio_14_r
+set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_15_r }]; #IO_L13N_T2_MRCC_13 Sch=rpio_15_r
+#set_property -dict { PACKAGE_PIN B19   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_16_r }]; #IO_L2P_T0_AD8P_35 Sch=rpio_16_r
+set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_17_r }]; #IO_L11P_T1_SRCC_13 Sch=rpio_17_r
+set_property -dict { PACKAGE_PIN C20   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_18_r }]; #IO_L1P_T0_AD0P_35 Sch=rpio_18_r
+set_property -dict { PACKAGE_PIN Y8    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_19_r }]; #IO_L14N_T2_SRCC_13 Sch=rpio_19_r
+#set_property -dict { PACKAGE_PIN A20   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_20_r }]; #IO_L2N_T0_AD8N_35 Sch=rpio_20_r
+#set_property -dict { PACKAGE_PIN Y9    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_21_r }]; #IO_L14P_T2_SRCC_13 Sch=rpio_21_r
+#set_property -dict { PACKAGE_PIN U8    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_22_r }]; #IO_L17N_T2_13 Sch=rpio_22_r
+set_property -dict { PACKAGE_PIN W6    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_23_r }]; #IO_IO_L22N_T3_13 Sch=rpio_23_r
+set_property -dict { PACKAGE_PIN Y7    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_24_r }]; #IO_L13P_T2_MRCC_13 Sch=rpio_24_r
+#set_property -dict { PACKAGE_PIN F20   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_25_r }]; #IO_L15N_T2_DQS_AD12N_35 Sch=rpio_25_r
+#set_property -dict { PACKAGE_PIN W9    IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_26_r }]; #IO_L16N_T2_13 Sch=rpio_26_r
+#set_property -dict { PACKAGE_PIN Y16   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_sd_r }]; #IO_L7P_T1_34 Sch=rpio_sd_r
+#set_property -dict { PACKAGE_PIN Y17   IOSTANDARD LVCMOS33 SLEW SLOW DRIVE 4 } [get_ports { rpio_sc_r }]; #IO_L7N_T1_34 Sch=rpio_sc_r
 
 ##HDMI Rx
 #set_property -dict { PACKAGE_PIN H17   IOSTANDARD LVCMOS33 } [get_ports { hdmi_rx_cec }]; #IO_L13N_T2_MRCC_35 Sch=hdmi_rx_cec
