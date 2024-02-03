@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2024-01-30 by mza and makiko
+// last updated 2024-02-02 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -317,11 +317,12 @@ module clock_out_test #(
 	input [3:0] btn, // buttons
 	input [1:0] sw, // switches
 	output [3:0] led,
+	output led4_g,
 //	output hdmi_rx_cec, // sysclock out (single-ended because of TMDS/LVDS shenanigans on pynq board)
 //	output hdmi_tx_cec, // dummy data
 	output ar_sda, // rpio_00_r tok_a_b2f input
 	output ar_scl, // rpio_01_r tok_b_m2f input
-//	output rpio_02_r, // single-ended sysclk
+	output rpio_02_r, // single-ended sysclk
 	output rpio_03_r, // pclk_m
 	output rpio_04_r, // pclk_t
 	output rpio_05_r, // tok_a_f2t
@@ -333,7 +334,7 @@ module clock_out_test #(
 	output rpio_11_r, // tok_b_f2m
 	output rpio_12_r, // sync
 	inout rpio_13_r, // sda
-//	output rpio_14_r, // trig_top
+	output rpio_14_r, // trig_top
 	output rpio_15_r, // sclk
 //	output rpio_16_r, // dat_b_m2f
 	output rpio_17_r, // gpio17
@@ -396,7 +397,7 @@ module clock_out_test #(
 	// RPI --------------------------------------
 	wire tok_a_b2f = ar_sda; // rpio_00_r input to fpga
 	wire tok_b_m2f = ar_scl; // rpio_01_r
-//	assign rpio_02_r = sysclk; // single-ended sysclk
+	assign rpio_02_r = sysclk; // single-ended sysclk
 	assign rpio_03_r = actual_pclk_m; // output to middle alpha
 	assign rpio_04_r = actual_pclk_t;
 	assign rpio_05_r = tok_a_f2t;
@@ -505,8 +506,8 @@ module clock_out_test #(
 			.CLKOUT2_DIVIDE(10), // 102
 			.CLKOUT3_DIVIDE(9),  // 114
 			.CLKOUT4_DIVIDE(8),  // 128
-			.CLKOUT5_DIVIDE(1), // 1200
-			.CLKOUT6_DIVIDE(1)  // 1200
+			.CLKOUT5_DIVIDE(1), // 1024
+			.CLKOUT6_DIVIDE(1)  // 1024
 				) mymmcm0 (
 			.clock1_in(clock), .reset(reset), .locked(mmcm_locked0),
 			.clock0_out_p(c0), .clock0_out_n(), .clock1_out_p(c1), .clock1_out_n(),
@@ -519,8 +520,8 @@ module clock_out_test #(
 			.CLKOUT2_DIVIDE(5), // 205
 			.CLKOUT3_DIVIDE(4), // 256
 			.CLKOUT4_DIVIDE(4), // 256
-			.CLKOUT5_DIVIDE(1), // 1200
-			.CLKOUT6_DIVIDE(1)  // 1200
+			.CLKOUT5_DIVIDE(1), // 1024
+			.CLKOUT6_DIVIDE(1)  // 1024
 				) mymmcm1 (
 			.clock1_in(clock), .reset(reset), .locked(mmcm_locked1),
 			.clock0_out_p(c5), .clock0_out_n(), .clock1_out_p(c6), .clock1_out_n(),
@@ -546,6 +547,24 @@ module clock_out_test #(
 		BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_g (.I0(cf), .I1(c7), .S(select_buffered[6]), .O(cg));
 		BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_h (.I0(cg), .I1(c8), .S(select_buffered[7]), .O(ch));
 		BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel   (.I0(ch), .I1(c9), .S(select_buffered[8]), .O(sysclk));
+	end else if (1) begin // useful for pcb1 that can only do single-ended sysclk (up to ~30 MHz)
+		wire mmcm_locked0;
+		MMCM_advanced #(
+			.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.24),
+			.CLKOUT0_DIVIDE(34), //  30 MHz
+			.CLKOUT1_DIVIDE(1), // 1024
+			.CLKOUT2_DIVIDE(1), // 1024
+			.CLKOUT3_DIVIDE(1), // 1024
+			.CLKOUT4_DIVIDE(1), // 1024
+			.CLKOUT5_DIVIDE(1), // 1024
+			.CLKOUT6_DIVIDE(1)  // 1024
+				) mymmcm0 (
+			.clock1_in(clock), .reset(reset), .locked(mmcm_locked0),
+			.clock0_out_p(c0), .clock0_out_n(), .clock1_out_p(c1), .clock1_out_n(),
+			.clock2_out_p(c2), .clock2_out_n(), .clock3_out_p(c3), .clock3_out_n(),
+			.clock4_out(c4), .clock5_out(), .clock6_out());
+		assign sysclk = c0;
+		assign led4_g = mmcm_locked0;
 	end else begin
 		assign sysclk = clock;
 	end
@@ -572,29 +591,38 @@ module clock_out_test #(
 	localparam BUTTON_PICKOFF = 6;
 	reg [BUTTON_PICKOFF:0] button1_pipeline = 0;
 	reg [BUTTON_PICKOFF:0] button2_pipeline = 0;
+	reg [BUTTON_PICKOFF:0] button3_pipeline = 0;
 	reg startup_sequence_1 = 0;
 	reg startup_sequence_2 = 0;
+	reg startup_sequence_3 = 0;
 	always @(posedge sysclk) begin
 		if (reset) begin
 			button1_pipeline <= 0;
 			button2_pipeline <= 0;
+			button3_pipeline <= 0;
 			startup_sequence_1 <= 0;
 			startup_sequence_2 <= 0;
+			startup_sequence_3 <= 0;
 		end else begin
 			startup_sequence_1 <= 0;
 			startup_sequence_2 <= 0;
+			startup_sequence_3 <= 0;
 			if (button1_pipeline[BUTTON_PICKOFF:BUTTON_PICKOFF-1]==2'b01) begin
 				startup_sequence_1 <= 1;
 			end
 			if (button2_pipeline[BUTTON_PICKOFF:BUTTON_PICKOFF-1]==2'b01) begin
 				startup_sequence_2 <= 1;
 			end
+			if (button3_pipeline[BUTTON_PICKOFF:BUTTON_PICKOFF-1]==2'b01) begin
+				startup_sequence_3 <= 1;
+			end
 			button1_pipeline <= { button1_pipeline[BUTTON_PICKOFF-1:0], btn[1] };
 			button2_pipeline <= { button2_pipeline[BUTTON_PICKOFF-1:0], btn[2] };
+			button3_pipeline <= { button3_pipeline[BUTTON_PICKOFF-1:0], btn[3] };
 		end
 	end
 	wire trig;
-	alphav2_control alpv2 (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	alphav2_control alpv2 (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 	assign trig_top = trig;
 	//assign trig_mid = sw[0] ? trig : 1'b0; // trig_mid is on a 3.3V bank but only ever reaches 200mV
 	assign trig_mid = 1'b0;
@@ -606,6 +634,7 @@ module alphav2_control_tb;
 	reg reset = 1;
 	reg startup_sequence_1 = 0;
 	reg startup_sequence_2 = 0;
+	reg startup_sequence_3 = 0;
 	wire sync, dreset, tok_a_f2t;
 	wire scl, sda_in, sda_out, sin, pclk, sclk, trig_top;
 	initial begin
@@ -626,66 +655,77 @@ module alphav2_control_tb;
 		clock <= ~clock;
 		#2;
 	end
-	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
+	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
 endmodule
 
 module alphav2_control (
-	input clock, reset, startup_sequence_1, startup_sequence_2,
+	input clock, reset, startup_sequence_1, startup_sequence_2, startup_sequence_3,
 	input sda_in,
 	input [11:0] CMPbias, ISEL, SBbias, DBbias,
 	output reg sync, dreset, tok_a_f2t, scl, sda_out, sin, pclk, sclk, trig_top
 );
 	reg [31:0] counter1 = 0;
 	reg [31:0] counter2 = 0;
-	reg mode1 = 0;
+	reg [31:0] counter3 = 0;
+	reg mode3 = 0;
 	reg mode2 = 0;
-//	reg dunno = 0;
+	reg mode1 = 0;
 	localparam TIMING_CONSTANT = 100; // 20=bad; 70=bad; 100=good; 150=bad; 200=worse
 	localparam ADC_CONVERSION_TIME = 2*4096;
-	//localparam EXTRA_TIME = 105000;
+	always @(posedge clock) begin
+		if (reset) begin
+			counter3 <= 0;
+			sync <= 0;
+			dreset <= 0;
+			mode3 <= 0;
+		end else begin
+			counter3 <= counter3 + 1'b1;
+			if (mode3==1'b1) begin
+				if (1*TIMING_CONSTANT==counter3) begin
+					dreset <= 1'b1;
+				end else if (2*TIMING_CONSTANT==counter3) begin
+					dreset <= 0;
+				end else if (3*TIMING_CONSTANT==counter3) begin
+					sync <= 1'b1;
+				end else if (4*TIMING_CONSTANT==counter3) begin
+					sync <= 0;
+				end else if (5*TIMING_CONSTANT==counter3) begin
+					mode3 <= 1'b0;
+				end else begin
+				end
+			end
+			if (startup_sequence_3) begin
+				counter3 <= 0;
+				sync <= 0;
+				dreset <= 0;
+				mode3 <= 1'b1;
+			end
+		end
+	end
 	always @(posedge clock) begin
 		if (reset) begin
 			counter1 <= 0;
-			sync <= 0;
-			dreset <= 0;
 			tok_a_f2t <= 0;
 			trig_top <= 0;
-//			dunno <= 0;
 			mode1 <= 0;
 		end else begin
 			counter1 <= counter1 + 1'b1;
-//			dunno <= 0;
 			if (mode1==1'b1) begin
-				if (1*TIMING_CONSTANT<counter1 & counter1<2*TIMING_CONSTANT) begin
-					dreset <= 1'b1;
-				end else if (2*TIMING_CONSTANT<counter1 & counter1<3*TIMING_CONSTANT) begin
-					dreset <= 0;
-				end else if (3*TIMING_CONSTANT<counter1 & counter1<4*TIMING_CONSTANT) begin
-					sync <= 1'b1;
-				end else if (4*TIMING_CONSTANT<counter1 & counter1<5*TIMING_CONSTANT) begin
-					sync <= 0;
-				end else if (5*TIMING_CONSTANT<counter1 & counter1<6*TIMING_CONSTANT) begin
-					tok_a_f2t <= 1'b1;
-				end else if (6*TIMING_CONSTANT<counter1 & counter1<7*TIMING_CONSTANT) begin
-					tok_a_f2t <= 0;
-				end else if (7*TIMING_CONSTANT<counter1 & counter1<8*TIMING_CONSTANT) begin
+				if (1*TIMING_CONSTANT==counter1) begin
 					trig_top <= 1'b1;
-				end else if (8*TIMING_CONSTANT<counter1 & counter1<9*TIMING_CONSTANT+ADC_CONVERSION_TIME) begin
+				end else if (2*TIMING_CONSTANT==counter1) begin
 					trig_top <= 0;
-				end else if (9*TIMING_CONSTANT+ADC_CONVERSION_TIME<counter1 & counter1<10*TIMING_CONSTANT+ADC_CONVERSION_TIME) begin
+				end else if (3*TIMING_CONSTANT+ADC_CONVERSION_TIME==counter1) begin
 					tok_a_f2t <= 1'b1;
-				end else if (10*TIMING_CONSTANT+ADC_CONVERSION_TIME<counter1 & counter1<11*TIMING_CONSTANT+ADC_CONVERSION_TIME) begin
+				end else if (4*TIMING_CONSTANT+ADC_CONVERSION_TIME==counter1) begin
 					tok_a_f2t <= 0;
-				end else if (11*TIMING_CONSTANT+ADC_CONVERSION_TIME<counter1) begin
+				end else if (5*TIMING_CONSTANT+ADC_CONVERSION_TIME==counter1) begin
 					mode1 <= 1'b0;
-//				end else begin
-//					dunno <= 1;
+				end else begin
 				end
 			end
 			if (startup_sequence_1) begin
 				counter1 <= 0;
-				sync <= 0;
-				dreset <= 0;
 				tok_a_f2t <= 0;
 				trig_top <= 0;
 				mode1 <= 1'b1;
@@ -827,11 +867,21 @@ module alphav2_control (
 					sclk <= 1'b1;
 				end else if (48*LEGACY_SERIAL_CONSTANT==counter2) begin
 					sclk <= 1'b0;
+				end else if (49*LEGACY_SERIAL_CONSTANT==counter2) begin
+					sin <= 1'b0;
 				end else if (50*LEGACY_SERIAL_CONSTANT==counter2) begin
 					pclk <= 1'b1;
-				end else if (61*LEGACY_SERIAL_CONSTANT==counter2) begin
+				end else if (63*LEGACY_SERIAL_CONSTANT==counter2) begin
 					pclk <= 1'b0;
-				end else if (62*LEGACY_SERIAL_CONSTANT==counter2) begin
+				end else if (64*LEGACY_SERIAL_CONSTANT==counter2) begin
+					sin <= 1'b1;
+				end else if (65*LEGACY_SERIAL_CONSTANT==counter2) begin
+					pclk <= 1'b1;
+				end else if (78*LEGACY_SERIAL_CONSTANT==counter2) begin
+					pclk <= 1'b0;
+				end else if (79*LEGACY_SERIAL_CONSTANT==counter2) begin
+					sin <= 1'b0;
+				end else if (81*LEGACY_SERIAL_CONSTANT==counter2) begin
 					if (word_counter==2'b11) begin
 						mode2 <= 1'b0;
 					end else begin
