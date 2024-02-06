@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2024-02-02 by mza and makiko
+// last updated 2024-02-06 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -362,7 +362,8 @@ module clock_out_test #(
 //	inout hdmi_rx_sda // 
 );
 	//wire [3:0] rot = { jb[7], jb[3], jb[1], jb[0] }; // as it should be {7,6,5,4,3,2,1,0}
-	wire [3:0] rot = { jb[3], jb[1], jb[0], jb[4] }; // pmod 0.05" breakout board has different wiring {6,4,2,0,7,5,3,1}
+	//wire [3:0] rot = { jb[3], jb[1], jb[0], jb[4] }; // pmod 0.05" breakout board has different wiring {6,4,2,0,7,5,3,1}
+	wire [3:0] rot = 4'hb; // 79 us ramp
 	wire pclk, pclk_t, pclk_m, pclk_b, sin, sclk;
 	wire sda;
 	wire sda_in;
