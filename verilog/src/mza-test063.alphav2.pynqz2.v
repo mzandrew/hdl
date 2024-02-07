@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2024-02-06 by mza and makiko
+// last updated 2024-02-07 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -554,9 +554,9 @@ module clock_out_test #(
 	end else if (1) begin // useful for pcb1 that can only do single-ended sysclk (up to ~30 MHz)
 		wire mmcm_locked0;
 		MMCM_advanced #(
-			.CLOCK1_PERIOD_NS(10.0), .D(1), .M(9.6),
-			.CLKOUT0_DIVIDE(32), //  30 MHz
-			.CLKOUT1_DIVIDE(32*4), // 7.5 MHz
+			.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.0),
+			.CLKOUT0_DIVIDE(24.0), // 41.667 MHz
+			.CLKOUT1_DIVIDE(24*4), // 10.416 MHz
 			.CLKOUT2_DIVIDE(1), // 1024
 			.CLKOUT3_DIVIDE(1), // 1024
 			.CLKOUT4_DIVIDE(1), // 1024
