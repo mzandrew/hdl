@@ -310,7 +310,7 @@ module clock_out_test #(
 ) (
 //	input sysclk, // unreliable 125 MHz, comes from RTL8211 (ethernet) via 50 MHz osc
 //	input [5:4] jb, // pmod_osc pmod_port_B
-	input [7:0] jb, // PMODB
+	output [7:0] jb, // PMODB
 	input [5:4] ja, // 100.0 MHz, comes from PMODA
 //	output [3:2] jc, // ja[3] is the clock output, renamed jc here for verilog in/out reasons
 //	input [7:6] ja,
@@ -320,8 +320,8 @@ module clock_out_test #(
 	output led4_g,
 //	output hdmi_rx_cec, // sysclock out (single-ended because of TMDS/LVDS shenanigans on pynq board)
 //	output hdmi_tx_cec, // dummy data
-	output ar_sda, // rpio_00_r tok_a_b2f input
-	output ar_scl, // rpio_01_r tok_b_m2f input
+	output rpio_sd_r, // rpio_00_r tok_a_b2f input
+	output rpio_sc_r, // rpio_01_r tok_b_m2f input
 	output rpio_02_r, // single-ended sysclk
 	output rpio_03_r, // pclk_m
 	output rpio_04_r, // pclk_t
@@ -336,7 +336,7 @@ module clock_out_test #(
 	inout rpio_13_r, // sda
 	output rpio_14_r, // trig_top
 	output rpio_15_r, // sclk
-//	output rpio_16_r, // dat_b_m2f
+//	input rpio_16_r, // dat_b_m2f
 	output rpio_17_r, // gpio17
 	output rpio_18_r, // sin
 	output rpio_19_r, // scl
@@ -345,9 +345,9 @@ module clock_out_test #(
 //	output rpio_22_r, // sstclk
 	output rpio_23_r, // gpio23 / auxtrig
 	output rpio_24_r, // trig_mid // driven by SN65EPT23; also goes to CT5TEA
-//	output rpio_25_r, // t_shout ct5tea
+//	input rpio_25_r, // t_shout ct5tea
 //	output rpio_26_r, // dat_b_f2m
-//	output rpio_27_r, // dat_a_t2f
+	input rpio_27_r, // dat_a_t2f
 	output hdmi_tx_clk_p, // differential sysclk
 	output hdmi_tx_clk_n,
 	output hdmi_rx_clk_p, // differential sstclk
@@ -364,6 +364,8 @@ module clock_out_test #(
 	//wire [3:0] rot = { jb[7], jb[3], jb[1], jb[0] }; // as it should be {7,6,5,4,3,2,1,0}
 	//wire [3:0] rot = { jb[3], jb[1], jb[0], jb[4] }; // pmod 0.05" breakout board has different wiring {6,4,2,0,7,5,3,1}
 	wire [3:0] rot = 4'hb; // 79 us ramp
+	wire nclk;
+//	assign jb[4] = nclk;
 	wire pclk, pclk_t, pclk_m, pclk_b, sin, sclk;
 	wire sda;
 	wire sda_in;
@@ -390,14 +392,15 @@ module clock_out_test #(
 	wire dat_b_m2f;
 	IBUFDS ibuf_dat_b_m2f (.I(hdmi_rx_d_p[0]), .IB(hdmi_rx_d_n[0]), .O(dat_b_m2f));
 	wire dat_a_t2f;
-	IBUFDS ibuf_dat_a_t2f (.I(hdmi_rx_d_p[1]), .IB(hdmi_rx_d_n[1]), .O(dat_a_t2f));
+	assign dat_a_t2f = rpio_27_r;
+//	IBUFDS ibuf_dat_a_t2f (.I(hdmi_rx_d_p[1]), .IB(hdmi_rx_d_n[1]), .O(dat_a_t2f));
 	wire dat_a_f2b;
 	OBUFDS obuf_dat_a_f2b (.I(dat_a_f2b), .O(hdmi_tx_d_p[0]), .OB(hdmi_tx_d_n[0]));
 	wire dat_b_f2m;                     
 	OBUFDS obuf_dat_b_f2m (.I(dat_b_f2m), .O(hdmi_tx_d_p[1]), .OB(hdmi_tx_d_n[1]));
 	// RPI --------------------------------------
-	wire tok_a_b2f = ar_sda; // rpio_00_r input to fpga
-	wire tok_b_m2f = ar_scl; // rpio_01_r
+	wire tok_a_b2f = rpio_sd_r; // rpio_00_r input to fpga
+	wire tok_b_m2f = rpio_sc_r; // rpio_01_r
 	assign rpio_02_r = sysclk; // single-ended sysclk
 	assign rpio_03_r = actual_pclk_m; // output to middle alpha
 	assign rpio_04_r = actual_pclk_t;
@@ -551,9 +554,9 @@ module clock_out_test #(
 	end else if (1) begin // useful for pcb1 that can only do single-ended sysclk (up to ~30 MHz)
 		wire mmcm_locked0;
 		MMCM_advanced #(
-			.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.24),
-			.CLKOUT0_DIVIDE(34), //  30 MHz
-			.CLKOUT1_DIVIDE(1), // 1024
+			.CLOCK1_PERIOD_NS(10.0), .D(1), .M(9.6),
+			.CLKOUT0_DIVIDE(32), //  30 MHz
+			.CLKOUT1_DIVIDE(32*4), // 7.5 MHz
 			.CLKOUT2_DIVIDE(1), // 1024
 			.CLKOUT3_DIVIDE(1), // 1024
 			.CLKOUT4_DIVIDE(1), // 1024
@@ -566,6 +569,7 @@ module clock_out_test #(
 			.clock4_out(c4), .clock5_out(), .clock6_out());
 		assign sysclk = c0;
 		assign led4_g = mmcm_locked0;
+		assign nclk = c1;
 	end else begin
 		assign sysclk = clock;
 	end
@@ -573,6 +577,17 @@ module clock_out_test #(
 	always @(posedge clock) begin
 		rot_buffered <= rot;
 	end
+	wire header;
+	wire [3:0] nybble;
+	wire [1:0] nybble_counter;
+	wire [15:0] data_word;
+	wire msn; // most significant nybble
+	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .dat_a_t2f(dat_a_t2f), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
+	assign jb[3:0] = nybble;
+	assign jb[4] = msn;
+	assign jb[5] = 0;
+	assign jb[6] = header;
+	assign jb[7] = 0;
 	wire [3:0] CMPbias_MSN = 4'h8;
 	wire [3:0] ISEL_MSN    = rot_buffered;
 	wire [3:0] SBbias_MSN  = 4'h8;
@@ -623,14 +638,16 @@ module clock_out_test #(
 		end
 	end
 	wire trig;
-	alphav2_control alpv2 (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	alpha_control alpha_control (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 	assign trig_top = trig;
 	//assign trig_mid = sw[0] ? trig : 1'b0; // trig_mid is on a 3.3V bank but only ever reaches 200mV
 	assign trig_mid = 1'b0;
 	assign trig_bot = sw[1] ? trig : 1'b0;
 endmodule
 
-module alphav2_control_tb;
+module alpha_control_tb;
+	localparam half_clock_period = 4;
+	localparam clock_period = 2*half_clock_period;
 	reg clock = 0;
 	reg reset = 1;
 	reg startup_sequence_1 = 0;
@@ -639,27 +656,23 @@ module alphav2_control_tb;
 	wire sync, dreset, tok_a_f2t;
 	wire scl, sda_in, sda_out, sin, pclk, sclk, trig_top;
 	initial begin
-		reset <= 1;
-		#101;
-		reset <= 0;
+		reset <= 1; #101; reset <= 0;
 		#100;
-		startup_sequence_1 <= 1;
-		#4;
-		startup_sequence_1 <= 0;
+		startup_sequence_3 <= 1; #half_clock_period; startup_sequence_3 <= 0;
+		#100;
+		startup_sequence_2 <= 1; #half_clock_period; startup_sequence_2 <= 0;
 		#5000;
-		startup_sequence_2 <= 1;
-		#4;
-		startup_sequence_2 <= 0;
+		startup_sequence_1 <= 1; #half_clock_period; startup_sequence_1 <= 0;
 		#400;
 	end
 	always begin
 		clock <= ~clock;
-		#2;
+		#half_clock_period;
 	end
-	alphav2_control alpv2 (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
+	alpha_control alpha_control (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .sync(sync), .dreset(dreset), .tok_a_f2t(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
 endmodule
 
-module alphav2_control (
+module alpha_control (
 	input clock, reset, startup_sequence_1, startup_sequence_2, startup_sequence_3,
 	input sda_in,
 	input [11:0] CMPbias, ISEL, SBbias, DBbias,
@@ -924,5 +937,111 @@ module alphav2_control (
 //			end
 		end
 	end
+endmodule
+
+module alpha_readout_tb;
+	localparam half_clock_period = 16;
+	localparam clock_period = 2*half_clock_period;
+	reg clock = 0;
+	reg reset = 1;
+	reg dat_a_t2f = 0;
+	wire header;
+	wire [3:0] nybble;
+	wire [1:0] nybble_counter;
+	wire [15:0] data_word;
+	wire msn; // most significant nybble
+	initial begin
+		reset <= 1;
+		#100;
+		reset <= 0;
+		#100;
+		// blah
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period;
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period;
+		dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
+		dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
+		// 0xa
+		dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
+		// 0x1
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period;
+		// 0xf
+		dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period;
+		// 0xa
+		dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
+		// blah
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
+		// blah
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
+		// blah
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
+		// blah
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
+		// 0x3
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period;
+		// 0x4
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
+		// 0x5
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period;
+		// 0x6
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
+		// blah
+		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
+	end
+	alpha_readout alpha_readout (.clock(clock), .reset(reset), .dat_a_t2f(dat_a_t2f), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
+	always begin
+		clock <= ~clock;
+		#half_clock_period;
+	end
+endmodule
+
+module alpha_readout (
+	input clock, reset, dat_a_t2f,
+	output [3:0] nybble,
+	output reg header = 0,
+	output msn,
+	output [1:0] nybble_counter,
+	output reg [15:0] data_word = 0
+);
+	localparam DATA_WIDTH = 16;
+	localparam METASTABILITY_BUFFER_SIZE = 3;
+	localparam EXTRA_WIDTH = 4;
+	localparam SR_HIGH_BIT = DATA_WIDTH + METASTABILITY_BUFFER_SIZE + EXTRA_WIDTH;
+	localparam SR_PICKOFF = SR_HIGH_BIT - 4;
+	reg [SR_HIGH_BIT:0] data_sr = 0;
+	reg [3:0] data_bit_counter = 0;
+	reg [12:0] data_word_counter = 15;
+	wire [15:0] ALFA = 16'ha1fa;
+	always @(posedge clock) begin
+		if (reset) begin
+			data_bit_counter <= 15;
+			data_word_counter <= 0;
+			data_word <= 0;
+			header <= 0;
+		end else begin
+			data_sr <= { data_sr[SR_HIGH_BIT-1:0], dat_a_t2f };
+			if (data_bit_counter==0) begin
+				data_bit_counter <= 15;
+				data_word <= data_sr[SR_PICKOFF-1-:16];
+				data_word_counter <= data_word_counter + 1'b1;
+				header <= 0;
+			end else begin
+				data_bit_counter <= data_bit_counter - 1'b1;
+			end
+			if (data_sr[SR_PICKOFF-1-:16]==ALFA) begin // WARNING: this might accidentally re-bitslip align on data 0x1fa from channel 0xa
+				data_bit_counter <= 15;
+				data_word_counter <= 0;
+				header <= 1;
+				data_word <= data_sr[SR_PICKOFF-1-:16];
+			end
+		end
+	end
+	assign msn = nybble_counter==3 ? 1'b1 : 1'b0;
+	assign nybble_counter = data_bit_counter[3:2];
+	wire [3:0] nyb [3:0];
+	assign nyb[0] = data_word[3:0];
+	assign nyb[1] = data_word[7:4];
+	assign nyb[2] = data_word[11:8];
+	assign nyb[3] = data_word[15:12];
+	assign nybble = nyb[nybble_counter];
 endmodule
 
