@@ -453,7 +453,7 @@ module clock_out_test #(
 //	assign trig_mid = 1'b0;
 //	assign trig_bot = 1'b0;
 //	assign sysclk = 1'b0;
-	assign sstclk = 1'b0;
+//	assign sstclk = 1'b0;
 	assign dat_b_f2m = 1'b0;
 	assign dat_a_f2b = 1'b0;
 	assign tok_b_f2m = 1'b0;
@@ -557,7 +557,7 @@ module clock_out_test #(
 			.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.0),
 			.CLKOUT0_DIVIDE(24.0), // 41.667 MHz
 			.CLKOUT1_DIVIDE(24*4), // 10.416 MHz
-			.CLKOUT2_DIVIDE(1), // 1024
+			.CLKOUT2_DIVIDE(10), // 100.0 MHz (for sstclk)
 			.CLKOUT3_DIVIDE(1), // 1024
 			.CLKOUT4_DIVIDE(1), // 1024
 			.CLKOUT5_DIVIDE(1), // 1024
@@ -568,6 +568,7 @@ module clock_out_test #(
 			.clock2_out_p(c2), .clock2_out_n(), .clock3_out_p(c3), .clock3_out_n(),
 			.clock4_out(c4), .clock5_out(), .clock6_out());
 		assign sysclk = c0;
+		assign sstclk = c2;
 		assign led4_g = mmcm_locked0;
 		assign nclk = c1;
 	end else begin
