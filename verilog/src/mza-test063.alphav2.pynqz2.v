@@ -392,8 +392,8 @@ module clock_out_test #(
 	wire dat_b_m2f;
 	IBUFDS ibuf_dat_b_m2f (.I(hdmi_rx_d_p[0]), .IB(hdmi_rx_d_n[0]), .O(dat_b_m2f));
 	wire dat_a_t2f;
-	assign dat_a_t2f = rpio_27_r;
-//	IBUFDS ibuf_dat_a_t2f (.I(hdmi_rx_d_p[1]), .IB(hdmi_rx_d_n[1]), .O(dat_a_t2f));
+//	assign dat_a_t2f = rpio_27_r;
+	IBUFDS ibuf_dat_a_t2f (.I(hdmi_rx_d_p[1]), .IB(hdmi_rx_d_n[1]), .O(dat_a_t2f));
 	wire dat_a_f2b;
 	OBUFDS obuf_dat_a_f2b (.I(dat_a_f2b), .O(hdmi_tx_d_p[0]), .OB(hdmi_tx_d_n[0]));
 	wire dat_b_f2m;                     
