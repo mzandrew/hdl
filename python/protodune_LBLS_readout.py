@@ -3,16 +3,16 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2023-09-29 by mza
+# last updated 2024-02-13 by mza
 
 gui_update_period = 0.2
 
 raw_threshold_scan_filename = "protodune.ampoliros12.raw_threshold_scan"
 thresholds_for_peak_scalers_filename = "protodune.ampoliros12.thresholds_for_peak_scalers"
 threshold_scan_accumulation_time = 0.1
-threshold_voltage_distance_from_peak_to_null = 0.001800
+threshold_voltage_distance_from_peak_to_null = 0.004200
 threshold_step_size_in_volts = 2.5/2**16
-max_number_of_threshold_steps = 100
+max_number_of_threshold_steps = 230
 incidentals = 2
 display_precision_of_hex_counts = 8
 display_precision_of_DAC_voltages = 6
@@ -20,6 +20,9 @@ bump_amount = 0.000250
 
 # typical threshold scan has peak scalers at these voltages:
 # 1.215078 1.214924 1.217697 1.211535 1.212697 1.213695 1.216734 1.218696 1.214115 1.212620 1.218383 1.215811
+
+# set to desired scaler rate results in these voltages (ampoliros revB first article):
+# 1.205999 1.204813 1.199918 1.200357 1.207928 1.203623 1.199567 1.200689 1.200037 1.205867 1.203237 1.203374 
 
 SCREEN_WIDTH = 720
 SCREEN_HEIGHT = 720
@@ -45,6 +48,8 @@ FONT_SIZE_BANKS = 15
 BANKS_X_GAP = 10
 X_POSITION_OF_BANK1_REGISTERS = 100
 Y_POSITION_OF_BANK1_REGISTERS = 250
+X_POSITION_OF_BANK2_REGISTERS = 100
+Y_POSITION_OF_BANK2_REGISTERS = 500
 X_POSITION_OF_BANK6_COUNTERS = 250
 Y_POSITION_OF_BANK6_COUNTERS = 250 + FONT_SIZE_BANKS
 X_POSITION_OF_BANK7_SCALERS = 350
@@ -66,6 +71,8 @@ bank1_register_names.extend(channel_names)
 bank1_register_names.extend([ "trigger_count", "suggested_inversion_map", "hit_counter" ])
 #print(str(bank1_register_names))
 bank1_register_values = [ i for i in range(len(bank1_register_names)) ]
+
+bank2_register_names = [ "hit_mask", "inversion_mask", "desired_trigger_quantity", "trigger_duration_in_word_clocks", "monitor_channel", "reg5", "reg6", "coax_mux[0]", "coax_mux[1]", "coax_mux[2]", "coax_mux[3]" ]
 
 # geometry of protodune LBLS PIN photodiode array:
 #a_in = 0.5 # lattice spacing, in in
@@ -96,6 +103,7 @@ grid_color_bright = (63, 63, 63)
 grid_color_faint = (15, 15, 15)
 
 selection = 0
+coax_mux = [ 0 for i in range(4) ]
 
 # when run as a systemd service, it gets sent a SIGHUP upon pygame.init(), hence this dummy signal handler
 # see https://stackoverflow.com/questions/39198961/pygame-init-fails-when-run-with-systemd
@@ -144,7 +152,7 @@ if should_use_touchscreen:
 import pygame # sudo apt install -y python3-pygame # gets 1.9.6 as of early 2023
 # pip3 install pygame # gets 2.1.2 as of early 2023
 # sudo apt install -y libmad0 libmikmod3 libportmidi0 libsdl-image1.2 libsdl-mixer1.2 libsdl-ttf2.0 libsdl1.2debian
-from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_q, K_BREAK, K_SPACE, K_t, K_c, K_m, K_RIGHTBRACKET, K_LEFTBRACKET
+from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_q, K_BREAK, K_SPACE, K_t, K_c, K_m, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
 from generic import * # hex, eng
 import althea
 BANK_ADDRESS_DEPTH = 13
@@ -252,6 +260,10 @@ def setup():
 		register_name = banks_font.render(bank1_register_names[i], 1, white)
 		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK1_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
 	#for i in range(len(channel_names)):
+	for i in range(len(bank2_register_names)):
+		register_name = banks_font.render(bank2_register_names[i], 1, white)
+		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK2_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK2_REGISTERS+FONT_SIZE_BANKS*i)))
+	#for i in range(len(channel_names)):
 	#	channel_name = banks_font.render(channel_names[i], 1, white)
 	#	screen.blit(channel_name, channel_name.get_rect(center=(X_POSITION_OF_BANK6_COUNTERS+BANKS_X_GAP+channel_name.get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
 	for i in range(COLUMNS):
@@ -320,6 +332,14 @@ def loop():
 				bump_thresholds_higher_by(bump_amount)
 			elif K_LEFTBRACKET==event.key:
 				bump_thresholds_lower_by(bump_amount)
+			elif K_0==event.key:
+				increment_coax_mux(0)
+			elif K_1==event.key:
+				increment_coax_mux(1)
+			elif K_2==event.key:
+				increment_coax_mux(2)
+			elif K_3==event.key:
+				increment_coax_mux(3)
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -335,6 +355,7 @@ def loop():
 			if COLUMNS*ROWS-1<ij:
 				ij = 0
 			update_bank1_registers()
+			update_bank2_registers()
 			update_bank6_counters()
 			update_bank7_scalers()
 			update_ToT()
@@ -395,7 +416,7 @@ def update_bank0_counters():
 def read_bank1_registers():
 	global bank1_register_values
 	bank = 1
-	bank1_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, 16, False)
+	bank1_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank1_register_names), False)
 
 bank1_register_object = [ 0 for i in range(len(bank1_register_names)) ]
 
@@ -412,6 +433,29 @@ def update_bank1_registers():
 			pass
 		bank1_register_object[i] = banks_font.render(hex(bank1_register_values[i], 8, True), False, white)
 		screen.blit(bank1_register_object[i], bank1_register_object[i].get_rect(center=(X_POSITION_OF_BANK1_REGISTERS-bank1_register_object[i].get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
+
+def read_bank2_registers():
+	global bank2_register_values
+	bank = 2
+	bank2_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank2_register_names), False)
+	global coax_mux
+	coax_mux = bank2_register_values[7:7+4]
+
+bank2_register_object = [ 0 for i in range(len(bank2_register_names)) ]
+
+def update_bank2_registers():
+	global bank2_register_object
+	read_bank2_registers()
+	for i in range(len(bank2_register_names)):
+		try:
+			temp_surface = pygame.Surface(bank2_register_object[i].get_size())
+			temp_surface.fill(black)
+			screen.blit(temp_surface, bank2_register_object[i].get_rect(center=(X_POSITION_OF_BANK2_REGISTERS-bank2_register_object[i].get_width()//2,Y_POSITION_OF_BANK2_REGISTERS+FONT_SIZE_BANKS*i)))
+		except Exception as e:
+			#print(str(e))
+			pass
+		bank2_register_object[i] = banks_font.render(hex(bank2_register_values[i], 8, True), False, white)
+		screen.blit(bank2_register_object[i], bank2_register_object[i].get_rect(center=(X_POSITION_OF_BANK2_REGISTERS-bank2_register_object[i].get_width()//2,Y_POSITION_OF_BANK2_REGISTERS+FONT_SIZE_BANKS*i)))
 
 def read_status_register():
 	bank = 1
@@ -445,6 +489,20 @@ def setup_desired_trigger_quantity(quantity):
 def setup_trigger_duration(number_of_word_clocks):
 	bank = 2
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 3, [number_of_word_clocks], False)
+
+def change_coax_mux(channel, mux_value):
+	bank = 2
+	channel &= 0x3
+	mux_value &= 0xf
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 7 + channel, [mux_value], False)
+
+def increment_coax_mux(channel):
+	channel &= 0x3
+	global coax_mux
+	coax_mux[channel] += 1
+	if 0xf<coax_mux[channel]:
+		coax_mux[channel] = 0
+	change_coax_mux(channel, coax_mux[channel])
 
 def clear_something_on_bank2_reg5(bit_number):
 	bank = 2
