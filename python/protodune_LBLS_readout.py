@@ -12,11 +12,12 @@ thresholds_for_peak_scalers_filename = "protodune.ampoliros12.thresholds_for_pea
 threshold_scan_accumulation_time = 0.1
 threshold_voltage_distance_from_peak_to_null = 0.004200
 threshold_step_size_in_volts = 2.5/2**16
-max_number_of_threshold_steps = 230
+max_number_of_threshold_steps = 1000
 incidentals = 2
 display_precision_of_hex_counts = 8
 display_precision_of_DAC_voltages = 6
 bump_amount = 0.000250
+DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = 1.19
 
 # typical threshold scan has peak scalers at these voltages:
 # 1.215078 1.214924 1.217697 1.211535 1.212697 1.213695 1.216734 1.218696 1.214115 1.212620 1.218383 1.215811
@@ -731,16 +732,22 @@ def set_threshold_voltage(channel, voltage):
 	ltc2657.set_voltage_on_channel(address, channel, voltage)
 
 def read_thresholds_for_peak_scalers_file():
-	voltage_at_peak_scaler = [ 0 for i in range(12) ]
-	with open(thresholds_for_peak_scalers_filename, "r") as thresholds_for_peak_scalers_file:
-		string = thresholds_for_peak_scalers_file.read(256)
-		voltage_at_peak_scaler = string.split(" ")
-		voltage_at_peak_scaler = [ i for i in voltage_at_peak_scaler if i!='' ]
-		voltage_at_peak_scaler.remove('\n')
-		voltage_at_peak_scaler = [ float(voltage_at_peak_scaler[k]) for k in range(12) ]
-		for k in range(12):
-			print(str(voltage_at_peak_scaler[k]), end=" ")
-		print("")
+	voltage_at_peak_scaler = [ DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER for i in range(12) ]
+	if not os.path.exists(thresholds_for_peak_scalers_filename):
+		print("threshold file not found")
+		return voltage_at_peak_scaler
+	try:
+		with open(thresholds_for_peak_scalers_filename, "r") as thresholds_for_peak_scalers_file:
+			string = thresholds_for_peak_scalers_file.read(256)
+			voltage_at_peak_scaler = string.split(" ")
+			voltage_at_peak_scaler = [ i for i in voltage_at_peak_scaler if i!='' ]
+			voltage_at_peak_scaler.remove('\n')
+			voltage_at_peak_scaler = [ float(voltage_at_peak_scaler[k]) for k in range(12) ]
+			for k in range(12):
+				print(str(voltage_at_peak_scaler[k]), end=" ")
+			print("")
+	except:
+		print("threshold file exists but is corrupted")
 	return voltage_at_peak_scaler
 
 def prepare_string_to_show_counters_or_scalers(values):
