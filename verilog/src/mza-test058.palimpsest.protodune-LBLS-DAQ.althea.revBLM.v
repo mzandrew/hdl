@@ -1,7 +1,7 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2023-09-15 by mza
+// last updated 2024-02-13 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -17,6 +17,7 @@
 `include "lib/frequency_counter.v"
 
 module top #(
+	parameter ROTATED = 0,
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
@@ -512,10 +513,12 @@ module top #(
 	wire strobe_is_alignedB;
 	wire strobe_is_alignedC;
 	wire strobe_is_alignedD;
+	localparam SPECIAL_A05 = ROTATED ? "C" : "A";
+	localparam SPECIAL_A11 = ROTATED ? "A" : "B";
 	ocyrus_triacontahedron8_split_12_6_6_4_2_BCEinput #(
-		//.SPECIAL_A11("B"), // non-rotated
+		.SPECIAL_A11(SPECIAL_A11),
 		//.SPECIAL_A11("C"), // rotated
-		.SPECIAL_A05("C"), // rotated
+		.SPECIAL_A05(SPECIAL_A05),
 		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE)
 	) orama (
 		.clock_in(clock100), .reset(reset100),
@@ -887,6 +890,7 @@ module top_tb;
 endmodule
 
 module myalthea #(
+	parameter ROTATED = 0,
 	parameter NOTHING = 0
 ) (
 	input clock100_p, clock100_n,
@@ -906,7 +910,7 @@ module myalthea #(
 	a_p, b_p, c_p, d_p, e_p, f_p,
 	g_p, h_p, j_p, k_p, l_p, m_p,
 	a_n, b_n, c_n, d_n, e_n, f_n,
-	g_n, h_n, j_n, k_n, l_n, m_n, 
+	g_n, h_n, j_n, k_n, l_n, m_n,
 	// single-ended IOs (toupee connectors):
 	output
 	n, p, q, r, s, t,
@@ -929,18 +933,12 @@ module myalthea #(
 	//assign led = internal_led;
 	assign coax_led = internal_coax_led;
 //	wire [5:0] diff_pair_left;
-//	if (1==LEFT_DAC_ROTATED) begin
-//		assign { a_p, c_p, d_p, f_p, b_p, e_p } = diff_pair_left; // rotated
-//	end else begin
-//		assign { a_n, c_n, d_n, f_n, b_n, e_n } = diff_pair_left; // flipped
-//	end
 	wire [12:1] signal;
 	wire [12:1] indicator;
 	//assign { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p } = signal;
 	//assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	//assign { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p } = signal;
 //	assign signal = { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p };
-	localparam ROTATED = 1;
 	if (ROTATED) begin
 		IBUFDS ibufds12 (.I(f_p), .IB(f_n), .O(signal[12])); // p141, p142 - near "other"
 		IBUFDS ibufds11 (.I(e_p), .IB(e_n), .O(signal[11])); // p133, p134
@@ -971,7 +969,7 @@ module myalthea #(
 		assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	end
 	top #(
-		.TESTBENCH(0),
+		.TESTBENCH(0), .ROTATED(ROTATED),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
