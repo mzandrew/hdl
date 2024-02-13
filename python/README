@@ -1,3 +1,10 @@
-sudo apt install -y python3-spidev python3-distutils python3-dev
-make
+sudo apt install -y python3-spidev python3-distutils python3-dev libraspberrypi-dev python3-full python3-rpi.gpio python3.11-venv
+python3 -m venv pypath
+cd ../print_string
+../pypath/bin/pip install .
+cd fastgpio
+../pypath/bin/pip install .
+. ./pypath/bin/activate
+pip3 install --upgrade adafruit-python-shell adafruit-blinka python3-rpi.gpio
+pip install pygame spidev adafruit-blinka
 
