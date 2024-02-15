@@ -3,21 +3,22 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-02-13 by mza
+# last updated 2024-02-14 by mza
 
 gui_update_period = 0.2
 
 raw_threshold_scan_filename = "protodune.ampoliros12.raw_threshold_scan"
 thresholds_for_peak_scalers_filename = "protodune.ampoliros12.thresholds_for_peak_scalers"
+thresholds_for_null_scalers_filename = "protodune.ampoliros12.thresholds_for_null_scalers"
 threshold_scan_accumulation_time = 0.1
-threshold_voltage_distance_from_peak_to_null = 0.004200
+DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = 1.203
+GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.004
 threshold_step_size_in_volts = 2.5/2**16
-max_number_of_threshold_steps = 1000
+number_of_threshold_steps = 262
 incidentals = 2
 display_precision_of_hex_counts = 8
 display_precision_of_DAC_voltages = 6
 bump_amount = 0.000250
-DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = 1.19
 
 # typical threshold scan has peak scalers at these voltages:
 # 1.215078 1.214924 1.217697 1.211535 1.212697 1.213695 1.216734 1.218696 1.214115 1.212620 1.218383 1.215811
@@ -153,7 +154,7 @@ if should_use_touchscreen:
 import pygame # sudo apt install -y python3-pygame # gets 1.9.6 as of early 2023
 # pip3 install pygame # gets 2.1.2 as of early 2023
 # sudo apt install -y libmad0 libmikmod3 libportmidi0 libsdl-image1.2 libsdl-mixer1.2 libsdl-ttf2.0 libsdl1.2debian
-from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_q, K_BREAK, K_SPACE, K_t, K_c, K_m, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
+from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_q, K_BREAK, K_SPACE, K_t, K_c, K_m, K_z, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
 from generic import * # hex, eng
 import althea
 BANK_ADDRESS_DEPTH = 13
@@ -329,6 +330,8 @@ def loop():
 				print("channel counters cleared")
 			elif K_m==event.key:
 				set_thresholds_for_this_scaler_rate_during_this_accumulation_time(10, 0.5)
+			elif K_z==event.key:
+				set_thresholds_for_null_scaler()
 			elif K_RIGHTBRACKET==event.key:
 				bump_thresholds_higher_by(bump_amount)
 			elif K_LEFTBRACKET==event.key:
@@ -731,10 +734,39 @@ def set_threshold_voltage(channel, voltage):
 	#print(hex(address) + " " + str(channel))
 	ltc2657.set_voltage_on_channel(address, channel, voltage)
 
+def set_thresholds_for_null_scaler():
+	voltage_at_null_scaler = read_thresholds_for_null_scalers_file()
+	print(prepare_string_with_voltages(voltage_at_null_scaler))
+	for k in range(12):
+		set_threshold_voltage(k, voltage_at_null_scaler[k])
+
+def read_thresholds_for_null_scalers_file():
+	voltage_at_peak_scaler = read_thresholds_for_peak_scalers_file()
+	#print("peak: " + str(voltage_at_peak_scaler))
+	voltage_at_null_scaler = [ voltage_at_peak_scaler[k] - GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL for k in range(12) ]
+	#print("null: " + str(voltage_at_null_scaler))
+	if not os.path.exists(thresholds_for_null_scalers_filename):
+		print("thresholds for null scalers file not found")
+		return voltage_at_null_scaler
+	try:
+		with open(thresholds_for_null_scalers_filename, "r") as thresholds_for_null_scalers_file:
+			string = thresholds_for_null_scalers_file.read(256)
+			voltage_at_null_scaler = string.split(" ")
+			voltage_at_null_scaler = [ i for i in voltage_at_null_scaler if i!='' ]
+			voltage_at_null_scaler.remove('\n')
+			voltage_at_null_scaler = [ float(voltage_at_null_scaler[k]) for k in range(12) ]
+			#print(prepare_string_with_voltages(voltage_at_null_scaler))
+	except:
+		print("threshold for null scalers file exists but is corrupted")
+	#print("null: " + str(voltage_at_null_scaler))
+	return voltage_at_null_scaler
+
 def read_thresholds_for_peak_scalers_file():
 	voltage_at_peak_scaler = [ DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER for i in range(12) ]
 	if not os.path.exists(thresholds_for_peak_scalers_filename):
-		print("threshold file not found")
+		print("threshold for peak scalers file not found; increasing scan range")
+		global number_of_threshold_steps
+		number_of_threshold_steps = 2 * number_of_threshold_steps
 		return voltage_at_peak_scaler
 	try:
 		with open(thresholds_for_peak_scalers_filename, "r") as thresholds_for_peak_scalers_file:
@@ -743,11 +775,10 @@ def read_thresholds_for_peak_scalers_file():
 			voltage_at_peak_scaler = [ i for i in voltage_at_peak_scaler if i!='' ]
 			voltage_at_peak_scaler.remove('\n')
 			voltage_at_peak_scaler = [ float(voltage_at_peak_scaler[k]) for k in range(12) ]
-			for k in range(12):
-				print(str(voltage_at_peak_scaler[k]), end=" ")
-			print("")
+			#print(prepare_string_with_voltages(voltage_at_peak_scaler))
 	except:
-		print("threshold file exists but is corrupted")
+		print("threshold for peak scalers file exists but is corrupted")
+	#print("peak: " + str(voltage_at_peak_scaler))
 	return voltage_at_peak_scaler
 
 def prepare_string_to_show_counters_or_scalers(values):
@@ -802,11 +833,15 @@ def sophisticated_threshold_scan():
 	max_scaler_seen = [ 0 for i in range(12) ]
 	voltage_at_peak_scaler = [ 0 for i in range(12) ]
 	bank = 0
-	voltage_at_peak_scaler = read_thresholds_for_peak_scalers_file()
-	voltage = [ voltage_at_peak_scaler[k] - threshold_voltage_distance_from_peak_to_null for k in range(12) ]
+	voltage_at_null_scaler = read_thresholds_for_null_scalers_file()
+	extra = 0.001
+	voltage = [ voltage_at_null_scaler[k] - extra for k in range(12) ]
+	number_of_unique_voltages = len(set(voltage))
+	print("number_of_unique_voltages: " + str(number_of_unique_voltages))
+	total_hits_seen_so_far_in_this_scan = [ 0 for k in range(12) ]
 	with open(raw_threshold_scan_filename, "w") as raw_threshold_scan_file:
-		for i in range(max_number_of_threshold_steps):
-			#string = ""
+		for i in range(number_of_threshold_steps):
+			string = ""
 			for k in range(12):
 				set_threshold_voltage(k, voltage[k])
 				#string += " %.*f " % (display_precision_of_DAC_voltages, voltage[k])
@@ -814,27 +849,41 @@ def sophisticated_threshold_scan():
 			clear_channel_counters()
 			time.sleep(threshold_scan_accumulation_time)
 			counters = readout_counters()
-			string = prepare_string_to_show_counters_or_scalers(counters)
-			print(string)
-			raw_threshold_scan_file.write(string + "\n")
+			if 1==number_of_unique_voltages:
+				string += " %.*f " % (display_precision_of_DAC_voltages, voltage[k]) # the voltages are potentially different for each channel here, so don't print this unless all voltages are equal
+			string += prepare_string_to_show_counters_or_scalers(counters)
 			for k in range(12):
 				if max_scaler_seen[k]<counters[k]:
 					max_scaler_seen[k] = counters[k]
 					voltage_at_peak_scaler[k] = voltage[k]
+				total_hits_seen_so_far_in_this_scan[k] += counters[k]
+				if total_hits_seen_so_far_in_this_scan[k]<incidentals:
+					voltage_at_null_scaler[k] = voltage[k]
+					string += "*"
+				else:
+					string += " "
+			print(string)
+			raw_threshold_scan_file.write(string + "\n")
 			if 0==i%10:
 				raw_threshold_scan_file.flush()
 			for k in range(12):
 				voltage[k] += threshold_step_size_in_volts
 	with open(thresholds_for_peak_scalers_filename, "w") as thresholds_for_peak_scalers_file:
 		string = prepare_string_with_voltages(voltage_at_peak_scaler)
-		print(string)
+		print("peak: " + string)
 		thresholds_for_peak_scalers_file.write(string + "\n")
+	with open(thresholds_for_null_scalers_filename, "w") as thresholds_for_null_scalers_file:
+		string = prepare_string_with_voltages(voltage_at_null_scaler)
+		print("null: " + string)
+		thresholds_for_null_scalers_file.write(string + "\n")
+	set_thresholds_for_null_scaler()
 
 def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_rate, accumulation_time):
 	span_up = 2
 	span_down = 3
-	voltage_at_peak_scaler = read_thresholds_for_peak_scalers_file()
-	voltage = [ voltage_at_peak_scaler[k] - threshold_voltage_distance_from_peak_to_null/2 for k in range(12) ]
+	target_chi_squared = 9 * (span_up + span_down)**2
+	print("target_chi_squared: " + str(target_chi_squared))
+	voltage = read_thresholds_for_null_scalers_file()
 	stable = False
 	while not stable:
 		for k in range(12):
@@ -844,18 +893,19 @@ def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_ra
 		counters = readout_counters()
 		string = prepare_string_to_show_counters_or_scalers(counters)
 		print(string)
-		out_of_whack = 0
+		chi_squared = 0
 		for k in range(12):
-			out_of_whack += int(math.fabs(desired_rate-counters[k]))
+			chi_squared += (counters[k] - desired_rate)**2
 			if desired_rate<counters[k]+span_down:
 				voltage[k] -= threshold_step_size_in_volts
 			if counters[k]+span_up<desired_rate:
 				voltage[k] += threshold_step_size_in_volts
 		pygame.event.pump()
-		#print(str(out_of_whack))
-		if out_of_whack<12*span_up*span_down:
+		print("chi_squared: " + str(chi_squared))
+		if chi_squared<target_chi_squared:
 			stable = True
 		time.sleep(0.1)
+	print(prepare_string_with_voltages(voltage))
 
 def bump_thresholds_lower_by(offset_voltage):
 	voltage = [ current_threshold_voltage[k] - offset_voltage for k in range(12) ]
