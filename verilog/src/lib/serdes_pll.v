@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2023-08-28 by mza
+// last updated 2024-03-08 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -254,6 +254,97 @@ module iserdes_single8 #(
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
 	);
+endmodule
+
+module iserdes_dodecahedron_input #(
+	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
+	parameter BIT_WIDTH=1, // how many bits come out in parallel
+	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
+	parameter PERIOD = 20.0,
+	parameter DIVIDE = 2,
+	parameter MULTIPLY = 40
+) (
+	input clock_in,
+	output word_clock_out,
+	input reset,
+	output [BIT_DEPTH-1:0] word_out_1, word_out_2, word_out_3, word_out_4, word_out_5, word_out_6, word_out_7, word_out_8, word_out_9, word_out_10, word_out_11, word_out_12,
+	input [12:1] bit_in,
+	output locked
+);
+	wire bit_clock;
+	wire bit_strobe;
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_1  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[1]),  .word_out(word_out_1));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_2  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[2]),  .word_out(word_out_2));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_3  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[3]),  .word_out(word_out_3));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_4  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[4]),  .word_out(word_out_4));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_5  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[5]),  .word_out(word_out_5));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_6  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[6]),  .word_out(word_out_6));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_7  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[7]),  .word_out(word_out_7));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_8  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[8]),  .word_out(word_out_8));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_9  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[9]),  .word_out(word_out_9));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_10 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[10]), .word_out(word_out_10));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_11 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[11]), .word_out(word_out_11));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_12 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[12]), .word_out(word_out_12));
+//	if (SCOPE=="GLOBAL") begin
+		oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+			.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
+			.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
+		);
+//	end else begin
+//	end
+endmodule
+
+module iserdes_icositetrahedron_input #(
+	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
+	parameter BIT_WIDTH=1, // how many bits come out in parallel
+	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
+	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
+	parameter PERIOD = 20.0,
+	parameter DIVIDE = 2,
+	parameter MULTIPLY = 40
+) (
+	input clock_in,
+	output word_clock_out,
+	input reset,
+	output [BIT_DEPTH-1:0] word_out_1a, word_out_2a, word_out_3a, word_out_4a, word_out_5a, word_out_6a, word_out_7a, word_out_8a, word_out_9a, word_out_10a, word_out_11a, word_out_12a,
+	                       word_out_1b, word_out_2b, word_out_3b, word_out_4b, word_out_5b, word_out_6b, word_out_7b, word_out_8b, word_out_9b, word_out_10b, word_out_11b, word_out_12b,
+	input [12:1] bit_in_a, bit_in_b,
+	output locked
+);
+	wire bit_clock;
+	wire bit_strobe;
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_1a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[1]),  .word_out(word_out_1a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_2a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[2]),  .word_out(word_out_2a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_3a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[3]),  .word_out(word_out_3a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_4a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[4]),  .word_out(word_out_4a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_5a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[5]),  .word_out(word_out_5a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_6a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[6]),  .word_out(word_out_6a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_7a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[7]),  .word_out(word_out_7a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_8a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[8]),  .word_out(word_out_8a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_9a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[9]),  .word_out(word_out_9a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_10a (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[10]), .word_out(word_out_10a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_11a (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[11]), .word_out(word_out_11a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_12a (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[12]), .word_out(word_out_12a));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_1b  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[1]),  .word_out(word_out_1b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_2b  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[2]),  .word_out(word_out_2b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_3b  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[3]),  .word_out(word_out_3b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_4b  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[4]),  .word_out(word_out_4b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_5b  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[5]),  .word_out(word_out_5b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_6b  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[6]),  .word_out(word_out_6b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_7b  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[7]),  .word_out(word_out_7b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_8b  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[8]),  .word_out(word_out_8b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_9b  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[9]),  .word_out(word_out_9b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_10b (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[10]), .word_out(word_out_10b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_11b (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[11]), .word_out(word_out_11b));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_12b (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_b[12]), .word_out(word_out_12b));
+//	if (SCOPE=="GLOBAL") begin
+		oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
+			.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
+			.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
+		);
+//	end else begin
+//	end
 endmodule
 
 //	ocyrus_single8_inner #(.BIT_RATIO(8)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
