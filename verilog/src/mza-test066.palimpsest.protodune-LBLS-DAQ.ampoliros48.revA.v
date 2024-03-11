@@ -15,7 +15,161 @@
 `include "lib/edge_to_pulse.v"
 `include "lib/frequency_counter.v"
 
+module LBLS_bank #(
+	parameter SCALER_WIDTH = 32
+) (
+	input clock, reset,
+	input [12:1] hit_mask,
+	input [12:1] inversion_mask,
+	input gate, clear_channel_ones_counters, trigger_active,
+	input [7:0] win1, win2, win3, win4, win5, win6, win7, win8, win9, win10, win11, win12,
+	output [31:0] sc1, sc2, sc3, sc4, sc5, sc6, sc7, sc8, sc9, sc10, sc11, sc12,
+	output reg any = 0
+);
+	genvar i;
+	wire [7:0] word [12:1];
+	assign word[1] = win1; assign word[2]  = win2;  assign word[3]  = win3;  assign word[4]  = win4;
+	assign word[5] = win5; assign word[6]  = win6;  assign word[7]  = win7;  assign word[8]  = win8;
+	assign word[9] = win9; assign word[10] = win10; assign word[11] = win11; assign word[12] = win12;
+	wire [7:0] word_maybe_inverted [12:1];
+	wire [7:0] word_maybe_inverted_and_maybe_masked [12:1];
+	reg [7:0] word_buffered_and_maybe_inverted_a [12:1];
+	reg [7:0] word_buffered_and_maybe_inverted_b [12:1];
+	for (i=1; i<=12; i=i+1) begin : raw_readout_registers_mapping
+//		assign bank0[i] = { 8'd0, channel_ones_counter[i] };
+//		assign bank1[i] = { word_buffered_and_maybe_inverted_a[i], word_maybe_inverted_and_maybe_masked[i], word_maybe_inverted[i], word[i] };
+		assign word_maybe_inverted[i] = word[i] ^ {8{inversion_mask[i]}};
+		assign word_maybe_inverted_and_maybe_masked[i] = (word[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
+	end
+//	wire [31:0] channel_counter [12:1];
+//	reg [12:1] suggested_inversion_map;
+//	for (i=1; i<=12; i=i+1) begin : channel_counter_scaler_mapping
+//		assign bank6[i] = channel_counter[i];
+//		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(clock), .reset(clear_channel_counters), .in(word_maybe_inverted[i]), .out(channel_counter[i]));
+//		assign bank7[i] = channel_scaler_a[i] + channel_scaler_b[i] + channel_scaler_c[i] + channel_scaler_d[i];
+//		iserdes_scaler #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000)) channel_scaler_a (.clock(clock), .reset(1'b0), .in(word_maybe_inverted[i]), .out(channel_scaler_a[i]));
+//	end
+	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_a_array12 (.clock(clock), .reset(1'b0),
+		.in01(word_maybe_inverted[1]), .in02(word_maybe_inverted[2]), .in03(word_maybe_inverted[3]), .in04(word_maybe_inverted[4]),
+		.in05(word_maybe_inverted[5]), .in06(word_maybe_inverted[6]), .in07(word_maybe_inverted[7]), .in08(word_maybe_inverted[8]),
+		.in09(word_maybe_inverted[9]), .in10(word_maybe_inverted[10]), .in11(word_maybe_inverted[11]), .in12(word_maybe_inverted[12]),
+		.out01(sc1), .out02(sc2),  .out03(sc3),  .out04(sc4),
+		.out05(sc5), .out06(sc6),  .out07(sc7),  .out08(sc8),
+		.out09(sc9), .out10(sc10), .out11(sc11), .out12(sc12)
+	);
+	reg [12:1] iserdes_word_hit;
+	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_1_mapping
+		always @(posedge clock) begin
+			if (reset) begin
+				word_buffered_and_maybe_inverted_a[i] <= 0;
+			end else begin
+				//word_buffered_and_maybe_inverted_a[i] <= {8{|hitmask[i]}} & ~word[i];
+				//word_buffered_and_maybe_inverted_a[i] <= {8{hit_mask[i] & inversion_mask[i]}} ^ word[i];
+				//word_buffered_and_maybe_inverted_a[i] <= (word[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
+				word_buffered_and_maybe_inverted_a[i] <= word_maybe_inverted_and_maybe_masked[i];
+			end
+		end
+	end
+	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_2_mapping
+		always @(posedge clock) begin
+			if (reset) begin
+				word_buffered_and_maybe_inverted_b[i] <= 0;
+			end else begin
+				word_buffered_and_maybe_inverted_b[i] <= word_buffered_and_maybe_inverted_a[i];
+			end
+		end
+	end
+	for (i=1; i<=12; i=i+1) begin : iserdes_word_hit_mapping
+		always @(posedge clock) begin
+			if (reset) begin
+				iserdes_word_hit[i] <= 0;
+			end else begin
+				//iserdes_word_hit[i] <= |hitmask[i] && ~|word[i]; // this result will be available when word_buffered_and_maybe_inverted_a corresponds
+				//iserdes_word_hit[i] <= hit_mask[i] & inversion_mask[i] ^ (|word[i]); // this result will be available when word_buffered_and_maybe_inverted_a corresponds
+				//iserdes_word_hit[i] <= ((|word[i]) ^ inversion_mask[i]) & hit_mask[i] & gate; // this result will be available when word_buffered_and_maybe_inverted_a corresponds
+				iserdes_word_hit[i] <= |word_maybe_inverted_and_maybe_masked[i];
+			end
+		end
+	end
+	for (i=1; i<=12; i=i+1) begin : channel_ones_counter_adder
+		always @(posedge clock) begin
+			if (reset) begin
+				channel_ones_counter[i] <= 0;
+			end else begin
+				if (clear_channel_ones_counters) begin
+					channel_ones_counter[i] <= 0;
+				end else begin
+					if (channel_ones_counter[i]<channel_ones_counter_max_count) begin
+						channel_ones_counter[i] <= channel_ones_counter[i] + word_ones_counter_before[i];
+					end else begin
+						channel_ones_counter[i] <= channel_ones_counter_max_count;
+					end
+				end
+			end
+		end
+	end
+//	for (i=1; i<=12; i=i+1) begin : suggested_inversion_map_mapping
+//		always @(posedge clock) begin
+//			if (reset) begin
+//				suggested_inversion_map[i] <= 0;
+//			end else begin
+//				if (channel_ones_counter_suggestion_threshold<channel_ones_counter[i]) begin
+//					suggested_inversion_map[i] <= 1'b1;
+//				end else begin
+//					suggested_inversion_map[i] <= 0;
+//				end
+//			end
+//		end
+//	end
+//	wire [255:0] [12:1];
+	reg [7:0] previous_time_over_threshold [12:1];
+	reg [7:0] time_over_threshold [12:1];
+	localparam CHANNEL_ONES_COUNTER_NUMBER_OF_BITS = 24;
+	reg [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter [12:1];
+	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_max_count;
+	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_suggestion_threshold;
+	localparam CHANNEL_ONES_COUNTER_UPPER_NYBBLE = 4'he;
+	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = 0;
+	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
+	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8:0] = 0;
+	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
+	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:0] = 0;
+	wire [3:0] word_ones_counter_before [12:1];
+	wire [3:0] word_ones_counter_after [12:1];
+	for (i=1; i<=12; i=i+1) begin : ones_counter_mapping
+		count_ones c1s_before (.clock(clock), .data_in(word[i]), .count_out(word_ones_counter_before[i]));
+		count_ones c1s_after (.clock(clock), .data_in(word_buffered_and_maybe_inverted_a[i]), .count_out(word_ones_counter_after[i]));
+	end
+	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
+		always @(posedge clock) begin
+//			fifo_write_enable[i] <= 0;
+			if (reset) begin
+				previous_time_over_threshold[i] <= 0;
+				time_over_threshold[i] <= 0;
+			end else begin
+				if (trigger_active) begin
+					time_over_threshold[i] <= time_over_threshold[i] + word_ones_counter_after[i];
+				end else begin
+					previous_time_over_threshold[i] <= time_over_threshold[i];
+					if (time_over_threshold[i]) begin
+//						fifo_write_enable[i] <= 1;
+						time_over_threshold[i] <= 0;
+					end
+				end
+			end
+		end
+	end
+	always @(posedge clock) begin
+		if (reset) begin
+			any <= 0;
+		end else begin
+			any <= |iserdes_word_hit; // this result will be available when word_buffered_and_maybe_inverted_b corresponds
+		end
+	end
+endmodule
+
 module LBLS #(
+	parameter SCALER_WIDTH = 32,
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
@@ -103,6 +257,7 @@ module LBLS #(
 		.address_errors(hdrb_address_errors),
 		.bank(bank)
 	);
+	// ----------------------------------------------------------------------
 	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
 	wire [31:0] bank0 [15:0];
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank0 (.clock(word_clock), .reset(reset_word),
@@ -185,9 +340,9 @@ module LBLS #(
 //	for (i=0; i<=15; i=i+1) begin : dummy_bank4
 //		assign bank4[i] = 0;
 //	end
-	reg [12:1] fifo_write_enable;
+//	reg [12:1] fifo_write_enable;
 //	wire [12:1] fifo_read_enable;
-	wire fifo_empty = 0;
+//	wire fifo_empty = 0;
 /*
 	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc_4321 (.clock(word_clock), .reset(reset_word), .error_count(),
 		.data_in({previous_time_over_threshold[4],previous_time_over_threshold[3],previous_time_over_threshold[2],previous_time_over_threshold[1]}),
@@ -245,9 +400,10 @@ module LBLS #(
 //		assign bank6[i] = 32'habcdef06;
 //		assign bank7[i] = 32'habcdef07;
 //	end
+	// ----------------------------------------------------------------------
 	assign reset = 0;
 	//assign reset = ~button;
-	reg any;
+	wire any;
 	assign ldac = 0;
 	assign ampen = 0;
 	assign outR[1] = 0;
@@ -274,6 +430,7 @@ module LBLS #(
 	end else if (1) begin
 		assign sync_read_address = 0;
 	end
+	// ----------------------------------------------------------------------
 	wire [7:0] wa [12:1]; // word_A output from iserdes for bankA
 	wire [7:0] wb [12:1]; // word_B output from iserdes for bankB
 	wire [7:0] wc [12:1]; // word_C output from iserdes for bankC
@@ -296,8 +453,22 @@ module LBLS #(
 		.word_out_1b(wd[1]), .word_out_2b(wd[2]), .word_out_3b(wd[3]),  .word_out_4b(wd[4]),   .word_out_5b(wd[5]),   .word_out_6b(wd[6]),
 		.word_out_7b(wd[7]), .word_out_8b(wd[8]), .word_out_9b(wd[9]), .word_out_10b(wd[10]), .word_out_11b(wd[11]), .word_out_12b(wd[12])
 	);
+	// ----------------------------------------------------------------------
+	wire raw_trigger = 0;
+	localparam TRIGGER_TRAIN_PICKOFF = 2;
+	localparam TRIGGER_TRAIN_DEPTH = 4;
+	reg [TRIGGER_TRAIN_DEPTH-1:0] trigger_train = 0;
+	wire trigger = trigger_train[TRIGGER_TRAIN_PICKOFF];
+	always @(posedge word_clock) begin
+		if (reset_word) begin
+			trigger_train <= 0;
+		end else begin
+			trigger_train <= { trigger_train[TRIGGER_TRAIN_DEPTH-2:0], raw_trigger };
+		end
+	end
 	reg trigger_active = 0;
 	reg [31:0] trigger_active_counter = 0;
+	reg [31:0] trigger_count = 0;
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			trigger_active <= 0;
@@ -327,215 +498,19 @@ module LBLS #(
 			end
 		end
 	end
-	wire [31:0] sca [12:1]; // channel_scaler_a
-	wire [31:0] scb [12:1]; // channel_scaler_b
-	wire [31:0] scc [12:1]; // channel_scaler_c
-	wire [31:0] scd [12:1]; // channel_scaler_d
-	for (i=1; i<=12; i=i+1) begin : channel_scaler_mapping
-		assign bank1[i] = sca[i]; // channel_scaler_a
-		assign bank2[i] = scb[i]; // channel_scaler_b
-		assign bank3[i] = scc[i]; // channel_scaler_c
-		assign bank4[i] = scd[i]; // channel_scaler_d
-	end
-/*
-	protodune_LBLS_bank #(
-	) bankA (
-		.clock(word_clock), .reset(reset_word),
-		.win1(wa[1]), .win2(wa[2]), .win3(wa[3]), .win4(wa[4]), .win5(wa[5]), .win6(wa[6]), .win7(wa[7]), .win8(wa[8]), .win9(wa[9]), .win10(wa[10]), .win11(wa[11]), .win12(wa[12]),
-		.sc1(sca[1]), .sc2(sca[2]), .sc3(sca[3]), .sc4(sca[4]), .sc5(sca[5]), .sc6(sca[6]), .sc7(sca[7]), .sc8(sca[8]), .sc9(sca[9]), .sc10(sca[10]), .sc11(sca[11]), .sc12(sca[12])
-	);
-*/
-
-	reg [31:0] hit_counter = 0;
-	reg [31:0] hit_counter_buffered = 0;
-	wire [7:0] raw_gate;
+	// ----------------------------------------------------------------------
+	wire raw_gate = 0;
 	localparam GATE_TRAIN_PICKOFF = 2;
 	localparam GATE_TRAIN_DEPTH = 4;
 	reg [GATE_TRAIN_DEPTH-1:0] gate_train = 0;
 	wire gate = gate_train[GATE_TRAIN_PICKOFF];
-	wire [7:0] raw_trigger;
-	localparam TRIGGER_TRAIN_PICKOFF = 2;
-	localparam TRIGGER_TRAIN_DEPTH = 4;
-	reg [TRIGGER_TRAIN_DEPTH-1:0] trigger_train = 0;
-	wire trigger = trigger_train[TRIGGER_TRAIN_PICKOFF];
 	reg [31:0] gate_counter = 0;
 	reg [31:0] gate_counter_buffered = 0;
-	wire [7:0] word_a_maybe_inverted [12:1];
-	wire [7:0] word_b_maybe_inverted [12:1];
-	wire [7:0] word_c_maybe_inverted [12:1];
-	wire [7:0] word_d_maybe_inverted [12:1];
-	wire [7:0] word_a_maybe_inverted_and_maybe_masked [12:1];
-	wire [7:0] word_b_maybe_inverted_and_maybe_masked [12:1];
-	wire [7:0] word_c_maybe_inverted_and_maybe_masked [12:1];
-	wire [7:0] word_d_maybe_inverted_and_maybe_masked [12:1];
-	reg [7:0] word_a_buffered_and_maybe_inverted_a [12:1];
-	reg [7:0] word_b_buffered_and_maybe_inverted_a [12:1];
-	reg [7:0] word_c_buffered_and_maybe_inverted_a [12:1];
-	reg [7:0] word_d_buffered_and_maybe_inverted_a [12:1];
-	reg [7:0] word_a_buffered_and_maybe_inverted_b [12:1];
-	reg [7:0] word_b_buffered_and_maybe_inverted_b [12:1];
-	reg [7:0] word_c_buffered_and_maybe_inverted_b [12:1];
-	reg [7:0] word_d_buffered_and_maybe_inverted_b [12:1];
-	for (i=1; i<=12; i=i+1) begin : raw_readout_registers_mapping
-//		assign bank0[i] = { 8'd0, channel_ones_counter[i] };
-//		assign bank1[i] = { word_a_buffered_and_maybe_inverted_a[i], word_a_maybe_inverted_and_maybe_masked[i], word_a_maybe_inverted[i], wa[i] };
-		assign word_a_maybe_inverted[i] = wa[i] ^ {8{inversion_mask[i]}};
-		assign word_b_maybe_inverted[i] = wb[i] ^ {8{inversion_mask[i]}};
-		assign word_c_maybe_inverted[i] = wc[i] ^ {8{inversion_mask[i]}};
-		assign word_d_maybe_inverted[i] = wd[i] ^ {8{inversion_mask[i]}};
-		assign word_a_maybe_inverted_and_maybe_masked[i] = (wa[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
-		assign word_b_maybe_inverted_and_maybe_masked[i] = (wb[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
-		assign word_c_maybe_inverted_and_maybe_masked[i] = (wc[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
-		assign word_d_maybe_inverted_and_maybe_masked[i] = (wd[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
-	end
-	reg [31:0] trigger_count = 0;
-	wire [31:0] channel_counter [12:1];
-//	reg [12:1] suggested_inversion_map;
-	for (i=1; i<=12; i=i+1) begin : channel_counter_scaler_mapping
-//		assign bank6[i] = channel_counter[i];
-		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(word_clock), .reset(clear_channel_counters), .in(word_a_maybe_inverted[i]), .out(channel_counter[i]));
-//		assign bank7[i] = channel_scaler_a[i] + channel_scaler_b[i] + channel_scaler_c[i] + channel_scaler_d[i];
-//		iserdes_scaler #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000)) channel_scaler_a (.clock(word_clock), .reset(1'b0), .in(word_a_maybe_inverted[i]), .out(channel_scaler_a[i]));
-	end
-	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_a_array12 (.clock(word_clock), .reset(1'b0),
-		.in01(word_a_maybe_inverted[1]), .in02(word_a_maybe_inverted[2]), .in03(word_a_maybe_inverted[3]), .in04(word_a_maybe_inverted[4]),
-		.in05(word_a_maybe_inverted[5]), .in06(word_a_maybe_inverted[6]), .in07(word_a_maybe_inverted[7]), .in08(word_a_maybe_inverted[8]),
-		.in09(word_a_maybe_inverted[9]), .in10(word_a_maybe_inverted[10]), .in11(word_a_maybe_inverted[11]), .in12(word_a_maybe_inverted[12]),
-		.out01(sca[1]), .out02(sca[2]),  .out03(sca[3]),  .out04(sca[4]),
-		.out05(sca[5]), .out06(sca[6]),  .out07(sca[7]),  .out08(sca[8]),
-		.out09(sca[9]), .out10(sca[10]), .out11(sca[11]), .out12(sca[12])
-	);
-	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_b_array12 (.clock(word_clock), .reset(1'b0),
-		.in01(word_b_maybe_inverted[1]), .in02(word_b_maybe_inverted[2]), .in03(word_b_maybe_inverted[3]), .in04(word_b_maybe_inverted[4]),
-		.in05(word_b_maybe_inverted[5]), .in06(word_b_maybe_inverted[6]), .in07(word_b_maybe_inverted[7]), .in08(word_b_maybe_inverted[8]),
-		.in09(word_b_maybe_inverted[9]), .in10(word_b_maybe_inverted[10]), .in11(word_b_maybe_inverted[11]), .in12(word_b_maybe_inverted[12]),
-		.out01(scb[1]), .out02(scb[2]),  .out03(scb[3]),  .out04(scb[4]),
-		.out05(scb[5]), .out06(scb[6]),  .out07(scb[7]),  .out08(scb[8]),
-		.out09(scb[9]), .out10(scb[10]), .out11(scb[11]), .out12(scb[12])
-	);
-	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_c_array12 (.clock(word_clock), .reset(1'b0),
-		.in01(word_c_maybe_inverted[1]), .in02(word_c_maybe_inverted[2]), .in03(word_c_maybe_inverted[3]), .in04(word_c_maybe_inverted[4]),
-		.in05(word_c_maybe_inverted[5]), .in06(word_c_maybe_inverted[6]), .in07(word_c_maybe_inverted[7]), .in08(word_c_maybe_inverted[8]),
-		.in09(word_c_maybe_inverted[9]), .in10(word_c_maybe_inverted[10]), .in11(word_c_maybe_inverted[11]), .in12(word_c_maybe_inverted[12]),
-		.out01(scc[1]), .out02(scc[2]),  .out03(scc[3]),  .out04(scc[4]),
-		.out05(scc[5]), .out06(scc[6]),  .out07(scc[7]),  .out08(scc[8]),
-		.out09(scc[9]), .out10(scc[10]), .out11(scc[11]), .out12(scc[12])
-	);
-	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_d_array12 (.clock(word_clock), .reset(1'b0),
-		.in01(word_d_maybe_inverted[1]), .in02(word_d_maybe_inverted[2]), .in03(word_d_maybe_inverted[3]), .in04(word_d_maybe_inverted[4]),
-		.in05(word_d_maybe_inverted[5]), .in06(word_d_maybe_inverted[6]), .in07(word_d_maybe_inverted[7]), .in08(word_d_maybe_inverted[8]),
-		.in09(word_d_maybe_inverted[9]), .in10(word_d_maybe_inverted[10]), .in11(word_d_maybe_inverted[11]), .in12(word_d_maybe_inverted[12]),
-		.out01(scd[1]), .out02(scd[2]),  .out03(scd[3]),  .out04(scd[4]),
-		.out05(scd[5]), .out06(scd[6]),  .out07(scd[7]),  .out08(scd[8]),
-		.out09(scd[9]), .out10(scd[10]), .out11(scd[11]), .out12(scd[12])
-	);
-	reg [12:1] iserdes_word_hit;
-	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_1_mapping
-		always @(posedge word_clock) begin
-			if (reset_word) begin
-				word_a_buffered_and_maybe_inverted_a[i] <= 0;
-			end else begin
-				//word_a_buffered_and_maybe_inverted_a[i] <= {8{|hitmask[i]}} & ~wa[i];
-				//word_a_buffered_and_maybe_inverted_a[i] <= {8{hit_mask[i] & inversion_mask[i]}} ^ wa[i];
-				//word_a_buffered_and_maybe_inverted_a[i] <= (wa[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
-				word_a_buffered_and_maybe_inverted_a[i] <= word_a_maybe_inverted_and_maybe_masked[i];
-			end
-		end
-	end
-	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_2_mapping
-		always @(posedge word_clock) begin
-			if (reset_word) begin
-				word_a_buffered_and_maybe_inverted_b[i] <= 0;
-			end else begin
-				word_a_buffered_and_maybe_inverted_b[i] <= word_a_buffered_and_maybe_inverted_a[i];
-			end
-		end
-	end
-	for (i=1; i<=12; i=i+1) begin : iserdes_word_hit_mapping
-		always @(posedge word_clock) begin
-			if (reset_word) begin
-				iserdes_word_hit[i] <= 0;
-			end else begin
-				//iserdes_word_hit[i] <= |hitmask[i] && ~|wa[i]; // this result will be available when word_a_buffered_and_maybe_inverted_a corresponds
-				//iserdes_word_hit[i] <= hit_mask[i] & inversion_mask[i] ^ (|wa[i]); // this result will be available when word_a_buffered_and_maybe_inverted_a corresponds
-				//iserdes_word_hit[i] <= ((|wa[i]) ^ inversion_mask[i]) & hit_mask[i] & gate; // this result will be available when word_a_buffered_and_maybe_inverted_a corresponds
-				iserdes_word_hit[i] <= |word_a_maybe_inverted_and_maybe_masked[i];
-			end
-		end
-	end
-	for (i=1; i<=12; i=i+1) begin : channel_ones_counter_adder
-		always @(posedge word_clock) begin
-			if (reset_word) begin
-				channel_ones_counter[i] <= 0;
-			end else begin
-				if (clear_channel_ones_counters) begin
-					channel_ones_counter[i] <= 0;
-				end else begin
-					if (channel_ones_counter[i]<channel_ones_counter_max_count) begin
-						channel_ones_counter[i] <= channel_ones_counter[i] + word_a_ones_counter_before[i];
-					end else begin
-						channel_ones_counter[i] <= channel_ones_counter_max_count;
-					end
-				end
-			end
-		end
-	end
-//	for (i=1; i<=12; i=i+1) begin : suggested_inversion_map_mapping
-//		always @(posedge word_clock) begin
-//			if (reset_word) begin
-//				suggested_inversion_map[i] <= 0;
-//			end else begin
-//				if (channel_ones_counter_suggestion_threshold<channel_ones_counter[i]) begin
-//					suggested_inversion_map[i] <= 1'b1;
-//				end else begin
-//					suggested_inversion_map[i] <= 0;
-//				end
-//			end
-//		end
-//	end
-	always @(posedge word_clock) begin
-		if (reset_word) begin
-			any <= 0;
-		end else begin
-			any <= |iserdes_word_hit; // this result will be available when word_a_buffered_and_maybe_inverted_b corresponds
-		end
-	end
-	reg [2:0] anytrain = 0;
-	always @(posedge word_clock) begin
-		if (reset_word) begin
-			anytrain <= 0;
-		end else begin
-			anytrain <= { anytrain[1:0], any };
-		end
-	end
-	always @(posedge word_clock) begin
-		if (reset_word) begin
-			hit_counter <= 0;
-			hit_counter_buffered <= 0;
-		end else begin
-			if (clear_hit_counter) begin
-				hit_counter <= 0;
-				hit_counter_buffered <= 0;
-			end else begin
-				hit_counter_buffered <= hit_counter;
-				if (2'b01==anytrain[2:1]) begin
-					hit_counter <= hit_counter + 1'b1;
-				end
-			end
-		end
-	end
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			gate_train <= 0;
 		end else begin
-			gate_train <= { gate_train[GATE_TRAIN_DEPTH-2:0], |raw_gate };
-		end
-	end
-	always @(posedge word_clock) begin
-		if (reset_word) begin
-			trigger_train <= 0;
-		end else begin
-			trigger_train <= { trigger_train[TRIGGER_TRAIN_DEPTH-2:0], |raw_trigger };
+			gate_train <= { gate_train[GATE_TRAIN_DEPTH-2:0], raw_gate };
 		end
 	end
 	always @(posedge word_clock) begin
@@ -554,55 +529,84 @@ module LBLS #(
 			end
 		end
 	end
-//	wire [255:0] [12:1];
-	reg [7:0] previous_time_over_threshold [12:1];
-	reg [7:0] time_over_threshold [12:1];
-	localparam CHANNEL_ONES_COUNTER_NUMBER_OF_BITS = 24;
-	reg [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter [12:1];
-	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_max_count;
-	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_suggestion_threshold;
-	localparam CHANNEL_ONES_COUNTER_UPPER_NYBBLE = 4'he;
-	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = 0;
-	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
-	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8:0] = 0;
-	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
-	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:0] = 0;
-	wire [3:0] word_a_ones_counter_before [12:1];
-	wire [3:0] word_a_ones_counter_after [12:1];
-	for (i=1; i<=12; i=i+1) begin : ones_counter_mapping
-		count_ones c1s_before (.clock(word_clock), .data_in(wa[i]), .count_out(word_a_ones_counter_before[i]));
-		count_ones c1s_after (.clock(word_clock), .data_in(word_a_buffered_and_maybe_inverted_a[i]), .count_out(word_a_ones_counter_after[i]));
+	// ----------------------------------------------------------------------
+	reg [2:0] anytrain = 0;
+	always @(posedge word_clock) begin
+		if (reset_word) begin
+			anytrain <= 0;
+		end else begin
+			anytrain <= { anytrain[1:0], any };
+		end
 	end
-	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
-		always @(posedge word_clock) begin
-			fifo_write_enable[i] <= 0;
-			if (reset_word) begin
-				previous_time_over_threshold[i] <= 0;
-				time_over_threshold[i] <= 0;
+	reg [31:0] hit_counter = 0;
+	reg [31:0] hit_counter_buffered = 0;
+	always @(posedge word_clock) begin
+		if (reset_word) begin
+			hit_counter <= 0;
+			hit_counter_buffered <= 0;
+		end else begin
+			if (clear_hit_counter) begin
+				hit_counter <= 0;
+				hit_counter_buffered <= 0;
 			end else begin
-				if (trigger_active) begin
-					time_over_threshold[i] <= time_over_threshold[i] + word_a_ones_counter_after[i];
-				end else begin
-					previous_time_over_threshold[i] <= time_over_threshold[i];
-					if (time_over_threshold[i]) begin
-						fifo_write_enable[i] <= 1;
-						time_over_threshold[i] <= 0;
-					end
+				hit_counter_buffered <= hit_counter;
+				if (2'b01==anytrain[2:1]) begin
+					hit_counter <= hit_counter + 1'b1;
 				end
 			end
 		end
 	end
-
+	// ----------------------------------------------------------------------
+	wire [SCALER_WIDTH-1:0] sca [12:1]; // channel_scaler_a
+	wire [SCALER_WIDTH-1:0] scb [12:1]; // channel_scaler_b
+	wire [SCALER_WIDTH-1:0] scc [12:1]; // channel_scaler_c
+	wire [SCALER_WIDTH-1:0] scd [12:1]; // channel_scaler_d
+	for (i=1; i<=12; i=i+1) begin : channel_scaler_mapping
+		assign bank1[i] = sca[i]; // channel_scaler_a
+		assign bank2[i] = scb[i]; // channel_scaler_b
+		assign bank3[i] = scc[i]; // channel_scaler_c
+		assign bank4[i] = scd[i]; // channel_scaler_d
+	end
+	wire anyA, anyB, anyC, anyD;
+	assign any = anyA || anyB || anyC || anyD;
+	LBLS_bank #( .SCALER_WIDTH(SCALER_WIDTH)) bankA (
+		.clock(word_clock), .reset(reset_word),
+		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
+		.win1(wa[1]), .win2(wa[2]), .win3(wa[3]), .win4(wa[4]), .win5(wa[5]), .win6(wa[6]), .win7(wa[7]), .win8(wa[8]), .win9(wa[9]), .win10(wa[10]), .win11(wa[11]), .win12(wa[12]),
+		.sc1(sca[1]), .sc2(sca[2]), .sc3(sca[3]), .sc4(sca[4]), .sc5(sca[5]), .sc6(sca[6]), .sc7(sca[7]), .sc8(sca[8]), .sc9(sca[9]), .sc10(sca[10]), .sc11(sca[11]), .sc12(sca[12]),
+		.any(anyA)
+	);
+	LBLS_bank #( .SCALER_WIDTH(SCALER_WIDTH)) bankB (
+		.clock(word_clock), .reset(reset_word),
+		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
+		.win1(wb[1]), .win2(wb[2]), .win3(wb[3]), .win4(wb[4]), .win5(wb[5]), .win6(wb[6]), .win7(wb[7]), .win8(wb[8]), .win9(wb[9]), .win10(wb[10]), .win11(wb[11]), .win12(wb[12]),
+		.sc1(scb[1]), .sc2(scb[2]), .sc3(scb[3]), .sc4(scb[4]), .sc5(scb[5]), .sc6(scb[6]), .sc7(scb[7]), .sc8(scb[8]), .sc9(scb[9]), .sc10(scb[10]), .sc11(scb[11]), .sc12(scb[12]),
+		.any(anyB)
+	);
+	LBLS_bank #( .SCALER_WIDTH(SCALER_WIDTH)) bankC (
+		.clock(word_clock), .reset(reset_word),
+		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
+		.win1(wc[1]), .win2(wc[2]), .win3(wc[3]), .win4(wc[4]), .win5(wc[5]), .win6(wc[6]), .win7(wc[7]), .win8(wc[8]), .win9(wc[9]), .win10(wc[10]), .win11(wc[11]), .win12(wc[12]),
+		.sc1(scc[1]), .sc2(scc[2]), .sc3(scc[3]), .sc4(scc[4]), .sc5(scc[5]), .sc6(scc[6]), .sc7(scc[7]), .sc8(scc[8]), .sc9(scc[9]), .sc10(scc[10]), .sc11(scc[11]), .sc12(scc[12]),
+		.any(anyC)
+	);
+	LBLS_bank #( .SCALER_WIDTH(SCALER_WIDTH)) bankD (
+		.clock(word_clock), .reset(reset_word),
+		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
+		.win1(wd[1]), .win2(wd[2]), .win3(wd[3]), .win4(wd[4]), .win5(wd[5]), .win6(wd[6]), .win7(wd[7]), .win8(wd[8]), .win9(wd[9]), .win10(wd[10]), .win11(wd[11]), .win12(wd[12]),
+		.sc1(scd[1]), .sc2(scd[2]), .sc3(scd[3]), .sc4(scd[4]), .sc5(scd[5]), .sc6(scd[6]), .sc7(scd[7]), .sc8(scd[8]), .sc9(scd[9]), .sc10(scd[10]), .sc11(scd[11]), .sc12(scd[12]),
+		.any(anyD)
+	);
 	// ----------------------------------------------------------------------
 	if (1) begin
-		assign status8[7] = 0;
-		assign status8[6] = 0;
-		assign status8[5] = 0;
-		assign status8[4] = 0;
+		assign status8[7] = anyD;
+		assign status8[6] = anyC;
+		assign status8[5] = anyB;
+		assign status8[4] = anyA;
 		// -------------------------------------
 		assign status8[3] = ~pll_oserdes_locked;
 		assign status8[2] = trigger_active;
-		assign status8[1] = ~fifo_empty;
+		assign status8[1] = 0;
 		assign status8[0] = any;
 	end
 	initial begin
