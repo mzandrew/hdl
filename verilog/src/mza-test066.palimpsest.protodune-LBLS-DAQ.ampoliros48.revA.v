@@ -16,7 +16,7 @@
 `include "lib/frequency_counter.v"
 
 module LBLS_bank #(
-	parameter COUNTER_WIDTH = 24,
+	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16
 ) (
 	input clock, reset,
@@ -26,6 +26,7 @@ module LBLS_bank #(
 	input [7:0] win1, win2, win3, win4, win5, win6, win7, win8, win9, win10, win11, win12,
 	output [SCALER_WIDTH-1:0] sc1, sc2, sc3, sc4, sc5, sc6, sc7, sc8, sc9, sc10, sc11, sc12,
 	output [7:0] tot1, tot2, tot3, tot4, tot5, tot6, tot7, tot8, tot9, tot10, tot11, tot12,
+	output [COUNTER_WIDTH-1:0] c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12,
 	output reg any = 0
 );
 	genvar i;
@@ -43,14 +44,14 @@ module LBLS_bank #(
 		assign word_maybe_inverted[i] = word[i] ^ {8{inversion_mask[i]}};
 		assign word_maybe_inverted_and_maybe_masked[i] = (word[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
 	end
-//	wire [COUNTER_WIDTH-1:0] channel_counter [12:1];
+	wire [COUNTER_WIDTH-1:0] channel_counter [12:1];
 //	reg [12:1] suggested_inversion_map;
-//	for (i=1; i<=12; i=i+1) begin : channel_counter_scaler_mapping
-//		assign bank6[i] = channel_counter[i];
-//		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(clock), .reset(clear_channel_counters), .in(word_maybe_inverted[i]), .out(channel_counter[i]));
-//		assign bank7[i] = channel_scaler_a[i] + channel_scaler_b[i] + channel_scaler_c[i] + channel_scaler_d[i];
-//		iserdes_scaler #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000)) channel_scaler_a (.clock(clock), .reset(1'b0), .in(word_maybe_inverted[i]), .out(channel_scaler_a[i]));
-//	end
+	for (i=1; i<=12; i=i+1) begin : channel_counter_mapping
+		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(COUNTER_WIDTH)) channel_counter (.clock(clock), .reset(clear_channel_counters), .in(word_maybe_inverted[i]), .out(channel_counter[i]));
+	end
+	assign c1 = channel_counter[1]; assign c2  = channel_counter[2];  assign c3  = channel_counter[3];  assign c4  = channel_counter[4];
+	assign c5 = channel_counter[5]; assign c6  = channel_counter[6];  assign c7  = channel_counter[7];  assign c8  = channel_counter[8];
+	assign c9 = channel_counter[9]; assign c10 = channel_counter[10]; assign c11 = channel_counter[11]; assign c12 = channel_counter[12];
 	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_a_array12 (.clock(clock), .reset(1'b0),
 		.in01(word_maybe_inverted[1]), .in02(word_maybe_inverted[2]), .in03(word_maybe_inverted[3]), .in04(word_maybe_inverted[4]),
 		.in05(word_maybe_inverted[5]), .in06(word_maybe_inverted[6]), .in07(word_maybe_inverted[7]), .in08(word_maybe_inverted[8]),
@@ -183,7 +184,7 @@ module LBLS_bank #(
 endmodule
 
 module LBLS #(
-	parameter COUNTER_WIDTH = 24,
+	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
@@ -395,10 +396,13 @@ module LBLS #(
 		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
 		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
 		.write_strobe_b(1'b1));
-//	assign bank6[0] = 0;
-	for (i=0; i<=15; i=i+1) begin : dummy_bank6
-		assign bank6[i] = 0;
-	end
+	assign bank6[0] = 0;
+	assign bank6[13] = 0;
+	assign bank6[14] = 0;
+	assign bank6[15] = 0;
+//	for (i=0; i<=15; i=i+1) begin : dummy_bank6
+//		assign bank6[i] = 0;
+//	end
 	wire [31:0] bank7 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank7 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[7]),
@@ -407,13 +411,13 @@ module LBLS #(
 		.data_in_b_8(bank7[8]),  .data_in_b_9(bank7[9]),  .data_in_b_a(bank7[10]), .data_in_b_b(bank7[11]),
 		.data_in_b_c(bank7[12]), .data_in_b_d(bank7[13]), .data_in_b_e(bank7[14]), .data_in_b_f(bank7[15]),
 		.write_strobe_b(1'b1));
-//	assign bank7[0] = 32'habcd0000;
-//	assign bank7[13] = 32'habcd0013;
-//	assign bank7[14] = 32'habcd0014;
-//	assign bank7[15] = 32'habcd0015;
-	for (i=0; i<=15; i=i+1) begin : dummy_bank7
-		assign bank7[i] = 0;
-	end
+	assign bank7[0] = 0;
+	assign bank7[13] = 0;
+	assign bank7[14] = 0;
+	assign bank7[15] = 0;
+//	for (i=0; i<=15; i=i+1) begin : dummy_bank7
+//		assign bank7[i] = 0;
+//	end
 //	for (i=13; i<=15; i=i+1) begin : dummy_bank6_bank7_mapping
 //		assign bank6[i] = 32'habcdef06;
 //		assign bank7[i] = 32'habcdef07;
@@ -575,12 +579,16 @@ module LBLS #(
 		end
 	end
 	// ----------------------------------------------------------------------
+	wire anyA, anyB, anyC, anyD;
+	assign any = anyA || anyB || anyC || anyD;
+	wire [COUNTER_WIDTH-1:0] ca [12:1]; // channel_counter_a
+	wire [COUNTER_WIDTH-1:0] cb [12:1]; // channel_counter_b
+	wire [COUNTER_WIDTH-1:0] cc [12:1]; // channel_counter_c
+	wire [COUNTER_WIDTH-1:0] cd [12:1]; // channel_counter_d
 	wire [SCALER_WIDTH-1:0] sca [12:1]; // channel_scaler_a
 	wire [SCALER_WIDTH-1:0] scb [12:1]; // channel_scaler_b
 	wire [SCALER_WIDTH-1:0] scc [12:1]; // channel_scaler_c
 	wire [SCALER_WIDTH-1:0] scd [12:1]; // channel_scaler_d
-	wire anyA, anyB, anyC, anyD;
-	assign any = anyA || anyB || anyC || anyD;
 	wire [7:0] tota [12:1]; // time-over-threshold for bankA
 	wire [7:0] totb [12:1]; // time-over-threshold for bankB
 	wire [7:0] totc [12:1]; // time-over-threshold for bankC
@@ -590,6 +598,7 @@ module LBLS #(
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
 		.win1(wa[1]), .win2(wa[2]), .win3(wa[3]), .win4(wa[4]), .win5(wa[5]), .win6(wa[6]), .win7(wa[7]), .win8(wa[8]), .win9(wa[9]), .win10(wa[10]), .win11(wa[11]), .win12(wa[12]),
 		.sc1(sca[1]), .sc2(sca[2]), .sc3(sca[3]), .sc4(sca[4]), .sc5(sca[5]), .sc6(sca[6]), .sc7(sca[7]), .sc8(sca[8]), .sc9(sca[9]), .sc10(sca[10]), .sc11(sca[11]), .sc12(sca[12]),
+		.c1(ca[1]), .c2(ca[2]), .c3(ca[3]), .c4(ca[4]), .c5(ca[5]), .c6(ca[6]), .c7(ca[7]), .c8(ca[8]), .c9(ca[9]), .c10(ca[10]), .c11(ca[11]), .c12(ca[12]),
 		.tot1(tota[1]), .tot2(tota[2]), .tot3(tota[3]), .tot4(tota[4]), .tot5(tota[5]), .tot6(tota[6]), .tot7(tota[7]), .tot8(tota[8]), .tot9(tota[9]), .tot10(tota[10]), .tot11(tota[11]), .tot12(tota[12]),
 		.any(anyA)
 	);
@@ -598,6 +607,7 @@ module LBLS #(
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
 		.win1(wb[1]), .win2(wb[2]), .win3(wb[3]), .win4(wb[4]), .win5(wb[5]), .win6(wb[6]), .win7(wb[7]), .win8(wb[8]), .win9(wb[9]), .win10(wb[10]), .win11(wb[11]), .win12(wb[12]),
 		.sc1(scb[1]), .sc2(scb[2]), .sc3(scb[3]), .sc4(scb[4]), .sc5(scb[5]), .sc6(scb[6]), .sc7(scb[7]), .sc8(scb[8]), .sc9(scb[9]), .sc10(scb[10]), .sc11(scb[11]), .sc12(scb[12]),
+		.c1(cb[1]), .c2(cb[2]), .c3(cb[3]), .c4(cb[4]), .c5(cb[5]), .c6(cb[6]), .c7(cb[7]), .c8(cb[8]), .c9(cb[9]), .c10(cb[10]), .c11(cb[11]), .c12(cb[12]),
 		.tot1(totb[1]), .tot2(totb[2]), .tot3(totb[3]), .tot4(totb[4]), .tot5(totb[5]), .tot6(totb[6]), .tot7(totb[7]), .tot8(totb[8]), .tot9(totb[9]), .tot10(totb[10]), .tot11(totb[11]), .tot12(totb[12]),
 		.any(anyB)
 	);
@@ -606,6 +616,7 @@ module LBLS #(
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
 		.win1(wc[1]), .win2(wc[2]), .win3(wc[3]), .win4(wc[4]), .win5(wc[5]), .win6(wc[6]), .win7(wc[7]), .win8(wc[8]), .win9(wc[9]), .win10(wc[10]), .win11(wc[11]), .win12(wc[12]),
 		.sc1(scc[1]), .sc2(scc[2]), .sc3(scc[3]), .sc4(scc[4]), .sc5(scc[5]), .sc6(scc[6]), .sc7(scc[7]), .sc8(scc[8]), .sc9(scc[9]), .sc10(scc[10]), .sc11(scc[11]), .sc12(scc[12]),
+		.c1(cc[1]), .c2(cc[2]), .c3(cc[3]), .c4(cc[4]), .c5(cc[5]), .c6(cc[6]), .c7(cc[7]), .c8(cc[8]), .c9(cc[9]), .c10(cc[10]), .c11(cc[11]), .c12(cc[12]),
 		.tot1(totc[1]), .tot2(totc[2]), .tot3(totc[3]), .tot4(totc[4]), .tot5(totc[5]), .tot6(totc[6]), .tot7(totc[7]), .tot8(totc[8]), .tot9(totc[9]), .tot10(totc[10]), .tot11(totc[11]), .tot12(totc[12]),
 		.any(anyC)
 	);
@@ -614,15 +625,18 @@ module LBLS #(
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
 		.win1(wd[1]), .win2(wd[2]), .win3(wd[3]), .win4(wd[4]), .win5(wd[5]), .win6(wd[6]), .win7(wd[7]), .win8(wd[8]), .win9(wd[9]), .win10(wd[10]), .win11(wd[11]), .win12(wd[12]),
 		.sc1(scd[1]), .sc2(scd[2]), .sc3(scd[3]), .sc4(scd[4]), .sc5(scd[5]), .sc6(scd[6]), .sc7(scd[7]), .sc8(scd[8]), .sc9(scd[9]), .sc10(scd[10]), .sc11(scd[11]), .sc12(scd[12]),
+		.c1(cd[1]), .c2(cd[2]), .c3(cd[3]), .c4(cd[4]), .c5(cd[5]), .c6(cd[6]), .c7(cd[7]), .c8(cd[8]), .c9(cd[9]), .c10(cd[10]), .c11(cd[11]), .c12(cd[12]),
 		.tot1(totd[1]), .tot2(totd[2]), .tot3(totd[3]), .tot4(totd[4]), .tot5(totd[5]), .tot6(totd[6]), .tot7(totd[7]), .tot8(totd[8]), .tot9(totd[9]), .tot10(totd[10]), .tot11(totd[11]), .tot12(totd[12]),
 		.any(anyD)
 	);
-	for (i=1; i<=12; i=i+1) begin : channel_scaler_mapping
-		assign bank1[i] = { sca[i], scb[i] }; // channel_scaler_a, channel_scaler_b
-		assign bank2[i] = { scc[i], scd[i] }; // channel_scaler_c, channel_scaler_d
-	end
-	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
-		assign bank3[i] = { totd[i], totc[i], totb[i], tota[i] };
+	for (i=1; i<=12; i=i+1) begin : mapping
+		assign bank1[i] = { scb[i], scc[i] }; // scalers
+		assign bank2[i] = { scd[i], scc[i] }; // scalers
+		assign bank3[i] = { totd[i], totc[i], totb[i], tota[i] }; // time-over-threshold
+		assign bank4[i] = ca[i]; // counters
+		assign bank5[i] = cb[i]; // counters
+		assign bank6[i] = cc[i]; // counters
+		assign bank7[i] = cd[i]; // counters
 	end
 	// ----------------------------------------------------------------------
 	if (1) begin
