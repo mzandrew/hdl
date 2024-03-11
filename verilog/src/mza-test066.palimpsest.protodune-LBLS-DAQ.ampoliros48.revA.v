@@ -24,6 +24,7 @@ module LBLS_bank #(
 	input gate, clear_channel_ones_counters, trigger_active,
 	input [7:0] win1, win2, win3, win4, win5, win6, win7, win8, win9, win10, win11, win12,
 	output [31:0] sc1, sc2, sc3, sc4, sc5, sc6, sc7, sc8, sc9, sc10, sc11, sc12,
+	output [7:0] tot1, tot2, tot3, tot4, tot5, tot6, tot7, tot8, tot9, tot10, tot11, tot12,
 	output reg any = 0
 );
 	genvar i;
@@ -159,6 +160,18 @@ module LBLS_bank #(
 			end
 		end
 	end
+	assign tot1  = previous_time_over_threshold[1];
+	assign tot2  = previous_time_over_threshold[2];
+	assign tot3  = previous_time_over_threshold[3];
+	assign tot4  = previous_time_over_threshold[4];
+	assign tot5  = previous_time_over_threshold[5];
+	assign tot6  = previous_time_over_threshold[6];
+	assign tot7  = previous_time_over_threshold[7];
+	assign tot8  = previous_time_over_threshold[8];
+	assign tot9  = previous_time_over_threshold[9];
+	assign tot10 = previous_time_over_threshold[10];
+	assign tot11 = previous_time_over_threshold[11];
+	assign tot12 = previous_time_over_threshold[12];
 	always @(posedge clock) begin
 		if (reset) begin
 			any <= 0;
@@ -357,7 +370,7 @@ module LBLS #(
 		.write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
 		.data_out(read_data_word[5]), .read_enable(read_strobe[5]), .empty(), .almost_empty(), .empty_or_almost_empty());
 */
-	wire [31:0] bank5 [15:0];
+	wire [31:0] bank5 [15:0]; // { totd[i], totc[i], totb[i], tota[i] };
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank5 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[5]),
 		.data_in_b_0(bank5[0]),  .data_in_b_1(bank5[1]),  .data_in_b_2(bank5[2]),  .data_in_b_3(bank5[3]),
@@ -365,10 +378,13 @@ module LBLS #(
 		.data_in_b_8(bank5[8]),  .data_in_b_9(bank5[9]),  .data_in_b_a(bank5[10]), .data_in_b_b(bank5[11]),
 		.data_in_b_c(bank5[12]), .data_in_b_d(bank5[13]), .data_in_b_e(bank5[14]), .data_in_b_f(bank5[15]),
 		.write_strobe_b(1'b1));
-//	assign bank5[0] = 0;
-	for (i=0; i<=15; i=i+1) begin : dummy_bank5
-		assign bank5[i] = 0;
-	end
+	assign bank5[0] = 0;
+	assign bank5[13] = 0;
+	assign bank5[14] = 0;
+	assign bank5[15] = 0;
+//	for (i=0; i<=15; i=i+1) begin : dummy_bank5
+//		assign bank5[i] = 0;
+//	end
 	wire [31:0] bank6 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
@@ -569,11 +585,16 @@ module LBLS #(
 	end
 	wire anyA, anyB, anyC, anyD;
 	assign any = anyA || anyB || anyC || anyD;
+	wire [7:0] tota [12:1]; // time-over-threshold for bankA
+	wire [7:0] totb [12:1]; // time-over-threshold for bankA
+	wire [7:0] totc [12:1]; // time-over-threshold for bankA
+	wire [7:0] totd [12:1]; // time-over-threshold for bankA
 	LBLS_bank #( .SCALER_WIDTH(SCALER_WIDTH)) bankA (
 		.clock(word_clock), .reset(reset_word),
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
 		.win1(wa[1]), .win2(wa[2]), .win3(wa[3]), .win4(wa[4]), .win5(wa[5]), .win6(wa[6]), .win7(wa[7]), .win8(wa[8]), .win9(wa[9]), .win10(wa[10]), .win11(wa[11]), .win12(wa[12]),
 		.sc1(sca[1]), .sc2(sca[2]), .sc3(sca[3]), .sc4(sca[4]), .sc5(sca[5]), .sc6(sca[6]), .sc7(sca[7]), .sc8(sca[8]), .sc9(sca[9]), .sc10(sca[10]), .sc11(sca[11]), .sc12(sca[12]),
+		.tot1(tota[1]), .tot2(tota[2]), .tot3(tota[3]), .tot4(tota[4]), .tot5(tota[5]), .tot6(tota[6]), .tot7(tota[7]), .tot8(tota[8]), .tot9(tota[9]), .tot10(tota[10]), .tot11(tota[11]), .tot12(tota[12]),
 		.any(anyA)
 	);
 	LBLS_bank #( .SCALER_WIDTH(SCALER_WIDTH)) bankB (
@@ -581,6 +602,7 @@ module LBLS #(
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
 		.win1(wb[1]), .win2(wb[2]), .win3(wb[3]), .win4(wb[4]), .win5(wb[5]), .win6(wb[6]), .win7(wb[7]), .win8(wb[8]), .win9(wb[9]), .win10(wb[10]), .win11(wb[11]), .win12(wb[12]),
 		.sc1(scb[1]), .sc2(scb[2]), .sc3(scb[3]), .sc4(scb[4]), .sc5(scb[5]), .sc6(scb[6]), .sc7(scb[7]), .sc8(scb[8]), .sc9(scb[9]), .sc10(scb[10]), .sc11(scb[11]), .sc12(scb[12]),
+		.tot1(totb[1]), .tot2(totb[2]), .tot3(totb[3]), .tot4(totb[4]), .tot5(totb[5]), .tot6(totb[6]), .tot7(totb[7]), .tot8(totb[8]), .tot9(totb[9]), .tot10(totb[10]), .tot11(totb[11]), .tot12(totb[12]),
 		.any(anyB)
 	);
 	LBLS_bank #( .SCALER_WIDTH(SCALER_WIDTH)) bankC (
@@ -588,6 +610,7 @@ module LBLS #(
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
 		.win1(wc[1]), .win2(wc[2]), .win3(wc[3]), .win4(wc[4]), .win5(wc[5]), .win6(wc[6]), .win7(wc[7]), .win8(wc[8]), .win9(wc[9]), .win10(wc[10]), .win11(wc[11]), .win12(wc[12]),
 		.sc1(scc[1]), .sc2(scc[2]), .sc3(scc[3]), .sc4(scc[4]), .sc5(scc[5]), .sc6(scc[6]), .sc7(scc[7]), .sc8(scc[8]), .sc9(scc[9]), .sc10(scc[10]), .sc11(scc[11]), .sc12(scc[12]),
+		.tot1(totc[1]), .tot2(totc[2]), .tot3(totc[3]), .tot4(totc[4]), .tot5(totc[5]), .tot6(totc[6]), .tot7(totc[7]), .tot8(totc[8]), .tot9(totc[9]), .tot10(totc[10]), .tot11(totc[11]), .tot12(totc[12]),
 		.any(anyC)
 	);
 	LBLS_bank #( .SCALER_WIDTH(SCALER_WIDTH)) bankD (
@@ -595,8 +618,12 @@ module LBLS #(
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
 		.win1(wd[1]), .win2(wd[2]), .win3(wd[3]), .win4(wd[4]), .win5(wd[5]), .win6(wd[6]), .win7(wd[7]), .win8(wd[8]), .win9(wd[9]), .win10(wd[10]), .win11(wd[11]), .win12(wd[12]),
 		.sc1(scd[1]), .sc2(scd[2]), .sc3(scd[3]), .sc4(scd[4]), .sc5(scd[5]), .sc6(scd[6]), .sc7(scd[7]), .sc8(scd[8]), .sc9(scd[9]), .sc10(scd[10]), .sc11(scd[11]), .sc12(scd[12]),
+		.tot1(totd[1]), .tot2(totd[2]), .tot3(totd[3]), .tot4(totd[4]), .tot5(totd[5]), .tot6(totd[6]), .tot7(totd[7]), .tot8(totd[8]), .tot9(totd[9]), .tot10(totd[10]), .tot11(totd[11]), .tot12(totd[12]),
 		.any(anyD)
 	);
+	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
+		assign bank5[i] = { totd[i], totc[i], totb[i], tota[i] };
+	end
 	// ----------------------------------------------------------------------
 	if (1) begin
 		assign status8[7] = anyD;
