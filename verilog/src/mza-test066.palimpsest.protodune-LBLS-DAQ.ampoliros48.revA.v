@@ -630,7 +630,7 @@ module LBLS #(
 		.any(anyD)
 	);
 	for (i=1; i<=12; i=i+1) begin : mapping
-		assign bank1[i] = { scb[i], scc[i] }; // scalers
+		assign bank1[i] = { scb[i], sca[i] }; // scalers
 		assign bank2[i] = { scd[i], scc[i] }; // scalers
 		assign bank3[i] = { totd[i], totc[i], totb[i], tota[i] }; // time-over-threshold
 		assign bank4[i] = ca[i]; // counters
