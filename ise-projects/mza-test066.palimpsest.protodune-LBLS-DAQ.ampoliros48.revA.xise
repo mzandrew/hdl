@@ -20,7 +20,7 @@
     </file>
     <file xil_pn:name="../verilog/src/mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="2"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="9"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="10"/>
     </file>
   </files>
 
@@ -369,6 +369,7 @@
     <file xil_pn:name="../verilog/src/lib/reset.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/edge_to_pulse.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/frequency_counter.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="../verilog/src/lib/duneLBLS.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>
