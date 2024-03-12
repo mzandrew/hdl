@@ -2,7 +2,7 @@
 // based on mza-test014.duration-timer.uart.v
 // and mza-test022.frequency-counter.uart.v
 // updated 2020-05-30 by mza
-// last updated 2024-03-11 by mza
+// last updated 2024-03-12 by mza
 
 `ifndef FREQUENCY_COUNTER_LIB
 `define FREQUENCY_COUNTER_LIB
@@ -228,7 +228,7 @@ module iserdes_scaler_array12 #(
 		assign f[i] = in[i][3:2];
 		assign g[i] = in[i][2:1];
 		assign h[i] = in[i][1:0];
-		assign current_count[i] = (zo==a[i]?1'b1:0) + (zo==b[i]?1'b1:1'b10) + (zo==c[i]?1'b1:1'b10) + (zo==d[i]?1'b1:1'b10) + (zo==e[i]?1'b1:1'b10) + (zo==f[i]?1'b1:1'b10) + (zo==g[i]?1'b1:1'b10) + (zo==h[i]?1'b1:1'b10);
+		assign current_count[i] = (zo==a[i]?1'b1:1'b0) + (zo==b[i]?1'b1:1'b0) + (zo==c[i]?1'b1:1'b0) + (zo==d[i]?1'b1:1'b0) + (zo==e[i]?1'b1:1'b0) + (zo==f[i]?1'b1:1'b0) + (zo==g[i]?1'b1:1'b0) + (zo==h[i]?1'b1:1'b0);
 		always @(posedge clock) begin
 			if (reset) begin
 				out[i] <= 0;
