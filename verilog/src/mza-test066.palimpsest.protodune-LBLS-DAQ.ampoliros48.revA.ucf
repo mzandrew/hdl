@@ -5,10 +5,13 @@
 # last updated 2024-03-08 by mza
 
 # 100 MHz local oscillator:
-net clock100_p loc=e4 | iostandard=lvds_33 | diff_term=true; # bank3 CLOCK100+
-net clock100_n loc=f3 | iostandard=lvds_33 | diff_term=true; # bank3 CLOCK100-
-net "clock100_p" tnm_net = tnm_clock100_p;
-timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
+#net clock100_p loc=f3 | iostandard=lvds_33 | diff_term=true; # bank3 CLOCK100+
+#net clock100_n loc=e4 | iostandard=lvds_33 | diff_term=true; # bank3 CLOCK100-
+#net "clock100_p" tnm_net = tnm_clock100_p;
+#timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
+
+net "x" tnm_net = tnm_clock100;
+timespec "ts_clock100" = period "tnm_clock100" 10.0 ns high 50%; # 100 MHz
 
 net ampen  loc=v20 | iostandard=lvttl | drive = 4 | slew = slow; # bank1
 net button loc=w1  | iostandard=lvttl | pullup; # bank3; momentary pushbutton, normally open 
@@ -82,9 +85,9 @@ net f_p loc=b20 | iostandard=lvttl | drive = 2 | slew = slow; # bank0 F+
 net f_n loc=a20 | iostandard=lvttl | drive = 2 | slew = slow; # bank0 F- 
 
 net u loc=g16 | iostandard=lvttl | drive = 2 | slew = slow; # bank0 U 
-net v loc=f14 | iostandard=lvttl | drive = 2 | slew = slow; # bank0 V 
-net w loc=h12 | iostandard=lvttl | drive = 2 | slew = slow; # bank0 W 
-net x loc=g9  | iostandard=lvttl | drive = 2 | slew = slow; # bank0 X 
+net v loc=f14 | iostandard=lvttl | drive = 2 | slew = slow; # bank0 V GCLK
+net w loc=h12 | iostandard=lvttl | drive = 2 | slew = slow; # bank0 W GCLK
+net x loc=g9  | iostandard=lvttl | drive = 2 | slew = slow; # bank0 X GCLK
 net y loc=d4  | iostandard=lvttl | drive = 2 | slew = slow; # bank0 Y 
 net z loc=c4  | iostandard=lvttl | drive = 2 | slew = slow; # bank0 Z 
 

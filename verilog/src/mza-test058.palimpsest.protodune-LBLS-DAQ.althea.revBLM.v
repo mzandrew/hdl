@@ -18,7 +18,7 @@
 `include "lib/edge_to_pulse.v"
 `include "lib/frequency_counter.v"
 
-module top #(
+module LBLS12 #(
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
 	parameter ROTATED = 0,
@@ -49,11 +49,6 @@ module top #(
 	output ack_valid,
 	input [12:1] signal, // only on set of 12 channels (bankA) on this board
 	output [12:1] indicator,
-//	output [5:0] diff_pair_left,
-//	output [5:0] diff_pair_right_p,
-//	output [5:0] diff_pair_right_n,
-//	output [5:0] single_ended_left,
-//	output [5:0] single_ended_right,
 	output other,
 //	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
 	output [3:0] coax_led
@@ -247,15 +242,14 @@ module top #(
 	end
 		// ----------------------------------------------------------------------
 	wire raw_trigger = 0;
-	localparam TRIGGER_TRAIN_PICKOFF = 2;
-	localparam TRIGGER_TRAIN_DEPTH = 4;
-	reg [TRIGGER_TRAIN_DEPTH-1:0] trigger_train = 0;
+	localparam TRIGGER_TRAIN_PICKOFF = 4;
+	reg [TRIGGER_TRAIN_PICKOFF:0] trigger_train = 0;
 	wire trigger = trigger_train[TRIGGER_TRAIN_PICKOFF];
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			trigger_train <= 0;
 		end else begin
-			trigger_train <= { trigger_train[TRIGGER_TRAIN_DEPTH-2:0], raw_trigger };
+			trigger_train <= { trigger_train[TRIGGER_TRAIN_PICKOFF-1:0], raw_trigger };
 		end
 	end
 	reg trigger_active = 0;
@@ -292,9 +286,8 @@ module top #(
 	end
 	// ----------------------------------------------------------------------
 	wire raw_gate = 1;
-	localparam GATE_TRAIN_PICKOFF = 2;
-	localparam GATE_TRAIN_DEPTH = 4;
-	reg [GATE_TRAIN_DEPTH-1:0] gate_train = 0;
+	localparam GATE_TRAIN_PICKOFF = 4;
+	reg [GATE_TRAIN_PICKOFF:0] gate_train = 0;
 	wire gate = gate_train[GATE_TRAIN_PICKOFF];
 	reg [31:0] gate_counter = 0;
 //	reg [31:0] gate_counter_buffered = 0;
@@ -302,7 +295,7 @@ module top #(
 		if (reset_word) begin
 			gate_train <= 0;
 		end else begin
-			gate_train <= { gate_train[GATE_TRAIN_DEPTH-2:0], raw_gate };
+			gate_train <= { gate_train[GATE_TRAIN_PICKOFF-1:0], raw_gate };
 		end
 	end
 	always @(posedge word_clock) begin
@@ -315,7 +308,7 @@ module top #(
 //				gate_counter_buffered <= 0;
 			end else begin
 //				gate_counter_buffered <= gate_counter;
-				if (2'b01==gate_train[GATE_TRAIN_PICKOFF+1:GATE_TRAIN_PICKOFF]) begin
+				if (2'b01==gate_train[GATE_TRAIN_PICKOFF:GATE_TRAIN_PICKOFF-1]) begin
 					gate_counter <= gate_counter + 1'b1;
 				end
 			end
@@ -408,7 +401,7 @@ module top #(
 	end
 endmodule
 
-module top_tb;
+module TESTBENCH_LBLS12_tb;
 	localparam HALF_PERIOD_OF_CONTROLLER = 1;
 	localparam HALF_PERIOD_OF_PERIPHERAL = 10;
 	localparam NUMBER_OF_PERIODS_OF_CONTROLLER_IN_A_DELAY = 1;
@@ -441,7 +434,7 @@ module top_tb;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] wdata = 0;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] rdata = 0;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are controller
-	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
+	LBLS12 #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea12 (
 		.clock100_p(clock100_p), .clock100_n(clock100_n),
 		// .button(button),
 		.coax(coax),
@@ -708,7 +701,7 @@ module top_tb;
 	end
 endmodule
 
-module myalthea #(
+module DUNELBLS12 #(
 	parameter ROTATED = 0,
 	parameter NOTHING = 0
 ) (
@@ -785,13 +778,13 @@ module myalthea #(
 		IBUFDS ibufds12 (.I(m_p), .IB(m_n), .O(signal[12])); // p57, p58
 		assign { t, s, r, q, p, n, u, v, w, x, y, z } = indicator;
 	end
-	top #(
+	LBLS12 #(
 		.TESTBENCH(0), .ROTATED(ROTATED),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
-	) althea (
+	) althea12 (
 		.clock100_p(clock100_p), .clock100_n(clock100_n),
 //		.button(button),
 		.coax(coax),

@@ -1,6 +1,6 @@
 // written 2024-03-08 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-03-12 by mza
+// last updated 2024-03-14 by mza
 
 `define ampoliros48_revA
 `include "lib/duneLBLS.v"
@@ -16,7 +16,7 @@
 `include "lib/edge_to_pulse.v"
 `include "lib/frequency_counter.v"
 
-module LBLS #(
+module LBLS48 #(
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
 	parameter BUS_WIDTH = 16,
@@ -35,7 +35,8 @@ module LBLS #(
 	parameter COUNTER100_BIT_PICKOFF = TESTBENCH ? 5 : 23,
 	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
-	input clock100_p, clock100_n,
+//	input clock100_p, clock100_n,
+	input clock100,
 	input button,
 	inout [BUS_WIDTH-1:0] bus,
 	input read, // 0=write; 1=read
@@ -46,8 +47,8 @@ module LBLS #(
 	inout [2:1] inoutM,
 	input [3:1] inR, inF,
 	output [3:1] tR, tF,
-	output a_p, b_p, c_p, d_p, e_p, f_p, a_n, b_n, c_n, d_n, e_n, f_n,
-	output u, v, w, x, y, z,
+//	output a_p, b_p, c_p, d_p, e_p, f_p, a_n, b_n, c_n, d_n, e_n, f_n,
+//	output u, v, w, x, y, z,
 	input [12:1] a, b, c, d,
 	output ldac, ampen
 );
@@ -64,8 +65,8 @@ module LBLS #(
 	wire pll_oserdes_locked;
 	// ----------------------------------------------------------------------
 	wire reset100;
-	wire clock100;
-	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
+//	wire clock100;
+//	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock100), .reset_output(reset100));
 	wire word_clock;
 	// ----------------------------------------------------------------------
@@ -273,6 +274,8 @@ module LBLS #(
 	assign tF[1] = 0;
 	assign tF[2] = 0;
 	assign tF[3] = 0;
+	assign inoutM[1] = 0;
+	assign inoutM[2] = 0;
 	wire [31:0] start_sample = 0;
 	wire [31:0] end_sample = 5120;
 	wire sync_read_address; // assert this when you feel like (re)synchronizing
@@ -290,35 +293,29 @@ module LBLS #(
 	wire [7:0] wb [12:1]; // word_B output from iserdes for bankB
 	wire [7:0] wc [12:1]; // word_C output from iserdes for bankC
 	wire [7:0] wd [12:1]; // word_D output from iserdes for bankD
-	iserdes_icositetrahedron_input #(
-		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .SCOPE(SCOPE)
-	) bankAB (
-		.clock_in(clock100), .reset(reset100), .locked(pll_oserdes_locked), .word_clock_out(word_clock), .bit_in_a(a), .bit_in_b(b),
+	iserdes_tetracontaoctagon_input #(
+		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE), .SCOPE(SCOPE)
+	) bankABCD (
+		.clock_in(clock100), .reset(reset100), .locked(pll_oserdes_locked), .word_clock_out(word_clock), .bit_in_a(a), .bit_in_b(b), .bit_in_c(c), .bit_in_d(d),
 		.word_out_1a(wa[1]), .word_out_2a(wa[2]), .word_out_3a(wa[3]),  .word_out_4a(wa[4]),   .word_out_5a(wa[5]),   .word_out_6a(wa[6]),
 		.word_out_7a(wa[7]), .word_out_8a(wa[8]), .word_out_9a(wa[9]), .word_out_10a(wa[10]), .word_out_11a(wa[11]), .word_out_12a(wa[12]),
 		.word_out_1b(wb[1]), .word_out_2b(wb[2]), .word_out_3b(wb[3]),  .word_out_4b(wb[4]),   .word_out_5b(wb[5]),   .word_out_6b(wb[6]),
-		.word_out_7b(wb[7]), .word_out_8b(wb[8]), .word_out_9b(wb[9]), .word_out_10b(wb[10]), .word_out_11b(wb[11]), .word_out_12b(wb[12])
-	);
-	iserdes_icositetrahedron_input #(
-		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .SCOPE(SCOPE)
-	) bankCD (
-		.clock_in(clock100), .reset(reset100), .locked(), .word_clock_out(), .bit_in_a(c), .bit_in_b(d),
-		.word_out_1a(wc[1]), .word_out_2a(wc[2]), .word_out_3a(wc[3]),  .word_out_4a(wc[4]),   .word_out_5a(wc[5]),   .word_out_6a(wc[6]),
-		.word_out_7a(wc[7]), .word_out_8a(wc[8]), .word_out_9a(wc[9]), .word_out_10a(wc[10]), .word_out_11a(wc[11]), .word_out_12a(wc[12]),
-		.word_out_1b(wd[1]), .word_out_2b(wd[2]), .word_out_3b(wd[3]),  .word_out_4b(wd[4]),   .word_out_5b(wd[5]),   .word_out_6b(wd[6]),
-		.word_out_7b(wd[7]), .word_out_8b(wd[8]), .word_out_9b(wd[9]), .word_out_10b(wd[10]), .word_out_11b(wd[11]), .word_out_12b(wd[12])
+		.word_out_7b(wb[7]), .word_out_8b(wb[8]), .word_out_9b(wb[9]), .word_out_10b(wb[10]), .word_out_11b(wb[11]), .word_out_12b(wb[12]),
+		.word_out_1c(wc[1]), .word_out_2c(wc[2]), .word_out_3c(wc[3]),  .word_out_4c(wc[4]),   .word_out_5c(wc[5]),   .word_out_6c(wc[6]),
+		.word_out_7c(wc[7]), .word_out_8c(wc[8]), .word_out_9c(wc[9]), .word_out_10c(wc[10]), .word_out_11c(wc[11]), .word_out_12c(wc[12]),
+		.word_out_1d(wd[1]), .word_out_2d(wd[2]), .word_out_3d(wd[3]),  .word_out_4d(wd[4]),   .word_out_5d(wd[5]),   .word_out_6d(wd[6]),
+		.word_out_7d(wd[7]), .word_out_8d(wd[8]), .word_out_9d(wd[9]), .word_out_10d(wd[10]), .word_out_11d(wd[11]), .word_out_12d(wd[12])
 	);
 	// ----------------------------------------------------------------------
 	wire raw_trigger = 0;
-	localparam TRIGGER_TRAIN_PICKOFF = 2;
-	localparam TRIGGER_TRAIN_DEPTH = 4;
-	reg [TRIGGER_TRAIN_DEPTH-1:0] trigger_train = 0;
+	localparam TRIGGER_TRAIN_PICKOFF = 4;
+	reg [TRIGGER_TRAIN_PICKOFF:0] trigger_train = 0;
 	wire trigger = trigger_train[TRIGGER_TRAIN_PICKOFF];
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			trigger_train <= 0;
 		end else begin
-			trigger_train <= { trigger_train[TRIGGER_TRAIN_DEPTH-2:0], raw_trigger };
+			trigger_train <= { trigger_train[TRIGGER_TRAIN_PICKOFF-1:0], raw_trigger };
 		end
 	end
 	reg trigger_active = 0;
@@ -354,31 +351,30 @@ module LBLS #(
 		end
 	end
 	// ----------------------------------------------------------------------
-	wire raw_gate = 0;
-	localparam GATE_TRAIN_PICKOFF = 2;
-	localparam GATE_TRAIN_DEPTH = 4;
-	reg [GATE_TRAIN_DEPTH-1:0] gate_train = 0;
+	wire raw_gate = 1;
+	localparam GATE_TRAIN_PICKOFF = 4;
+	reg [GATE_TRAIN_PICKOFF:0] gate_train = 0;
 	wire gate = gate_train[GATE_TRAIN_PICKOFF];
 	reg [31:0] gate_counter = 0;
-	reg [31:0] gate_counter_buffered = 0;
+//	reg [31:0] gate_counter_buffered = 0;
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			gate_train <= 0;
 		end else begin
-			gate_train <= { gate_train[GATE_TRAIN_DEPTH-2:0], raw_gate };
+			gate_train <= { gate_train[GATE_TRAIN_PICKOFF-1:0], raw_gate };
 		end
 	end
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			gate_counter <= 0;
-			gate_counter_buffered <= 0;
+//			gate_counter_buffered <= 0;
 		end else begin
 			if (clear_gate_counter) begin
 				gate_counter <= 0;
-				gate_counter_buffered <= 0;
+//				gate_counter_buffered <= 0;
 			end else begin
-				gate_counter_buffered <= gate_counter;
-				if (2'b01==gate_train[GATE_TRAIN_PICKOFF+1:GATE_TRAIN_PICKOFF]) begin
+//				gate_counter_buffered <= gate_counter;
+				if (2'b01==gate_train[GATE_TRAIN_PICKOFF:GATE_TRAIN_PICKOFF-1]) begin
 					gate_counter <= gate_counter + 1'b1;
 				end
 			end
@@ -394,17 +390,17 @@ module LBLS #(
 		end
 	end
 	reg [31:0] hit_counter = 0;
-	reg [31:0] hit_counter_buffered = 0;
+//	reg [31:0] hit_counter_buffered = 0;
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			hit_counter <= 0;
-			hit_counter_buffered <= 0;
+//			hit_counter_buffered <= 0;
 		end else begin
 			if (clear_hit_counter) begin
 				hit_counter <= 0;
-				hit_counter_buffered <= 0;
+//				hit_counter_buffered <= 0;
 			end else begin
-				hit_counter_buffered <= hit_counter;
+//				hit_counter_buffered <= hit_counter;
 				if (2'b01==anytrain[2:1]) begin
 					hit_counter <= hit_counter + 1'b1;
 				end
@@ -491,7 +487,7 @@ module LBLS #(
 	end
 endmodule
 
-module LBLS_tb;
+module TESTBENCH_LBLS48_tb;
 	localparam HALF_PERIOD_OF_CONTROLLER = 1;
 	localparam HALF_PERIOD_OF_PERIPHERAL = 10;
 	localparam NUMBER_OF_PERIODS_OF_CONTROLLER_IN_A_DELAY = 1;
@@ -521,7 +517,7 @@ module LBLS_tb;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] wdata = 0;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] rdata = 0;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are controller
-	LBLS #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) ampoliros (
+	LBLS48 #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) ampoliros48 (
 		.clock100_p(clock100_p), .clock100_n(clock100_n),
 		// .button(button),
 		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
@@ -786,10 +782,10 @@ module LBLS_tb;
 	end
 endmodule
 
-module myampoliros #(
+module DUNELBLS48 #(
 	parameter NOTHING = 0
 ) (
-	input clock100_p, clock100_n,
+//	input clock100_p, clock100_n,
 	output [3:1] outR, outF,
 	inout [2:1] inoutM,
 	input [3:1] inR, inF,
@@ -810,7 +806,9 @@ module myampoliros #(
 	a_n, b_n, c_n, d_n, e_n, f_n,
 	// single-ended IOs (toupee connectors):
 	output
-	u, v, w, x, y, z,
+//	u, v, w, x, y, z,
+	u, v, w, y, z,
+	input x,
 	// 48 inputs for 4 PIN diode boxes:
 	input [12:1] ap, an,
 	input [12:1] bp, bn,
@@ -820,29 +818,32 @@ module myampoliros #(
 	input button,
 	output ldac, ampen
 );
+	genvar i;
 	localparam BUS_WIDTH = 16;
 	localparam BANK_ADDRESS_DEPTH = 13;
 	localparam TRANSACTIONS_PER_DATA_WORD = 2;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
-	assign { u, v, w, x, y, z } = 0;
+//	assign { u, v, w, x, y, z } = 0;
+	assign { u, v, w, y, z } = 0;
 	assign { a_p, a_n, b_p, b_n, c_p, c_n, d_p, d_n, e_p, e_n, f_p, f_n } = 0;
 	wire [12:1] a, b, c, d;
-	genvar i;
+	wire clock100 = x;
 	for (i=1; i<=12; i=i+1) begin : inputs
 		IBUFDS main_inputs_A (.I(ap[i]), .IB(an[i]), .O(a[i]));
 		IBUFDS main_inputs_B (.I(bp[i]), .IB(bn[i]), .O(b[i]));
 		IBUFDS main_inputs_C (.I(cp[i]), .IB(cn[i]), .O(c[i]));
 		IBUFDS main_inputs_D (.I(dp[i]), .IB(dn[i]), .O(d[i]));
 	end
-	LBLS #(
+	LBLS48 #(
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
-	) ampoliros (
-		.clock100_p(clock100_p), .clock100_n(clock100_n),
+	) ampoliros48 (
+//		.clock100_p(clock100_p), .clock100_n(clock100_n),
+		.clock100(clock100),
 		.button(button),
 		.outF(outF), .outR(outR),
 		.inoutM(inoutM),

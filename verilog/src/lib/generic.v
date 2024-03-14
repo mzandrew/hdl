@@ -1,5 +1,5 @@
 // written 2019-09-22 by mza
-// last updated 2021-11-05 by mza
+// last updated 2024-03-14 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
@@ -619,7 +619,7 @@ module bitslip #(
 	input clock,
 	input [WIDTH-1:0] data_in,
 	input [LOG2_WIDTH-1:0] bitslip,
-	output reg [WIDTH-1:0] data_out
+	output reg [WIDTH-1:0] data_out = 0
 );
 	reg [2*WIDTH-1:0] long;
 	always @(posedge clock) begin
@@ -634,7 +634,7 @@ module count_ones #(
 ) (
 	input clock,
 	input [WIDTH-1:0] data_in,
-	output reg [LOG2_WIDTH:0] count_out
+	output reg [LOG2_WIDTH:0] count_out = 0
 );
 	always @(posedge clock) begin
 		if (8==WIDTH) begin
