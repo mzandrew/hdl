@@ -1,6 +1,6 @@
 // written 2024-03-08 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-03-11 by mza
+// last updated 2024-03-12 by mza
 
 `define ampoliros48_revA
 `include "lib/duneLBLS.v"
@@ -428,7 +428,7 @@ module LBLS #(
 	wire [7:0] totd [12:1]; // time-over-threshold for bankD
 	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) bankA (
 		.clock(word_clock), .reset(reset_word),
-		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
+		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_counters(clear_channel_counters), .trigger_active(trigger_active),
 		.win1(wa[1]), .win2(wa[2]), .win3(wa[3]), .win4(wa[4]), .win5(wa[5]), .win6(wa[6]), .win7(wa[7]), .win8(wa[8]), .win9(wa[9]), .win10(wa[10]), .win11(wa[11]), .win12(wa[12]),
 		.sc1(sca[1]), .sc2(sca[2]), .sc3(sca[3]), .sc4(sca[4]), .sc5(sca[5]), .sc6(sca[6]), .sc7(sca[7]), .sc8(sca[8]), .sc9(sca[9]), .sc10(sca[10]), .sc11(sca[11]), .sc12(sca[12]),
 		.c1(ca[1]), .c2(ca[2]), .c3(ca[3]), .c4(ca[4]), .c5(ca[5]), .c6(ca[6]), .c7(ca[7]), .c8(ca[8]), .c9(ca[9]), .c10(ca[10]), .c11(ca[11]), .c12(ca[12]),
@@ -437,7 +437,7 @@ module LBLS #(
 	);
 	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) bankB (
 		.clock(word_clock), .reset(reset_word),
-		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
+		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_counters(clear_channel_counters), .trigger_active(trigger_active),
 		.win1(wb[1]), .win2(wb[2]), .win3(wb[3]), .win4(wb[4]), .win5(wb[5]), .win6(wb[6]), .win7(wb[7]), .win8(wb[8]), .win9(wb[9]), .win10(wb[10]), .win11(wb[11]), .win12(wb[12]),
 		.sc1(scb[1]), .sc2(scb[2]), .sc3(scb[3]), .sc4(scb[4]), .sc5(scb[5]), .sc6(scb[6]), .sc7(scb[7]), .sc8(scb[8]), .sc9(scb[9]), .sc10(scb[10]), .sc11(scb[11]), .sc12(scb[12]),
 		.c1(cb[1]), .c2(cb[2]), .c3(cb[3]), .c4(cb[4]), .c5(cb[5]), .c6(cb[6]), .c7(cb[7]), .c8(cb[8]), .c9(cb[9]), .c10(cb[10]), .c11(cb[11]), .c12(cb[12]),
@@ -446,7 +446,7 @@ module LBLS #(
 	);
 	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) bankC (
 		.clock(word_clock), .reset(reset_word),
-		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
+		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_counters(clear_channel_counters), .trigger_active(trigger_active),
 		.win1(wc[1]), .win2(wc[2]), .win3(wc[3]), .win4(wc[4]), .win5(wc[5]), .win6(wc[6]), .win7(wc[7]), .win8(wc[8]), .win9(wc[9]), .win10(wc[10]), .win11(wc[11]), .win12(wc[12]),
 		.sc1(scc[1]), .sc2(scc[2]), .sc3(scc[3]), .sc4(scc[4]), .sc5(scc[5]), .sc6(scc[6]), .sc7(scc[7]), .sc8(scc[8]), .sc9(scc[9]), .sc10(scc[10]), .sc11(scc[11]), .sc12(scc[12]),
 		.c1(cc[1]), .c2(cc[2]), .c3(cc[3]), .c4(cc[4]), .c5(cc[5]), .c6(cc[6]), .c7(cc[7]), .c8(cc[8]), .c9(cc[9]), .c10(cc[10]), .c11(cc[11]), .c12(cc[12]),
@@ -455,7 +455,7 @@ module LBLS #(
 	);
 	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) bankD (
 		.clock(word_clock), .reset(reset_word),
-		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_ones_counters(clear_channel_ones_counters), .trigger_active(trigger_active),
+		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_counters(clear_channel_counters), .trigger_active(trigger_active),
 		.win1(wd[1]), .win2(wd[2]), .win3(wd[3]), .win4(wd[4]), .win5(wd[5]), .win6(wd[6]), .win7(wd[7]), .win8(wd[8]), .win9(wd[9]), .win10(wd[10]), .win11(wd[11]), .win12(wd[12]),
 		.sc1(scd[1]), .sc2(scd[2]), .sc3(scd[3]), .sc4(scd[4]), .sc5(scd[5]), .sc6(scd[6]), .sc7(scd[7]), .sc8(scd[8]), .sc9(scd[9]), .sc10(scd[10]), .sc11(scd[11]), .sc12(scd[12]),
 		.c1(cd[1]), .c2(cd[2]), .c3(cd[3]), .c4(cd[4]), .c5(cd[5]), .c6(cd[6]), .c7(cd[7]), .c8(cd[8]), .c9(cd[9]), .c10(cd[10]), .c11(cd[11]), .c12(cd[12]),

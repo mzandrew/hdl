@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2024-03-08 by mza
+// last updated 2024-03-14 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -258,12 +258,14 @@ endmodule
 
 module iserdes_dodecahedron_input #(
 	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
+	parameter SPLIT_BANKS = 0, // note: SCOPE is effectively global when SPLIT_BANKS is 1
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	parameter PERIOD = 20.0,
-	parameter DIVIDE = 2,
-	parameter MULTIPLY = 40
+	parameter PERIOD = 10.0, // 100 MHz
+	parameter MULTIPLY = 8, // 800 MHz
+	parameter DIVIDE = 2, // 400 MHz
+	parameter EXTRA_DIVIDE = 16 // 25 MHz
 ) (
 	input clock_in,
 	output word_clock_out,
@@ -272,27 +274,85 @@ module iserdes_dodecahedron_input #(
 	input [12:1] bit_in,
 	output locked
 );
-	wire bit_clock;
-	wire bit_strobe;
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_1  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[1]),  .word_out(word_out_1));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_2  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[2]),  .word_out(word_out_2));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_3  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[3]),  .word_out(word_out_3));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_4  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[4]),  .word_out(word_out_4));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_5  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[5]),  .word_out(word_out_5));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_6  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[6]),  .word_out(word_out_6));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_7  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[7]),  .word_out(word_out_7));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_8  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[8]),  .word_out(word_out_8));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_9  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[9]),  .word_out(word_out_9));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_10 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[10]), .word_out(word_out_10));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_11 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[11]), .word_out(word_out_11));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_12 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in[12]), .word_out(word_out_12));
-//	if (SCOPE=="GLOBAL") begin
+	wire bit_clockA, bit_clockB;
+	wire bit_strobeA, bit_strobeB;
+	wire word_clockA, word_clockB;
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_1  (.word_clock(word_clockA), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset), .data_in(bit_in[1]),  .word_out(word_out_1));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_2  (.word_clock(word_clockA), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset), .data_in(bit_in[2]),  .word_out(word_out_2));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_3  (.word_clock(word_clockA), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset), .data_in(bit_in[3]),  .word_out(word_out_3));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_4  (.word_clock(word_clockA), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset), .data_in(bit_in[4]),  .word_out(word_out_4));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_5  (.word_clock(word_clockA), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset), .data_in(bit_in[5]),  .word_out(word_out_5));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_6  (.word_clock(word_clockA), .bit_clock(bit_clockA), .bit_strobe(bit_strobeA), .reset(reset), .data_in(bit_in[6]),  .word_out(word_out_6));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_7  (.word_clock(word_clockB), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset), .data_in(bit_in[7]),  .word_out(word_out_7));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_8  (.word_clock(word_clockB), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset), .data_in(bit_in[8]),  .word_out(word_out_8));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_9  (.word_clock(word_clockB), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset), .data_in(bit_in[9]),  .word_out(word_out_9));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_10 (.word_clock(word_clockB), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset), .data_in(bit_in[10]), .word_out(word_out_10));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_11 (.word_clock(word_clockB), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset), .data_in(bit_in[11]), .word_out(word_out_11));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_12 (.word_clock(word_clockB), .bit_clock(bit_clockB), .bit_strobe(bit_strobeB), .reset(reset), .data_in(bit_in[12]), .word_out(word_out_12));
+	if (SPLIT_BANKS) begin
+		wire clock_1x, clock_nx;
+		simpll #(
+			.BIT_DEPTH(BIT_DEPTH),
+			.CLKIN_PERIOD(PERIOD),
+			.PHASE(0.0),
+			.PHASE2345(0.0),
+			.PLLD(DIVIDE),
+			.PLLX(MULTIPLY),
+			.EXTRA_DIVIDE(EXTRA_DIVIDE)
+//			.CLK_FEEDBACK("CLKFBOUT")
+		) siphon (
+			.clock_in(clock_in),
+			.reset(reset),
+//			.clock_nx_fb(bit_clockA),
+			.pll_is_locked(pll_is_locked),
+			.clock_1x(clock_1x),
+			.clock_1x_1(),
+			.clock_1x_2(),
+			.clock_1x_3(),
+			.clock_1x_4(),
+			.clock_nx(clock_nx)
+		);
+		BUFG bufg_txA (.I(clock_1x), .O(word_clockA));
+		BUFG bufg_txB (.I(clock_1x), .O(word_clockB));
+		wire strobe_is_alignedA, strobe_is_alignedB;
+		BUFPLL #(
+			.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+			.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+		) tx_bufpll_inst_A (
+			.PLLIN(clock_nx), // PLL Clock input
+			.GCLK(word_clockA), // Global Clock input
+			.LOCKED(pll_is_locked), // Clock0 locked input
+			.IOCLK(bit_clockA), // Output PLL Clock
+			.LOCK(strobe_is_alignedA), // BUFPLL Clock and strobe locked
+			.SERDESSTROBE(bit_strobeA) // Output SERDES strobe
+		);
+		BUFPLL #(
+			.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+			.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+		) tx_bufpll_inst_B (
+			.PLLIN(clock_nx), // PLL Clock input
+			.GCLK(word_clockB), // Global Clock input
+			.LOCKED(pll_is_locked), // Clock0 locked input
+			.IOCLK(bit_clockB), // Output PLL Clock
+			.LOCK(strobe_is_alignedB), // BUFPLL Clock and strobe locked
+			.SERDESSTROBE(bit_strobeB) // Output SERDES strobe
+		);
+		assign word_clock_out = word_clockA;
+		assign locked = pll_is_locked && strobe_is_alignedA && strobe_is_alignedB;
+	end else begin
+		wire bit_strobe;
+		assign bit_strobeA = bit_strobe;
+		assign bit_strobeB = bit_strobe;
+		assign word_clockA = word_clock_out;
+		assign word_clockB = word_clock_out;
+		wire bit_clock;
+		assign bit_clockA = bit_clock;
+		assign bit_clockB = bit_clock;
 		oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE)) difficult_pll_TR (
 			.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 			.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
 		);
-//	end else begin
-//	end
+	end
 endmodule
 
 module iserdes_icositetrahedron_input #(
@@ -598,12 +658,12 @@ module ocyrus_hex8_split_4_2 #(
 		.PHASE2345(PHASE45),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
-		.EXTRA_DIVIDE(EXTRA_DIVIDE),
-		.CLK_FEEDBACK(CLK_FEEDBACK)
+		.EXTRA_DIVIDE(EXTRA_DIVIDE)
+//		.CLK_FEEDBACK(CLK_FEEDBACK)
 	) siphon (
 		.clock_in(clock_in),
 		.reset(reset),
-		.clock_nx_fb(bit_clock0123),
+//		.clock_nx_fb(bit_clock0123),
 		.pll_is_locked(pll_is_locked),
 		.clock_1x(clock_1x[0]),
 		.clock_1x_1(clock_1x[1]),
@@ -742,12 +802,12 @@ module ocyrus_gyrobicupola8_split_12_6_6 #(
 		.PHASE2345(0.0),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
-		.EXTRA_DIVIDE(EXTRA_DIVIDE),
-		.CLK_FEEDBACK("CLKFBOUT")
+		.EXTRA_DIVIDE(EXTRA_DIVIDE)
+//		.CLK_FEEDBACK("CLKFBOUT")
 	) siphon (
 		.clock_in(clock_in),
 		.reset(reset),
-		.clock_nx_fb(bit_clockA),
+//		.clock_nx_fb(bit_clockA),
 		.pll_is_locked(pll_is_locked),
 		.clock_1x(clock_1x[0]),
 		.clock_1x_1(clock_1x[1]),
@@ -925,12 +985,12 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2 #(
 		.PHASE2345(0.0),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
-		.EXTRA_DIVIDE(EXTRA_DIVIDE),
-		.CLK_FEEDBACK("CLKFBOUT")
+		.EXTRA_DIVIDE(EXTRA_DIVIDE)
+//		.CLK_FEEDBACK("CLKFBOUT")
 	) siphon (
 		.clock_in(clock_in),
 		.reset(reset),
-		.clock_nx_fb(bit_clockA),
+//		.clock_nx_fb(bit_clockA),
 		.pll_is_locked(pll_is_locked),
 		.clock_1x(clock_1x[0]),
 		.clock_1x_1(clock_1x[1]),
@@ -1111,12 +1171,12 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(
 		.PHASE2345(0.0),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
-		.EXTRA_DIVIDE(EXTRA_DIVIDE),
-		.CLK_FEEDBACK("CLKFBOUT")
+		.EXTRA_DIVIDE(EXTRA_DIVIDE)
+//		.CLK_FEEDBACK("CLKFBOUT")
 	) siphon (
 		.clock_in(clock_in),
 		.reset(reset),
-		.clock_nx_fb(bit_clockA),
+//		.clock_nx_fb(bit_clockA),
 		.pll_is_locked(pll_is_locked),
 		.clock_1x(clock_1x[0]), // word_clock for BUFG
 		.clock_1x_1(clock_1x[1]),
@@ -1314,12 +1374,12 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_BCinput #(
 		.PHASE2345(0.0),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
-		.EXTRA_DIVIDE(EXTRA_DIVIDE),
-		.CLK_FEEDBACK("CLKFBOUT")
+		.EXTRA_DIVIDE(EXTRA_DIVIDE)
+//		.CLK_FEEDBACK("CLKFBOUT")
 	) siphon (
 		.clock_in(clock_in),
 		.reset(reset),
-		.clock_nx_fb(bit_clockA),
+//		.clock_nx_fb(bit_clockA),
 		.pll_is_locked(pll_is_locked),
 		.clock_1x(clock_1x[0]), // word_clock for BUFG
 		.clock_1x_1(clock_1x[1]),
@@ -1535,12 +1595,12 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_BCEinput #(
 		.PHASE2345(0.0),
 		.PLLD(DIVIDE),
 		.PLLX(MULTIPLY),
-		.EXTRA_DIVIDE(EXTRA_DIVIDE),
-		.CLK_FEEDBACK("CLKFBOUT")
+		.EXTRA_DIVIDE(EXTRA_DIVIDE)
+//		.CLK_FEEDBACK("CLKFBOUT")
 	) siphon (
 		.clock_in(clock_in),
 		.reset(reset),
-		.clock_nx_fb(bit_clockA),
+//		.clock_nx_fb(bit_clockA),
 		.pll_is_locked(pll_is_locked),
 		.clock_1x(clock_1x[0]), // word_clock for BUFG
 		.clock_1x_1(clock_1x[1]),
@@ -1618,14 +1678,14 @@ module simpll #(
 	parameter PHASE2345 = 0.0,
 	parameter PLLD = 5,
 	parameter PLLX = 32,
-	parameter EXTRA_DIVIDE = 1,
-	parameter CLK_FEEDBACK = "CLKFBOUT",
-	parameter COMPENSATION = CLK_FEEDBACK=="CLKFBOUT" ? "INTERNAL" : "EXTERNAL"
+	parameter EXTRA_DIVIDE = 1
+//	parameter CLK_FEEDBACK = "CLKFBOUT",
+//	parameter COMPENSATION = CLK_FEEDBACK=="CLKFBOUT" ? "INTERNAL" : "EXTERNAL"
 	//parameter COMPENSATION = "SOURCE_SYNCHRONOUS"
 ) (
 	input clock_in,
 	input reset,
-	input clock_nx_fb, // bit clock feedback input
+//	input clock_nx_fb, // bit clock feedback input
 	output pll_is_locked,
 	output clock_1x, // word clock output, phase shifted by PHASE
 	output clock_1x_1, // word clock output, phase shifted by PHASE2345+1*360/BIT_DEPTH
@@ -1634,23 +1694,25 @@ module simpll #(
 	output clock_1x_4, // word clock output, phase shifted by PHASE2345+4*360/BIT_DEPTH
 	output clock_nx // bit clock output
 );
+	localparam COMPENSATION = "INTERNAL";
+	localparam CLK_FEEDBACK = "CLKFBOUT";
 	// from clock_generator_pll_s8_diff.v from XAPP1064 example code, ug615 and ug382
 	// frequency of VCO after div and mult must be in range [400,1050] MHz for speed grade 3
 	// frequency of PFD (right after first DIVCLK_DIVIDE) stage must be in range [19, 500] MHz for speed grade 3
 	// frequency of BUFG can't be higher than 400 MHz
 	wire fb_in; // incoming feedback net
 	wire fb_out; // outgoing feedback net
-	wire clock_in_copy;
-	if (CLK_FEEDBACK=="CLKFBOUT") begin
-		assign fb_in = fb_out;
-		assign clock_in_copy = clock_in;
+//	wire clock_in_copy;
+//	if (CLK_FEEDBACK=="CLKFBOUT") begin
+	assign fb_in = fb_out;
+//	assign clock_in_copy = clock_in;
 		//localparam COMPENSATION = "INTERNAL";
-	end else begin // "CLKOUT0"
-		BUFIO2 #(.DIVIDE(1), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("TRUE")) boopy (.I(clock_in), .DIVCLK(clock_in_copy), .IOCLK(), .SERDESSTROBE());
-		BUFIO2FB #(.DIVIDE_BYPASS("TRUE")) schmoopy (.I(clock_nx_fb), .O(fb_in));
-		//assign fb_in = clock_nx;
-		//localparam COMPENSATION = "EXTERNAL";
-	end
+//	end else begin // "CLKOUT0"
+//		BUFIO2 #(.DIVIDE(1), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("TRUE")) boopy (.I(clock_in), .DIVCLK(clock_in_copy), .IOCLK(), .SERDESSTROBE());
+//		BUFIO2FB #(.DIVIDE_BYPASS("TRUE")) schmoopy (.I(clock_nx_fb), .O(fb_in));
+//		//assign fb_in = clock_nx;
+//		//localparam COMPENSATION = "EXTERNAL";
+//	end
 	PLL_ADV #(
 		.SIM_DEVICE("SPARTAN6"),
 		.CLK_FEEDBACK(CLK_FEEDBACK), // "CLKFBOUT" or "CLKOUT0"
@@ -1685,7 +1747,7 @@ module simpll #(
 		.LOCKED(pll_is_locked), // active high pll lock signal
 		.CLKFBIN(fb_in), // clock feedback input
 		.CLKFBOUT(fb_out), // clock feedback output
-		.CLKIN1(clock_in_copy), // primary clock input
+		.CLKIN1(clock_in), // primary clock input
 		.CLKOUT0(clock_nx), // *n clock for transmitter
 		.CLKOUT1(clock_1x), // *1 clock for BUFG
 		.CLKOUT2(clock_1x_1), //
@@ -1741,12 +1803,12 @@ module oserdes_pll #(
 			.PHASE(PHASE),
 			.PLLD(PLLD),
 			.PLLX(PLLX),
-			.EXTRA_DIVIDE(EXTRA_DIVIDE),
-			.CLK_FEEDBACK(CLK_FEEDBACK)
+			.EXTRA_DIVIDE(EXTRA_DIVIDE)
+//			.CLK_FEEDBACK(CLK_FEEDBACK)
 		) simon (
 			.clock_in(clock_in),
 			.reset(reset),
-			.clock_nx_fb(serializer_clock_out),
+//			.clock_nx_fb(serializer_clock_out),
 			.pll_is_locked(pll_is_locked),
 			.clock_1x(rawclock_1x_plladv),
 			.clock_1x_1(),

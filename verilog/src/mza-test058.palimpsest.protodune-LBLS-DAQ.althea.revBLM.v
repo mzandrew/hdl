@@ -1,9 +1,11 @@
 // written 2022-10-14 by mza
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
+// based on mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2024-02-13 by mza
+// last updated 2024-03-14 by mza
 
 `define althea_revBLM
+`include "lib/duneLBLS.v"
 `include "lib/generic.v"
 `include "lib/RAM8.v"
 `include "lib/fifo.v"
@@ -17,6 +19,8 @@
 `include "lib/frequency_counter.v"
 
 module top #(
+	parameter COUNTER_WIDTH = 32,
+	parameter SCALER_WIDTH = 16,
 	parameter ROTATED = 0,
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
@@ -35,7 +39,6 @@ module top #(
 	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
 ) (
 	input clock100_p, clock100_n,
-	input clock10,
 //	input button,
 	inout [5:0] coax,
 //	input [2:0] rot,
@@ -44,7 +47,7 @@ module top #(
 	input register_select, // 0=address; 1=data
 	input enable, // 1=active; 0=inactive
 	output ack_valid,
-	input [12:1] signal,
+	input [12:1] signal, // only on set of 12 channels (bankA) on this board
 	output [12:1] indicator,
 //	output [5:0] diff_pair_left,
 //	output [5:0] diff_pair_right_p,
@@ -55,6 +58,7 @@ module top #(
 //	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
 	output [3:0] coax_led
 );
+	genvar i;
 	// PLL_ADV VCO range is 400 MHz to 1080 MHz
 	localparam PERIOD = 10.0;
 	localparam MULTIPLY = 8;
@@ -62,40 +66,18 @@ module top #(
 	localparam EXTRA_DIVIDE = 16;
 	localparam SCOPE = "GLOBAL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 //	wire [7:0] pattern [12:1];
-//	assign pattern[1]  = 8'h0f;
-//	assign pattern[2]  = 8'h03;
-//	assign pattern[3]  = 8'h07;
-//	assign pattern[4]  = 8'h01;
-//	assign pattern[5]  = 8'h1f;
-//	assign pattern[6]  = 8'h3f;
-//	assign pattern[7]  = 8'h7f;
-//	assign pattern[8]  = 8'hcc;
-//	assign pattern[9]  = 8'ha1;
-//	assign pattern[10] = 8'ha3;
-//	assign pattern[11] = 8'ha7;
-//	assign pattern[12] = 8'haf;
 //	reg [7:0] status [12:1];
 	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [3:0] status4;
 	wire [7:0] status8;
 	wire reset;
-	genvar i;
 	wire pll_oserdes_locked;
-	wire pll_oserdes_locked_other;
-//	wire pll_oserdes_locked_right_outer;
-//	wire pll_oserdes_locked_left_outer;
-//	wire pll_oserdes_locked_right_inner;
-//	wire pll_oserdes_locked_left_inner;
 	// ----------------------------------------------------------------------
 	wire reset100;
 	wire clock100;
 	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock100), .reset_output(reset100));
 	wire word_clock;
-//	wire word_clock_right_outer;
-//	wire word_clock_left_outer;
-//	wire word_clock_right_inner;
-//	wire word_clock_left_inner;
 	// ----------------------------------------------------------------------
 	wire reset_word;
 	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset100), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock), .reset_output(reset_word));
@@ -134,51 +116,26 @@ module top #(
 		.address_errors(hdrb_address_errors),
 		.bank(bank)
 	);
-//	wire [OSERDES_DATA_WIDTH-1:0] potential_oserdes_word [NUMBER_OF_BANKS-1:0];
-//	wire [OSERDES_DATA_WIDTH-1:0] oserdes_word [NUMBER_OF_BANKS-1:0];
-	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
-//	wire [31:0] a_c_;
-//	wire [31:0] _b_d;
+	// ----------------------------------------------------------------------
 	wire [31:0] bank0 [15:0];
-	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank0 (.clock(word_clock),
+	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank0 (.clock(word_clock), .reset(reset_word),
+		.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[0]),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[0]),
-		.data_in_b_0(bank0[0]),  .data_in_b_1(bank0[1]),  .data_in_b_2(bank0[2]),  .data_in_b_3(bank0[3]),
-		.data_in_b_4(bank0[4]),  .data_in_b_5(bank0[5]),  .data_in_b_6(bank0[6]),  .data_in_b_7(bank0[7]),
-		.data_in_b_8(bank0[8]),  .data_in_b_9(bank0[9]),  .data_in_b_a(bank0[10]), .data_in_b_b(bank0[11]),
-		.data_in_b_c(bank0[12]), .data_in_b_d(bank0[13]), .data_in_b_e(bank0[14]), .data_in_b_f(bank0[15]),
-		.write_strobe_b(1'b1));
-	if (0) begin
-		RAM_s6_8k_16bit_32bit mem0 (.reset(reset_word),
-			.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[15:0]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][15:0]),
-			.clock_b(word_clock), .address_b(read_address), .data_out_b());
-		RAM_s6_8k_16bit_32bit mem1 (.reset(reset_word),
-			.clock_a(word_clock), .address_a(address_word_narrow), .data_in_a(write_data_word[31:16]), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0][31:16]),
-			.clock_b(word_clock), .address_b(read_address), .data_out_b());
-	end else begin
-		//assign read_data_word[0] = 0;
-	end
-//	for (i=7; i<NUMBER_OF_BANKS; i=i+1) begin : fakebanks
-//		assign read_data_word[i] = 0;
-//	end
-	reg [12:1] fifo_write_enable;
-	wire [12:1] fifo_read_enable;
-	wire fifo_empty;
-	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc_4321 (.clock(word_clock), .reset(reset_word), .error_count(),
-		.data_in({previous_time_over_threshold[4],previous_time_over_threshold[3],previous_time_over_threshold[2],previous_time_over_threshold[1]}),
-		.write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
-		.data_out(read_data_word[3]), .read_enable(read_strobe[3]), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
-	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc_8765 (.clock(word_clock), .reset(reset_word), .error_count(),
-		.data_in({previous_time_over_threshold[8],previous_time_over_threshold[7],previous_time_over_threshold[6],previous_time_over_threshold[5]}),
-		.write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
-		.data_out(read_data_word[4]), .read_enable(read_strobe[4]), .empty(), .almost_empty(), .empty_or_almost_empty());
-	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc_cba9 (.clock(word_clock), .reset(reset_word), .error_count(),
-		.data_in({previous_time_over_threshold[12],previous_time_over_threshold[11],previous_time_over_threshold[10],previous_time_over_threshold[9]}),
-		.write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
-		.data_out(read_data_word[5]), .read_enable(read_strobe[5]), .empty(), .almost_empty(), .empty_or_almost_empty());
+		.data_out_b_0(bank0[0]),  .data_out_b_1(bank0[1]),  .data_out_b_2(bank0[2]),  .data_out_b_3(bank0[3]),
+		.data_out_b_4(bank0[4]),  .data_out_b_5(bank0[5]),  .data_out_b_6(bank0[6]),  .data_out_b_7(bank0[7]),
+		.data_out_b_8(bank0[8]),  .data_out_b_9(bank0[9]),  .data_out_b_a(bank0[10]), .data_out_b_b(bank0[11]),
+		.data_out_b_c(bank0[12]), .data_out_b_d(bank0[13]), .data_out_b_e(bank0[14]), .data_out_b_f(bank0[15]));
+	wire [12:1] hit_mask                        = bank0[0][11:0];
+	wire [12:1] inversion_mask                  = bank0[1][11:0];
+	wire [31:0] desired_trigger_quantity        = bank0[2][31:0];
+	wire [31:0] trigger_duration_in_word_clocks = bank0[3][31:0];
+	wire [3:0]  monitor_channel                 = bank0[4];
+	wire        clear_gate_counter              = bank0[5][0];
+	wire        clear_trigger_count             = bank0[5][1];
+	wire        clear_hit_counter               = bank0[5][2];
+	wire        clear_channel_counters          = bank0[5][3];
+	wire        clear_channel_ones_counters     = bank0[5][4];
 	wire [31:0] bank1 [15:0];
-	wire [31:0] bank2 [15:0];
-	wire [31:0] bank6 [15:0];
-	wire [31:0] bank7 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
 		.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
@@ -186,13 +143,74 @@ module top #(
 		.data_in_b_8(bank1[8]),  .data_in_b_9(bank1[9]),  .data_in_b_a(bank1[10]), .data_in_b_b(bank1[11]),
 		.data_in_b_c(bank1[12]), .data_in_b_d(bank1[13]), .data_in_b_e(bank1[14]), .data_in_b_f(bank1[15]),
 		.write_strobe_b(1'b1));
-	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank2 (.clock(word_clock), .reset(reset_word),
-		.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[2]),
+	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[7:0], status8 };
+//	assign bank1[13] = trigger_count;
+//	assign bank1[14] = suggested_inversion_map;
+//	assign bank1[15] = hit_counter_buffered;
+	assign bank1[13] = 0;
+	assign bank1[14] = 0;
+	assign bank1[15] = 0;
+//	for (i=1; i<=15; i=i+1) begin : dummy_bank1
+//		assign bank1[i] = 0;
+//	end
+	wire [31:0] bank2 [15:0];
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank2 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[2]),
-		.data_out_b_0(bank2[0]),  .data_out_b_1(bank2[1]),  .data_out_b_2(bank2[2]),  .data_out_b_3(bank2[3]),
-		.data_out_b_4(bank2[4]),  .data_out_b_5(bank2[5]),  .data_out_b_6(bank2[6]),  .data_out_b_7(bank2[7]),
-		.data_out_b_8(bank2[8]),  .data_out_b_9(bank2[9]),  .data_out_b_a(bank2[10]), .data_out_b_b(bank2[11]),
-		.data_out_b_c(bank2[12]), .data_out_b_d(bank2[13]), .data_out_b_e(bank2[14]), .data_out_b_f(bank2[15]));
+		.data_in_b_0(bank2[0]),  .data_in_b_1(bank2[1]),  .data_in_b_2(bank2[2]),  .data_in_b_3(bank2[3]),
+		.data_in_b_4(bank2[4]),  .data_in_b_5(bank2[5]),  .data_in_b_6(bank2[6]),  .data_in_b_7(bank2[7]),
+		.data_in_b_8(bank2[8]),  .data_in_b_9(bank2[9]),  .data_in_b_a(bank2[10]), .data_in_b_b(bank2[11]),
+		.data_in_b_c(bank2[12]), .data_in_b_d(bank2[13]), .data_in_b_e(bank2[14]), .data_in_b_f(bank2[15]),
+		.write_strobe_b(1'b1));
+	assign bank2[0] = 0;
+	assign bank2[13] = 0;
+	assign bank2[14] = 0;
+	assign bank2[15] = 0;
+//	for (i=0; i<=15; i=i+1) begin : dummy_bank2
+//		assign bank2[i] = 0;
+//	end
+	wire [31:0] bank3 [15:0];
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank3 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[3]),
+		.data_in_b_0(bank3[0]),  .data_in_b_1(bank3[1]),  .data_in_b_2(bank3[2]),  .data_in_b_3(bank3[3]),
+		.data_in_b_4(bank3[4]),  .data_in_b_5(bank3[5]),  .data_in_b_6(bank3[6]),  .data_in_b_7(bank3[7]),
+		.data_in_b_8(bank3[8]),  .data_in_b_9(bank3[9]),  .data_in_b_a(bank3[10]), .data_in_b_b(bank3[11]),
+		.data_in_b_c(bank3[12]), .data_in_b_d(bank3[13]), .data_in_b_e(bank3[14]), .data_in_b_f(bank3[15]),
+		.write_strobe_b(1'b1));
+	assign bank3[0] = 0;
+	assign bank3[13] = 0;
+	assign bank3[14] = 0;
+	assign bank3[15] = 0;
+//	for (i=0; i<=15; i=i+1) begin : dummy_bank3
+//		assign bank3[i] = 0;
+//	end
+	wire [31:0] bank4 [15:0];
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank4 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[4]),
+		.data_in_b_0(bank4[0]),  .data_in_b_1(bank4[1]),  .data_in_b_2(bank4[2]),  .data_in_b_3(bank4[3]),
+		.data_in_b_4(bank4[4]),  .data_in_b_5(bank4[5]),  .data_in_b_6(bank4[6]),  .data_in_b_7(bank4[7]),
+		.data_in_b_8(bank4[8]),  .data_in_b_9(bank4[9]),  .data_in_b_a(bank4[10]), .data_in_b_b(bank4[11]),
+		.data_in_b_c(bank4[12]), .data_in_b_d(bank4[13]), .data_in_b_e(bank4[14]), .data_in_b_f(bank4[15]),
+		.write_strobe_b(1'b1));
+	assign bank4[0] = 0;
+	assign bank4[13] = 0;
+	assign bank4[14] = 0;
+	assign bank4[15] = 0;
+	wire [31:0] bank5 [15:0];
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank5 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[5]),
+		.data_in_b_0(bank5[0]),  .data_in_b_1(bank5[1]),  .data_in_b_2(bank5[2]),  .data_in_b_3(bank5[3]),
+		.data_in_b_4(bank5[4]),  .data_in_b_5(bank5[5]),  .data_in_b_6(bank5[6]),  .data_in_b_7(bank5[7]),
+		.data_in_b_8(bank5[8]),  .data_in_b_9(bank5[9]),  .data_in_b_a(bank5[10]), .data_in_b_b(bank5[11]),
+		.data_in_b_c(bank5[12]), .data_in_b_d(bank5[13]), .data_in_b_e(bank5[14]), .data_in_b_f(bank5[15]),
+		.write_strobe_b(1'b1));
+	assign bank5[0] = 0;
+	assign bank5[13] = 0;
+	assign bank5[14] = 0;
+	assign bank5[15] = 0;
+//	for (i=0; i<=15; i=i+1) begin : dummy_bank5
+//		assign bank5[i] = 0;
+//	end
+	wire [31:0] bank6 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
 		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
@@ -200,6 +218,14 @@ module top #(
 		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
 		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
 		.write_strobe_b(1'b1));
+	assign bank6[0] = 0;
+	assign bank6[13] = 0;
+	assign bank6[14] = 0;
+	assign bank6[15] = 0;
+//	for (i=0; i<=15; i=i+1) begin : dummy_bank6
+//		assign bank6[i] = 0;
+//	end
+	wire [31:0] bank7 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank7 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[7]),
 		.data_in_b_0(bank7[0]),  .data_in_b_1(bank7[1]),  .data_in_b_2(bank7[2]),  .data_in_b_3(bank7[3]),
@@ -207,168 +233,34 @@ module top #(
 		.data_in_b_8(bank7[8]),  .data_in_b_9(bank7[9]),  .data_in_b_a(bank7[10]), .data_in_b_b(bank7[11]),
 		.data_in_b_c(bank7[12]), .data_in_b_d(bank7[13]), .data_in_b_e(bank7[14]), .data_in_b_f(bank7[15]),
 		.write_strobe_b(1'b1));
-	wire sync_read_address; // assert this when you feel like (re)synchronizing
-	localparam SYNC_OUT_STREAM_PICKOFF = 2;
-	wire [SYNC_OUT_STREAM_PICKOFF:0] sync_out_stream; // sync_out_stream[2] is usually good
-	wire [7:0] sync_out_word; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
-	wire [7:0] sync_out_word_delayed; // dump this in to one of the outputs in a multi-lane oserdes module to get a sync bit that is precisely aligned with your data
-//	wire [2:0] rot_pipeline;
-	reg [31:0] hit_counter = 0;
-	reg [31:0] hit_counter_buffered = 0;
-	wire [7:0] raw_gate;
-	localparam GATE_TRAIN_PICKOFF = 2;
-	localparam GATE_TRAIN_DEPTH = 4;
-	reg [GATE_TRAIN_DEPTH-1:0] gate_train = 0;
-	wire gate = gate_train[GATE_TRAIN_PICKOFF];
-	wire [7:0] raw_trigger;
+	assign bank7[0] = 0;
+	assign bank7[13] = 0;
+	assign bank7[14] = 0;
+	assign bank7[15] = 0;
+//	for (i=0; i<=15; i=i+1) begin : dummy_bank7
+//		assign bank7[i] = 0;
+//	end
+	for (i=1; i<=12; i=i+1) begin : dummy_567
+		assign bank5[i] = 32'h5;
+		assign bank6[i] = 32'h6;
+		assign bank7[i] = 32'h7;
+	end
+		// ----------------------------------------------------------------------
+	wire raw_trigger = 0;
 	localparam TRIGGER_TRAIN_PICKOFF = 2;
 	localparam TRIGGER_TRAIN_DEPTH = 4;
 	reg [TRIGGER_TRAIN_DEPTH-1:0] trigger_train = 0;
 	wire trigger = trigger_train[TRIGGER_TRAIN_PICKOFF];
-	reg [31:0] gate_counter = 0;
-	reg [31:0] gate_counter_buffered = 0;
-	wire [7:0] iserdes_in [12:1];
-	wire [7:0] iserdes_in_maybe_inverted [12:1];
-	wire [7:0] iserdes_in_maybe_inverted_and_maybe_masked [12:1];
-	reg [7:0] iserdes_in_buffered_and_maybe_inverted_a [12:1];
-	reg [7:0] iserdes_in_buffered_and_maybe_inverted_b [12:1];
-//	assign bank1[0]  = { oserdes_word[3], oserdes_word[2], oserdes_word[1], oserdes_word[0] };
-	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[7:0], status8 };
-	for (i=1; i<=12; i=i+1) begin : raw_readout_registers_mapping
-		assign bank0[i] = { 8'd0, channel_ones_counter[i] };
-		assign bank1[i] = { iserdes_in_buffered_and_maybe_inverted_a[i], iserdes_in_maybe_inverted_and_maybe_masked[i], iserdes_in_maybe_inverted[i], iserdes_in[i] };
-		assign iserdes_in_maybe_inverted[i] = iserdes_in[i] ^ {8{inversion_mask[i]}};
-		assign iserdes_in_maybe_inverted_and_maybe_masked[i] = (iserdes_in[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
-		//assign indicator[i] = 0;
+	always @(posedge word_clock) begin
+		if (reset_word) begin
+			trigger_train <= 0;
+		end else begin
+			trigger_train <= { trigger_train[TRIGGER_TRAIN_DEPTH-2:0], raw_trigger };
+		end
 	end
-	assign bank1[13] = trigger_count;
-	assign bank1[14] = suggested_inversion_map;
-	assign bank1[15] = hit_counter_buffered;
 	reg trigger_active = 0;
 	reg [31:0] trigger_active_counter = 0;
 	reg [31:0] trigger_count = 0;
-	reg [7:0] coax_oserdes [3:0];
-	wire [12:1] hit_mask                        = bank2[0][11:0];
-	wire [12:1] inversion_mask                  = bank2[1][11:0];
-	wire [31:0] desired_trigger_quantity        = bank2[2][31:0];
-	wire [31:0] trigger_duration_in_word_clocks = bank2[3][31:0];
-	//wire [31:0] trigger_duration_in_word_clocks = 25; // 1 us
-	wire [3:0]  monitor_channel                 = bank2[4];
-	wire        clear_gate_counter              = bank2[5][0];
-	wire        clear_trigger_count             = bank2[5][1];
-	wire        clear_hit_counter               = bank2[5][2];
-	wire        clear_channel_counters          = bank2[5][3];
-	wire        clear_channel_ones_counters     = bank2[5][4];
-	wire [3:0]  coax_mux [3:0];
-	assign coax_mux[0] = bank2[7][3:0];
-	assign coax_mux[1] = bank2[8][3:0];
-	assign coax_mux[2] = bank2[9][3:0];
-	assign coax_mux[3] = bank2[10][3:0];
-	wire [31:0] channel_counter [12:1];
-	wire [31:0] channel_scaler [12:1];
-	reg [12:1] suggested_inversion_map;
-	for (i=1; i<=12; i=i+1) begin : channel_counter_scaler_mapping
-		assign bank6[i] = channel_counter[i];
-		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(32)) channel_counter (.clock(word_clock), .reset(clear_channel_counters), .in(iserdes_in_maybe_inverted[i]), .out(channel_counter[i]));
-		assign bank7[i] = channel_scaler[i];
-//		iserdes_scaler #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000)) channel_scaler (.clock(word_clock), .reset(1'b0), .in(iserdes_in_maybe_inverted[i]), .out(channel_scaler[i]));
-	end
-	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(32), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_array12 (.clock(word_clock), .reset(1'b0),
-		.in01(iserdes_in_maybe_inverted[1]), .in02(iserdes_in_maybe_inverted[2]), .in03(iserdes_in_maybe_inverted[3]), .in04(iserdes_in_maybe_inverted[4]),
-		.in05(iserdes_in_maybe_inverted[5]), .in06(iserdes_in_maybe_inverted[6]), .in07(iserdes_in_maybe_inverted[7]), .in08(iserdes_in_maybe_inverted[8]),
-		.in09(iserdes_in_maybe_inverted[9]), .in10(iserdes_in_maybe_inverted[10]), .in11(iserdes_in_maybe_inverted[11]), .in12(iserdes_in_maybe_inverted[12]),
-		.out01(channel_scaler[1]), .out02(channel_scaler[2]),  .out03(channel_scaler[3]),  .out04(channel_scaler[4]),
-		.out05(channel_scaler[5]), .out06(channel_scaler[6]),  .out07(channel_scaler[7]),  .out08(channel_scaler[8]),
-		.out09(channel_scaler[9]), .out10(channel_scaler[10]), .out11(channel_scaler[11]), .out12(channel_scaler[12])
-	);
-	assign bank0[0] = 0;
-	assign bank0[13] = 0;
-	assign bank0[14] = 0;
-	assign bank0[15] = 0;
-	assign bank6[0] = 0;
-	assign bank7[0] = 32'habcd0000;
-	assign bank7[13] = 32'habcd0013;
-	assign bank7[14] = 32'habcd0014;
-	assign bank7[15] = 32'habcd0015;
-	for (i=13; i<=15; i=i+1) begin : dummy_bank6_bank7_mapping
-		assign bank6[i] = 32'habcdef06;
-//		assign bank7[i] = 32'habcdef07;
-	end
-	assign reset = 0;
-	//assign reset = ~button;
-	reg [12:1] iserdes_word_hit;
-	reg any;
-	reg [2:0] anytrain = 0;
-	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_1_mapping
-		always @(posedge word_clock) begin
-			if (reset_word) begin
-				iserdes_in_buffered_and_maybe_inverted_a[i] <= 0;
-			end else begin
-				//iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{|hitmask[i]}} & ~iserdes_in[i];
-				//iserdes_in_buffered_and_maybe_inverted_a[i] <= {8{hit_mask[i] & inversion_mask[i]}} ^ iserdes_in[i];
-				//iserdes_in_buffered_and_maybe_inverted_a[i] <= (iserdes_in[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
-				iserdes_in_buffered_and_maybe_inverted_a[i] <= iserdes_in_maybe_inverted_and_maybe_masked[i];
-			end
-		end
-	end
-	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_2_mapping
-		always @(posedge word_clock) begin
-			if (reset_word) begin
-				iserdes_in_buffered_and_maybe_inverted_b[i] <= 0;
-			end else begin
-				iserdes_in_buffered_and_maybe_inverted_b[i] <= iserdes_in_buffered_and_maybe_inverted_a[i];
-			end
-		end
-	end
-	for (i=1; i<=12; i=i+1) begin : iserdes_word_hit_mapping
-		always @(posedge word_clock) begin
-			if (reset_word) begin
-				iserdes_word_hit[i] <= 0;
-			end else begin
-				//iserdes_word_hit[i] <= |hitmask[i] && ~|iserdes_in[i]; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
-				//iserdes_word_hit[i] <= hit_mask[i] & inversion_mask[i] ^ (|iserdes_in[i]); // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
-				//iserdes_word_hit[i] <= ((|iserdes_in[i]) ^ inversion_mask[i]) & hit_mask[i] & gate; // this result will be available when iserdes_in_buffered_and_maybe_inverted_a corresponds
-				iserdes_word_hit[i] <= |iserdes_in_maybe_inverted_and_maybe_masked[i];
-			end
-		end
-	end
-	for (i=1; i<=12; i=i+1) begin : channel_ones_counter_adder
-		always @(posedge word_clock) begin
-			if (reset_word) begin
-				channel_ones_counter[i] <= 0;
-			end else begin
-				if (clear_channel_ones_counters) begin
-					channel_ones_counter[i] <= 0;
-				end else begin
-					if (channel_ones_counter[i]<channel_ones_counter_max_count) begin
-						channel_ones_counter[i] <= channel_ones_counter[i] + iserdes_in_ones_counter_before[i];
-					end else begin
-						channel_ones_counter[i] <= channel_ones_counter_max_count;
-					end
-				end
-			end
-		end
-	end
-	for (i=1; i<=12; i=i+1) begin : suggested_inversion_map_mapping
-		always @(posedge word_clock) begin
-			if (reset_word) begin
-				suggested_inversion_map[i] <= 0;
-			end else begin
-				if (channel_ones_counter_suggestion_threshold<channel_ones_counter[i]) begin
-					suggested_inversion_map[i] <= 1'b1;
-				end else begin
-					suggested_inversion_map[i] <= 0;
-				end
-			end
-		end
-	end
-	always @(posedge word_clock) begin
-		if (reset_word) begin
-			any <= 0;
-		end else begin
-			any <= |iserdes_word_hit; // this result will be available when iserdes_in_buffered_and_maybe_inverted_b corresponds
-		end
-	end
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			trigger_active <= 0;
@@ -398,97 +290,70 @@ module top #(
 			end
 		end
 	end
-	always @(posedge word_clock) begin
-		if (reset_word) begin
-			anytrain <= 0;
-		end else begin
-			anytrain <= { anytrain[1:0], any };
-		end
-	end
-	always @(posedge word_clock) begin
-		if (reset_word) begin
-			hit_counter <= 0;
-			hit_counter_buffered <= 0;
-		end else begin
-			if (clear_hit_counter) begin
-				hit_counter <= 0;
-				hit_counter_buffered <= 0;
-			end else begin
-				hit_counter_buffered <= hit_counter;
-				if (2'b01==anytrain[2:1]) begin
-					hit_counter <= hit_counter + 1'b1;
-				end
-			end
-		end
-	end
+	// ----------------------------------------------------------------------
+	wire raw_gate = 1;
+	localparam GATE_TRAIN_PICKOFF = 2;
+	localparam GATE_TRAIN_DEPTH = 4;
+	reg [GATE_TRAIN_DEPTH-1:0] gate_train = 0;
+	wire gate = gate_train[GATE_TRAIN_PICKOFF];
+	reg [31:0] gate_counter = 0;
+//	reg [31:0] gate_counter_buffered = 0;
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			gate_train <= 0;
 		end else begin
-			gate_train <= { gate_train[GATE_TRAIN_DEPTH-2:0], |raw_gate };
-		end
-	end
-	always @(posedge word_clock) begin
-		if (reset_word) begin
-			trigger_train <= 0;
-		end else begin
-			trigger_train <= { trigger_train[TRIGGER_TRAIN_DEPTH-2:0], |raw_trigger };
+			gate_train <= { gate_train[GATE_TRAIN_DEPTH-2:0], raw_gate };
 		end
 	end
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			gate_counter <= 0;
-			gate_counter_buffered <= 0;
+//			gate_counter_buffered <= 0;
 		end else begin
 			if (clear_gate_counter) begin
 				gate_counter <= 0;
-				gate_counter_buffered <= 0;
+//				gate_counter_buffered <= 0;
 			end else begin
-				gate_counter_buffered <= gate_counter;
+//				gate_counter_buffered <= gate_counter;
 				if (2'b01==gate_train[GATE_TRAIN_PICKOFF+1:GATE_TRAIN_PICKOFF]) begin
 					gate_counter <= gate_counter + 1'b1;
 				end
 			end
 		end
 	end
-//	wire [255:0] [12:1];
-	reg [7:0] previous_time_over_threshold [12:1];
-	reg [7:0] time_over_threshold [12:1];
-	localparam CHANNEL_ONES_COUNTER_NUMBER_OF_BITS = 24;
-	reg [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter [12:1];
-	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_max_count;
-	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_suggestion_threshold;
-	localparam CHANNEL_ONES_COUNTER_UPPER_NYBBLE = 4'he;
-	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = 0;
-	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
-	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8:0] = 0;
-	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
-	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:0] = 0;
-	wire [3:0] iserdes_in_ones_counter_before [12:1];
-	wire [3:0] iserdes_in_ones_counter_after [12:1];
-	for (i=1; i<=12; i=i+1) begin : ones_counter_mapping
-		count_ones c1s_before (.clock(word_clock), .data_in(iserdes_in[i]), .count_out(iserdes_in_ones_counter_before[i]));
-		count_ones c1s_after (.clock(word_clock), .data_in(iserdes_in_buffered_and_maybe_inverted_a[i]), .count_out(iserdes_in_ones_counter_after[i]));
+	// ----------------------------------------------------------------------
+	wire [7:0] wa [12:1]; // word_A output from iserdes for bankA
+	iserdes_dodecahedron_input #(
+		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE), .SCOPE(SCOPE), .SPLIT_BANKS(1)
+	) inputs_bankA (
+		.clock_in(clock100), .reset(reset100), .locked(pll_oserdes_locked), .word_clock_out(word_clock), .bit_in(signal),
+		.word_out_1(wa[1]), .word_out_2(wa[2]), .word_out_3(wa[3]),  .word_out_4(wa[4]),   .word_out_5(wa[5]),   .word_out_6(wa[6]),
+		.word_out_7(wa[7]), .word_out_8(wa[8]), .word_out_9(wa[9]), .word_out_10(wa[10]), .word_out_11(wa[11]), .word_out_12(wa[12])
+	);
+	// ----------------------------------------------------------------------
+	wire [SCALER_WIDTH-1:0] sca [12:1]; // channel_scaler_a
+	wire [COUNTER_WIDTH-1:0] ca [12:1]; // channel_counter_a
+	wire [7:0] tota [12:1]; // time-over-threshold for bankA
+	wire any;
+	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) logic_bankA (
+		.clock(word_clock), .reset(reset_word),
+		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_counters(clear_channel_counters), .trigger_active(trigger_active),
+		.win1(wa[1]), .win2(wa[2]), .win3(wa[3]), .win4(wa[4]), .win5(wa[5]), .win6(wa[6]), .win7(wa[7]), .win8(wa[8]), .win9(wa[9]), .win10(wa[10]), .win11(wa[11]), .win12(wa[12]),
+		.sc1(sca[1]), .sc2(sca[2]), .sc3(sca[3]), .sc4(sca[4]), .sc5(sca[5]), .sc6(sca[6]), .sc7(sca[7]), .sc8(sca[8]), .sc9(sca[9]), .sc10(sca[10]), .sc11(sca[11]), .sc12(sca[12]),
+		.c1(ca[1]), .c2(ca[2]), .c3(ca[3]), .c4(ca[4]), .c5(ca[5]), .c6(ca[6]), .c7(ca[7]), .c8(ca[8]), .c9(ca[9]), .c10(ca[10]), .c11(ca[11]), .c12(ca[12]),
+		.tot1(tota[1]), .tot2(tota[2]), .tot3(tota[3]), .tot4(tota[4]), .tot5(tota[5]), .tot6(tota[6]), .tot7(tota[7]), .tot8(tota[8]), .tot9(tota[9]), .tot10(tota[10]), .tot11(tota[11]), .tot12(tota[12]),
+		.any(any)
+	);
+	// ----------------------------------------------------------------------
+	for (i=0; i<=5; i=i+1) begin : dummy_coax
+		assign coax[i] = 0;
 	end
-	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
-		always @(posedge word_clock) begin
-			fifo_write_enable[i] <= 0;
-			if (reset_word) begin
-				previous_time_over_threshold[i] <= 0;
-				time_over_threshold[i] <= 0;
-			end else begin
-				if (trigger_active) begin
-					time_over_threshold[i] <= time_over_threshold[i] + iserdes_in_ones_counter_after[i];
-				end else begin
-					previous_time_over_threshold[i] <= time_over_threshold[i];
-					if (time_over_threshold[i]) begin
-						fifo_write_enable[i] <= 1;
-						time_over_threshold[i] <= 0;
-					end
-				end
-			end
-		end
+	for (i=1; i<=12; i=i+1) begin : dummy_indicator
+		assign indicator[i] = 0;
 	end
+	assign other = 0;
+	assign reset = 0;
+/*
 	for (i=0; i<4; i=i+1) begin : coax_mux_mapping
 		always @(posedge word_clock) begin
 			if (reset_word) begin
@@ -509,74 +374,29 @@ module top #(
 			end
 		end
 	end
-	wire strobe_is_alignedA;
-	wire strobe_is_alignedB;
-	wire strobe_is_alignedC;
-	wire strobe_is_alignedD;
-	localparam SPECIAL_A05 = ROTATED ? "C" : "A";
-	localparam SPECIAL_A11 = ROTATED ? "A" : "B";
-	ocyrus_triacontahedron8_split_12_6_6_4_2_BCEinput #(
-		.SPECIAL_A11(SPECIAL_A11),
-		//.SPECIAL_A11("C"), // rotated
-		.SPECIAL_A05(SPECIAL_A05),
-		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE)
-	) orama (
-		.clock_in(clock100), .reset(reset100),
-		.word_A11_in({8{iserdes_word_hit[12]}}), .word_A10_in({8{iserdes_word_hit[11]}}), .word_A09_in({8{iserdes_word_hit[10]}}), .word_A08_in({8{iserdes_word_hit[9]}}),
-		.word_A07_in({8{iserdes_word_hit[8]}}), .word_A06_in({8{iserdes_word_hit[7]}}), .word_A05_in({8{iserdes_word_hit[6]}}), .word_A04_in({8{iserdes_word_hit[5]}}),
-		.word_A03_in({8{iserdes_word_hit[4]}}), .word_A02_in({8{iserdes_word_hit[3]}}), .word_A01_in({8{iserdes_word_hit[2]}}), .word_A00_in({8{iserdes_word_hit[1]}}),
-		.word_B5_out(iserdes_in[12]), .word_B4_out(iserdes_in[11]), .word_B3_out(iserdes_in[10]), .word_B2_out(iserdes_in[9]), .word_B1_out(iserdes_in[8]), .word_B0_out(iserdes_in[7]),
-		.word_C5_out(iserdes_in[6]), .word_C4_out(iserdes_in[5]), .word_C3_out(iserdes_in[4]), .word_C2_out(iserdes_in[3]), .word_C1_out(iserdes_in[2]), .word_C0_out(iserdes_in[1]),
-		.word_D3_in(coax_oserdes[3]), .word_D2_in(coax_oserdes[2]), .word_D1_in(coax_oserdes[1]), .word_D0_in(coax_oserdes[0]),
-		.word_E1_out(raw_gate), .word_E0_out(raw_trigger),
-		.word_clockA_out(), .word_clockB_out(word_clock), .word_clockC_out(), .word_clockD_out(), .word_clockE_out(),
-		.A11_out(indicator[12]), .A10_out(indicator[11]), .A09_out(indicator[10]), .A08_out(indicator[9]), .A07_out(indicator[8]), .A06_out(indicator[7]),
-		.A05_out(indicator[6]), .A04_out(indicator[5]), .A03_out(indicator[4]), .A02_out(indicator[3]), .A01_out(indicator[2]), .A00_out(indicator[1]),
-//		.A11_out(), .A10_out(), .A09_out(), .A08_out(), .A07_out(), .A06_out(),
-//		.A05_out(), .A04_out(), .A03_out(), .A02_out(), .A01_out(), .A00_out(),
-		.B5_in(signal[12]), .B4_in(signal[11]), .B3_in(signal[10]), .B2_in(signal[9]), .B1_in(signal[8]), .B0_in(signal[7]),
-		.C5_in(signal[6]), .C4_in(signal[5]), .C3_in(signal[4]), .C2_in(signal[3]), .C1_in(signal[2]), .C0_in(signal[1]),
-		.D3_out(coax[3]), .D2_out(coax[2]), .D1_out(coax[1]), .D0_out(coax[0]),
-		.E1_in(coax[5]), .E0_in(coax[4]),
-		.strobe_is_alignedA(strobe_is_alignedA), .strobe_is_alignedB(strobe_is_alignedB),
-		.strobe_is_alignedC(strobe_is_alignedC), .strobe_is_alignedD(strobe_is_alignedD),
-		.locked(pll_oserdes_locked)
-	);
-	assign other = 0;
-//	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : train_or_regular
-//		assign oserdes_word[i] = train_oserdes ? train_oserdes_pattern : potential_oserdes_word[i];
-//	end
-//	assign coax[1] = 0; // because coax[1] is on same pin pair as gpio17 on althea revB
-//	assign coax[2] = 0; // because coax[2] is on same pin pair as gpio12 on althea revB
-//	assign coax[5] = 0; // because coax[5] is on same pin pair as p on althea revB
-	wire [31:0] start_sample = 0;
-	wire [31:0] end_sample = 5120;
-	sequencer_sync #(.ADDRESS_DEPTH_OSERDES(ADDRESS_DEPTH_OSERDES), .LOG2_OF_OSERDES_DATA_WIDTH(LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH), .SYNC_OUT_STREAM_PICKOFF(SYNC_OUT_STREAM_PICKOFF)) ss (.clock(word_clock), .reset(reset_word), .sync_read_address(sync_read_address), .start_sample(start_sample), .end_sample(end_sample), .read_address(read_address), .sync_out_stream(sync_out_stream), .sync_out_word(sync_out_word));
-	if (0) begin // to test the rpi interface to the read/write pollable memory
-		assign coax[4] = enable; // scope trigger
-//		assign coax[0] = write_strobe[0];
-		assign pll_oserdes_locked_other = 1;
-	end else if (1) begin
-		assign sync_read_address = 0;
+*/
+	// ----------------------------------------------------------------------
+	for (i=1; i<=12; i=i+1) begin : mapping
+		assign bank1[i] = { 16'b0, sca[i] }; // scalers
+		assign bank2[i] = 32'b0;
+		assign bank3[i] = { 24'b0, tota[i] }; // time-over-threshold
+		assign bank4[i] = ca[i]; // counters
 	end
 	// ----------------------------------------------------------------------
-	if (0) begin
-		assign status4 = { any, any, any, any };
-		assign status8 = 0;
-	end else begin
+	if (1) begin
 		assign status4[3] = ~pll_oserdes_locked;
 		assign status4[2] = trigger_active;
-		assign status4[1] = ~fifo_empty;
+		assign status4[1] = 0;
 		assign status4[0] = any;
 		// -------------------------------------
-		assign status8[7] = ~strobe_is_alignedA;
-		assign status8[6] = ~strobe_is_alignedB;
-		assign status8[5] = ~strobe_is_alignedC;
-		assign status8[4] = ~strobe_is_alignedD;
+		assign status8[7] = 0;
+		assign status8[6] = 0;
+		assign status8[5] = 0;
+		assign status8[4] = 0;
 		// -------------------------------------
 		assign status8[3] = ~pll_oserdes_locked;
 		assign status8[2] = trigger_active;
-		assign status8[1] = ~fifo_empty;
+		assign status8[1] = 0;
 		assign status8[0] = any;
 	end
 	assign coax_led = status4;
@@ -601,7 +421,6 @@ module top_tb;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 	reg clock100_p = 0;
 	reg clock100_n = 1;
-	reg clock10 = 0;
 	reg button = 1;
 	wire [5:0] coax;
 	wire [3:0] coax_led;
@@ -623,7 +442,7 @@ module top_tb;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] rdata = 0;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are controller
 	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
-		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10),
+		.clock100_p(clock100_p), .clock100_n(clock100_n),
 		// .button(button),
 		.coax(coax),
 		.diff_pair_left({ a_n, a_p, c_n, c_p, d_n, d_p, f_n, f_p, b_n, b_p, e_n, e_p }),
@@ -927,12 +746,10 @@ module myalthea #(
 	localparam TRANSACTIONS_PER_DATA_WORD = 2;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
-	wire clock10 = 0;
 	wire [3:0] internal_coax_led;
 	//wire [7:0] internal_led;
 	//assign led = internal_led;
 	assign coax_led = internal_coax_led;
-//	wire [5:0] diff_pair_left;
 	wire [12:1] signal;
 	wire [12:1] indicator;
 	//assign { b_p, d_p, f_p, h_p, l_p, m_p, a_p, c_p, e_p, g_p, j_p, k_p } = signal;
@@ -975,7 +792,7 @@ module myalthea #(
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) althea (
-		.clock100_p(clock100_p), .clock100_n(clock100_n), .clock10(clock10),
+		.clock100_p(clock100_p), .clock100_n(clock100_n),
 //		.button(button),
 		.coax(coax),
 		.bus({
@@ -986,11 +803,6 @@ module myalthea #(
 		}),
 		.signal(signal),
 		.indicator(indicator),
-//		.diff_pair_left(diff_pair_left),
-//		.diff_pair_right_p({ m_p, k_p, l_p, j_p, h_p, g_p }),
-//		.diff_pair_right_n({ m_n, k_n, l_n, j_n, h_n, g_n }),
-//		.single_ended_left({ z, y, x, w, v, u }),
-//		.single_ended_right({ n, p, q, r, s, t }),
 		.register_select(rpi_gpio23), .read(rpi_gpio5),
 		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio22),
 //		.rot(rot),

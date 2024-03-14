@@ -1,7 +1,7 @@
 // written 2024-03-11 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
 // based on mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
-// last updated 2024-03-11 by mza
+// last updated 2024-03-12 by mza
 
 `ifndef duneLBLS_LIB
 `define duneLBLS_LIB
@@ -14,7 +14,7 @@ module LBLS_bank #(
 	input clock, reset,
 	input [12:1] hit_mask,
 	input [12:1] inversion_mask,
-	input gate, clear_channel_ones_counters, trigger_active,
+	input gate, clear_channel_counters, trigger_active,
 	input [7:0] win1, win2, win3, win4, win5, win6, win7, win8, win9, win10, win11, win12,
 	output [SCALER_WIDTH-1:0] sc1, sc2, sc3, sc4, sc5, sc6, sc7, sc8, sc9, sc10, sc11, sc12,
 	output [7:0] tot1, tot2, tot3, tot4, tot5, tot6, tot7, tot8, tot9, tot10, tot11, tot12,
@@ -30,13 +30,22 @@ module LBLS_bank #(
 	wire [7:0] word_maybe_inverted_and_maybe_masked [12:1];
 	reg [7:0] word_buffered_and_maybe_inverted_a [12:1];
 	reg [7:0] word_buffered_and_maybe_inverted_b [12:1];
+	reg [7:0] previous_time_over_threshold [12:1];
+	reg [7:0] time_over_threshold [12:1];
+//	localparam CHANNEL_ONES_COUNTER_NUMBER_OF_BITS = 24;
+//	localparam CHANNEL_ONES_COUNTER_UPPER_NYBBLE = 4'he;
+//	reg [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter [12:1];
+//	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_max_count;
+//	wire [3:0] word_ones_counter_before [12:1];
+	wire [3:0] word_ones_counter_after [12:1];
+	wire [COUNTER_WIDTH-1:0] channel_counter [12:1];
+	reg [12:1] iserdes_word_hit;
 	for (i=1; i<=12; i=i+1) begin : raw_readout_registers_mapping
 //		assign bank0[i] = { 8'd0, channel_ones_counter[i] };
 //		assign bank1[i] = { word_buffered_and_maybe_inverted_a[i], word_maybe_inverted_and_maybe_masked[i], word_maybe_inverted[i], word[i] };
 		assign word_maybe_inverted[i] = word[i] ^ {8{inversion_mask[i]}};
 		assign word_maybe_inverted_and_maybe_masked[i] = (word[i] ^ {8{inversion_mask[i]}}) & {8{hit_mask[i]&gate}};
 	end
-	wire [COUNTER_WIDTH-1:0] channel_counter [12:1];
 //	reg [12:1] suggested_inversion_map;
 	for (i=1; i<=12; i=i+1) begin : channel_counter_mapping
 		iserdes_counter #(.BIT_DEPTH(8), .REGISTER_WIDTH(COUNTER_WIDTH)) channel_counter (.clock(clock), .reset(clear_channel_counters), .in(word_maybe_inverted[i]), .out(channel_counter[i]));
@@ -52,7 +61,6 @@ module LBLS_bank #(
 		.out05(sc5), .out06(sc6),  .out07(sc7),  .out08(sc8),
 		.out09(sc9), .out10(sc10), .out11(sc11), .out12(sc12)
 	);
-	reg [12:1] iserdes_word_hit;
 	for (i=1; i<=12; i=i+1) begin : iserdes_buffer_1_mapping
 		always @(posedge clock) begin
 			if (reset) begin
@@ -86,23 +94,23 @@ module LBLS_bank #(
 			end
 		end
 	end
-	for (i=1; i<=12; i=i+1) begin : channel_ones_counter_adder
-		always @(posedge clock) begin
-			if (reset) begin
-				channel_ones_counter[i] <= 0;
-			end else begin
-				if (clear_channel_ones_counters) begin
-					channel_ones_counter[i] <= 0;
-				end else begin
-					if (channel_ones_counter[i]<channel_ones_counter_max_count) begin
-						channel_ones_counter[i] <= channel_ones_counter[i] + word_ones_counter_before[i];
-					end else begin
-						channel_ones_counter[i] <= channel_ones_counter_max_count;
-					end
-				end
-			end
-		end
-	end
+//	for (i=1; i<=12; i=i+1) begin : channel_ones_counter_adder
+//		always @(posedge clock) begin
+//			if (reset) begin
+//				channel_ones_counter[i] <= 0;
+//			end else begin
+//				if (clear_channel_ones_counters) begin
+//					channel_ones_counter[i] <= 0;
+//				end else begin
+//					if (channel_ones_counter[i]<channel_ones_counter_max_count) begin
+//						channel_ones_counter[i] <= channel_ones_counter[i] + word_ones_counter_before[i];
+//					end else begin
+//						channel_ones_counter[i] <= channel_ones_counter_max_count;
+//					end
+//				end
+//			end
+//		end
+//	end
 //	for (i=1; i<=12; i=i+1) begin : suggested_inversion_map_mapping
 //		always @(posedge clock) begin
 //			if (reset) begin
@@ -117,22 +125,14 @@ module LBLS_bank #(
 //		end
 //	end
 //	wire [255:0] [12:1];
-	reg [7:0] previous_time_over_threshold [12:1];
-	reg [7:0] time_over_threshold [12:1];
-	localparam CHANNEL_ONES_COUNTER_NUMBER_OF_BITS = 24;
-	reg [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter [12:1];
-	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_max_count;
-	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_suggestion_threshold;
-	localparam CHANNEL_ONES_COUNTER_UPPER_NYBBLE = 4'he;
-	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = 0;
-	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
-	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8:0] = 0;
-	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
-	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:0] = 0;
-	wire [3:0] word_ones_counter_before [12:1];
-	wire [3:0] word_ones_counter_after [12:1];
+//	wire [CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:0] channel_ones_counter_suggestion_threshold;
+//	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = 0;
+//	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
+//	assign channel_ones_counter_suggestion_threshold[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-8:0] = 0;
+//	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-1:CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-4] = CHANNEL_ONES_COUNTER_UPPER_NYBBLE;
+//	assign channel_ones_counter_max_count[CHANNEL_ONES_COUNTER_NUMBER_OF_BITS-5:0] = 0;
 	for (i=1; i<=12; i=i+1) begin : ones_counter_mapping
-		count_ones c1s_before (.clock(clock), .data_in(word[i]), .count_out(word_ones_counter_before[i]));
+//		count_ones c1s_before (.clock(clock), .data_in(word[i]), .count_out(word_ones_counter_before[i]));
 		count_ones c1s_after (.clock(clock), .data_in(word_buffered_and_maybe_inverted_a[i]), .count_out(word_ones_counter_after[i]));
 	end
 	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping

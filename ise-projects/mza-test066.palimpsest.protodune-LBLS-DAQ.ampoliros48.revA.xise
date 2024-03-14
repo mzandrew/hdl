@@ -20,7 +20,7 @@
     </file>
     <file xil_pn:name="../verilog/src/mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="2"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="10"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="3"/>
     </file>
   </files>
 
@@ -359,6 +359,7 @@
     <!-- Do not hand-edit this section, as it will be overwritten when the    -->
     <!-- project is analyzed based on files automatically identified as       -->
     <!-- include files.                                                       -->
+    <file xil_pn:name="../verilog/src/lib/duneLBLS.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/generic.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/RAM8.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/fifo.v" xil_pn:type="FILE_VERILOG"/>
@@ -369,7 +370,6 @@
     <file xil_pn:name="../verilog/src/lib/reset.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/edge_to_pulse.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="../verilog/src/lib/frequency_counter.v" xil_pn:type="FILE_VERILOG"/>
-    <file xil_pn:name="../verilog/src/lib/duneLBLS.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>
