@@ -16,7 +16,7 @@
 //`include "lib/frequency_counter.v"
 `include "lib/irsx.v"
 
-module top #(
+module IRSXtest #(
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
@@ -149,7 +149,7 @@ module top #(
 	end
 endmodule
 
-module top_tb;
+module TESTBENCH_IRSXtest_tb;
 	localparam HALF_PERIOD_OF_CONTROLLER = 1;
 	localparam HALF_PERIOD_OF_PERIPHERAL = 10;
 	localparam NUMBER_OF_PERIODS_OF_CONTROLLER_IN_A_DELAY = 1;
@@ -182,7 +182,7 @@ module top_tb;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] wdata = 0;
 	reg [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] rdata = 0;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(~read)); // we are controller
-	top #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) althea (
+	IRSXtest #(.BUS_WIDTH(BUS_WIDTH), .ADDRESS_DEPTH(ADDRESS_DEPTH), .TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE), .TESTBENCH(1)) tbIRSXtest (
 		.clock127_p(clock127_p), .clock127_n(clock127_n),
 		// .button(button),
 		.coax(coax),
@@ -449,7 +449,7 @@ module top_tb;
 	end
 endmodule
 
-module myalthea #(
+module altheaIRSXtest #(
 	parameter NOTHING = 0
 ) (
 	input clock127_p, clock127_n,
@@ -514,13 +514,13 @@ module myalthea #(
 	assign u = 0; // not wired to anything on the PCB
 	assign v = 0; // not wired to anything on the PCB
 	assign z = 0; // not wired to anything on the PCB
-	top #(
+	IRSXtest #(
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
 		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
-	) althea (
+	) IRSXtest (
 		.clock127_p(clock127_p), .clock127_n(clock127_n),
 		.button(button),
 		.coax(coax),
