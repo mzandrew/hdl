@@ -38,7 +38,7 @@ source [find cpld/xilinx-xc6s.cfg]
 #source [find cpld/jtagspi.cfg]
 
 init
-pld load 0 ./mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM/myalthea.bit
+pld load 0 ./mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM/DUNELBLS12.bit
 
 exit
 
