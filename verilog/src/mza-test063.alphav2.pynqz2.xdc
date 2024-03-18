@@ -1,6 +1,6 @@
 # started 2022-11-16 by mza
 # taken from "master xdc" at https://www.tulembedded.com/FPGA/ProductsPYNQ-Z2.html (XC7Z020-1CLG400C)
-# last updated 2024-02-02 by mza and makiko
+# last updated 2024-03-18 by mza and makiko
 
 ## This file is a general .xdc for the PYNQ-Z2 board 
 ## To use it in a project:
@@ -215,5 +215,5 @@ set_property CFGBVS VCCO [current_design];
 set_property CONFIG_VOLTAGE 3.3 [current_design];
 #set_false_path -from [get_clocks {*}] -to [get_cells -hierarchical *jb*];
 #set_false_path -from [get_clocks {*}] -to [get_cells -hierarchical *sw*];
-#set_false_path -from [get_clocks {*}] -to [get_cells -hierarchical *btn*];
+#set_false_path -from [get_clocks {*}] -to [get_cells -hierarchical *btn*]; # [Constraints 18-512] set_false_path: list of objects specified for '-to' option contains no valid endpoints. Please check to make sure at least one valid endpoint is specified. ["/home/mza/build/hdl/verilog/src/mza-test063.alphav2.pynqz2.xdc":218]
 
