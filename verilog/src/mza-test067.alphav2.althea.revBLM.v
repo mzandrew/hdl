@@ -89,7 +89,7 @@ module ALPHAtest #(
 	assign coax[5] = 0;
 	reg [3:0] rot_buffered_a = 0;
 	reg [3:0] rot_buffered_b = 0;
-	always @(posedge clock) begin
+	always @(posedge sysclk) begin
 		if (reset) begin
 			rot_buffered_a <= 0;
 			rot_buffered_b <= 0;
