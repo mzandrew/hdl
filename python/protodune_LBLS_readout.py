@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-02-14 by mza
+# last updated 2024-03-14 by mza
 
 gui_update_period = 0.2
 
@@ -48,18 +48,18 @@ NUMBER_OF_HOURS_TO_PLOT = 48
 should_use_touchscreen = False
 FONT_SIZE_BANKS = 15
 BANKS_X_GAP = 10
+X_POSITION_OF_BANK0_REGISTERS = 100
+Y_POSITION_OF_BANK0_REGISTERS = 500
 X_POSITION_OF_BANK1_REGISTERS = 100
 Y_POSITION_OF_BANK1_REGISTERS = 250
-X_POSITION_OF_BANK2_REGISTERS = 100
-Y_POSITION_OF_BANK2_REGISTERS = 500
-X_POSITION_OF_BANK6_COUNTERS = 250
-Y_POSITION_OF_BANK6_COUNTERS = 250 + FONT_SIZE_BANKS
-X_POSITION_OF_BANK7_SCALERS = 350
-Y_POSITION_OF_BANK7_SCALERS = 250 + FONT_SIZE_BANKS
-X_POSITION_OF_TOT = 450
-Y_POSITION_OF_TOT = 250 + FONT_SIZE_BANKS
-X_POSITION_OF_BANK0_COUNTERS = 550
-Y_POSITION_OF_BANK0_COUNTERS = 250 + FONT_SIZE_BANKS
+X_POSITION_OF_BANK4_COUNTERS = 250
+Y_POSITION_OF_BANK4_COUNTERS = 250 + FONT_SIZE_BANKS
+X_POSITION_OF_BANK1_SCALERS = 350
+Y_POSITION_OF_BANK1_SCALERS = 250 + FONT_SIZE_BANKS
+#X_POSITION_OF_TOT = 450
+#Y_POSITION_OF_TOT = 250 + FONT_SIZE_BANKS
+#X_POSITION_OF_BANK0_COUNTERS = 550
+#Y_POSITION_OF_BANK0_COUNTERS = 250 + FONT_SIZE_BANKS
 
 plot_name = [ [ "" for j in range(ROWS) ] for i in range(COLUMNS) ]
 feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
@@ -67,14 +67,17 @@ short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
 maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
 
+#channel_range = range(1, 12+1)
+
 channel_names = ["ch_" + str(i) for i in range(1, 12+1)]
-bank1_register_names = [ "status" ]
+#bank1_register_names = [ "status" ]
+bank1_register_names = [ "" ]
 bank1_register_names.extend(channel_names)
-bank1_register_names.extend([ "trigger_count", "suggested_inversion_map", "hit_counter" ])
+#bank1_register_names.extend([ "trigger_count", "suggested_inversion_map", "hit_counter" ])
 #print(str(bank1_register_names))
 bank1_register_values = [ i for i in range(len(bank1_register_names)) ]
 
-bank2_register_names = [ "hit_mask", "inversion_mask", "desired_trigger_quantity", "trigger_duration_in_word_clocks", "monitor_channel", "reg5", "reg6", "coax_mux[0]", "coax_mux[1]", "coax_mux[2]", "coax_mux[3]" ]
+bank0_register_names = [ "hit_mask", "inversion_mask", "desired_trigger_quantity", "trigger_duration_in_word_clocks", "monitor_channel", "reg5", "reg6", "coax_mux[0]", "coax_mux[1]", "coax_mux[2]", "coax_mux[3]" ]
 
 # geometry of protodune LBLS PIN photodiode array:
 #a_in = 0.5 # lattice spacing, in in
@@ -262,9 +265,9 @@ def setup():
 		register_name = banks_font.render(bank1_register_names[i], 1, white)
 		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK1_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
 	#for i in range(len(channel_names)):
-	for i in range(len(bank2_register_names)):
-		register_name = banks_font.render(bank2_register_names[i], 1, white)
-		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK2_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK2_REGISTERS+FONT_SIZE_BANKS*i)))
+	for i in range(len(bank0_register_names)):
+		register_name = banks_font.render(bank0_register_names[i], 1, white)
+		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK0_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
 	#for i in range(len(channel_names)):
 	#	channel_name = banks_font.render(channel_names[i], 1, white)
 	#	screen.blit(channel_name, channel_name.get_rect(center=(X_POSITION_OF_BANK6_COUNTERS+BANKS_X_GAP+channel_name.get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
@@ -336,14 +339,14 @@ def loop():
 				bump_thresholds_higher_by(bump_amount)
 			elif K_LEFTBRACKET==event.key:
 				bump_thresholds_lower_by(bump_amount)
-			elif K_0==event.key:
-				increment_coax_mux(0)
-			elif K_1==event.key:
-				increment_coax_mux(1)
-			elif K_2==event.key:
-				increment_coax_mux(2)
-			elif K_3==event.key:
-				increment_coax_mux(3)
+#			elif K_0==event.key:
+#				increment_coax_mux(0)
+#			elif K_1==event.key:
+#				increment_coax_mux(1)
+#			elif K_2==event.key:
+#				increment_coax_mux(2)
+#			elif K_3==event.key:
+#				increment_coax_mux(3)
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -358,12 +361,12 @@ def loop():
 			ij += 1
 			if COLUMNS*ROWS-1<ij:
 				ij = 0
-			update_bank1_registers()
-			update_bank2_registers()
-			update_bank6_counters()
-			update_bank7_scalers()
-			update_ToT()
-			update_bank0_counters()
+			update_bank0_registers()
+			update_bank1_scalers()
+			update_bank4_counters()
+			#update_bank1_registers()
+			#update_ToT()
+			#update_bank0_counters()
 		elif event.type == pygame.MOUSEBUTTONDOWN:
 			do_something()
 	for i in range(COLUMNS):
@@ -438,108 +441,108 @@ def update_bank1_registers():
 		bank1_register_object[i] = banks_font.render(hex(bank1_register_values[i], 8, True), False, white)
 		screen.blit(bank1_register_object[i], bank1_register_object[i].get_rect(center=(X_POSITION_OF_BANK1_REGISTERS-bank1_register_object[i].get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
 
-def read_bank2_registers():
-	global bank2_register_values
-	bank = 2
-	bank2_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank2_register_names), False)
+def read_bank0_registers():
+	global bank0_register_values
+	bank = 0
+	bank0_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank0_register_names), False)
 	global coax_mux
-	coax_mux = bank2_register_values[7:7+4]
+	coax_mux = bank0_register_values[7:7+4]
 
-bank2_register_object = [ 0 for i in range(len(bank2_register_names)) ]
+bank0_register_object = [ 0 for i in range(len(bank0_register_names)) ]
 
-def update_bank2_registers():
-	global bank2_register_object
-	read_bank2_registers()
-	for i in range(len(bank2_register_names)):
+def update_bank0_registers():
+	global bank0_register_object
+	read_bank0_registers()
+	for i in range(len(bank0_register_names)):
 		try:
-			temp_surface = pygame.Surface(bank2_register_object[i].get_size())
+			temp_surface = pygame.Surface(bank0_register_object[i].get_size())
 			temp_surface.fill(black)
-			screen.blit(temp_surface, bank2_register_object[i].get_rect(center=(X_POSITION_OF_BANK2_REGISTERS-bank2_register_object[i].get_width()//2,Y_POSITION_OF_BANK2_REGISTERS+FONT_SIZE_BANKS*i)))
+			screen.blit(temp_surface, bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
 		except Exception as e:
 			#print(str(e))
 			pass
-		bank2_register_object[i] = banks_font.render(hex(bank2_register_values[i], 8, True), False, white)
-		screen.blit(bank2_register_object[i], bank2_register_object[i].get_rect(center=(X_POSITION_OF_BANK2_REGISTERS-bank2_register_object[i].get_width()//2,Y_POSITION_OF_BANK2_REGISTERS+FONT_SIZE_BANKS*i)))
+		bank0_register_object[i] = banks_font.render(hex(bank0_register_values[i], 8, True), False, white)
+		screen.blit(bank0_register_object[i], bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
 
-def read_status_register():
-	bank = 1
-	global status_register
-	status_register, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 1, False)
-	return status_register
+#def read_status_register():
+#	bank = 1
+#	global status_register
+#	status_register, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 1, False)
+#	return status_register
 
-def show_status_register():
-	read_status_register()
-	print("status register: " + str(hex(status_register, 8)))
+#def show_status_register():
+#	read_status_register()
+#	print("status register: " + str(hex(status_register, 8)))
 
-def show_other_registers():
-	bank = 1
-	trigger_count, suggested_inversion_map, hit_counter_buffered = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 13, 3, False)
-	print("trigger_count: " + str(trigger_count))
-	print("suggested_inversion_map: " + hex(suggested_inversion_map, 3))
-	print("hit_counter_buffered: " + str(hit_counter_buffered))
+#def show_other_registers():
+#	bank = 1
+#	trigger_count, suggested_inversion_map, hit_counter_buffered = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 13, 3, False)
+#	print("trigger_count: " + str(trigger_count))
+#	print("suggested_inversion_map: " + hex(suggested_inversion_map, 3))
+#	print("hit_counter_buffered: " + str(hit_counter_buffered))
 
 def setup_hit_mask(hit_mask):
-	bank = 2
+	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [hit_mask], False)
 
 def setup_inversion_mask(inversion_mask):
-	bank = 2
+	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 1, [inversion_mask], False)
 
 def setup_desired_trigger_quantity(quantity):
-	bank = 2
+	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [quantity], False)
 
 def setup_trigger_duration(number_of_word_clocks):
-	bank = 2
+	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 3, [number_of_word_clocks], False)
 
-def change_coax_mux(channel, mux_value):
-	bank = 2
-	channel &= 0x3
-	mux_value &= 0xf
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 7 + channel, [mux_value], False)
+#def change_coax_mux(channel, mux_value):
+#	bank = 0
+#	channel &= 0x3
+#	mux_value &= 0xf
+#	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 7 + channel, [mux_value], False)
 
-def increment_coax_mux(channel):
-	channel &= 0x3
-	global coax_mux
-	coax_mux[channel] += 1
-	if 0xf<coax_mux[channel]:
-		coax_mux[channel] = 0
-	change_coax_mux(channel, coax_mux[channel])
+#def increment_coax_mux(channel):
+#	channel &= 0x3
+#	global coax_mux
+#	coax_mux[channel] += 1
+#	if 0xf<coax_mux[channel]:
+#		coax_mux[channel] = 0
+#	change_coax_mux(channel, coax_mux[channel])
 
-def clear_something_on_bank2_reg5(bit_number):
-	bank = 2
+def clear_something_on_bank0_reg5(bit_number):
+	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [1<<bit_number], False)
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [0], False)
 
 def clear_gate_counter():
-	clear_something_on_bank2_reg5(0)
+	clear_something_on_bank0_reg5(0)
 
 def clear_trigger_count():
-	clear_something_on_bank2_reg5(1)
+	clear_something_on_bank0_reg5(1)
 
 def clear_hit_counter():
-	clear_something_on_bank2_reg5(2)
+	clear_something_on_bank0_reg5(2)
 
 def clear_channel_counters():
-	clear_something_on_bank2_reg5(3)
+	clear_something_on_bank0_reg5(3)
 
 def clear_channel_ones_counters():
-	clear_something_on_bank2_reg5(4)
+	clear_something_on_bank0_reg5(4)
 
-def select(value):
-	print("select: " + str(value))
-	bank = 2
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [value], False)
+#def select(value):
+#	print("select: " + str(value))
+#	bank = 0
+#	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [value], False)
 
-def get_trigger_count():
-	bank = 1
-	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 13, 1, False)
+#def get_trigger_count():
+#	bank = 1
+#	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 13, 1, False)
 
-def show_trigger_count():
-	trigger_count, = get_trigger_count()
-	print("  trigger count: " + str(hex(trigger_count, display_precision_of_hex_counts)))
+#def show_trigger_count():
+#	trigger_count, = get_trigger_count()
+#	print("  trigger count: " + str(hex(trigger_count, display_precision_of_hex_counts)))
 
 def readout_raw_values():
 	bank = 1
@@ -606,18 +609,18 @@ def update_ToT():
 		ToT_object[i] = banks_font.render(hex(ToT[i], 2, True), False, white)
 		screen.blit(ToT_object[i], ToT_object[i].get_rect(center=(X_POSITION_OF_TOT-ToT_object[i].get_width()//2,Y_POSITION_OF_TOT+FONT_SIZE_BANKS*i)))
 
-def return_fifo_string():
-	fifo_cba9, fifo_8765, fifo_4321 = readout_fifo_single()
-	return str(hex(fifo_cba9, 8)) + " " + str(hex(fifo_8765, 8)) + " " + str(hex(fifo_4321, 8))
+#def return_fifo_string():
+#	fifo_cba9, fifo_8765, fifo_4321 = readout_fifo_single()
+#	return str(hex(fifo_cba9, 8)) + " " + str(hex(fifo_8765, 8)) + " " + str(hex(fifo_4321, 8))
 
-def show_fifo():
-	print(return_fifo_string())
+#def show_fifo():
+#	print(return_fifo_string())
 
 def readout_counters():
-	bank = 6
-	global bank6_counters
-	bank6_counters = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
-	return bank6_counters
+	bank = 4
+	global bank4_counters
+	bank4_counters = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+	return bank4_counters
 
 def return_counters_string():
 	string = ""
@@ -625,26 +628,26 @@ def return_counters_string():
 		string += str(hex(counter, display_precision_of_hex_counts, True)) + " "
 	return string
 
-bank6_counter_object = [ 0 for i in range(len(channel_names)) ]
+bank4_counter_object = [ 0 for i in range(len(channel_names)) ]
 
-def update_bank6_counters():
+def update_bank4_counters():
 	readout_counters()
 	for i in range(len(channel_names)):
 		try:
-			temp_surface = pygame.Surface(bank6_counter_object[i].get_size())
+			temp_surface = pygame.Surface(bank4_counter_object[i].get_size())
 			temp_surface.fill(black)
-			screen.blit(temp_surface, bank6_counter_object[i].get_rect(center=(X_POSITION_OF_BANK6_COUNTERS-bank6_counter_object[i].get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
+			screen.blit(temp_surface, bank4_counter_object[i].get_rect(center=(X_POSITION_OF_BANK4_COUNTERS-bank4_counter_object[i].get_width()//2,Y_POSITION_OF_BANK4_COUNTERS+FONT_SIZE_BANKS*i)))
 		except Exception as e:
 			#print(str(e))
 			pass
-		bank6_counter_object[i] = banks_font.render(hex(bank6_counters[i], display_precision_of_hex_counts, True), False, white)
-		screen.blit(bank6_counter_object[i], bank6_counter_object[i].get_rect(center=(X_POSITION_OF_BANK6_COUNTERS-bank6_counter_object[i].get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
+		bank4_counter_object[i] = banks_font.render(hex(bank4_counters[i], display_precision_of_hex_counts, True), False, white)
+		screen.blit(bank4_counter_object[i], bank4_counter_object[i].get_rect(center=(X_POSITION_OF_BANK4_COUNTERS-bank4_counter_object[i].get_width()//2,Y_POSITION_OF_BANK4_COUNTERS+FONT_SIZE_BANKS*i)))
 
 def readout_scalers():
-	bank = 7
-	global bank7_scalers
-	bank7_scalers = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
-	return bank7_scalers
+	bank = 1
+	global bank1_scalers
+	bank1_scalers = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+	return bank1_scalers
 
 def return_scalers_string():
 	string = ""
@@ -655,34 +658,34 @@ def return_scalers_string():
 def show_scalers():
 	print(return_scalers_string())
 
-bank7_scalers_object = [ 0 for i in range(len(channel_names)) ]
+bank1_scalers_object = [ 0 for i in range(len(channel_names)) ]
 
-def update_bank7_scalers():
+def update_bank1_scalers():
 	readout_scalers()
 	for i in range(len(channel_names)):
 		try:
-			temp_surface = pygame.Surface(bank7_scalers_object[i].get_size())
+			temp_surface = pygame.Surface(bank1_scalers_object[i].get_size())
 			temp_surface.fill(black)
-			screen.blit(temp_surface, bank7_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK7_SCALERS-bank7_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK7_SCALERS+FONT_SIZE_BANKS*i)))
+			screen.blit(temp_surface, bank1_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bank1_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
 		except Exception as e:
 			#print(str(e))
 			pass
-		bank7_scalers_object[i] = banks_font.render(hex(bank7_scalers[i], display_precision_of_hex_counts, True), False, white)
-		screen.blit(bank7_scalers_object[i], bank7_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK7_SCALERS-bank7_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK7_SCALERS+FONT_SIZE_BANKS*i)))
+		bank1_scalers_object[i] = banks_font.render(hex(bank1_scalers[i], display_precision_of_hex_counts, True), False, white)
+		screen.blit(bank1_scalers_object[i], bank1_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bank1_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
 
 def do_something():
 	print("")
 	#show_other_registers()
 	#show_status_register()
-	show_trigger_count()
+	#show_trigger_count()
 	clear_trigger_count()
-	show_fifo()
+	#show_fifo()
 	return
-	global selection
-	selection += 1
-	if 7<selection:
-		selection = 0
-	select(selection)
+#	global selection
+#	selection += 1
+#	if 7<selection:
+#		selection = 0
+#	select(selection)
 
 def scan_for_tickles():
 	print("scanning hdrb for tickles...")
@@ -946,11 +949,11 @@ def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
 	setup_inversion_mask(0b111111111111)
 	setup_desired_trigger_quantity(int(1e3))
 	setup_trigger_duration(25)
-	select(0)
+#	select(0)
 
 def setup_everything():
 	if 1: # mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM
-		bank = 2
+		bank = 0
 		print("bank" + str(bank) + ":")
 		values = [ 0 for a in range(2**4) ]
 		values[0] = 0b111111111111 # hit_mask
@@ -970,7 +973,7 @@ def setup_everything():
 		readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 2**4)
 		for i in range(16):
 			print(hex(readback[i], 8))
-	if 1:
+	if 0:
 	#	for bank in range(4):
 	#		print()
 		bank = 1
@@ -979,7 +982,7 @@ def setup_everything():
 		for i in range(2**4):
 	#	for i in range(8):
 			print(hex(readback[i], 8))
-	if 1:
+	if 0:
 		depth = 4
 		print("fifo" + ":")
 		readback_4321 = althea.read_data_from_pollable_memory_on_half_duplex_bus(3 * 2**BANK_ADDRESS_DEPTH, 2**depth)
