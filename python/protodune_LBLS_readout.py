@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-03-14 by mza
+# last updated 2024-03-25 by mza
 
 gui_update_period = 0.2
 
@@ -11,10 +11,10 @@ raw_threshold_scan_filename = "protodune.ampoliros12.raw_threshold_scan"
 thresholds_for_peak_scalers_filename = "protodune.ampoliros12.thresholds_for_peak_scalers"
 thresholds_for_null_scalers_filename = "protodune.ampoliros12.thresholds_for_null_scalers"
 threshold_scan_accumulation_time = 0.1
-DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = 1.203
-GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.004
+DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = 1.200
+GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.006
 threshold_step_size_in_volts = 2.5/2**16
-number_of_threshold_steps = 262
+number_of_threshold_steps = 240
 incidentals = 2
 display_precision_of_hex_counts = 8
 display_precision_of_DAC_voltages = 6
@@ -70,6 +70,7 @@ maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
 #channel_range = range(1, 12+1)
 
 channel_names = ["ch_" + str(i) for i in range(1, 12+1)]
+NUMBER_OF_CHANNELS_PER_BANK = len(channel_names) # 12
 #bank1_register_names = [ "status" ]
 bank1_register_names = [ "" ]
 bank1_register_names.extend(channel_names)
@@ -264,11 +265,11 @@ def setup():
 	for i in range(len(bank1_register_names)):
 		register_name = banks_font.render(bank1_register_names[i], 1, white)
 		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK1_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
-	#for i in range(len(channel_names)):
+	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 	for i in range(len(bank0_register_names)):
 		register_name = banks_font.render(bank0_register_names[i], 1, white)
 		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK0_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
-	#for i in range(len(channel_names)):
+	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 	#	channel_name = banks_font.render(channel_names[i], 1, white)
 	#	screen.blit(channel_name, channel_name.get_rect(center=(X_POSITION_OF_BANK6_COUNTERS+BANKS_X_GAP+channel_name.get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
 	for i in range(COLUMNS):
@@ -362,7 +363,7 @@ def loop():
 			if COLUMNS*ROWS-1<ij:
 				ij = 0
 			update_bank0_registers()
-			update_bank1_scalers()
+			update_bank1_bank2_scalers()
 			update_bank4_counters()
 			#update_bank1_registers()
 			#update_ToT()
@@ -404,12 +405,12 @@ def read_bank0_counters():
 	bank = 0
 	bank0_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
 
-bank0_register_object = [ 0 for i in range(len(channel_names)) ]
+bank0_register_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 
 def update_bank0_counters():
 	global bank0_register_object
 	read_bank0_counters()
-	for i in range(len(channel_names)):
+	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 		try:
 			temp_surface = pygame.Surface(bank0_register_object[i].get_size())
 			temp_surface.fill(black)
@@ -594,11 +595,11 @@ def show_fifo_split():
 		string += hex(ToT[i], 2, True) + " "
 	print(string)
 
-ToT_object = [ 0 for i in range(len(channel_names)) ]
+ToT_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 
 def update_ToT():
 	readout_fifo_split()
-	for i in range(len(channel_names)):
+	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 		try:
 			temp_surface = pygame.Surface(ToT_object[i].get_size())
 			temp_surface.fill(black)
@@ -628,11 +629,11 @@ def return_counters_string():
 		string += str(hex(counter, display_precision_of_hex_counts, True)) + " "
 	return string
 
-bank4_counter_object = [ 0 for i in range(len(channel_names)) ]
+bank4_counter_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 
 def update_bank4_counters():
 	readout_counters()
-	for i in range(len(channel_names)):
+	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 		try:
 			temp_surface = pygame.Surface(bank4_counter_object[i].get_size())
 			temp_surface.fill(black)
@@ -644,10 +645,22 @@ def update_bank4_counters():
 		screen.blit(bank4_counter_object[i], bank4_counter_object[i].get_rect(center=(X_POSITION_OF_BANK4_COUNTERS-bank4_counter_object[i].get_width()//2,Y_POSITION_OF_BANK4_COUNTERS+FONT_SIZE_BANKS*i)))
 
 def readout_scalers():
+	global bankA_scalers, bankB_scalers, bankC_scalers, bankD_scalers
+	bankA_scalers = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	bankB_scalers = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	bankC_scalers = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	bankD_scalers = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	bank = 1
-	global bank1_scalers
 	bank1_scalers = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
-	return bank1_scalers
+	bank = 2
+	bank2_scalers = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
+		bankA_scalers[i] =  bank1_scalers[i]      & 0xffff
+		bankB_scalers[i] = (bank1_scalers[i]>>16) & 0xffff
+		bankC_scalers[i] =  bank2_scalers[i]      & 0xffff
+		bankD_scalers[i] = (bank2_scalers[i]>>16) & 0xffff
+	#return bankA_scalers, bankB_scalers, bankC_scalers, bankD_scalers
+	return bankA_scalers
 
 def return_scalers_string():
 	string = ""
@@ -658,20 +671,23 @@ def return_scalers_string():
 def show_scalers():
 	print(return_scalers_string())
 
-bank1_scalers_object = [ 0 for i in range(len(channel_names)) ]
+bankA_scalers_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+bankB_scalers_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+bankC_scalers_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+bankD_scalers_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 
-def update_bank1_scalers():
+def update_bank1_bank2_scalers():
 	readout_scalers()
-	for i in range(len(channel_names)):
+	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 		try:
-			temp_surface = pygame.Surface(bank1_scalers_object[i].get_size())
+			temp_surface = pygame.Surface(bankA_scalers_object[i].get_size())
 			temp_surface.fill(black)
-			screen.blit(temp_surface, bank1_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bank1_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
+			screen.blit(temp_surface, bankA_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bankA_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
 		except Exception as e:
 			#print(str(e))
 			pass
-		bank1_scalers_object[i] = banks_font.render(hex(bank1_scalers[i], display_precision_of_hex_counts, True), False, white)
-		screen.blit(bank1_scalers_object[i], bank1_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bank1_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
+		bankA_scalers_object[i] = banks_font.render(hex(bankA_scalers[i], display_precision_of_hex_counts, True), False, white)
+		screen.blit(bankA_scalers_object[i], bankA_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bankA_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
 
 def do_something():
 	print("")
@@ -728,11 +744,13 @@ def set_threshold_voltages(voltage):
 	#print(str(voltage))
 	ltc2657.set_voltage_on_all_channels(voltage)
 
+addresses = [ 0x10, 0x52, 0x12, 0x60, 0x22, 0x70, 0x30, 0x72 ]
 def set_threshold_voltage(channel, voltage):
 	global current_threshold_voltage
 	current_threshold_voltage[channel] = voltage
 	#print(str(channel) + " " + str(voltage), end=" ")
-	address = 0x10 + 2 * (channel // 6) # first 6 channels are on i2c address 0x10; next 6 are at address 0x12
+	db25_bank = 0
+	address = addresses[2*db25_bank+channel//6] # first 6 channels are on first i2c address in addresses[]; next 6 are on the next in the list
 	channel %= 6
 	#print(hex(address) + " " + str(channel))
 	ltc2657.set_voltage_on_channel(address, channel, voltage)
