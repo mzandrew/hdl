@@ -26,18 +26,36 @@ bump_amount = 0.000250
 # set to desired scaler rate results in these voltages (ampoliros revB first article):
 # 1.205999 1.204813 1.199918 1.200357 1.207928 1.203623 1.199567 1.200689 1.200037 1.205867 1.203237 1.203374 
 
-SCREEN_WIDTH = 720
-SCREEN_HEIGHT = 720
-ROWS = 1
-COLUMNS = 1
-NUMBER_OF_PHOTODIODES = 12
-
 GAP_X_BETWEEN_PLOTS = 20
 GAP_Y_BETWEEN_PLOTS = 44
 GAP_X_LEFT = 14
 GAP_X_RIGHT = 205
 GAP_Y_TOP = 24
 GAP_Y_BOTTOM = 24
+
+number_of_pin_diode_boxes = 4
+ROWS = 1
+COLUMNS = number_of_pin_diode_boxes
+NUMBER_OF_PHOTODIODES = 12
+
+# geometry of protodune LBLS PIN photodiode array:
+#a_in = 0.5 # lattice spacing, in in
+photodiode_can_diameter_in = 0.325
+photodiode_positions_x_in = [ -1.375 + 0.5 * i for i in range(6) ] + [ -1.125 + 0.5 * i for i in range(6) ]
+photodiode_positions_y_in = [ 0.25 for i in range(6)] + [ -0.25 for i in range(6) ]
+#for i in range(12):
+#	print("PD" + str(i+1) + " " + str(photodiode_positions_x_in[i]) + "," + str(photodiode_positions_y_in[i]))
+box_dimension_x_in = 5.0
+box_dimension_y_in = 2.0
+scale_pixels_per_in = 80
+wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
+desired_window_width = number_of_pin_diode_boxes * box_dimension_x_in * scale_pixels_per_in + wasted_width
+active_square_size_in = 0.125
+active_square_size = active_square_size_in * scale_pixels_per_in
+
+SCREEN_WIDTH = desired_window_width
+SCREEN_HEIGHT = 720
+
 FONT_SIZE_PLOT_CAPTION = 18
 FONT_SIZE_FEED_NAME = 15
 FONT_SIZE_FEED_NAME_EXTRA_GAP = 6
@@ -69,27 +87,14 @@ maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
 
 #channel_range = range(1, 12+1)
 
-channel_names = ["ch_" + str(i) for i in range(1, 12+1)]
-NUMBER_OF_CHANNELS_PER_BANK = len(channel_names) # 12
-#bank1_register_names = [ "status" ]
-bank1_register_names = [ "" ]
-bank1_register_names.extend(channel_names)
-#bank1_register_names.extend([ "trigger_count", "suggested_inversion_map", "hit_counter" ])
-#print(str(bank1_register_names))
-bank1_register_values = [ i for i in range(len(bank1_register_names)) ]
+NUMBER_OF_CHANNELS_PER_BANK = 12
+channel_names = [ "" ]
+channel_names.extend(["ch" + str(i) for i in range(1, 12+1)])
+#channel_names.extend([ "trigger_count", "suggested_inversion_map", "hit_counter" ])
+#print(str(channel_names))
+bank1_register_values = [ i for i in range(len(channel_names)) ]
 
 bank0_register_names = [ "hit_mask", "inversion_mask", "desired_trigger_quantity", "trigger_duration_in_word_clocks", "monitor_channel", "reg5", "reg6", "coax_mux[0]", "coax_mux[1]", "coax_mux[2]", "coax_mux[3]" ]
-
-# geometry of protodune LBLS PIN photodiode array:
-#a_in = 0.5 # lattice spacing, in in
-photodiode_can_diameter_in = 0.325
-photodiode_positions_x_in = [ -1.375 + 0.5 * i for i in range(6) ] + [ -1.125 + 0.5 * i for i in range(6) ]
-photodiode_positions_y_in = [ 0.25 for i in range(6)] + [ -0.25 for i in range(6) ]
-#for i in range(12):
-#	print("PD" + str(i+1) + " " + str(photodiode_positions_x_in[i]) + "," + str(photodiode_positions_y_in[i]))
-box_dimension_x_in = 5.0
-box_dimension_y_in = 2.0
-scale_pixels_per_in = 100
 
 black = (0, 0, 0)
 white = (255, 255, 255)
@@ -198,8 +203,6 @@ def update_plot(i, j):
 					plot[i][j].set_at((x, y), color[k+2]) # first two indices are black and white
 	plots_were_updated[i][j] = True
 
-active_square_size_in = 0.125
-active_square_size = active_square_size_in * scale_pixels_per_in
 def draw_photodiode_box(i, j):
 	width = int(box_dimension_x_in * scale_pixels_per_in)
 	height = int(box_dimension_y_in * scale_pixels_per_in)
@@ -225,10 +228,11 @@ def setup():
 	global plot
 	global something_was_updated
 	something_was_updated = False
-	usable_width = SCREEN_WIDTH - GAP_X_LEFT - GAP_X_RIGHT - (COLUMNS-1)*GAP_X_BETWEEN_PLOTS
-	#print("usable_width: " + str(usable_width))
-	usable_height = SCREEN_HEIGHT - GAP_Y_TOP - GAP_Y_BOTTOM - (ROWS-1)*GAP_Y_BETWEEN_PLOTS
-	#print("usable_height: " + str(usable_height))
+	print("screen_width: " + str(SCREEN_WIDTH))
+	usable_width = int(SCREEN_WIDTH - GAP_X_LEFT - GAP_X_RIGHT - (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
+	print("usable_width: " + str(usable_width))
+	usable_height = int(SCREEN_HEIGHT - GAP_Y_TOP - GAP_Y_BOTTOM - (ROWS-1)*GAP_Y_BETWEEN_PLOTS)
+	print("usable_height: " + str(usable_height))
 	plot_width = int(usable_width / COLUMNS)
 	plot_height = int(usable_height / ROWS)
 	#print("plot_width: " + str(plot_width))
@@ -262,13 +266,13 @@ def setup():
 	#clear_plots()
 	global banks_font
 	banks_font = pygame.font.SysFont("monospace", FONT_SIZE_BANKS)
-	for i in range(len(bank1_register_names)):
-		register_name = banks_font.render(bank1_register_names[i], 1, white)
-		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK1_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
-	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 	for i in range(len(bank0_register_names)):
 		register_name = banks_font.render(bank0_register_names[i], 1, white)
 		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK0_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
+	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
+	for i in range(len(channel_names)):
+		register_name = banks_font.render(channel_names[i], 1, white)
+		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK1_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
 	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 	#	channel_name = banks_font.render(channel_names[i], 1, white)
 	#	screen.blit(channel_name, channel_name.get_rect(center=(X_POSITION_OF_BANK6_COUNTERS+BANKS_X_GAP+channel_name.get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
@@ -354,20 +358,18 @@ def loop():
 			if 0==ij:
 				should_update_plots[0][0] = True
 			elif 1==ij:
-				should_update_plots[0][1] = True
-			elif 2==ij:
 				should_update_plots[1][0] = True
+			elif 2==ij:
+				should_update_plots[2][0] = True
 			elif 3==ij:
-				should_update_plots[1][1] = True
+				should_update_plots[3][0] = True
 			ij += 1
 			if COLUMNS*ROWS-1<ij:
 				ij = 0
 			update_bank0_registers()
 			update_bank1_bank2_scalers()
 			update_bank4_counters()
-			#update_bank1_registers()
 			#update_ToT()
-			#update_bank0_counters()
 		elif event.type == pygame.MOUSEBUTTONDOWN:
 			do_something()
 	for i in range(COLUMNS):
@@ -399,48 +401,6 @@ def flip():
 		pygame.display.flip()
 		pygame.event.pump()
 		something_was_updated = False
-
-def read_bank0_counters():
-	global bank0_register_values
-	bank = 0
-	bank0_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
-
-bank0_register_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-
-def update_bank0_counters():
-	global bank0_register_object
-	read_bank0_counters()
-	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
-		try:
-			temp_surface = pygame.Surface(bank0_register_object[i].get_size())
-			temp_surface.fill(black)
-			screen.blit(temp_surface, bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_COUNTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_COUNTERS+FONT_SIZE_BANKS*i)))
-		except Exception as e:
-			#print(str(e))
-			pass
-		bank0_register_object[i] = banks_font.render(hex(bank0_register_values[i], display_precision_of_hex_counts, True), False, white)
-		screen.blit(bank0_register_object[i], bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_COUNTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_COUNTERS+FONT_SIZE_BANKS*i)))
-
-def read_bank1_registers():
-	global bank1_register_values
-	bank = 1
-	bank1_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank1_register_names), False)
-
-bank1_register_object = [ 0 for i in range(len(bank1_register_names)) ]
-
-def update_bank1_registers():
-	global bank1_register_object
-	read_bank1_registers()
-	for i in range(len(bank1_register_names)):
-		try:
-			temp_surface = pygame.Surface(bank1_register_object[i].get_size())
-			temp_surface.fill(black)
-			screen.blit(temp_surface, bank1_register_object[i].get_rect(center=(X_POSITION_OF_BANK1_REGISTERS-bank1_register_object[i].get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
-		except Exception as e:
-			#print(str(e))
-			pass
-		bank1_register_object[i] = banks_font.render(hex(bank1_register_values[i], 8, True), False, white)
-		screen.blit(bank1_register_object[i], bank1_register_object[i].get_rect(center=(X_POSITION_OF_BANK1_REGISTERS-bank1_register_object[i].get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
 
 def read_bank0_registers():
 	global bank0_register_values
