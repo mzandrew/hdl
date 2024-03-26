@@ -303,11 +303,12 @@ def setup():
 	import board
 	i2c = board.I2C()
 	ltc2657.setup(i2c)
-	set_threshold_voltages(1.15)
+	set_threshold_voltages(0.456789)
 	global should_check_for_new_data
 	should_check_for_new_data = pygame.USEREVENT + 1
 	#print("gui_update_period: " + str(gui_update_period))
 	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
+	enable_amplifiers()
 
 ij = 0
 def loop():
@@ -496,6 +497,14 @@ def clear_channel_ones_counters():
 #	print("select: " + str(value))
 #	bank = 0
 #	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [value], False)
+
+def enable_amplifiers():
+	bank = 0
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 6, [1], False)
+
+def disable_amplifiers():
+	bank = 0
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 6, [0], False)
 
 #def get_trigger_count():
 #	bank = 1
@@ -976,5 +985,6 @@ setup()
 while running:
 	loop()
 	sys.stdout.flush()
+disable_amplifiers()
 pygame.quit()
 
