@@ -3,7 +3,10 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-03-25 by mza
+# last updated 2024-04-01 by mza
+
+number_of_pin_diode_boxes = 4
+NUMBER_OF_PHOTODIODES = 12
 
 gui_update_period = 0.2
 
@@ -33,11 +36,6 @@ GAP_X_RIGHT = 205
 GAP_Y_TOP = 24
 GAP_Y_BOTTOM = 24
 
-number_of_pin_diode_boxes = 4
-ROWS = 1
-COLUMNS = number_of_pin_diode_boxes
-NUMBER_OF_PHOTODIODES = 12
-
 # geometry of protodune LBLS PIN photodiode array:
 #a_in = 0.5 # lattice spacing, in in
 photodiode_can_diameter_in = 0.325
@@ -48,13 +46,8 @@ photodiode_positions_y_in = [ 0.25 for i in range(6)] + [ -0.25 for i in range(6
 box_dimension_x_in = 5.0
 box_dimension_y_in = 2.0
 scale_pixels_per_in = 80
-wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
-desired_window_width = number_of_pin_diode_boxes * box_dimension_x_in * scale_pixels_per_in + wasted_width
 active_square_size_in = 0.125
 active_square_size = active_square_size_in * scale_pixels_per_in
-
-SCREEN_WIDTH = desired_window_width
-SCREEN_HEIGHT = 720
 
 FONT_SIZE_PLOT_CAPTION = 18
 FONT_SIZE_FEED_NAME = 15
@@ -78,12 +71,6 @@ Y_POSITION_OF_BANK1_SCALERS = 250 + FONT_SIZE_BANKS
 #Y_POSITION_OF_TOT = 250 + FONT_SIZE_BANKS
 #X_POSITION_OF_BANK0_COUNTERS = 550
 #Y_POSITION_OF_BANK0_COUNTERS = 250 + FONT_SIZE_BANKS
-
-plot_name = [ [ "" for j in range(ROWS) ] for i in range(COLUMNS) ]
-feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
-short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
-minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
-maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
 
 #channel_range = range(1, 12+1)
 
@@ -713,16 +700,19 @@ def set_threshold_voltages(voltage):
 	#print(str(voltage))
 	ltc2657.set_voltage_on_all_channels(voltage)
 
-addresses = [ 0x10, 0x52, 0x12, 0x60, 0x22, 0x70, 0x30, 0x72 ]
 def set_threshold_voltage(channel, voltage):
+	if 4==number_of_pin_diode_boxes:
+		dac_addresses = [ 0x10, 0x52, 0x12, 0x60, 0x22, 0x70, 0x30, 0x72 ]
+	else:
+		dac_addresses = [ 0x10, 0x12 ]
 	global current_threshold_voltage
 	current_threshold_voltage[channel] = voltage
 	#print(str(channel) + " " + str(voltage), end=" ")
 	db25_bank = 0
-	address = addresses[2*db25_bank+channel//6] # first 6 channels are on first i2c address in addresses[]; next 6 are on the next in the list
+	dac_address = dac_addresses[2*db25_bank+channel//6] # first 6 channels are on first i2c address in dac_addresses[]; next 6 are on the next in the list
 	channel %= 6
-	#print(hex(address) + " " + str(channel))
-	ltc2657.set_voltage_on_channel(address, channel, voltage)
+	#print(hex(dac_address) + " " + str(channel))
+	ltc2657.set_voltage_on_channel(dac_address, channel, voltage)
 
 def set_thresholds_for_null_scaler():
 	voltage_at_null_scaler = read_thresholds_for_null_scalers_file()
@@ -978,13 +968,30 @@ def setup_everything():
 		for i in range(2**depth):
 			print(hex(readback_cba9[i], 8) + " " + hex(readback_8765[i], 8) + " " + hex(readback_4321[i], 8))
 
-running = True
-should_update_plots = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
-plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
-setup()
-while running:
-	loop()
-	sys.stdout.flush()
-disable_amplifiers()
-pygame.quit()
+if __name__ == "__main__":
+	from sys import argv
+	if len(argv)>1:
+		channels = int(argv[1])
+		print(str(channels))
+		number_of_pin_diode_boxes = channels // NUMBER_OF_PHOTODIODES
+	ROWS = 1
+	COLUMNS = number_of_pin_diode_boxes
+	wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
+	desired_window_width = number_of_pin_diode_boxes * box_dimension_x_in * scale_pixels_per_in + wasted_width
+	SCREEN_WIDTH = desired_window_width
+	SCREEN_HEIGHT = 720
+	should_update_plots = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
+	plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
+	plot_name = [ [ "" for j in range(ROWS) ] for i in range(COLUMNS) ]
+	feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
+	maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
+	setup()
+	running = True
+	while running:
+		loop()
+		sys.stdout.flush()
+	disable_amplifiers()
+	pygame.quit()
 
