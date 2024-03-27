@@ -1,6 +1,6 @@
 // written 2024-03-08 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-03-14 by mza
+// last updated 2024-03-25 by mza
 
 `define ampoliros48_revA
 `include "lib/duneLBLS.v"
@@ -48,6 +48,7 @@ module LBLS48 #(
 	input [3:1] inR, inF,
 	output [3:1] tR, tF,
 //	output a_p, b_p, c_p, d_p, e_p, f_p, a_n, b_n, c_n, d_n, e_n, f_n,
+	output [11:0] toupee_diff,
 //	output u, v, w, x, y, z,
 	input [12:1] a, b, c, d,
 	output ldac, ampen
@@ -61,8 +62,20 @@ module LBLS48 #(
 	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [7:0] status8;
-	wire reset;
 	wire pll_oserdes_locked;
+	// ----------------------------------------------------------------------
+	reg reset = 1;
+	localparam RESET_COUNTER_PICKOFF = 9;
+	reg [RESET_COUNTER_PICKOFF:0] reset_counter = 0;
+	always @(posedge clock100) begin
+		if (reset_counter[RESET_COUNTER_PICKOFF]) begin
+			reset <= 0;
+		end else begin
+			reset <= 1;
+			reset_counter <= reset_counter + 1'b1;
+		end
+	end
+	//assign reset = ~button;
 	// ----------------------------------------------------------------------
 	wire reset100;
 //	wire clock100;
@@ -121,12 +134,13 @@ module LBLS48 #(
 	wire [12:1] inversion_mask                  = bank0[1][11:0];
 	wire [31:0] desired_trigger_quantity        = bank0[2][31:0];
 	wire [31:0] trigger_duration_in_word_clocks = bank0[3][31:0];
-	wire [3:0]  monitor_channel                 = bank0[4];
+	wire [3:0]  monitor_channel                 = bank0[4][3:0];
 	wire        clear_gate_counter              = bank0[5][0];
 	wire        clear_trigger_count             = bank0[5][1];
 	wire        clear_hit_counter               = bank0[5][2];
 	wire        clear_channel_counters          = bank0[5][3];
 	wire        clear_channel_ones_counters     = bank0[5][4];
+	assign      ampen                           = bank0[6][0];
 	wire [31:0] bank1 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
@@ -257,25 +271,58 @@ module LBLS48 #(
 //		assign bank7[i] = 32'habcdef07;
 //	end
 	// ----------------------------------------------------------------------
-	assign reset = 0;
-	//assign reset = ~button;
 	wire any;
 	assign ldac = 0;
-	assign ampen = 0;
 	assign outR[1] = 0;
 	assign outR[2] = 0;
 	assign outR[3] = 0;
-	assign outF[1] = any;
+	assign outF[1] = button;
 	assign outF[2] = 0;
 	assign outF[3] = 0;
 	assign tR[1] = 0;
 	assign tR[2] = 0;
 	assign tR[3] = 0;
-	assign tF[1] = 0;
+	assign tF[1] = 1;
 	assign tF[2] = 0;
 	assign tF[3] = 0;
-	assign inoutM[1] = 0;
-	assign inoutM[2] = 0;
+	assign toupee_diff[11] = ~pll_oserdes_locked;
+	assign toupee_diff[10] = reset;
+	assign toupee_diff[9]  = reset100;
+	assign toupee_diff[8]  = reset_word;
+	assign toupee_diff[7]  = anyA;
+	assign toupee_diff[6]  = anyB;
+	assign toupee_diff[5]  = anyC;
+	assign toupee_diff[4]  = anyD;
+	assign toupee_diff[3] = 0;
+	assign toupee_diff[2] = inF[1];
+	assign toupee_diff[1] = 0;
+	assign toupee_diff[0] = button;
+	if (0) begin
+		wire clock100_for_output;
+		wire word_clock_for_output;
+		wire clock100_raw0, clock100_raw180, word_clock_raw0, word_clock_raw180;
+		wire clock100_0, clock100_180, word_clock_0, word_clock_180;
+		wire first_pll_locked;
+		simplepll_BASE #(.PERIOD(10.0), .OVERALL_DIVIDE(1), .MULTIPLY(4), .COMPENSATION("INTERNAL"),
+			.DIVIDE0(4), .DIVIDE1(4), .DIVIDE2(4), .DIVIDE3(4), .DIVIDE4(4), .DIVIDE5(4),
+			.PHASE0(0.0), .PHASE1(180.0), .PHASE2(0.0), .PHASE3(180.0), .PHASE4(0.0), .PHASE5(0.0)
+		) pll_sys_sst (.clockin(clock100), .reset(reset), .locked(first_pll_locked),
+			.clock0out(clock100_raw0), .clock1out(clock100_raw180),
+			.clock2out(word_clock_raw0), .clock3out(word_clock_raw180),
+			.clock4out(), .clock5out()
+		);
+		BUFG clock100raw    (.I(clock100_raw0),   .O(clock100_0));
+		BUFG clock100raw180 (.I(clock100_raw180), .O(clock100_180));
+		BUFG wordraw    (.I(word_clock_raw0),   .O(word_clock_0));
+		BUFG wordraw180 (.I(word_clock_raw180), .O(word_clock_180));
+		clock_ODDR_out clock100_ODDR   (.clock_in_p(clock100_0),   .clock_in_n(clock100_180),   .reset(reset), .clock_out(clock100_for_output));
+		clock_ODDR_out word_clock_ODDR (.clock_in_p(word_clock_0), .clock_in_n(word_clock_180), .reset(reset), .clock_out(word_clock_for_output));
+		assign inoutM[1] = clock100_for_output;
+		assign inoutM[2] = word_clock_for_output;
+	end else begin
+		assign inoutM[1] = reset;
+		assign inoutM[2] = reset100;
+	end
 	wire [31:0] start_sample = 0;
 	wire [31:0] end_sample = 5120;
 	wire sync_read_address; // assert this when you feel like (re)synchronizing
@@ -826,7 +873,8 @@ module DUNELBLS48 #(
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 //	assign { u, v, w, x, y, z } = 0;
 	assign { u, v, w, y, z } = 0;
-	assign { a_p, a_n, b_p, b_n, c_p, c_n, d_p, d_n, e_p, e_n, f_p, f_n } = 0;
+	wire [11:0] diff_vector;
+	assign { e_n, e_p, f_p, f_n, d_p, d_n, c_p, c_n, a_p, a_n, b_p, b_n } = diff_vector;
 	wire [12:1] a, b, c, d;
 	wire clock100 = x;
 	for (i=1; i<=12; i=i+1) begin : inputs
@@ -855,6 +903,7 @@ module DUNELBLS48 #(
 			rpi_gpio13, rpi_gpio12, rpi_gpio11_spi_sclk, rpi_gpio10_spi_mosi,
 			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
 		}),
+		.toupee_diff(diff_vector),
 		.a(a), .b(b), .c(c), .d(d),
 		.register_select(rpi_gpio23), .read(rpi_gpio5),
 		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio22),
