@@ -1,7 +1,9 @@
-
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
 // last updated 2024-03-18 by mza
+
+`ifndef ALPHA_LIB
+`define ALPHA_LIB
 
 module alpha_control (
 	input clock, reset, startup_sequence_1, startup_sequence_2, startup_sequence_3,
@@ -299,7 +301,7 @@ module alpha_control_tb;
 endmodule
 
 module alpha_readout (
-	input clock, reset, dat_a_t2f,
+	input clock, reset, data_a,
 	output [3:0] nybble,
 	output reg header = 0,
 	output msn,
@@ -323,7 +325,7 @@ module alpha_readout (
 			header <= 0;
 			data_sr <= 0;
 		end else begin
-			data_sr <= { data_sr[SR_HIGH_BIT-1:0], dat_a_t2f };
+			data_sr <= { data_sr[SR_HIGH_BIT-1:0], data_a };
 			if (data_bit_counter==0) begin
 				data_bit_counter <= 15;
 				data_word <= data_sr[SR_PICKOFF-1-:16];
@@ -398,10 +400,12 @@ module alpha_readout_tb;
 		// blah
 		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
 	end
-	alpha_readout alpha_readout (.clock(clock), .reset(reset), .dat_a_t2f(dat_a_t2f), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
+	alpha_readout alpha_readout (.clock(clock), .reset(reset), .data_a(dat_a_t2f), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
 	always begin
 		clock <= ~clock;
 		#half_clock_period;
 	end
 endmodule
+
+`endif
 

@@ -2,7 +2,7 @@
 # based off of mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.ucf
 # for an althea revBLM with an alpha_eval revC
 # see ug385 page 24 for spartan6 tqg133 package pins to bank mapping
-# last updated 2024-03-15 by mza
+# last updated 2024-03-27 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK100+
@@ -47,8 +47,8 @@ net tok_a_in loc=p41 | iostandard=lvcmos25; # G+ bank2 BL
 # middle column, on right side of board
 net sync loc=p56 | iostandard=lvcmos25 | drive = 4 | slew = slow; # K+ bank2 BR
 #net k_n loc=p55 | iostandard=lvds_25 | diff_term=true; # K- bank2 BR
-#net h_p loc=p44 | iostandard=lvds_25 | diff_term=true; # H+ bank2 BL
-#net h_n loc=p43 | iostandard=lvds_25 | diff_term=true; # H- bank2 BL
+net data_a_out_p loc=p44 | iostandard=lvds_25 | diff_term=true; # H+ bank2 BL
+net data_a_out_n loc=p43 | iostandard=lvds_25 | diff_term=true; # H- bank2 BL
 
 # third column, on right side of board
 #net n loc=p30 | iostandard=lvcmos25 | drive = 2 | slew = slow; # N bank3 LB
