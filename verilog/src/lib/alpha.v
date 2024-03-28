@@ -1,6 +1,6 @@
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-03-18 by mza
+// last updated 2024-03-28 by mza
 
 `ifndef ALPHA_LIB
 `define ALPHA_LIB
@@ -286,11 +286,11 @@ module alpha_control_tb;
 	initial begin
 		reset <= 1; #101; reset <= 0;
 		#100;
-		startup_sequence_3 <= 1; #half_clock_period; startup_sequence_3 <= 0;
+		startup_sequence_3 <= 1; #clock_period; startup_sequence_3 <= 0;
 		#100;
-		startup_sequence_2 <= 1; #half_clock_period; startup_sequence_2 <= 0;
+		startup_sequence_2 <= 1; #clock_period; startup_sequence_2 <= 0;
 		#5000;
-		startup_sequence_1 <= 1; #half_clock_period; startup_sequence_1 <= 0;
+		startup_sequence_1 <= 1; #clock_period; startup_sequence_1 <= 0;
 		#400;
 		$finish;
 	end
