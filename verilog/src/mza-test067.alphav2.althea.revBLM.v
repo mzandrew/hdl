@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-03-27 by mza
+// last updated 2024-03-28 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -89,10 +89,13 @@ module ALPHAtest #(
 	assign led[2] = startup_sequence_2_has_occurred;
 	assign led[3] = startup_sequence_3_has_occurred;
 	assign led[7:4] = { 1'b0, 1'b0, 1'b0, 1'b0 };
+	wire debounced_button_going_inactive;
+	wire something_happened = startup_sequence_3 || startup_sequence_2 || startup_sequence_1;
+	wire anything_that_is_going_on = tok_a_out || pclk || sclk || sin || dreset || auxtrig || trigin || something_happened;
 	assign coax[0] = shout;
 	assign coax[1] = tok_a_out;
-	assign coax[2] = reset;
-	assign coax[3] = something_happened;
+	assign coax[2] = debounced_button_going_inactive;
+	assign coax[3] = anything_that_is_going_on;
 	assign coax[4] = 0;
 	assign coax[5] = 0;
 	reg [3:0] rot_buffered_a = 0;
@@ -141,7 +144,6 @@ module ALPHAtest #(
 	reg startup_sequence_3_has_occurred = 0;
 	reg startup_sequence_2_has_occurred = 0;
 	reg startup_sequence_1_has_occurred = 0;
-	reg something_happened = 0;
 	// ----------------------------------------------------------------------
 	localparam STARTUP_SEQUENCE_3_COUNTER_PICKOFF = 26;
 	reg [STARTUP_SEQUENCE_3_COUNTER_PICKOFF:0] startup_sequence_3_counter = 0;
@@ -176,15 +178,13 @@ module ALPHAtest #(
 	end
 	// ----------------------------------------------------------------------
 	wire debounced_button;
-	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b1), .button_activated_pulse(debounced_button), .button_deactivated_pulse(), .button_active());
+	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b0), .button_activated_pulse(debounced_button), .button_deactivated_pulse(debounced_button_going_inactive), .button_active());
 	always @(posedge sysclk) begin
 		startup_sequence_1 <= 0;
-		something_happened <= 0;
 		if (reset) begin
 			startup_sequence_1_has_occurred <= 0;
 		end else if (startup_sequence_2_has_occurred) begin
 			if (debounced_button) begin
-				something_happened <= 1;
 				startup_sequence_1 <= 1;
 				startup_sequence_1_has_occurred <= 1;
 			end
