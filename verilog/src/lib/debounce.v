@@ -1,6 +1,6 @@
 // written 2018-07-27 by mza
 // originally from file mza-test008.16-segment-driver.button-debounce-duration-counter.v
-// last updated 2024-03-27 by mza
+// last updated 2024-03-28 by mza
 
 // see module button_debounce in file synchronizer.v as well
 
@@ -44,7 +44,8 @@ endmodule // debounce
 module debounce #(
 	parameter CLOCK_FREQUENCY = 100000000,
 	parameter TIMEOUT_IN_MILLISECONDS = 50,
-	parameter COUNTER_PICKOFF = $clog2(CLOCK_FREQUENCY*TIMEOUT_IN_MILLISECONDS)/1000
+	parameter MILLISECONDS_PER_SECOND = 1000,
+	parameter COUNTER_PICKOFF = $clog2(CLOCK_FREQUENCY*TIMEOUT_IN_MILLISECONDS/MILLISECONDS_PER_SECOND) // 23
 ) (
 	input clock,
 	input polarity,
