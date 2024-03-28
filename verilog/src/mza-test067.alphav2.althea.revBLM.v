@@ -135,26 +135,26 @@ module ALPHAtest #(
 	wire [11:0] SBbias  = {SBbias_MSN,  8'h44};
 	wire [11:0] DBbias  = {DBbias_MSN,  8'h44};
 	// ----------------------------------------------------------------------
-	reg startup_sequence_1 = 0;
-	reg startup_sequence_2 = 0;
 	reg startup_sequence_3 = 0;
-	reg startup_sequence_1_has_occurred = 0;
-	reg startup_sequence_2_has_occurred = 0;
+	reg startup_sequence_2 = 0;
+	reg startup_sequence_1 = 0;
 	reg startup_sequence_3_has_occurred = 0;
+	reg startup_sequence_2_has_occurred = 0;
+	reg startup_sequence_1_has_occurred = 0;
 	reg something_happened = 0;
 	// ----------------------------------------------------------------------
-	localparam STARTUP_SEQUENCE_1_COUNTER_PICKOFF = 26;
-	reg [STARTUP_SEQUENCE_1_COUNTER_PICKOFF:0] startup_sequence_1_counter = 0;
+	localparam STARTUP_SEQUENCE_3_COUNTER_PICKOFF = 26;
+	reg [STARTUP_SEQUENCE_3_COUNTER_PICKOFF:0] startup_sequence_3_counter = 0;
 	always @(posedge sysclk) begin
-		startup_sequence_1 <= 0;
+		startup_sequence_3 <= 0;
 		if (reset) begin
-			startup_sequence_1_has_occurred <= 0;
+			startup_sequence_3_has_occurred <= 0;
 		end else begin
-			if (startup_sequence_1_counter[STARTUP_SEQUENCE_1_COUNTER_PICKOFF]) begin
-				startup_sequence_1 <= 1'b1;
-				startup_sequence_1_has_occurred <= 1'b1;
+			if (startup_sequence_3_counter[STARTUP_SEQUENCE_3_COUNTER_PICKOFF]) begin
+				startup_sequence_3 <= 1'b1;
+				startup_sequence_3_has_occurred <= 1'b1;
 			end else begin
-				startup_sequence_1_counter <= startup_sequence_1_counter + 1'b1;
+				startup_sequence_3_counter <= startup_sequence_3_counter + 1'b1;
 			end
 		end
 	end
@@ -165,7 +165,7 @@ module ALPHAtest #(
 		startup_sequence_2 <= 0;
 		if (reset) begin
 			startup_sequence_2_has_occurred <= 0;
-		end else if (startup_sequence_1_has_occurred) begin
+		end else if (startup_sequence_3_has_occurred) begin
 			if (startup_sequence_2_counter[STARTUP_SEQUENCE_2_COUNTER_PICKOFF]) begin
 				startup_sequence_2 <= 1'b1;
 				startup_sequence_2_has_occurred <= 1'b1;
@@ -178,15 +178,15 @@ module ALPHAtest #(
 	wire debounced_button;
 	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b1), .button_activated_pulse(debounced_button), .button_deactivated_pulse(), .button_active());
 	always @(posedge sysclk) begin
-		startup_sequence_3 <= 0;
+		startup_sequence_1 <= 0;
 		something_happened <= 0;
 		if (reset) begin
-			startup_sequence_3_has_occurred <= 0;
+			startup_sequence_1_has_occurred <= 0;
 		end else if (startup_sequence_2_has_occurred) begin
 			if (debounced_button) begin
 				something_happened <= 1;
-				startup_sequence_3 <= 1;
-				startup_sequence_3_has_occurred <= 1;
+				startup_sequence_1 <= 1;
+				startup_sequence_1_has_occurred <= 1;
 			end
 		end
 	end

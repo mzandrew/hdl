@@ -292,6 +292,7 @@ module alpha_control_tb;
 		#5000;
 		startup_sequence_1 <= 1; #half_clock_period; startup_sequence_1 <= 0;
 		#400;
+		$finish;
 	end
 	always begin
 		clock <= ~clock;
@@ -399,6 +400,8 @@ module alpha_readout_tb;
 		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
 		// blah
 		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
+		#100;
+		$finish;
 	end
 	alpha_readout alpha_readout (.clock(clock), .reset(reset), .data_a(dat_a_t2f), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
 	always begin
