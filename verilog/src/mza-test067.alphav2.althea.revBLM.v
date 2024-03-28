@@ -143,27 +143,35 @@ module ALPHAtest #(
 	reg startup_sequence_3_has_occurred = 0;
 	reg something_happened = 0;
 	// ----------------------------------------------------------------------
-	localparam STARTUP_SEQUENCE_1_COUNTER_PICKOFF = 24;
+	localparam STARTUP_SEQUENCE_1_COUNTER_PICKOFF = 26;
 	reg [STARTUP_SEQUENCE_1_COUNTER_PICKOFF:0] startup_sequence_1_counter = 0;
 	always @(posedge sysclk) begin
-		if (startup_sequence_1_counter[STARTUP_SEQUENCE_1_COUNTER_PICKOFF]) begin
-			startup_sequence_1 <= 1'b1;
-			startup_sequence_1_has_occurred <= 1;
+		startup_sequence_1 <= 0;
+		if (reset) begin
+			startup_sequence_1_has_occurred <= 0;
 		end else begin
-			startup_sequence_1 <= 0;
-			startup_sequence_1_counter <= startup_sequence_1_counter + 1'b1;
+			if (startup_sequence_1_counter[STARTUP_SEQUENCE_1_COUNTER_PICKOFF]) begin
+				startup_sequence_1 <= 1'b1;
+				startup_sequence_1_has_occurred <= 1'b1;
+			end else begin
+				startup_sequence_1_counter <= startup_sequence_1_counter + 1'b1;
+			end
 		end
 	end
 	// ----------------------------------------------------------------------
-	localparam STARTUP_SEQUENCE_2_COUNTER_PICKOFF = 24;
+	localparam STARTUP_SEQUENCE_2_COUNTER_PICKOFF = 26;
 	reg [STARTUP_SEQUENCE_2_COUNTER_PICKOFF:0] startup_sequence_2_counter = 0;
 	always @(posedge sysclk) begin
-		if (startup_sequence_2_counter[STARTUP_SEQUENCE_2_COUNTER_PICKOFF]) begin
-			startup_sequence_2 <= 1'b1;
-			startup_sequence_2_has_occurred <= 1;
-		end else begin
-			startup_sequence_2 <= 0;
-			startup_sequence_2_counter <= startup_sequence_2_counter + 1'b1;
+		startup_sequence_2 <= 0;
+		if (reset) begin
+			startup_sequence_2_has_occurred <= 0;
+		end else if (startup_sequence_1_has_occurred) begin
+			if (startup_sequence_2_counter[STARTUP_SEQUENCE_2_COUNTER_PICKOFF]) begin
+				startup_sequence_2 <= 1'b1;
+				startup_sequence_2_has_occurred <= 1'b1;
+			end else begin
+				startup_sequence_2_counter <= startup_sequence_2_counter + 1'b1;
+			end
 		end
 	end
 	// ----------------------------------------------------------------------
@@ -174,7 +182,7 @@ module ALPHAtest #(
 		something_happened <= 0;
 		if (reset) begin
 			startup_sequence_3_has_occurred <= 0;
-		end else begin
+		end else if (startup_sequence_2_has_occurred) begin
 			if (debounced_button) begin
 				something_happened <= 1;
 				startup_sequence_3 <= 1;
@@ -182,6 +190,7 @@ module ALPHAtest #(
 			end
 		end
 	end
+	// ----------------------------------------------------------------------
 	wire sda_in, sda_out, sda_dir;
 	assign sda = sda_dir ? sda_out : 1'bz;
 	assign sda_in = sda;
