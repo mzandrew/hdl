@@ -72,18 +72,12 @@ module i2c_poll_address_for_nack #(
 					026 : scl <= 1;
 					025 : scl <= 0;
 					// get nack
-					019 : sda_dir <= 0; // input
+					020 : sda_dir <= 0; // input
 					018 : scl <= 1;
 					017 : nack <= sda_in; // nack
 					016 : scl <= 0;
-					015 : sda_dir <= 1; // output
-					//014 : if (nack) begin bit_counter <= 10; error <= 1; end else begin error <= 0; end
-					014 : if (nack) begin error <= 1; bit_counter <= 10; end else begin error <= 0; end
-					// send stop
-//					013 : sda_out <= 1;
-//					012 : sda_out <= 0;
-//					011 : scl <= 1;
-//					010 : sda_out <= 1;
+					014 : sda_dir <= 1; // output
+					013 : if (nack) begin error <= 1; bit_counter <= 10; end else begin error <= 0; end
 					// send stop
 					009 : sda_dir <= 1; // output
 					008 : sda_out <= 1;

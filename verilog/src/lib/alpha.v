@@ -6,10 +6,12 @@
 `define ALPHA_LIB
 
 module alpha_control (
-	input clock, reset, startup_sequence_1, startup_sequence_2, startup_sequence_3,
+	input clock, reset,
+	input startup_sequence_1, startup_sequence_2, startup_sequence_3, start_i2c_transfer,
 	input sda_in,
 	input [11:0] CMPbias, ISEL, SBbias, DBbias,
-	output reg sync, dreset, tok_a_in, scl, sda_out, sda_dir, sin, pclk, sclk, trig_top
+	output reg sync, dreset, tok_a_in, sin, pclk, sclk, trig_top,
+	output scl, sda_out, sda_dir
 );
 	reg [31:0] counter1 = 0;
 	reg [31:0] counter2 = 0;
@@ -254,23 +256,10 @@ module alpha_control (
 			end
 		end
 	end
-	reg [31:0] i2c_counter = 0;
-	reg [6:0] i2c_address = 0;
-	reg [7:0] i2c_data = 0;
-	localparam I2C_GRANULARITY = 100;
-	always @(posedge clock) begin
-		if (reset) begin
-			i2c_counter <= 0;
-			i2c_address <= 0;
-			i2c_data <= 0;
-			scl <= 1'b1;
-			sda_out <= 1'b0;
-			sda_dir <= 1'b1;
-		end else begin
-//			if (2*I2C_GRANULARITY<counter & 3*I2C_GRANULARITY<counter) begin
-//			end
-		end
-	end
+	wire [2:0] i2c_address_pins = 3'b000;
+	wire [3:0] i2c_register = 4'd1;
+	wire [6:0] address = { i2c_address_pins, i2c_register };
+	i2c_poll_address_for_nack #(.CLOCK_FREQUENCY_IN_HZ(100000000), .DESIRED_I2C_FREQUENCY_IN_HZ(100000)) i2c_poller (.clock(clock), .address(address), .scl(scl), .sda_out(sda_out), .sda_dir(sda_dir), .busy(), .nack(), .error(), .sda_in(sda_in), .start_transfer(start_i2c_transfer), .transfer_complete());
 endmodule
 
 module alpha_control_tb;

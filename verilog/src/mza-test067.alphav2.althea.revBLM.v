@@ -83,15 +83,25 @@ module ALPHAtest #(
 	assign actual_pclk = pclk | dreset;
 	assign actual_sclk = sclk | dreset;
 	assign actual_auxtrig = auxtrig | dreset;
-	assign ls_i2c = 1'b1;
+	assign ls_i2c = 1'b1; // 0=i2c; 1=ls
 	// ----------------------------------------------------------------------
 	assign led[0] = ~first_pll_locked;
 	assign led[1] = startup_sequence_1_has_occurred;
 	assign led[2] = startup_sequence_2_has_occurred;
 	assign led[3] = startup_sequence_3_has_occurred;
-	assign led[7:4] = { 1'b0, 1'b0, 1'b0, 1'b0 };
+	assign led[4] = i2c_transfer_has_occurred;
+	assign led[7:5] = { 1'b0, 1'b0, 1'b0 };
 	wire debounced_button_going_inactive;
-	wire something_happened = startup_sequence_3 || startup_sequence_2 || startup_sequence_1;
+	reg start_i2c_transfer = 0;
+	reg startup_sequence_3 = 0;
+	reg startup_sequence_2 = 0;
+	reg startup_sequence_1 = 0;
+	reg i2c_transfer_has_occurred = 0;
+	reg startup_sequence_3_has_occurred = 0;
+	reg startup_sequence_2_has_occurred = 0;
+	reg startup_sequence_1_has_occurred = 0;
+	// ----------------------------------------------------------------------
+	wire something_happened = startup_sequence_3 || startup_sequence_2 || startup_sequence_1 || start_i2c_transfer;
 	wire anything_that_is_going_on = tok_a_out || pclk || sclk || sin || dreset || auxtrig || trigin || something_happened;
 	assign coax[0] = shout;
 	assign coax[1] = tok_a_out;
@@ -139,13 +149,6 @@ module ALPHAtest #(
 	wire [11:0] SBbias  = {SBbias_MSN,  8'h44};
 	wire [11:0] DBbias  = {DBbias_MSN,  8'h44};
 	// ----------------------------------------------------------------------
-	reg startup_sequence_3 = 0;
-	reg startup_sequence_2 = 0;
-	reg startup_sequence_1 = 0;
-	reg startup_sequence_3_has_occurred = 0;
-	reg startup_sequence_2_has_occurred = 0;
-	reg startup_sequence_1_has_occurred = 0;
-	// ----------------------------------------------------------------------
 	localparam STARTUP_SEQUENCE_3_COUNTER_PICKOFF = 26;
 	reg [STARTUP_SEQUENCE_3_COUNTER_PICKOFF:0] startup_sequence_3_counter = 0;
 	always @(posedge sysclk) begin
@@ -178,13 +181,29 @@ module ALPHAtest #(
 		end
 	end
 	// ----------------------------------------------------------------------
+	localparam START_I2C_TRANSFER_COUNTER_PICKOFF = 26;
+	reg [START_I2C_TRANSFER_COUNTER_PICKOFF:0] start_i2c_transfer_counter = 0;
+	always @(posedge sysclk) begin
+		start_i2c_transfer <= 0;
+		if (reset) begin
+			i2c_transfer_has_occurred <= 0;
+		end else if (startup_sequence_3_has_occurred && startup_sequence_2_has_occurred) begin
+			if (start_i2c_transfer_counter[START_I2C_TRANSFER_COUNTER_PICKOFF]) begin
+				start_i2c_transfer <= 1'b1;
+				i2c_transfer_has_occurred <= 1'b1;
+			end else begin
+				start_i2c_transfer_counter <= start_i2c_transfer_counter + 1'b1;
+			end
+		end
+	end
+	// ----------------------------------------------------------------------
 	wire debounced_button;
 	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b0), .button_activated_pulse(debounced_button), .button_deactivated_pulse(debounced_button_going_inactive), .button_active());
 	always @(posedge sysclk) begin
 		startup_sequence_1 <= 0;
 		if (reset) begin
 			startup_sequence_1_has_occurred <= 0;
-		end else if (startup_sequence_2_has_occurred) begin
+		end else if (startup_sequence_3_has_occurred && startup_sequence_2_has_occurred && i2c_transfer_has_occurred) begin
 			if (debounced_button) begin
 				startup_sequence_1 <= 1;
 				startup_sequence_1_has_occurred <= 1;
@@ -195,6 +214,6 @@ module ALPHAtest #(
 	wire sda_in, sda_out, sda_dir;
 	assign sda = sda_dir ? sda_out : 1'bz;
 	assign sda_in = sda;
-	alpha_control alpha_control (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trigin), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	alpha_control alpha_control (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .start_i2c_transfer(start_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trigin), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 endmodule
 
