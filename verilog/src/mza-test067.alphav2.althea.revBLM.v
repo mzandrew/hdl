@@ -9,6 +9,7 @@
 `include "lib/generic.v"
 `include "lib/alpha.v"
 `include "lib/plldcm.v"
+`include "lib/i2c.v"
 
 module ALPHAtest #(
 	parameter ALPHA_V = 2
