@@ -105,12 +105,18 @@ module ALPHAtest #(
 	wire anything_that_is_going_on = tok_a_out || pclk || sclk || sin || dreset || auxtrig || trigin || something_happened;
 	wire data_a;
 	IBUFDS data_in (.I(data_a_out_p), .IB(data_a_out_n), .O(data_a));
+	wire header;
+	wire [3:0] nybble;
+	wire [1:0] nybble_counter;
+	wire [15:0] data_word;
+	wire msn; // most significant nybble
+	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
 	assign coax[0] = data_a;
 	assign coax[1] = tok_a_out;
 	assign coax[2] = debounced_button_going_inactive;
 	assign coax[3] = anything_that_is_going_on;
-	assign coax[4] = 0;
-	assign coax[5] = 0;
+	assign coax[4] = header;
+	assign coax[5] = msn;
 	reg [3:0] rot_buffered_a = 0;
 	reg [3:0] rot_buffered_b = 0;
 	always @(posedge sysclk) begin
@@ -126,19 +132,6 @@ module ALPHAtest #(
 	assign coax_led[2] = rot_buffered_b[2];
 	assign coax_led[1] = rot_buffered_b[1];
 	assign coax_led[0] = rot_buffered_b[0];
-	if (1) begin
-		wire header;
-		wire [3:0] nybble;
-		wire [1:0] nybble_counter;
-		wire [15:0] data_word;
-		wire msn; // most significant nybble
-		alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
-		//assign jb[3:0] = nybble;
-		//assign jb[4] = msn;
-		//assign jb[5] = 0;
-		//assign jb[6] = header;
-		//assign jb[7] = 0;
-	end
 	wire [3:0] ISEL_setting = 4'hb; // 79 us ramp
 	wire [3:0] CMPbias_MSN = 4'h8;
 	wire [3:0] ISEL_MSN    = ISEL_setting;

@@ -324,7 +324,7 @@ module alpha_control #(
 //	i2c_value[1] = { I2CupAddr, LVDSB_pwr, LVDSA_pwr, SRCsel }; // SRC
 //	wire [7:0] ASICID = { I2CupAddr, i2c_address_pins };
 	//reg [15:0] i2c_address_register_enables = 16'b_0000_0000_0000_0010;
-	reg [15:0] i2c_address_register_enables = 16'b_1111_1111_1111_1111;
+	wire [15:0] i2c_address_register_enables = 16'b_1111_1111_1111_1111;
 	reg i2c_working_on_some_transfers = 0;
 	reg i2c_transitioning_to_the_next_transfer = 0;
 	reg i2c_inner_start_transfer = 0;

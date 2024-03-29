@@ -136,8 +136,8 @@ endmodule
 module i2c_poll_address_for_nack #(
 	parameter CLOCK_FREQUENCY_IN_HZ = 100000000,
 	parameter DESIRED_I2C_FREQUENCY_IN_HZ = 100000,
-	parameter CLOCK_DIVIDE_RATIO = CLOCK_FREQUENCY_IN_HZ/DESIRED_I2C_FREQUENCY_IN_HZ,
-	parameter DIVIDE_COUNTER_PICKOFF = $clog2(CLOCK_DIVIDE_RATIO)
+	parameter CLOCK_DIVIDE_RATIO = CLOCK_FREQUENCY_IN_HZ/DESIRED_I2C_FREQUENCY_IN_HZ, // 1000
+	parameter DIVIDE_COUNTER_PICKOFF = $clog2(CLOCK_DIVIDE_RATIO) - 1 // 9
 ) (
 	input clock,
 	input [6:0] address,
@@ -152,7 +152,7 @@ module i2c_poll_address_for_nack #(
 	output reg transfer_complete = 0
 );
 	reg i2c_strobe = 0;
-	reg [6:0] bit_counter = 0;
+	reg [5:0] bit_counter = 0;
 	reg [DIVIDE_COUNTER_PICKOFF:0] divide_counter = 1;
 	always @(posedge clock) begin
 		i2c_strobe <= 0;
