@@ -103,7 +103,9 @@ module ALPHAtest #(
 	// ----------------------------------------------------------------------
 	wire something_happened = startup_sequence_3 || startup_sequence_2 || startup_sequence_1 || start_i2c_transfer;
 	wire anything_that_is_going_on = tok_a_out || pclk || sclk || sin || dreset || auxtrig || trigin || something_happened;
-	assign coax[0] = shout;
+	wire data_a;
+	IBUFDS data_in (.I(data_a_out_p), .IB(data_a_out_n), .O(data_a));
+	assign coax[0] = data_a;
 	assign coax[1] = tok_a_out;
 	assign coax[2] = debounced_button_going_inactive;
 	assign coax[3] = anything_that_is_going_on;
@@ -124,8 +126,6 @@ module ALPHAtest #(
 	assign coax_led[2] = rot_buffered_b[2];
 	assign coax_led[1] = rot_buffered_b[1];
 	assign coax_led[0] = rot_buffered_b[0];
-	wire data_a;
-	IBUFDS data_in (.I(data_a_out_p), .IB(data_a_out_n), .O(data_a));
 	if (1) begin
 		wire header;
 		wire [3:0] nybble;
