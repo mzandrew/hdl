@@ -36,7 +36,7 @@
 145		i2c_reg.Trigger_select <= i2c_data_out(Trigger_select_c)(i2c_reg.Trigger_select'range);
  59	constant Token_edge_dection_c : integer := 9;
 148		i2c_reg.Token_edge_dection   <= i2c_data_out(Token_edge_dection_c)(i2c_reg.Token_edge_dection'range);
- 60	--constant oBL : integer := 10;
+ 60	--constant oBL : integer := 10; // does not respond to address 10
  61	constant PCLK_period : integer := 11;
 151		pclk_timing_signal   <= i2c_data_out(PCLK_period);
  62	constant DBL : integer := 12;
@@ -52,7 +52,7 @@
 166			pclk_counter <= std_logic_vector( unsigned(pclk_counter) - 1);
 167			I2C_PCLK <= i2c_data_out(pclk)(I2C_PCLK'range);
 169		end if;
- 65	--constant PCK : integer := 15;
+ 65	--constant PCK : integer := 15; // does not respond to address 15
 */
 
 `include "i2c.v"
