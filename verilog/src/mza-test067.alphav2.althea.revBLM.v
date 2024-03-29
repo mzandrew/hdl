@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-03-28 by mza
+// last updated 2024-03-29 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -156,11 +156,13 @@ module ALPHAtest #(
 		if (reset) begin
 			startup_sequence_3_has_occurred <= 0;
 		end else begin
-			if (startup_sequence_3_counter[STARTUP_SEQUENCE_3_COUNTER_PICKOFF]) begin
-				startup_sequence_3 <= 1'b1;
-				startup_sequence_3_has_occurred <= 1'b1;
-			end else begin
-				startup_sequence_3_counter <= startup_sequence_3_counter + 1'b1;
+			if (~startup_sequence_3_has_occurred) begin
+				if (startup_sequence_3_counter[STARTUP_SEQUENCE_3_COUNTER_PICKOFF]) begin
+					startup_sequence_3 <= 1'b1;
+					startup_sequence_3_has_occurred <= 1'b1;
+				end else begin
+					startup_sequence_3_counter <= startup_sequence_3_counter + 1'b1;
+				end
 			end
 		end
 	end
@@ -171,7 +173,7 @@ module ALPHAtest #(
 		startup_sequence_2 <= 0;
 		if (reset) begin
 			startup_sequence_2_has_occurred <= 0;
-		end else if (startup_sequence_3_has_occurred) begin
+		end else if (startup_sequence_3_has_occurred && ~startup_sequence_2_has_occurred) begin
 			if (startup_sequence_2_counter[STARTUP_SEQUENCE_2_COUNTER_PICKOFF]) begin
 				startup_sequence_2 <= 1'b1;
 				startup_sequence_2_has_occurred <= 1'b1;
@@ -187,7 +189,7 @@ module ALPHAtest #(
 		start_i2c_transfer <= 0;
 		if (reset) begin
 			i2c_transfer_has_occurred <= 0;
-		end else if (startup_sequence_3_has_occurred && startup_sequence_2_has_occurred) begin
+		end else if (startup_sequence_3_has_occurred && startup_sequence_2_has_occurred && ~i2c_transfer_has_occurred) begin
 			if (start_i2c_transfer_counter[START_I2C_TRANSFER_COUNTER_PICKOFF]) begin
 				start_i2c_transfer <= 1'b1;
 				i2c_transfer_has_occurred <= 1'b1;

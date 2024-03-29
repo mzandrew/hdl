@@ -259,6 +259,8 @@ module alpha_control (
 	wire [2:0] i2c_address_pins = 3'b000;
 	wire [3:0] i2c_register = 4'd1;
 	wire [6:0] address = { i2c_address_pins, i2c_register };
+//	wire [6:0] address = 7'h70; // i2c multiplexer
+//	wire [6:0] address = 7'h39; // i2c spectral analyzer
 	i2c_poll_address_for_nack #(.CLOCK_FREQUENCY_IN_HZ(100000000), .DESIRED_I2C_FREQUENCY_IN_HZ(100000)) i2c_poller (.clock(clock), .address(address), .scl(scl), .sda_out(sda_out), .sda_dir(sda_dir), .busy(), .nack(), .error(), .sda_in(sda_in), .start_transfer(start_i2c_transfer), .transfer_complete());
 endmodule
 
