@@ -24,6 +24,7 @@ module ALPHAtest #(
 	// alpha_eval revC:
 	output sysclk_p, sysclk_n,
 	output ls_i2c,
+	output [5:0] pmod,
 	output scl,
 	inout sda,
 	output sin,
@@ -84,6 +85,7 @@ module ALPHAtest #(
 	assign actual_sclk = sclk | dreset;
 	assign actual_auxtrig = auxtrig | dreset;
 	assign ls_i2c = 1'b1; // 0=i2c; 1=ls
+	//assign ls_i2c = 1'b0; // 0=i2c; 1=ls
 	// ----------------------------------------------------------------------
 	assign led[0] = ~first_pll_locked;
 	assign led[1] = startup_sequence_1_has_occurred;
@@ -92,6 +94,10 @@ module ALPHAtest #(
 	assign led[4] = i2c_transfer_has_occurred;
 	assign led[7:5] = { 1'b0, 1'b0, 1'b0 };
 	wire debounced_button_going_inactive;
+	wire should_do_i2c_transfer = 0;
+	wire should_do_startup_sequence_3 = 1;
+	wire should_do_startup_sequence_2 = 1;
+	wire should_do_startup_sequence_1 = 1;
 	reg start_i2c_transfer = 0;
 	reg startup_sequence_3 = 0;
 	reg startup_sequence_2 = 0;
@@ -111,9 +117,12 @@ module ALPHAtest #(
 	wire [15:0] data_word;
 	wire msn; // most significant nybble
 	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
+	assign pmod[5] = header;
+	assign pmod[4] = msn;
+	assign pmod[3:0] = nybble;
 	assign coax[0] = data_a;
-	assign coax[1] = tok_a_out;
-	assign coax[2] = debounced_button_going_inactive;
+	assign coax[1] = tok_a_in;
+	assign coax[2] = tok_a_out;
 	assign coax[3] = anything_that_is_going_on;
 	assign coax[4] = header;
 	assign coax[5] = msn;
@@ -148,14 +157,14 @@ module ALPHAtest #(
 		startup_sequence_3 <= 0;
 		if (reset) begin
 			startup_sequence_3_has_occurred <= 0;
-		end else begin
-			if (~startup_sequence_3_has_occurred) begin
-				if (startup_sequence_3_counter[STARTUP_SEQUENCE_3_COUNTER_PICKOFF]) begin
+		end else if (~startup_sequence_3_has_occurred) begin
+			if (startup_sequence_3_counter[STARTUP_SEQUENCE_3_COUNTER_PICKOFF]) begin
+				if (should_do_startup_sequence_3) begin
 					startup_sequence_3 <= 1'b1;
 					startup_sequence_3_has_occurred <= 1'b1;
-				end else begin
-					startup_sequence_3_counter <= startup_sequence_3_counter + 1'b1;
 				end
+			end else begin
+				startup_sequence_3_counter <= startup_sequence_3_counter + 1'b1;
 			end
 		end
 	end
@@ -166,10 +175,12 @@ module ALPHAtest #(
 		startup_sequence_2 <= 0;
 		if (reset) begin
 			startup_sequence_2_has_occurred <= 0;
-		end else if (startup_sequence_3_has_occurred && ~startup_sequence_2_has_occurred) begin
+		end else if ((startup_sequence_3_has_occurred||~should_do_startup_sequence_3) && ~startup_sequence_2_has_occurred) begin
 			if (startup_sequence_2_counter[STARTUP_SEQUENCE_2_COUNTER_PICKOFF]) begin
-				startup_sequence_2 <= 1'b1;
-				startup_sequence_2_has_occurred <= 1'b1;
+				if (should_do_startup_sequence_2) begin
+					startup_sequence_2 <= 1'b1;
+					startup_sequence_2_has_occurred <= 1'b1;
+				end
 			end else begin
 				startup_sequence_2_counter <= startup_sequence_2_counter + 1'b1;
 			end
@@ -182,10 +193,13 @@ module ALPHAtest #(
 		start_i2c_transfer <= 0;
 		if (reset) begin
 			i2c_transfer_has_occurred <= 0;
-		end else if (startup_sequence_3_has_occurred && startup_sequence_2_has_occurred && ~i2c_transfer_has_occurred) begin
+		//end else if (startup_sequence_3_has_occurred && startup_sequence_2_has_occurred && ~i2c_transfer_has_occurred) begin
+		end else if ((startup_sequence_3_has_occurred||~should_do_startup_sequence_3) && (startup_sequence_2_has_occurred||~should_do_startup_sequence_2) && ~i2c_transfer_has_occurred) begin
 			if (start_i2c_transfer_counter[START_I2C_TRANSFER_COUNTER_PICKOFF]) begin
-				start_i2c_transfer <= 1'b1;
-				i2c_transfer_has_occurred <= 1'b1;
+				if (should_do_i2c_transfer) begin
+					start_i2c_transfer <= 1'b1;
+					i2c_transfer_has_occurred <= 1'b1;
+				end
 			end else begin
 				start_i2c_transfer_counter <= start_i2c_transfer_counter + 1'b1;
 			end
@@ -198,7 +212,7 @@ module ALPHAtest #(
 		startup_sequence_1 <= 0;
 		if (reset) begin
 			startup_sequence_1_has_occurred <= 0;
-		end else if (startup_sequence_3_has_occurred && startup_sequence_2_has_occurred && i2c_transfer_has_occurred) begin
+		end else if ((startup_sequence_3_has_occurred||~should_do_startup_sequence_3) && (startup_sequence_2_has_occurred||~should_do_startup_sequence_2) && (i2c_transfer_has_occurred||~should_do_i2c_transfer)) begin
 			if (debounced_button) begin
 				startup_sequence_1 <= 1;
 				startup_sequence_1_has_occurred <= 1;

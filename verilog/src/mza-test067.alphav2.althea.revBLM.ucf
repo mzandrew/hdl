@@ -2,7 +2,7 @@
 # based off of mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.ucf
 # for an althea revBLM with an alpha_eval revC
 # see ug385 page 24 for spartan6 tqg133 package pins to bank mapping
-# last updated 2024-03-27 by mza
+# last updated 2024-03-29 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK100+
@@ -118,7 +118,12 @@ net coax<3> loc=p75  | iostandard=lvcmos25 | drive = 24 | slew = fast; # bank1
 net coax<4> loc=p6   | iostandard=lvcmos25 | drive = 24 | slew = fast; # bank3
 net coax<5> loc=p33  | iostandard=lvcmos25 | drive = 24 | slew = fast; # bank3 - differs from althea revB
 
-#net other loc=p143 | iostandard=lvcmos25 | drive = 2 | slew = slow; # bank0 - differs from althea revB and revBL
+net pmod<0> loc=p82  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB broadcom spi peripheral rpi_gpio8_spi_ce0
+net pmod<1> loc=p111 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TR broadcom spi peripheral rpi_gpio10_spi_mosi
+net pmod<2> loc=p112 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TR broadcom spi peripheral rpi_gpio9_spi_miso
+net pmod<3> loc=p93  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RT broadcom spi peripheral rpi_gpio11_spi_sclk
+net pmod<4> loc=p80  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB broadcom spi peripheral rpi_gpio7_spi_ce1
+net pmod<5> loc=p143 | iostandard=lvcmos25 | drive = 2 | slew = slow; # bank0 - differs from althea revB and revBL
 
 #net "button" tig;
 #net "rot<?>" tig;
