@@ -94,7 +94,7 @@ module ALPHAtest #(
 	assign led[4] = i2c_transfer_has_occurred;
 	assign led[7:5] = { 1'b0, 1'b0, 1'b0 };
 	wire debounced_button_going_inactive;
-	wire should_do_i2c_transfer = 0;
+	wire should_do_i2c_transfer = 1;
 	wire should_do_startup_sequence_3 = 1;
 	wire should_do_startup_sequence_2 = 1;
 	wire should_do_startup_sequence_1 = 1;

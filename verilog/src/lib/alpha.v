@@ -320,9 +320,9 @@ module alpha_control #(
 	// ----------------------------------------------------------------------
 	// SRC register:
 	wire [4:0] I2CupAddr = 5'd17;
-	wire LVDSB_pwr = 1;
-	wire LVDSA_pwr = 1;
-	wire SRCsel = 1;
+	wire LVDSB_pwr = 0;
+	wire LVDSA_pwr = 0;
+	wire SRCsel = 0; // set this to zero or the data will come from data_b (you probably don't want that)
 	wire [7:0] ASICID = { I2CupAddr, i2c_address_pins };
 	assign i2c_value[1] = { I2CupAddr, LVDSB_pwr, LVDSA_pwr, SRCsel }; // SRC
 	// ----------------------------------------------------------------------
