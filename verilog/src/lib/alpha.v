@@ -310,21 +310,24 @@ module alpha_control #(
 			end
 		end
 	end
+	// ----------------------------------------------------------------------
 	wire [2:0] i2c_address_pins = 3'b000; // hard-coded on alpha-eval-toupee revC and revD
 	reg [3:0] i2c_register = 0;
-//	reg [3:0] i2c_register = 4'd1; // SRC register (see notes above on bit mapping)
 	wire [6:0] address = { i2c_address_pins, i2c_register };
-//	wire [6:0] address = 7'h70; // i2c multiplexer for testing
-//	wire [6:0] address = 7'h39; // i2c spectral analyzer for testing
-//	wire [4:0] I2CupAddr = 5'd17;
-//	wire LVDSB_pwr = 1;
-//	wire LVDSA_pwr = 1;
-//	wire SRCsel = 1;
-//	wire [7:0] i2c_value [15:0];
-//	i2c_value[1] = { I2CupAddr, LVDSB_pwr, LVDSA_pwr, SRCsel }; // SRC
-//	wire [7:0] ASICID = { I2CupAddr, i2c_address_pins };
-	//reg [15:0] i2c_address_register_enables = 16'b_0000_0000_0000_0010;
-	wire [15:0] i2c_address_register_enables = 16'b_1111_1111_1111_1111;
+	wire [7:0] i2c_value [15:0];
+	//wire [6:0] address = 7'h70; // i2c multiplexer for testing
+	//wire [6:0] address = 7'h39; // i2c spectral analyzer for testing
+	// ----------------------------------------------------------------------
+	// SRC register:
+	wire [4:0] I2CupAddr = 5'd17;
+	wire LVDSB_pwr = 1;
+	wire LVDSA_pwr = 1;
+	wire SRCsel = 1;
+	wire [7:0] ASICID = { I2CupAddr, i2c_address_pins };
+	assign i2c_value[1] = { I2CupAddr, LVDSB_pwr, LVDSA_pwr, SRCsel }; // SRC
+	// ----------------------------------------------------------------------
+	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0000_0010; // just SRC
+	//wire [15:0] i2c_address_register_enables = 16'b_1111_1111_1111_1111; // for testing
 	reg i2c_working_on_some_transfers = 0;
 	reg i2c_transitioning_to_the_next_transfer = 0;
 	reg i2c_inner_start_transfer = 0;
@@ -360,17 +363,31 @@ module alpha_control #(
 			end
 		end
 	end
-	// i2c_value[i2c_register]
-	if (SIMULATION) begin
-		i2c_poll_address_for_nack #(.CLOCK_DIVIDE_RATIO(4))
-			i2c_poller (.clock(clock), .address(address), .scl(scl), .sda_out(sda_out), .sda_dir(sda_dir),
-			.busy(), .nack(), .error(), .sda_in(sda_in),
-			.start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
+	// ----------------------------------------------------------------------
+	if (0) begin // just to see responses from each i2c address
+		if (SIMULATION) begin
+			i2c_poll_address_for_nack #(.CLOCK_DIVIDE_RATIO(4))
+				i2c_poller (.clock(clock), .address(address), .scl(scl), .sda_out(sda_out), .sda_dir(sda_dir),
+				.busy(), .nack(), .error(), .sda_in(sda_in),
+				.start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
+		end else begin
+			i2c_poll_address_for_nack #(.CLOCK_FREQUENCY_IN_HZ(100000000), .DESIRED_I2C_FREQUENCY_IN_HZ(100000))
+				i2c_poller (.clock(clock), .address(address), .scl(scl), .sda_out(sda_out), .sda_dir(sda_dir),
+				.busy(), .nack(), .error(), .sda_in(sda_in),
+				.start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
+		end
 	end else begin
-		i2c_poll_address_for_nack #(.CLOCK_FREQUENCY_IN_HZ(100000000), .DESIRED_I2C_FREQUENCY_IN_HZ(100000))
-			i2c_poller (.clock(clock), .address(address), .scl(scl), .sda_out(sda_out), .sda_dir(sda_dir),
-			.busy(), .nack(), .error(), .sda_in(sda_in),
-			.start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
+		if (SIMULATION) begin
+			i2c_write_value_to_address #(.CLOCK_DIVIDE_RATIO(4))
+				thing (.clock(clock), .address(address), .value(i2c_value[i2c_register]),
+				.scl(scl), .sda_out(sda_out), .sda_dir(sda_dir), .busy(), .nack(), .error(),
+				.sda_in(sda_in), .start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
+		end else begin
+			i2c_write_value_to_address #(.CLOCK_FREQUENCY_IN_HZ(100000000), .DESIRED_I2C_FREQUENCY_IN_HZ(100000))
+				thing (.clock(clock), .address(address), .value(i2c_value[i2c_register]),
+				.scl(scl), .sda_out(sda_out), .sda_dir(sda_dir), .busy(), .nack(), .error(),
+				.sda_in(sda_in), .start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
+		end
 	end
 endmodule
 
