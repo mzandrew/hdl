@@ -318,15 +318,51 @@ module alpha_control #(
 	//wire [6:0] address = 7'h70; // i2c multiplexer for testing
 	//wire [6:0] address = 7'h39; // i2c spectral analyzer for testing
 	// ----------------------------------------------------------------------
-	// SRC register:
-	wire [4:0] I2CupAddr = 5'd17;
+	// 00 I2C_trigger
+	// ----------------------------------------------------------------------
+	// 01 SRC register:
+	wire [4:0] I2CupAddr = 5'h17;
 	wire LVDSB_pwr = 0;
 	wire LVDSA_pwr = 0;
 	wire SRCsel = 0; // set this to zero or the data will come from data_b (you probably don't want that)
 	wire [7:0] ASICID = { I2CupAddr, i2c_address_pins };
 	assign i2c_value[1] = { I2CupAddr, LVDSB_pwr, LVDSA_pwr, SRCsel }; // SRC
 	// ----------------------------------------------------------------------
-	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0000_0010; // just SRC
+	// 02 RST: TMReg_Reset
+	// ----------------------------------------------------------------------
+	// 03 SAT: samples after trigger
+	wire [7:0] samples_after_trigger = 8'h30;
+	assign i2c_value[3] = samples_after_trigger; // SAT
+	// ----------------------------------------------------------------------
+	// 04 LBW: lookback windows
+	wire [7:0] lookback_windows = 8'h42;
+	assign i2c_value[4] = lookback_windows; // LBW
+	// ----------------------------------------------------------------------
+	// 05 nSP: number of samples
+	wire [7:0] number_of_samples = 8'h80;
+	assign i2c_value[5] = number_of_samples; // nSP
+	// ----------------------------------------------------------------------
+	// 06 OSs:
+	// ----------------------------------------------------------------------
+	// 07 ALP: asic version?
+	// ----------------------------------------------------------------------
+	// 08 trigger_select_c:
+	// ----------------------------------------------------------------------
+	// 09 token_edge_detection_c:
+	// ----------------------------------------------------------------------
+	// 10 oBL: not implemented
+	// ----------------------------------------------------------------------
+	// 11 PCLK_period:
+	// ----------------------------------------------------------------------
+	// 12 DBL: least significant nybbles
+	// ----------------------------------------------------------------------
+	// 13 DBM: most significant nybble
+	// ----------------------------------------------------------------------
+	// 14 pclk:
+	// ----------------------------------------------------------------------
+	// 15 pck: not implemented
+	// ----------------------------------------------------------------------
+	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0011_1010; // nSP, LBW, SAT, SRC, 
 	//wire [15:0] i2c_address_register_enables = 16'b_1111_1111_1111_1111; // for testing
 	reg i2c_working_on_some_transfers = 0;
 	reg i2c_transitioning_to_the_next_transfer = 0;
