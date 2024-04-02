@@ -7,7 +7,6 @@
 
 number_of_pin_diode_boxes = 4
 NUMBER_OF_CHANNELS_PER_BANK = 12
-
 gui_update_period = 0.2
 
 raw_threshold_scan_filename = "protodune.ampoliros12.raw_threshold_scan"
@@ -81,7 +80,7 @@ channel_names.extend(["ch" + str(i+1) for i in range(NUMBER_OF_CHANNELS_PER_BANK
 #print(str(channel_names))
 bank1_register_values = [ i for i in range(len(channel_names)) ]
 
-bank0_register_names = [ "hit_mask", "inversion_mask", "desired_trigger_quantity", "trigger_duration_in_word_clocks", "monitor_channel", "reg5", "reg6", "coax_mux[0]", "coax_mux[1]", "coax_mux[2]", "coax_mux[3]" ]
+bank0_register_names = [ "hit_mask", "inversion_mask", "desired_trigger_quantity", "trigger_duration_in_word_clocks", "monitor_channel", "reg5", "reg6", "coax_mux[0]", "coax_mux[1]", "coax_mux[2]", "coax_mux[3]", "pollable_memory_value" ]
 
 black = (0, 0, 0)
 white = (255, 255, 255)
@@ -105,6 +104,10 @@ color = [ black, white, red, green, blue, yellow, teal, pink, maroon, dark_green
 
 selection = 0
 coax_mux = [ 0 for i in range(4) ]
+
+should_show_counters = True
+should_show_scalers = True
+should_show_bank0_registers = False
 
 # when run as a systemd service, it gets sent a SIGHUP upon pygame.init(), hence this dummy signal handler
 # see https://stackoverflow.com/questions/39198961/pygame-init-fails-when-run-with-systemd
@@ -153,7 +156,7 @@ if should_use_touchscreen:
 import pygame # sudo apt install -y python3-pygame # gets 1.9.6 as of early 2023
 # pip3 install pygame # gets 2.1.2 as of early 2023
 # sudo apt install -y libmad0 libmikmod3 libportmidi0 libsdl-image1.2 libsdl-mixer1.2 libsdl-ttf2.0 libsdl1.2debian
-from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_q, K_BREAK, K_SPACE, K_t, K_c, K_m, K_z, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
+from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_c, K_d, K_m, K_s, K_t, K_z, K_q, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
 from generic import * # hex, eng
 import althea
 BANK_ADDRESS_DEPTH = 13
@@ -349,16 +352,21 @@ def loop():
 				running = False
 			elif K_SPACE==event.key:
 				should_update_plots = [ [ True for j in range(ROWS) ] for i in range(COLUMNS) ]
-			elif K_t==event.key:
-				#scan_for_tickles()
-				#simple_threshold_scan()
-				sophisticated_threshold_scan(0, 0)
 			elif K_c==event.key:
 				clear_channel_counters()
 				clear_channel_ones_counters()
 				print("channel counters cleared")
+			elif K_d==event.key:
+				global should_show_counters
+				should_show_counters = not should_show_counters
 			elif K_m==event.key:
 				set_thresholds_for_this_scaler_rate_during_this_accumulation_time(10, 0.5)
+			elif K_s==event.key:
+				global should_show_scalers
+				should_show_scalers = not should_show_scalers
+			elif K_t==event.key:
+				#scan_for_tickles()
+				sophisticated_threshold_scan(0, 0)
 			elif K_z==event.key:
 				set_thresholds_for_null_scaler()
 			elif K_RIGHTBRACKET==event.key:
@@ -398,7 +406,9 @@ def loop():
 			if should_update_plots[i][j]:
 				#print("updating...")
 				should_update_plots[i][j] = False
-				if have_already_run_threshold_scan:
+				global have_just_run_threshold_scan
+				if have_just_run_threshold_scan:
+					have_just_run_threshold_scan = False
 					update_plot(i, j)
 				show_stuff()
 	for i in range(COLUMNS):
@@ -424,10 +434,23 @@ def flip():
 		pygame.event.pump()
 		something_was_updated = False
 
+def write_to_pollable_memory_value():
+	bank = 0
+	value = 0xa5
+	address = 11
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value], False)
+	readback_value, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 11, 1, False)
+	print(hex(value) + ":" + hex(readback_value))
+	value = 0x5a
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value], False)
+	readback_value, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 11, 1, False)
+	print(hex(value) + ":" + hex(readback_value))
+
 def read_bank0_registers():
 	global bank0_register_values
 	bank = 0
 	bank0_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank0_register_names), False)
+	#print(hex(bank0_register_values[11]))
 	global coax_mux
 	coax_mux = bank0_register_values[7:7+4]
 
@@ -436,16 +459,17 @@ bank0_register_object = [ 0 for i in range(len(bank0_register_names)) ]
 def update_bank0_registers():
 	global bank0_register_object
 	read_bank0_registers()
-	for i in range(len(bank0_register_names)):
-		try:
-			temp_surface = pygame.Surface(bank0_register_object[i].get_size())
-			temp_surface.fill(black)
-			screen.blit(temp_surface, bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
-		except Exception as e:
-			#print(str(e))
-			pass
-		bank0_register_object[i] = banks_font.render(hex(bank0_register_values[i], 8, True), False, white)
-		screen.blit(bank0_register_object[i], bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
+	if should_show_bank0_registers:
+		for i in range(len(bank0_register_names)):
+			try:
+				temp_surface = pygame.Surface(bank0_register_object[i].get_size())
+				temp_surface.fill(black)
+				screen.blit(temp_surface, bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
+			except Exception as e:
+				#print(str(e))
+				pass
+			bank0_register_object[i] = banks_font.render(hex(bank0_register_values[i], 8, True), False, white)
+			screen.blit(bank0_register_object[i], bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
 
 #def read_status_register():
 #	bank = 1
@@ -623,16 +647,17 @@ bank4_counter_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 
 def update_bank4_counters():
 	readout_counters()
-	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
-		try:
-			temp_surface = pygame.Surface(bank4_counter_object[i].get_size())
-			temp_surface.fill(black)
-			screen.blit(temp_surface, bank4_counter_object[i].get_rect(center=(X_POSITION_OF_BANK4_COUNTERS-bank4_counter_object[i].get_width()//2,Y_POSITION_OF_BANK4_COUNTERS+FONT_SIZE_BANKS*i)))
-		except Exception as e:
-			#print(str(e))
-			pass
-		bank4_counter_object[i] = banks_font.render(hex(bank4_counters[i], display_precision_of_hex_counts, True), False, white)
-		screen.blit(bank4_counter_object[i], bank4_counter_object[i].get_rect(center=(X_POSITION_OF_BANK4_COUNTERS-bank4_counter_object[i].get_width()//2,Y_POSITION_OF_BANK4_COUNTERS+FONT_SIZE_BANKS*i)))
+	if should_show_counters:
+		for i in range(NUMBER_OF_CHANNELS_PER_BANK):
+			try:
+				temp_surface = pygame.Surface(bank4_counter_object[i].get_size())
+				temp_surface.fill(black)
+				screen.blit(temp_surface, bank4_counter_object[i].get_rect(center=(X_POSITION_OF_BANK4_COUNTERS-bank4_counter_object[i].get_width()//2,Y_POSITION_OF_BANK4_COUNTERS+FONT_SIZE_BANKS*i)))
+			except Exception as e:
+				#print(str(e))
+				pass
+			bank4_counter_object[i] = banks_font.render(hex(bank4_counters[i], display_precision_of_hex_counts, True), False, white)
+			screen.blit(bank4_counter_object[i], bank4_counter_object[i].get_rect(center=(X_POSITION_OF_BANK4_COUNTERS-bank4_counter_object[i].get_width()//2,Y_POSITION_OF_BANK4_COUNTERS+FONT_SIZE_BANKS*i)))
 
 def readout_scalers():
 	global bankA_scalers, bankB_scalers, bankC_scalers, bankD_scalers
@@ -668,16 +693,17 @@ bankD_scalers_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 
 def update_bank1_bank2_scalers():
 	readout_scalers()
-	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
-		try:
-			temp_surface = pygame.Surface(bankA_scalers_object[i].get_size())
-			temp_surface.fill(black)
-			screen.blit(temp_surface, bankA_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bankA_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
-		except Exception as e:
-			#print(str(e))
-			pass
-		bankA_scalers_object[i] = banks_font.render(hex(bankA_scalers[i], display_precision_of_hex_counts, True), False, white)
-		screen.blit(bankA_scalers_object[i], bankA_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bankA_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
+	if should_show_scalers:
+		for i in range(NUMBER_OF_CHANNELS_PER_BANK):
+			try:
+				temp_surface = pygame.Surface(bankA_scalers_object[i].get_size())
+				temp_surface.fill(black)
+				screen.blit(temp_surface, bankA_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bankA_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
+			except Exception as e:
+				#print(str(e))
+				pass
+			bankA_scalers_object[i] = banks_font.render(hex(bankA_scalers[i], display_precision_of_hex_counts, True), False, white)
+			screen.blit(bankA_scalers_object[i], bankA_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bankA_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
 
 def do_something():
 	print("")
@@ -769,7 +795,7 @@ def read_thresholds_for_null_scalers_file():
 			voltage_at_null_scaler = [ i for i in voltage_at_null_scaler if i!='' ]
 			voltage_at_null_scaler.remove('\n')
 			voltage_at_null_scaler = [ float(voltage_at_null_scaler[k]) for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-			#print(prepare_string_with_voltages(voltage_at_null_scaler))
+			print(prepare_string_with_voltages(voltage_at_null_scaler))
 	except:
 		print("threshold for null scalers file exists but is corrupted")
 	#print("null: " + str(voltage_at_null_scaler))
@@ -810,10 +836,10 @@ def prepare_string_with_voltages(voltage):
 
 import copy
 extra_voltage = 0.001 # a bit of padding on each side of the threshold scan
-have_already_run_threshold_scan = False
+have_just_run_threshold_scan = False
 def sophisticated_threshold_scan(i, j):
-	global have_already_run_threshold_scan
-	have_already_run_threshold_scan = True
+	global have_just_run_threshold_scan
+	have_just_run_threshold_scan = True
 	print("running threshold scan...")
 	max_scaler_seen = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	voltage_at_peak_scaler = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
@@ -876,8 +902,8 @@ def sophisticated_threshold_scan(i, j):
 	set_thresholds_for_null_scaler()
 
 def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_rate, accumulation_time):
-	span_up = 2
-	span_down = 3
+	span_up = 2.5
+	span_down = 3.8
 	target_chi_squared = 9 * (span_up + span_down)**2
 	print("target_chi_squared: " + str(target_chi_squared))
 	voltage = read_thresholds_for_null_scalers_file()
@@ -1005,6 +1031,7 @@ if __name__ == "__main__":
 	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
 	maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
 	setup()
+	#write_to_pollable_memory_value()
 	running = True
 	while running:
 		loop()
