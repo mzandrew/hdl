@@ -15,12 +15,9 @@ thresholds_for_peak_scalers_filename = "protodune.ampoliros12.thresholds_for_pea
 thresholds_for_null_scalers_filename = "protodune.ampoliros12.thresholds_for_null_scalers"
 threshold_scan_accumulation_time = 0.1
 LTC1631A_PEDESTAL_VOLTAGE = 1.21 # from LTC1963A-adj datasheet
-DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.00825 # [1.795,1.224] avg=1.20175
+GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.00825 # [1.795,1.224] avg=1.20175
 GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2
-THRESHOLD_SCAN_HORIZONTAL_SCALE = 3.0
 dac_epsilon = 2.5 / 2**16
-threshold_step_size_in_volts = dac_epsilon * THRESHOLD_SCAN_HORIZONTAL_SCALE
-number_of_threshold_steps = 400
 incidentals_for_null_scalers = 0
 incidentals_for_display = 2
 display_precision_of_hex_counts = 8
@@ -166,10 +163,10 @@ def update_plot(i, j):
 	global plots_were_updated
 	pygame.event.pump()
 	middle_of_plot = plot_width // 2
-	middle_of_threshold_values = DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER
-	minimum_threshold_value_to_plot = middle_of_threshold_values - middle_of_plot * dac_epsilon * THRESHOLD_SCAN_HORIZONTAL_SCALE
-	maximum_threshold_value_to_plot = middle_of_threshold_values + middle_of_plot * dac_epsilon * THRESHOLD_SCAN_HORIZONTAL_SCALE
-	#volts_per_pixel_x = dac_epsilon * plot_width * THRESHOLD_SCAN_HORIZONTAL_SCALE
+	middle_of_threshold_values = GUESS_FOR_VOLTAGE_AT_PEAK_SCALER
+	minimum_threshold_value_to_plot = middle_of_threshold_values - middle_of_plot * dac_epsilon * threshold_scan_horizontal_scale
+	maximum_threshold_value_to_plot = middle_of_threshold_values + middle_of_plot * dac_epsilon * threshold_scan_horizontal_scale
+	#volts_per_pixel_x = dac_epsilon * plot_width * threshold_scan_horizontal_scale
 	#print(str(middle_of_plot))
 	#print(str(middle_of_threshold_values))
 	print(str(minimum_threshold_value_to_plot))
@@ -187,7 +184,7 @@ def update_plot(i, j):
 			if scaler>0:
 				#if scaler>1000:
 				#	print(str(voltage) + "," + str(scaler))
-				x = int((voltage - minimum_threshold_value_to_plot)/(dac_epsilon*THRESHOLD_SCAN_HORIZONTAL_SCALE))
+				x = int((voltage - minimum_threshold_value_to_plot)/(dac_epsilon*threshold_scan_horizontal_scale))
 				if x<=0:
 					continue
 				elif plot_width<=x:
@@ -252,6 +249,14 @@ def setup():
 	plot_height = int(usable_height / ROWS)
 	#print("plot_width: " + str(plot_width))
 	print("plot_height: " + str(plot_height))
+	global number_of_threshold_steps
+	number_of_threshold_steps = plot_width
+	number_of_steps_we_might_have_to_take = 2*(GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL+extra_voltage)/dac_epsilon
+	global threshold_scan_horizontal_scale
+	threshold_scan_horizontal_scale = number_of_steps_we_might_have_to_take/number_of_threshold_steps
+	print(str(threshold_scan_horizontal_scale))
+	global threshold_step_size_in_volts
+	threshold_step_size_in_volts = dac_epsilon * threshold_scan_horizontal_scale
 	pygame.display.init()
 	pygame.font.init()
 	#pygame.mixer.quit()
@@ -771,11 +776,9 @@ def read_thresholds_for_null_scalers_file():
 	return voltage_at_null_scaler
 
 def read_thresholds_for_peak_scalers_file():
-	voltage_at_peak_scaler = [ DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	voltage_at_peak_scaler = [ GUESS_FOR_VOLTAGE_AT_PEAK_SCALER for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	if not os.path.exists(thresholds_for_peak_scalers_filename):
-		print("threshold for peak scalers file not found; increasing scan range")
-		global number_of_threshold_steps
-		number_of_threshold_steps = 2 * number_of_threshold_steps
+		print("threshold for peak scalers file not found")
 		return voltage_at_peak_scaler
 	try:
 		with open(thresholds_for_peak_scalers_filename, "r") as thresholds_for_peak_scalers_file:
@@ -805,40 +808,8 @@ def prepare_string_with_voltages(voltage):
 		string += "%.*f " % (display_precision_of_DAC_voltages, voltage[k])
 	return string
 
-def simple_threshold_scan():
-	print("running threshold scan...")
-	threshold_minimum_voltage = 1.2100
-	threshold_maximum_voltage = 1.2203
-	number_of_threshold_steps = int(1+(threshold_maximum_voltage-threshold_minimum_voltage)/threshold_step_size_in_volts)
-	print(str(number_of_threshold_steps))
-	max_scaler_seen = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-	voltage_at_peak_scaler = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-	bank = 0
-	voltage = threshold_minimum_voltage
-	with open(raw_threshold_scan_filename, "w") as raw_threshold_scan_file:
-		for i in range(number_of_threshold_steps):
-			set_threshold_voltages(voltage)
-			clear_channel_counters()
-			time.sleep(threshold_scan_accumulation_time)
-			counters = readout_counters()
-			string = prepare_string_to_show_counters_or_scalers(counters)
-			print("threshold voltage %.f: %s" % (voltage, string))
-			raw_threshold_scan_file.write(string + "\n")
-			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-				if max_scaler_seen[k]<counters[k]:
-					max_scaler_seen[k] = counters[k]
-					voltage_at_peak_scaler[k] = voltage
-					#print(str(k) + " " + str(max_scaler_seen[k]) + " " + str(voltage_at_peak_scaler[k]))
-			if 0==i%10:
-				raw_threshold_scan_file.flush()
-			voltage += threshold_step_size_in_volts
-	with open(thresholds_for_peak_scalers_filename, "w") as thresholds_for_peak_scalers_file:
-		string = prepare_string_with_voltages(voltage_at_peak_scaler)
-		print(string)
-		thresholds_for_peak_scalers_file.write(string + "\n")
-
 import copy
-extra_voltage = 0.001
+extra_voltage = 0.001 # a bit of padding on each side of the threshold scan
 have_already_run_threshold_scan = False
 def sophisticated_threshold_scan(i, j):
 	global have_already_run_threshold_scan
