@@ -2,7 +2,8 @@ backup
 *.swp
 *.raw_threshold_scan
 *.thresholds_for_peak_scalers
-*.thresholds_for_null_scalers
+*.thresholds_for_lower_null_scalers
+*.thresholds_for_upper_null_scalers
 *.pyc
 *.txt
 *.csv

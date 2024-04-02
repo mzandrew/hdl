@@ -6,23 +6,27 @@
 # last updated 2024-04-02 by mza
 
 number_of_pin_diode_boxes = 4
-NUMBER_OF_CHANNELS_PER_BANK = 12
-gui_update_period = 0.2
+NUMBER_OF_CHANNELS_PER_BANK = 12 # this is probably fixed for protodune at least
+gui_update_period = 0.2 # in seconds
+cliff = "upper" # you want this for positive-going pulses
+#cliff = "lower" # you want this for negative-going pulses
 
-raw_threshold_scan_filename = "protodune.ampoliros12.raw_threshold_scan"
-thresholds_for_peak_scalers_filename = "protodune.ampoliros12.thresholds_for_peak_scalers"
-thresholds_for_null_scalers_filename = "protodune.ampoliros12.thresholds_for_null_scalers"
+raw_threshold_scan_filename = "ampoliros.raw_threshold_scan"
+thresholds_for_peak_scalers_filename = "ampoliros.thresholds_for_peak_scalers"
+thresholds_for_lower_null_scalers_filename = "ampoliros.thresholds_for_lower_null_scalers"
+thresholds_for_upper_null_scalers_filename = "ampoliros.thresholds_for_upper_null_scalers"
 threshold_scan_accumulation_time = 0.1
 LTC1631A_PEDESTAL_VOLTAGE = 1.21 # from LTC1963A-adj datasheet
-GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.00825 # [1.795,1.224] avg=1.20175
+GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.007 # [1.196,1.214] avg=1.2045
 #GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2 # for when diff_term=true
-GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.013 / 2 # for when diff_term=false
+GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.012 / 2 # for when diff_term=false
 DAC_EPSILON = 2.5 / 2**16
 #MAX_COUNTER = 1.2 * 2**16 # actual counter is 24 bit, but we only see up to about 75k # for when diff_term=true
 MAX_COUNTER = 650000 # for when diff_term=false
 incidentals_for_null_scalers = 0
-incidentals_for_display = 2
-display_precision_of_hex_counts = 8
+incidentals_for_display = 1
+display_precision_of_hex_counter_counts = 6
+display_precision_of_hex_scaler_counts = 4
 display_precision_of_DAC_voltages = 6
 bump_amount = 0.000250 # for the [,] keys during running to bump the dac settings up or down
 extra_voltage = 0.001 # a bit of padding on each side of the threshold scan
@@ -63,18 +67,11 @@ NUMBER_OF_HOURS_TO_PLOT = 48
 should_use_touchscreen = False
 FONT_SIZE_BANKS = 15
 BANKS_X_GAP = 10
-X_POSITION_OF_BANK0_REGISTERS = 100
-Y_POSITION_OF_BANK0_REGISTERS = 500
-X_POSITION_OF_BANK1_REGISTERS = 100
-Y_POSITION_OF_BANK1_REGISTERS = 250
-X_POSITION_OF_BANK4_COUNTERS = 250
-Y_POSITION_OF_BANK4_COUNTERS = 250 + FONT_SIZE_BANKS
-X_POSITION_OF_BANK1_SCALERS = 350
-Y_POSITION_OF_BANK1_SCALERS = 250 + FONT_SIZE_BANKS
+X_POSITION_OF_CHANNEL_NAMES = 15
+X_POSITION_OF_BANK4_COUNTERS = 140
+X_POSITION_OF_BANK1_SCALERS = 200
 #X_POSITION_OF_TOT = 450
-#Y_POSITION_OF_TOT = 250 + FONT_SIZE_BANKS
-#X_POSITION_OF_BANK0_COUNTERS = 550
-#Y_POSITION_OF_BANK0_COUNTERS = 250 + FONT_SIZE_BANKS
+X_POSITION_OF_BANK0_REGISTERS = 100
 
 #channel_range = range(1, NUMBER_OF_CHANNELS_PER_BANK+1)
 
@@ -84,7 +81,7 @@ channel_names.extend(["ch" + str(i+1) for i in range(NUMBER_OF_CHANNELS_PER_BANK
 #print(str(channel_names))
 bank1_register_values = [ i for i in range(len(channel_names)) ]
 
-bank0_register_names = [ "hit_mask", "inversion_mask", "desired_trigger_quantity", "trigger_duration_in_word_clocks", "monitor_channel", "reg5", "reg6", "coax_mux[0]", "coax_mux[1]", "coax_mux[2]", "coax_mux[3]", "pollable_memory_value" ]
+bank0_register_names = [ "hit_mask", "inversion_mask", "desired_trigger_quantity", "trigger_duration_in_word_clocks", "monitor_channel", "reg5", "reg6", "coax_mux[0]", "coax_mux[1]", "coax_mux[2]", "coax_mux[3]" ]
 
 black = (0, 0, 0)
 white = (255, 255, 255)
@@ -264,9 +261,20 @@ def setup():
 	usable_height = int(SCREEN_HEIGHT - GAP_Y_TOP - GAP_Y_BOTTOM - (ROWS-1)*GAP_Y_BETWEEN_PLOTS)
 	print("usable_height: " + str(usable_height))
 	plot_width = int(usable_width / COLUMNS)
-	plot_height = int(usable_height / ROWS)
+	plot_height = int(usable_height / ROWS / 4)
 	#print("plot_width: " + str(plot_width))
 	print("plot_height: " + str(plot_height))
+	global Y_POSITION_OF_CHANNEL_NAMES
+	global Y_POSITION_OF_BANK4_COUNTERS
+	global Y_POSITION_OF_BANK1_SCALERS
+	#global Y_POSITION_OF_TOT
+	global Y_POSITION_OF_BANK0_REGISTERS
+	gap = 20
+	Y_POSITION_OF_CHANNEL_NAMES = plot_height + gap
+	Y_POSITION_OF_BANK4_COUNTERS = plot_height + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_BANK1_SCALERS = plot_height + gap + FONT_SIZE_BANKS
+	#Y_POSITION_OF_TOT = plot_height + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_BANK0_REGISTERS = plot_height + gap + 200
 	global number_of_threshold_steps
 	number_of_threshold_steps = plot_width
 	number_of_steps_we_might_have_to_take = 2*(GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL+extra_voltage)/DAC_EPSILON
@@ -310,7 +318,7 @@ def setup():
 	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 	for i in range(len(channel_names)):
 		register_name = banks_font.render(channel_names[i], 1, white)
-		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK1_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
+		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_CHANNEL_NAMES+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_CHANNEL_NAMES+FONT_SIZE_BANKS*i)))
 	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 	#	channel_name = banks_font.render(channel_names[i], 1, white)
 	#	screen.blit(channel_name, channel_name.get_rect(center=(X_POSITION_OF_BANK6_COUNTERS+BANKS_X_GAP+channel_name.get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
@@ -383,7 +391,10 @@ def loop():
 				#scan_for_tickles()
 				sophisticated_threshold_scan(0, 0)
 			elif K_z==event.key:
-				set_thresholds_for_null_scaler()
+				if "lower"==cliff:
+					set_thresholds_for_lower_null_scaler()
+				else:
+					set_thresholds_for_upper_null_scaler()
 			elif K_RIGHTBRACKET==event.key:
 				bump_thresholds_higher_by(bump_amount)
 			elif K_LEFTBRACKET==event.key:
@@ -478,7 +489,7 @@ def update_bank0_registers():
 		for i in range(len(bank0_register_names)):
 			try:
 				temp_surface = pygame.Surface(bank0_register_object[i].get_size())
-				temp_surface.fill(black)
+				temp_surface.fill(green)
 				screen.blit(temp_surface, bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
 			except Exception as e:
 				#print(str(e))
@@ -572,7 +583,7 @@ def disable_amplifiers():
 
 #def show_trigger_count():
 #	trigger_count, = get_trigger_count()
-#	print("  trigger count: " + str(hex(trigger_count, display_precision_of_hex_counts)))
+#	print("  trigger count: " + str(hex(trigger_count, display_precision_of_hex_counter_counts)))
 
 def readout_raw_values():
 	bank = 1
@@ -631,7 +642,7 @@ def update_ToT():
 	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 		try:
 			temp_surface = pygame.Surface(ToT_object[i].get_size())
-			temp_surface.fill(black)
+			temp_surface.fill(blue)
 			screen.blit(temp_surface, ToT_object[i].get_rect(center=(X_POSITION_OF_TOT-ToT_object[i].get_width()//2,Y_POSITION_OF_TOT+FONT_SIZE_BANKS*i)))
 		except Exception as e:
 			#print(str(e))
@@ -655,7 +666,7 @@ def readout_counters():
 def return_counters_string():
 	string = ""
 	for counter in readout_counters():
-		string += str(hex(counter, display_precision_of_hex_counts, True)) + " "
+		string += str(hex(counter, display_precision_of_hex_counter_counts, True)) + " "
 	return string
 
 bank4_counter_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
@@ -666,12 +677,12 @@ def update_bank4_counters():
 		for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 			try:
 				temp_surface = pygame.Surface(bank4_counter_object[i].get_size())
-				temp_surface.fill(black)
+				temp_surface.fill(red)
 				screen.blit(temp_surface, bank4_counter_object[i].get_rect(center=(X_POSITION_OF_BANK4_COUNTERS-bank4_counter_object[i].get_width()//2,Y_POSITION_OF_BANK4_COUNTERS+FONT_SIZE_BANKS*i)))
 			except Exception as e:
 				#print(str(e))
 				pass
-			bank4_counter_object[i] = banks_font.render(hex(bank4_counters[i], display_precision_of_hex_counts, True), False, white)
+			bank4_counter_object[i] = banks_font.render(hex(bank4_counters[i], display_precision_of_hex_counter_counts, True), False, white)
 			screen.blit(bank4_counter_object[i], bank4_counter_object[i].get_rect(center=(X_POSITION_OF_BANK4_COUNTERS-bank4_counter_object[i].get_width()//2,Y_POSITION_OF_BANK4_COUNTERS+FONT_SIZE_BANKS*i)))
 
 def readout_scalers():
@@ -697,7 +708,7 @@ def readout_scalers():
 def return_scalers_string():
 	string = ""
 	for scaler in readout_scalers():
-		string += str(hex(scaler, display_precision_of_hex_counts, True)) + " "
+		string += str(hex(scaler, display_precision_of_hex_scaler_counts, True)) + " "
 	return string
 
 def show_scalers():
@@ -714,12 +725,12 @@ def update_bank1_bank2_scalers():
 		for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 			try:
 				temp_surface = pygame.Surface(bankA_scalers_object[i].get_size())
-				temp_surface.fill(black)
+				temp_surface.fill(purple)
 				screen.blit(temp_surface, bankA_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bankA_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
 			except Exception as e:
 				#print(str(e))
 				pass
-			bankA_scalers_object[i] = banks_font.render(hex(bankA_scalers[i], display_precision_of_hex_counts, True), False, white)
+			bankA_scalers_object[i] = banks_font.render(hex(bankA_scalers[i], display_precision_of_hex_scaler_counts, True), False, white)
 			screen.blit(bankA_scalers_object[i], bankA_scalers_object[i].get_rect(center=(X_POSITION_OF_BANK1_SCALERS-bankA_scalers_object[i].get_width()//2,Y_POSITION_OF_BANK1_SCALERS+FONT_SIZE_BANKS*i)))
 
 def do_something():
@@ -752,7 +763,7 @@ def scan_for_tickles():
 			if counters[k]<number_of_passes*tickles_incidentals:
 				string += "         "
 			else:
-				string += hex(counters[k], display_precision_of_hex_counts) + " "
+				string += hex(counters[k], display_precision_of_hex_counter_counts) + " "
 		print("gpio" + dec(6+i, 2) + ": " + string)
 #gpio06:                                                                                                    0005a47c 
 #gpio07:                                                                                                    00050165 
@@ -791,33 +802,63 @@ def set_threshold_voltage(channel, voltage):
 	#print(hex(dac_address) + " " + str(channel))
 	ltc2657.set_voltage_on_channel(dac_address, channel, voltage)
 
-def set_thresholds_for_null_scaler():
-	voltage_at_lower_null_scaler = read_thresholds_for_null_scalers_file()
+def set_thresholds_for_lower_null_scaler():
+	voltage_at_lower_null_scaler = read_thresholds_for_lower_null_scalers_file()
 	print(prepare_string_with_voltages(voltage_at_lower_null_scaler))
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		set_threshold_voltage(k, voltage_at_lower_null_scaler[k])
 
-def read_thresholds_for_null_scalers_file():
+def set_thresholds_for_upper_null_scaler():
+	voltage_at_upper_null_scaler = read_thresholds_for_upper_null_scalers_file()
+	print(prepare_string_with_voltages(voltage_at_upper_null_scaler))
+	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+		set_threshold_voltage(k, voltage_at_upper_null_scaler[k])
+
+def read_thresholds_for_lower_null_scalers_file():
 	voltage_at_peak_scaler = read_thresholds_for_peak_scalers_file()
 	#print("peak: " + str(voltage_at_peak_scaler))
 	default_voltage_at_lower_null_scaler = [ voltage_at_peak_scaler[k] - GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	#print("null: " + str(default_voltage_at_lower_null_scaler))
-	if not os.path.exists(thresholds_for_null_scalers_filename):
+	if not os.path.exists(thresholds_for_lower_null_scalers_filename):
 		print("thresholds for null scalers file not found")
 		return default_voltage_at_lower_null_scaler
 	try:
-		with open(thresholds_for_null_scalers_filename, "r") as thresholds_for_null_scalers_file:
-			string = thresholds_for_null_scalers_file.read(256)
+		with open(thresholds_for_lower_null_scalers_filename, "r") as thresholds_for_lower_null_scalers_file:
+			string = thresholds_for_lower_null_scalers_file.read(256)
 			voltage_at_lower_null_scaler = string.split(" ")
-			voltage_at_lower_null_scaler = [ i for i in voltage_at_null_scaler if i!='' ]
+			voltage_at_lower_null_scaler = [ i for i in voltage_at_lower_null_scaler if i!='' ]
 			voltage_at_lower_null_scaler.remove('\n')
-			voltage_at_lower_null_scaler = [ float(voltage_at_null_scaler[k]) for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+			voltage_at_lower_null_scaler = [ float(voltage_at_lower_null_scaler[k]) for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 			print(prepare_string_with_voltages(voltage_at_lower_null_scaler))
 			#print("null: " + str(voltage_at_lower_null_scaler))
 			return voltage_at_lower_null_scaler
 	except:
 		print("threshold for null scalers file exists but is corrupted")
+		# maybe delete the file here?
 		return default_voltage_at_lower_null_scaler
+
+def read_thresholds_for_upper_null_scalers_file():
+	voltage_at_peak_scaler = read_thresholds_for_peak_scalers_file()
+	#print("peak: " + str(voltage_at_peak_scaler))
+	default_voltage_at_upper_null_scaler = [ voltage_at_peak_scaler[k] - GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	#print("null: " + str(default_voltage_at_upper_null_scaler))
+	if not os.path.exists(thresholds_for_upper_null_scalers_filename):
+		print("thresholds for null scalers file not found")
+		return default_voltage_at_upper_null_scaler
+	try:
+		with open(thresholds_for_upper_null_scalers_filename, "r") as thresholds_for_upper_null_scalers_file:
+			string = thresholds_for_upper_null_scalers_file.read(256)
+			voltage_at_upper_null_scaler = string.split(" ")
+			voltage_at_upper_null_scaler = [ i for i in voltage_at_upper_null_scaler if i!='' ]
+			voltage_at_upper_null_scaler.remove('\n')
+			voltage_at_upper_null_scaler = [ float(voltage_at_upper_null_scaler[k]) for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+			print(prepare_string_with_voltages(voltage_at_upper_null_scaler))
+			#print("null: " + str(voltage_at_upper_null_scaler))
+			return voltage_at_upper_null_scaler
+	except:
+		print("threshold for null scalers file exists but is corrupted")
+		# maybe delete the file here?
+		return default_voltage_at_upper_null_scaler
 
 def read_thresholds_for_peak_scalers_file():
 	default_voltage_at_peak_scaler = [ GUESS_FOR_VOLTAGE_AT_PEAK_SCALER for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
@@ -842,9 +883,9 @@ def prepare_string_to_show_counters_or_scalers(values):
 	string = ""
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		if values[k]<=incidentals_for_display:
-			string += " %*s" % (display_precision_of_hex_counts, "")
+			string += " %*s" % (display_precision_of_hex_counter_counts, "")
 		else:
-			string += hex(values[k], display_precision_of_hex_counts, True) + " "
+			string += hex(values[k], display_precision_of_hex_counter_counts, True) + " "
 	return string
 
 def prepare_string_with_voltages(voltage):
@@ -855,6 +896,7 @@ def prepare_string_with_voltages(voltage):
 
 import copy
 have_just_run_threshold_scan = False
+upper_null_scaler_zero_value = 1
 def sophisticated_threshold_scan(i, j):
 	global have_just_run_threshold_scan
 	have_just_run_threshold_scan = True
@@ -865,7 +907,7 @@ def sophisticated_threshold_scan(i, j):
 	bank = 0
 	global voltage_at_lower_null_scaler
 	global voltage_at_upper_null_scaler
-	voltage_at_lower_null_scaler = read_thresholds_for_null_scalers_file()
+	voltage_at_lower_null_scaler = read_thresholds_for_lower_null_scalers_file()
 	voltage_at_upper_null_scaler = [ voltage_at_lower_null_scaler[k] + 2*GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL + 2*extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	voltage = [ voltage_at_lower_null_scaler[k] - extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	print(str(voltage))
@@ -909,46 +951,57 @@ def sophisticated_threshold_scan(i, j):
 					string += "*"
 				else:
 					string += " "
-				if previous_count_was_nonzero[k] and 0==counters[k]:
+				if previous_count_was_nonzero[k] and upper_null_scaler_zero_value==counters[k]:
 					voltage_at_upper_null_scaler[k] = voltage[k]
+					#print("ch" + str(k) + " v:" + str(voltage[k]))
 			print(string)
 			raw_threshold_scan_file.write(string + "\n")
 			if 0==n%10:
 				raw_threshold_scan_file.flush()
 			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-				if counters[k]:
-					previous_count_was_nonzero[k] = True
-				else:
+				if upper_null_scaler_zero_value==counters[k]:
 					previous_count_was_nonzero[k] = False
+				else:
+					previous_count_was_nonzero[k] = True
 			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 				voltage[k] += threshold_step_size_in_volts
 	with open(thresholds_for_peak_scalers_filename, "w") as thresholds_for_peak_scalers_file:
 		string = prepare_string_with_voltages(voltage_at_peak_scaler)
 		print("peak: " + string)
 		thresholds_for_peak_scalers_file.write(string + "\n")
-	with open(thresholds_for_null_scalers_filename, "w") as thresholds_for_null_scalers_file:
+	with open(thresholds_for_lower_null_scalers_filename, "w") as thresholds_for_lower_null_scalers_file:
 		string = prepare_string_with_voltages(voltage_at_lower_null_scaler)
 		print("null: " + string)
-		thresholds_for_null_scalers_file.write(string + "\n")
-	set_thresholds_for_null_scaler()
-	print("number of scaler values seen: " + str(len(scaler_values_seen)))
-	min = 2**16-1
-	max = -1
-	for value in scaler_values_seen:
-		if value<min:
-			min = value
-		if max<value:
-			max = value
-	print("min:" + str(min))
-	print("max:" + str(max))
-	print(str(sorted(scaler_values_seen)))
+		thresholds_for_lower_null_scalers_file.write(string + "\n")
+	with open(thresholds_for_upper_null_scalers_filename, "w") as thresholds_for_upper_null_scalers_file:
+		string = prepare_string_with_voltages(voltage_at_upper_null_scaler)
+		print("null: " + string)
+		thresholds_for_upper_null_scalers_file.write(string + "\n")
+	if "lower"==cliff:
+		set_thresholds_for_lower_null_scaler()
+	else:
+		set_thresholds_for_upper_null_scaler()
+#	print("number of scaler values seen: " + str(len(scaler_values_seen)))
+#	min = 2**16-1
+#	max = -1
+#	for value in scaler_values_seen:
+#		if value<min:
+#			min = value
+#		if max<value:
+#			max = value
+#	print("min:" + str(min))
+#	print("max:" + str(max))
+#	print(str(sorted(scaler_values_seen)))
 
 def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_rate, accumulation_time):
-	span_up = 2.5
-	span_down = 3.8
+	span_up = 2.0
+	span_down = 3.0
 	target_chi_squared = 9 * (span_up + span_down)**2
 	print("target_chi_squared: " + str(target_chi_squared))
-	voltage = read_thresholds_for_null_scalers_file()
+	if "lower"==cliff:
+		voltage = read_thresholds_for_lower_null_scalers_file()
+	else:
+		voltage = read_thresholds_for_upper_null_scalers_file()
 	stable = False
 	while not stable:
 		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
@@ -962,9 +1015,15 @@ def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_ra
 		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 			chi_squared += (counters[k] - desired_rate)**2
 			if desired_rate<counters[k]+span_down:
-				voltage[k] -= threshold_step_size_in_volts
+				if "lower"==cliff:
+					voltage[k] -= threshold_step_size_in_volts
+				else:
+					voltage[k] += threshold_step_size_in_volts
 			if counters[k]+span_up<desired_rate:
-				voltage[k] += threshold_step_size_in_volts
+				if "lower"==cliff:
+					voltage[k] += threshold_step_size_in_volts
+				else:
+					voltage[k] -= threshold_step_size_in_volts
 		pygame.event.pump()
 		print("chi_squared: " + str(chi_squared))
 		if chi_squared<target_chi_squared:
@@ -1067,8 +1126,7 @@ if __name__ == "__main__":
 	SCREEN_HEIGHT = 720
 	should_update_plots = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
-	plot_name = [ [ "thresholds" for j in range(ROWS) ] for i in range(COLUMNS) ]
-	feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	plot_name = [ [ "bank" + chr(i+ord('A')) for j in range(ROWS) ] for i in range(COLUMNS) ]
 	short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
 	maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
