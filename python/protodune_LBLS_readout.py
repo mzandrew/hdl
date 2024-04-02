@@ -994,8 +994,8 @@ def sophisticated_threshold_scan(i, j):
 #	print(str(sorted(scaler_values_seen)))
 
 def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_rate, accumulation_time):
-	span_up = 2.0
-	span_down = 3.0
+	span_up = 1.5
+	span_down = 2.0
 	target_chi_squared = 9 * (span_up + span_down)**2
 	print("target_chi_squared: " + str(target_chi_squared))
 	if "lower"==cliff:
