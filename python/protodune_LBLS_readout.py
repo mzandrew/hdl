@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-04-01 by mza
+# last updated 2024-04-02 by mza
 
 number_of_pin_diode_boxes = 4
 NUMBER_OF_CHANNELS_PER_BANK = 12
@@ -14,11 +14,12 @@ raw_threshold_scan_filename = "protodune.ampoliros12.raw_threshold_scan"
 thresholds_for_peak_scalers_filename = "protodune.ampoliros12.thresholds_for_peak_scalers"
 thresholds_for_null_scalers_filename = "protodune.ampoliros12.thresholds_for_null_scalers"
 threshold_scan_accumulation_time = 0.1
-DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = 1.21
-GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.0075
+LTC1631A_PEDESTAL_VOLTAGE = 1.21 # from LTC1963A-adj datasheet
+DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.00825 # [1.795,1.224] avg=1.20175
+GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2
+THRESHOLD_SCAN_HORIZONTAL_SCALE = 3.0
 dac_epsilon = 2.5 / 2**16
-threshold_step_size_in_volts = dac_epsilon
-#threshold_step_size_in_volts = dac_epsilon * 6
+threshold_step_size_in_volts = dac_epsilon * THRESHOLD_SCAN_HORIZONTAL_SCALE
 number_of_threshold_steps = 400
 incidentals_for_null_scalers = 0
 incidentals_for_display = 2
@@ -165,14 +166,14 @@ def update_plot(i, j):
 	global plots_were_updated
 	pygame.event.pump()
 	middle_of_plot = plot_width // 2
-	middle_of_threshold_values = 1.21 # from LTC1963A-adj
-	minimum_threshold_value_to_plot = middle_of_threshold_values - middle_of_plot * dac_epsilon
-	maximum_threshold_value_to_plot = middle_of_threshold_values + middle_of_plot * dac_epsilon
-	#volts_per_pixel_x = dac_epsilon * plot_width
+	middle_of_threshold_values = DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER
+	minimum_threshold_value_to_plot = middle_of_threshold_values - middle_of_plot * dac_epsilon * THRESHOLD_SCAN_HORIZONTAL_SCALE
+	maximum_threshold_value_to_plot = middle_of_threshold_values + middle_of_plot * dac_epsilon * THRESHOLD_SCAN_HORIZONTAL_SCALE
+	#volts_per_pixel_x = dac_epsilon * plot_width * THRESHOLD_SCAN_HORIZONTAL_SCALE
 	#print(str(middle_of_plot))
 	#print(str(middle_of_threshold_values))
-	#print(str(minimum_threshold_value_to_plot))
-	#print(str(maximum_threshold_value_to_plot))
+	print(str(minimum_threshold_value_to_plot))
+	print(str(maximum_threshold_value_to_plot))
 	#print(str(volts_per_pixel_x))
 	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	MAX_SCALER = 2**16
@@ -186,15 +187,15 @@ def update_plot(i, j):
 			if scaler>0:
 				#if scaler>1000:
 				#	print(str(voltage) + "," + str(scaler))
-				x = int((voltage - minimum_threshold_value_to_plot)/dac_epsilon)
+				x = int((voltage - minimum_threshold_value_to_plot)/(dac_epsilon*THRESHOLD_SCAN_HORIZONTAL_SCALE))
 				if x<=0:
 					continue
 				elif plot_width<=x:
 					continue
 				formatted_data[k][x] = scaler * scale
-				if 0==n%40:
-					print(str(threshold_scan[i][j][n][k]))
-					print(str(voltage) + "," + str(scaler) + ":" + str(x) + ":" + str(formatted_data[k][x]))
+				#if 0==n%40:
+				#	print(str(threshold_scan[i][j][n][k]))
+				#	print(str(voltage) + "," + str(scaler) + ":" + str(x) + ":" + str(formatted_data[k][x]))
 	pygame.event.pump()
 	print("plotting data...")
 	# fill with colors for now:
@@ -872,7 +873,7 @@ def sophisticated_threshold_scan(i, j):
 			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 #				slice[k] = [ copy.deepcopy(voltage[k]), counters[k] ]
 				slice[k] = [ voltage[k], counters[k] ]
-			print(str(slice))
+			#print(str(slice))
 			threshold_scan[i][j].append(copy.deepcopy(slice))
 			if 1==number_of_unique_voltages:
 				string += " %.*f " % (display_precision_of_DAC_voltages, voltage[0]) # the voltages are potentially different for each channel here, so don't print this unless all voltages are equal
