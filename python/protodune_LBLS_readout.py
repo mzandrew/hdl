@@ -16,7 +16,8 @@ threshold_scan_accumulation_time = 0.1
 LTC1631A_PEDESTAL_VOLTAGE = 1.21 # from LTC1963A-adj datasheet
 GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.00825 # [1.795,1.224] avg=1.20175
 GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2
-dac_epsilon = 2.5 / 2**16
+DAC_EPSILON = 2.5 / 2**16
+MAX_COUNTER = 1.2 * 2**16 # actual counter is 24 bit, but we only see up to about 75k
 incidentals_for_null_scalers = 0
 incidentals_for_display = 2
 display_precision_of_hex_counts = 8
@@ -109,6 +110,7 @@ coax_mux = [ 0 for i in range(4) ]
 should_show_counters = True
 should_show_scalers = True
 should_show_bank0_registers = False
+scaler_values_seen = set()
 
 # when run as a systemd service, it gets sent a SIGHUP upon pygame.init(), hence this dummy signal handler
 # see https://stackoverflow.com/questions/39198961/pygame-init-fails-when-run-with-systemd
@@ -168,17 +170,16 @@ def update_plot(i, j):
 	pygame.event.pump()
 	middle_of_plot = plot_width // 2
 	middle_of_threshold_values = GUESS_FOR_VOLTAGE_AT_PEAK_SCALER
-	minimum_threshold_value_to_plot = middle_of_threshold_values - middle_of_plot * dac_epsilon * threshold_scan_horizontal_scale
-	maximum_threshold_value_to_plot = middle_of_threshold_values + middle_of_plot * dac_epsilon * threshold_scan_horizontal_scale
-	#volts_per_pixel_x = dac_epsilon * plot_width * threshold_scan_horizontal_scale
+	minimum_threshold_value_to_plot = middle_of_threshold_values - middle_of_plot * DAC_EPSILON * threshold_scan_horizontal_scale
+	maximum_threshold_value_to_plot = middle_of_threshold_values + middle_of_plot * DAC_EPSILON * threshold_scan_horizontal_scale
+	#volts_per_pixel_x = DAC_EPSILON * plot_width * threshold_scan_horizontal_scale
 	#print(str(middle_of_plot))
 	#print(str(middle_of_threshold_values))
 	print(str(minimum_threshold_value_to_plot))
 	print(str(maximum_threshold_value_to_plot))
 	#print(str(volts_per_pixel_x))
 	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-	MAX_SCALER = 2**16
-	scale = 1 / MAX_SCALER
+	scale = 1 / MAX_COUNTER
 	#print(str(scale))
 	for n in range(len(threshold_scan[i][j])):
 		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
@@ -188,7 +189,7 @@ def update_plot(i, j):
 			if scaler>0:
 				#if scaler>1000:
 				#	print(str(voltage) + "," + str(scaler))
-				x = int((voltage - minimum_threshold_value_to_plot)/(dac_epsilon*threshold_scan_horizontal_scale))
+				x = int((voltage - minimum_threshold_value_to_plot)/(DAC_EPSILON*threshold_scan_horizontal_scale))
 				if x<=0:
 					continue
 				elif plot_width<=x:
@@ -255,12 +256,12 @@ def setup():
 	print("plot_height: " + str(plot_height))
 	global number_of_threshold_steps
 	number_of_threshold_steps = plot_width
-	number_of_steps_we_might_have_to_take = 2*(GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL+extra_voltage)/dac_epsilon
+	number_of_steps_we_might_have_to_take = 2*(GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL+extra_voltage)/DAC_EPSILON
 	global threshold_scan_horizontal_scale
 	threshold_scan_horizontal_scale = number_of_steps_we_might_have_to_take/number_of_threshold_steps
 	print(str(threshold_scan_horizontal_scale))
 	global threshold_step_size_in_volts
-	threshold_step_size_in_volts = dac_epsilon * threshold_scan_horizontal_scale
+	threshold_step_size_in_volts = DAC_EPSILON * threshold_scan_horizontal_scale
 	pygame.display.init()
 	pygame.font.init()
 	#pygame.mixer.quit()
@@ -672,6 +673,8 @@ def readout_scalers():
 	bank2_scalers = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, NUMBER_OF_CHANNELS_PER_BANK, False)
 	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 		bankA_scalers[i] =  bank1_scalers[i]      & 0xffff
+#		if (2**16)<bankA_scalers[i]:
+#			print("over: " + str(bankA_scalers[i]))
 		bankB_scalers[i] = (bank1_scalers[i]>>16) & 0xffff
 		bankC_scalers[i] =  bank2_scalers[i]      & 0xffff
 		bankD_scalers[i] = (bank2_scalers[i]>>16) & 0xffff
@@ -849,7 +852,7 @@ def sophisticated_threshold_scan(i, j):
 	print(str(voltage))
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		#voltage[k] = fround(voltage[k], 0.000001)
-		voltage[k] = fround(voltage[k], dac_epsilon)
+		voltage[k] = fround(voltage[k], DAC_EPSILON)
 	print(str(voltage))
 	number_of_unique_voltages = len(set(voltage))
 	print("number_of_unique_voltages: " + str(number_of_unique_voltages))
@@ -870,6 +873,7 @@ def sophisticated_threshold_scan(i, j):
 			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 #				slice[k] = [ copy.deepcopy(voltage[k]), counters[k] ]
 				slice[k] = [ voltage[k], counters[k] ]
+				scaler_values_seen.add(counters[k])
 			#print(str(slice))
 			threshold_scan[i][j].append(copy.deepcopy(slice))
 			if 1==number_of_unique_voltages:
@@ -900,6 +904,17 @@ def sophisticated_threshold_scan(i, j):
 		print("null: " + string)
 		thresholds_for_null_scalers_file.write(string + "\n")
 	set_thresholds_for_null_scaler()
+	print("number of scaler values seen: " + str(len(scaler_values_seen)))
+	min = 2**16-1
+	max = -1
+	for value in scaler_values_seen:
+		if value<min:
+			min = value
+		if max<value:
+			max = value
+	print("min:" + str(min))
+	print("max:" + str(max))
+	print(str(sorted(scaler_values_seen)))
 
 def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_rate, accumulation_time):
 	span_up = 2.5
