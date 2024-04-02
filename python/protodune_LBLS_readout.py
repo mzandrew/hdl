@@ -16,7 +16,7 @@ threshold_scan_accumulation_time = 0.1
 LTC1631A_PEDESTAL_VOLTAGE = 1.21 # from LTC1963A-adj datasheet
 GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.00825 # [1.795,1.224] avg=1.20175
 #GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2 # for when diff_term=true
-GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.012 / 2 # for when diff_term=false
+GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.013 / 2 # for when diff_term=false
 DAC_EPSILON = 2.5 / 2**16
 #MAX_COUNTER = 1.2 * 2**16 # actual counter is 24 bit, but we only see up to about 75k # for when diff_term=true
 MAX_COUNTER = 650000 # for when diff_term=false
@@ -170,12 +170,13 @@ import ltc2657
 def update_plot(i, j):
 	global plots_were_updated
 	pygame.event.pump()
+	global threshold_scan_horizontal_scale
+	average_value_of_peak_scalers = 0
+	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+		average_value_of_peak_scalers += voltage_at_peak_scaler[k]
+	average_value_of_peak_scalers /= NUMBER_OF_CHANNELS_PER_BANK
+	print("average_value_of_peak_scalers: " + str(average_value_of_peak_scalers))
 	if (0):
-		average_value_of_peak_scalers = 0
-		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-			average_value_of_peak_scalers += voltage_at_peak_scaler[k]
-		average_value_of_peak_scalers /= NUMBER_OF_CHANNELS_PER_BANK
-		print("average_value_of_peak_scalers: " + str(average_value_of_peak_scalers))
 		minimum_threshold_value_to_plot = average_value_of_peak_scalers - plot_width / 2 * DAC_EPSILON * threshold_scan_horizontal_scale
 		maximum_threshold_value_to_plot = average_value_of_peak_scalers + plot_width / 2 * DAC_EPSILON * threshold_scan_horizontal_scale
 	else:
@@ -186,7 +187,7 @@ def update_plot(i, j):
 				minimum_threshold_value_to_plot = voltage_at_lower_null_scaler[k]
 			if maximum_threshold_value_to_plot<voltage_at_upper_null_scaler[k]:
 				maximum_threshold_value_to_plot = voltage_at_upper_null_scaler[k]
-	#volts_per_pixel_x = DAC_EPSILON * plot_width * threshold_scan_horizontal_scale
+		threshold_scan_horizontal_scale = (maximum_threshold_value_to_plot-minimum_threshold_value_to_plot)/DAC_EPSILON/plot_width
 	print("minimum_threshold_value_to_plot: " + str(minimum_threshold_value_to_plot))
 	print("maximum_threshold_value_to_plot: " + str(maximum_threshold_value_to_plot))
 	#print(str(volts_per_pixel_x))
@@ -865,7 +866,7 @@ def sophisticated_threshold_scan(i, j):
 	global voltage_at_lower_null_scaler
 	global voltage_at_upper_null_scaler
 	voltage_at_lower_null_scaler = read_thresholds_for_null_scalers_file()
-	voltage_at_upper_null_scaler = [ 2.5 for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	voltage_at_upper_null_scaler = [ voltage_at_lower_null_scaler[k] + 2*GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL + 2*extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	voltage = [ voltage_at_lower_null_scaler[k] - extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	print(str(voltage))
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
