@@ -21,7 +21,8 @@ incidentals_for_null_scalers = 0
 incidentals_for_display = 2
 display_precision_of_hex_counts = 8
 display_precision_of_DAC_voltages = 6
-bump_amount = 0.000250
+bump_amount = 0.000250 # for the [,] keys during running to bump the dac settings up or down
+extra_voltage = 0.002 # a bit of padding on each side of the threshold scan
 
 # typical threshold scan has peak scalers at these voltages:
 # 1.215078 1.214924 1.217697 1.211535 1.212697 1.213695 1.216734 1.218696 1.214115 1.212620 1.218383 1.215811
@@ -835,7 +836,6 @@ def prepare_string_with_voltages(voltage):
 	return string
 
 import copy
-extra_voltage = 0.001 # a bit of padding on each side of the threshold scan
 have_just_run_threshold_scan = False
 def sophisticated_threshold_scan(i, j):
 	global have_just_run_threshold_scan
@@ -880,7 +880,7 @@ def sophisticated_threshold_scan(i, j):
 					max_scaler_seen[k] = counters[k]
 					voltage_at_peak_scaler[k] = voltage[k]
 				total_hits_seen_so_far_in_this_scan[k] += counters[k]
-				if total_hits_seen_so_far_in_this_scan[k]<incidentals_for_null_scalers:
+				if total_hits_seen_so_far_in_this_scan[k]<=incidentals_for_null_scalers:
 					voltage_at_null_scaler[k] = voltage[k]
 					string += "*"
 				else:
