@@ -30,6 +30,19 @@ def dec(number, width=1):
 	width = int(width)
 	return "%0*d" % (width, number)
 
+def fround(value, precision):
+	if value<0.0:
+		extra = -0.5
+	else:
+		extra = 0.5
+	print("")
+	print(str(value))
+	print(str(value/precision))
+	print(str(value/precision+extra))
+	print(str(int(value/precision+extra)))
+	print(str(precision*int(value/precision+extra)))
+	return precision*int(value/precision+extra)
+
 def bin(number, width=1):
 	#number = int(number)
 	#print(str(number))

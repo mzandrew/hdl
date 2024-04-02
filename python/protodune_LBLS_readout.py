@@ -6,7 +6,7 @@
 # last updated 2024-04-01 by mza
 
 number_of_pin_diode_boxes = 4
-NUMBER_OF_PHOTODIODES = 12
+NUMBER_OF_CHANNELS_PER_BANK = 12
 
 gui_update_period = 0.2
 
@@ -14,11 +14,14 @@ raw_threshold_scan_filename = "protodune.ampoliros12.raw_threshold_scan"
 thresholds_for_peak_scalers_filename = "protodune.ampoliros12.thresholds_for_peak_scalers"
 thresholds_for_null_scalers_filename = "protodune.ampoliros12.thresholds_for_null_scalers"
 threshold_scan_accumulation_time = 0.1
-DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = 1.200
-GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.006
-threshold_step_size_in_volts = 2.5/2**16
-number_of_threshold_steps = 240
-incidentals = 2
+DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = 1.21
+GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.0075
+dac_epsilon = 2.5 / 2**16
+threshold_step_size_in_volts = dac_epsilon
+#threshold_step_size_in_volts = dac_epsilon * 6
+number_of_threshold_steps = 400
+incidentals_for_null_scalers = 0
+incidentals_for_display = 2
 display_precision_of_hex_counts = 8
 display_precision_of_DAC_voltages = 6
 bump_amount = 0.000250
@@ -41,7 +44,7 @@ GAP_Y_BOTTOM = 24
 photodiode_can_diameter_in = 0.325
 photodiode_positions_x_in = [ -1.375 + 0.5 * i for i in range(6) ] + [ -1.125 + 0.5 * i for i in range(6) ]
 photodiode_positions_y_in = [ 0.25 for i in range(6)] + [ -0.25 for i in range(6) ]
-#for i in range(12):
+#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 #	print("PD" + str(i+1) + " " + str(photodiode_positions_x_in[i]) + "," + str(photodiode_positions_y_in[i]))
 box_dimension_x_in = 5.0
 box_dimension_y_in = 2.0
@@ -72,11 +75,10 @@ Y_POSITION_OF_BANK1_SCALERS = 250 + FONT_SIZE_BANKS
 #X_POSITION_OF_BANK0_COUNTERS = 550
 #Y_POSITION_OF_BANK0_COUNTERS = 250 + FONT_SIZE_BANKS
 
-#channel_range = range(1, 12+1)
+#channel_range = range(1, NUMBER_OF_CHANNELS_PER_BANK+1)
 
-NUMBER_OF_CHANNELS_PER_BANK = 12
 channel_names = [ "" ]
-channel_names.extend(["ch" + str(i) for i in range(1, 12+1)])
+channel_names.extend(["ch" + str(i+1) for i in range(NUMBER_OF_CHANNELS_PER_BANK)])
 #channel_names.extend([ "trigger_count", "suggested_inversion_map", "hit_counter" ])
 #print(str(channel_names))
 bank1_register_values = [ i for i in range(len(channel_names)) ]
@@ -99,6 +101,9 @@ orange = (255, 127, 0)
 purple = (255, 0, 255)
 grid_color_bright = (63, 63, 63)
 grid_color_faint = (15, 15, 15)
+grey = (127, 127, 127 )
+
+color = [ black, white, red, green, blue, yellow, teal, pink, maroon, dark_green, light_blue, orange, purple, grey ]
 
 selection = 0
 coax_mux = [ 0 for i in range(4) ]
@@ -157,17 +162,39 @@ BANK_ADDRESS_DEPTH = 13
 import ltc2657
 
 def update_plot(i, j):
-	for k in range(len(feed_name[i][j])):
-		if not FAKE_DATA:
-			#print("fetching another datapoint for feed \"" + feed_name[i][j][k] + "\"...")
-#			feed_data[i][j][k] = fetch.add_most_recent_data_to_end_of_array(feed_data[i][j][k], feed_name[i][j][k])
-			feed_data[i][j][k] = [[[ 0 for k in range(plot_width) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
-			#print("length of data = " + str(len(feed_data[i][j][k])))
 	global plots_were_updated
 	pygame.event.pump()
-	print("normalizing data...")
-	for k in range(len(feed_name[i][j])):
-		normalized_feed_data[i][j][k] = format_for_plot(feed_data[i][j][k], minimum[i][j], maximum[i][j])
+	middle_of_plot = plot_width // 2
+	middle_of_threshold_values = 1.21 # from LTC1963A-adj
+	minimum_threshold_value_to_plot = middle_of_threshold_values - middle_of_plot * dac_epsilon
+	maximum_threshold_value_to_plot = middle_of_threshold_values + middle_of_plot * dac_epsilon
+	#volts_per_pixel_x = dac_epsilon * plot_width
+	#print(str(middle_of_plot))
+	#print(str(middle_of_threshold_values))
+	#print(str(minimum_threshold_value_to_plot))
+	#print(str(maximum_threshold_value_to_plot))
+	#print(str(volts_per_pixel_x))
+	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	MAX_SCALER = 2**16
+	scale = 1 / MAX_SCALER
+	#print(str(scale))
+	for n in range(len(threshold_scan[i][j])):
+		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+			voltage = threshold_scan[i][j][n][k][0]
+			scaler = threshold_scan[i][j][n][k][1]
+			#print(str(voltage) + "," + str(scaler))
+			if scaler>0:
+				#if scaler>1000:
+				#	print(str(voltage) + "," + str(scaler))
+				x = int((voltage - minimum_threshold_value_to_plot)/dac_epsilon)
+				if x<=0:
+					continue
+				elif plot_width<=x:
+					continue
+				formatted_data[k][x] = scaler * scale
+				if 0==n%40:
+					print(str(threshold_scan[i][j][n][k]))
+					print(str(voltage) + "," + str(scaler) + ":" + str(x) + ":" + str(formatted_data[k][x]))
 	pygame.event.pump()
 	print("plotting data...")
 	# fill with colors for now:
@@ -177,8 +204,8 @@ def update_plot(i, j):
 		pygame.event.pump()
 		for y in range(plot_height):
 			plot[i][j].set_at((x, y), black)
-			for k in range(len(feed_name[i][j])):
-				yn = int(plot_height - plot_height * normalized_feed_data[i][j][k][x])
+			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+				yn = int(plot_height - plot_height * formatted_data[k][x])
 				doit = False
 				if y==yn:
 					doit = True
@@ -197,7 +224,7 @@ def draw_photodiode_box(i, j):
 	offset_y = 0 # GAP_Y_TOP+j*(height+GAP_Y_BETWEEN_PLOTS)
 	radius = int(photodiode_can_diameter_in * scale_pixels_per_in / 2.0)
 	box = pygame.draw.rect(flarb[i][j], grey, pygame.Rect(offset_x, offset_y, width, height), 0)
-	for k in range(NUMBER_OF_PHOTODIODES):
+	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		x = int(offset_x + width/2 + photodiode_positions_x_in[k] * scale_pixels_per_in)
 		y = int(offset_y + height/2 - photodiode_positions_y_in[k] * scale_pixels_per_in)
 		pygame.draw.circle(flarb[i][j], white, (x, y), radius, 0)
@@ -223,7 +250,7 @@ def setup():
 	plot_width = int(usable_width / COLUMNS)
 	plot_height = int(usable_height / ROWS)
 	#print("plot_width: " + str(plot_width))
-	#print("plot_height: " + str(plot_height))
+	print("plot_height: " + str(plot_height))
 	pygame.display.init()
 	pygame.font.init()
 	#pygame.mixer.quit()
@@ -282,7 +309,7 @@ def setup():
 			draw_plot_border(i, j)
 #			update_plot(i, j)
 #			blit(i, j)
-			draw_photodiode_box(i, j)
+			#draw_photodiode_box(i, j)
 			flip()
 			sys.stdout.flush()
 	althea.setup_half_duplex_bus("test058")
@@ -319,7 +346,7 @@ def loop():
 			elif K_t==event.key:
 				#scan_for_tickles()
 				#simple_threshold_scan()
-				sophisticated_threshold_scan()
+				sophisticated_threshold_scan(0, 0)
 			elif K_c==event.key:
 				clear_channel_counters()
 				clear_channel_ones_counters()
@@ -346,11 +373,11 @@ def loop():
 			if 0==ij:
 				should_update_plots[0][0] = True
 			elif 1==ij:
-				should_update_plots[1][0] = True
+				should_update_plots[1][0] = False
 			elif 2==ij:
-				should_update_plots[2][0] = True
+				should_update_plots[2][0] = False
 			elif 3==ij:
-				should_update_plots[3][0] = True
+				should_update_plots[3][0] = False
 			ij += 1
 			if COLUMNS*ROWS-1<ij:
 				ij = 0
@@ -365,12 +392,13 @@ def loop():
 			if should_update_plots[i][j]:
 				#print("updating...")
 				should_update_plots[i][j] = False
-#				update_plot(i, j)
+				if have_already_run_threshold_scan:
+					update_plot(i, j)
 				show_stuff()
-#	for i in range(COLUMNS):
-#		for j in range(ROWS):
-#			blit(i, j)
-	draw_photodiode_box(i, j)
+	for i in range(COLUMNS):
+		for j in range(ROWS):
+			blit(i, j)
+#	draw_photodiode_box(i, j)
 	flip()
 
 def blit(i, j):
@@ -503,12 +531,12 @@ def disable_amplifiers():
 
 def readout_raw_values():
 	bank = 1
-	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, NUMBER_OF_CHANNELS_PER_BANK, False)
 
 def return_raw_values_string():
 	values = readout_raw_values()
 	string = ""
-	for i in range(12):
+	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 		string += str(hex(values[11 - i], 8)) + " "
 	return string
 
@@ -531,7 +559,7 @@ def readout_fifo_single():
 
 def readout_fifo_split():
 	fifo = readout_fifo_single()
-	ToT_reversed = [ 0 for i in range(12) ]
+	ToT_reversed = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	for i in range(3):
 		for j in range(4):
 			k = i*4+j
@@ -541,13 +569,13 @@ def readout_fifo_split():
 #		string += hex(fifo[i], 8, False) + " "
 #	print(string)
 	global ToT
-	ToT = [ ToT_reversed[11-i] for i in range(12) ]
+	ToT = [ ToT_reversed[11-i] for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	return ToT
 
 def show_fifo_split():
 	readout_fifo_split()
 	string = ""
-	for i in range(12):
+	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 		string += hex(ToT[i], 2, True) + " "
 	print(string)
 
@@ -576,7 +604,7 @@ def update_ToT():
 def readout_counters():
 	bank = 4
 	global bank4_counters
-	bank4_counters = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+	bank4_counters = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, NUMBER_OF_CHANNELS_PER_BANK, False)
 	return bank4_counters
 
 def return_counters_string():
@@ -607,9 +635,9 @@ def readout_scalers():
 	bankC_scalers = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	bankD_scalers = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	bank = 1
-	bank1_scalers = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+	bank1_scalers = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, NUMBER_OF_CHANNELS_PER_BANK, False)
 	bank = 2
-	bank2_scalers = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 12, False)
+	bank2_scalers = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, NUMBER_OF_CHANNELS_PER_BANK, False)
 	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 		bankA_scalers[i] =  bank1_scalers[i]      & 0xffff
 		bankB_scalers[i] = (bank1_scalers[i]>>16) & 0xffff
@@ -671,7 +699,7 @@ def scan_for_tickles():
 			althea.write_value_to_bank_that_is_depth(token, bank, BANK_ADDRESS_DEPTH)
 		counters = readout_counters()
 		string = ""
-		for k in range(12):
+		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 			if counters[k]<number_of_passes*tickles_incidentals:
 				string += "         "
 			else:
@@ -696,7 +724,7 @@ def scan_for_tickles():
 
 def set_threshold_voltages(voltage):
 	global current_threshold_voltage
-	current_threshold_voltage = [ voltage for i in range(12) ]
+	current_threshold_voltage = [ voltage for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	#print(str(voltage))
 	ltc2657.set_voltage_on_all_channels(voltage)
 
@@ -717,13 +745,13 @@ def set_threshold_voltage(channel, voltage):
 def set_thresholds_for_null_scaler():
 	voltage_at_null_scaler = read_thresholds_for_null_scalers_file()
 	print(prepare_string_with_voltages(voltage_at_null_scaler))
-	for k in range(12):
+	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		set_threshold_voltage(k, voltage_at_null_scaler[k])
 
 def read_thresholds_for_null_scalers_file():
 	voltage_at_peak_scaler = read_thresholds_for_peak_scalers_file()
 	#print("peak: " + str(voltage_at_peak_scaler))
-	voltage_at_null_scaler = [ voltage_at_peak_scaler[k] - GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL for k in range(12) ]
+	voltage_at_null_scaler = [ voltage_at_peak_scaler[k] - GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	#print("null: " + str(voltage_at_null_scaler))
 	if not os.path.exists(thresholds_for_null_scalers_filename):
 		print("thresholds for null scalers file not found")
@@ -734,7 +762,7 @@ def read_thresholds_for_null_scalers_file():
 			voltage_at_null_scaler = string.split(" ")
 			voltage_at_null_scaler = [ i for i in voltage_at_null_scaler if i!='' ]
 			voltage_at_null_scaler.remove('\n')
-			voltage_at_null_scaler = [ float(voltage_at_null_scaler[k]) for k in range(12) ]
+			voltage_at_null_scaler = [ float(voltage_at_null_scaler[k]) for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 			#print(prepare_string_with_voltages(voltage_at_null_scaler))
 	except:
 		print("threshold for null scalers file exists but is corrupted")
@@ -742,7 +770,7 @@ def read_thresholds_for_null_scalers_file():
 	return voltage_at_null_scaler
 
 def read_thresholds_for_peak_scalers_file():
-	voltage_at_peak_scaler = [ DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER for i in range(12) ]
+	voltage_at_peak_scaler = [ DEFAULT_GUESS_FOR_VOLTAGE_AT_PEAK_SCALER for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	if not os.path.exists(thresholds_for_peak_scalers_filename):
 		print("threshold for peak scalers file not found; increasing scan range")
 		global number_of_threshold_steps
@@ -754,7 +782,7 @@ def read_thresholds_for_peak_scalers_file():
 			voltage_at_peak_scaler = string.split(" ")
 			voltage_at_peak_scaler = [ i for i in voltage_at_peak_scaler if i!='' ]
 			voltage_at_peak_scaler.remove('\n')
-			voltage_at_peak_scaler = [ float(voltage_at_peak_scaler[k]) for k in range(12) ]
+			voltage_at_peak_scaler = [ float(voltage_at_peak_scaler[k]) for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 			#print(prepare_string_with_voltages(voltage_at_peak_scaler))
 	except:
 		print("threshold for peak scalers file exists but is corrupted")
@@ -763,8 +791,8 @@ def read_thresholds_for_peak_scalers_file():
 
 def prepare_string_to_show_counters_or_scalers(values):
 	string = ""
-	for k in range(12):
-		if values[k]<=incidentals:
+	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+		if values[k]<=incidentals_for_display:
 			string += " %*s" % (display_precision_of_hex_counts, "")
 		else:
 			string += hex(values[k], display_precision_of_hex_counts, True) + " "
@@ -772,7 +800,7 @@ def prepare_string_to_show_counters_or_scalers(values):
 
 def prepare_string_with_voltages(voltage):
 	string = ""
-	for k in range(12):
+	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		string += "%.*f " % (display_precision_of_DAC_voltages, voltage[k])
 	return string
 
@@ -782,8 +810,8 @@ def simple_threshold_scan():
 	threshold_maximum_voltage = 1.2203
 	number_of_threshold_steps = int(1+(threshold_maximum_voltage-threshold_minimum_voltage)/threshold_step_size_in_volts)
 	print(str(number_of_threshold_steps))
-	max_scaler_seen = [ 0 for i in range(12) ]
-	voltage_at_peak_scaler = [ 0 for i in range(12) ]
+	max_scaler_seen = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	voltage_at_peak_scaler = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	bank = 0
 	voltage = threshold_minimum_voltage
 	with open(raw_threshold_scan_filename, "w") as raw_threshold_scan_file:
@@ -795,7 +823,7 @@ def simple_threshold_scan():
 			string = prepare_string_to_show_counters_or_scalers(counters)
 			print("threshold voltage %.f: %s" % (voltage, string))
 			raw_threshold_scan_file.write(string + "\n")
-			for k in range(12):
+			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 				if max_scaler_seen[k]<counters[k]:
 					max_scaler_seen[k] = counters[k]
 					voltage_at_peak_scaler[k] = voltage
@@ -808,45 +836,62 @@ def simple_threshold_scan():
 		print(string)
 		thresholds_for_peak_scalers_file.write(string + "\n")
 
-def sophisticated_threshold_scan():
+import copy
+extra_voltage = 0.001
+have_already_run_threshold_scan = False
+def sophisticated_threshold_scan(i, j):
+	global have_already_run_threshold_scan
+	have_already_run_threshold_scan = True
 	print("running threshold scan...")
-	max_scaler_seen = [ 0 for i in range(12) ]
-	voltage_at_peak_scaler = [ 0 for i in range(12) ]
+	max_scaler_seen = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	voltage_at_peak_scaler = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	bank = 0
 	voltage_at_null_scaler = read_thresholds_for_null_scalers_file()
-	extra = 0.001
-	voltage = [ voltage_at_null_scaler[k] - extra for k in range(12) ]
+	voltage = [ voltage_at_null_scaler[k] - extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	print(str(voltage))
+	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+		#voltage[k] = fround(voltage[k], 0.000001)
+		voltage[k] = fround(voltage[k], dac_epsilon)
+	print(str(voltage))
 	number_of_unique_voltages = len(set(voltage))
 	print("number_of_unique_voltages: " + str(number_of_unique_voltages))
-	total_hits_seen_so_far_in_this_scan = [ 0 for k in range(12) ]
+	total_hits_seen_so_far_in_this_scan = [ 0 for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	global threshold_scan
+	threshold_scan = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	slice = [ [ i/10, 0 ] for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	with open(raw_threshold_scan_filename, "w") as raw_threshold_scan_file:
-		for i in range(number_of_threshold_steps):
+		for n in range(number_of_threshold_steps):
 			string = ""
-			for k in range(12):
+			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 				set_threshold_voltage(k, voltage[k])
 				#string += " %.*f " % (display_precision_of_DAC_voltages, voltage[k])
 			#print(string)
 			clear_channel_counters()
 			time.sleep(threshold_scan_accumulation_time)
 			counters = readout_counters()
+			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+#				slice[k] = [ copy.deepcopy(voltage[k]), counters[k] ]
+				slice[k] = [ voltage[k], counters[k] ]
+			print(str(slice))
+			threshold_scan[i][j].append(copy.deepcopy(slice))
 			if 1==number_of_unique_voltages:
-				string += " %.*f " % (display_precision_of_DAC_voltages, voltage[k]) # the voltages are potentially different for each channel here, so don't print this unless all voltages are equal
+				string += " %.*f " % (display_precision_of_DAC_voltages, voltage[0]) # the voltages are potentially different for each channel here, so don't print this unless all voltages are equal
 			string += prepare_string_to_show_counters_or_scalers(counters)
-			for k in range(12):
+			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 				if max_scaler_seen[k]<counters[k]:
 					max_scaler_seen[k] = counters[k]
 					voltage_at_peak_scaler[k] = voltage[k]
 				total_hits_seen_so_far_in_this_scan[k] += counters[k]
-				if total_hits_seen_so_far_in_this_scan[k]<incidentals:
+				if total_hits_seen_so_far_in_this_scan[k]<incidentals_for_null_scalers:
 					voltage_at_null_scaler[k] = voltage[k]
 					string += "*"
 				else:
 					string += " "
 			print(string)
 			raw_threshold_scan_file.write(string + "\n")
-			if 0==i%10:
+			if 0==n%10:
 				raw_threshold_scan_file.flush()
-			for k in range(12):
+			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 				voltage[k] += threshold_step_size_in_volts
 	with open(thresholds_for_peak_scalers_filename, "w") as thresholds_for_peak_scalers_file:
 		string = prepare_string_with_voltages(voltage_at_peak_scaler)
@@ -866,7 +911,7 @@ def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_ra
 	voltage = read_thresholds_for_null_scalers_file()
 	stable = False
 	while not stable:
-		for k in range(12):
+		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 			set_threshold_voltage(k, voltage[k])
 		clear_channel_counters()
 		time.sleep(accumulation_time)
@@ -874,7 +919,7 @@ def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_ra
 		string = prepare_string_to_show_counters_or_scalers(counters)
 		print(string)
 		chi_squared = 0
-		for k in range(12):
+		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 			chi_squared += (counters[k] - desired_rate)**2
 			if desired_rate<counters[k]+span_down:
 				voltage[k] -= threshold_step_size_in_volts
@@ -888,17 +933,17 @@ def set_thresholds_for_this_scaler_rate_during_this_accumulation_time(desired_ra
 	print(prepare_string_with_voltages(voltage))
 
 def bump_thresholds_lower_by(offset_voltage):
-	voltage = [ current_threshold_voltage[k] - offset_voltage for k in range(12) ]
+	voltage = [ current_threshold_voltage[k] - offset_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	string = prepare_string_with_voltages(voltage)
 	print(string)
-	for k in range(12):
+	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		set_threshold_voltage(k, voltage[k])
 
 def bump_thresholds_higher_by(offset_voltage):
-	voltage = [ current_threshold_voltage[k] + offset_voltage for k in range(12) ]
+	voltage = [ current_threshold_voltage[k] + offset_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	string = prepare_string_with_voltages(voltage)
 	print(string)
-	for k in range(12):
+	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		set_threshold_voltage(k, voltage[k])
 
 def show_stuff():
@@ -973,7 +1018,7 @@ if __name__ == "__main__":
 	if len(argv)>1:
 		channels = int(argv[1])
 		print(str(channels))
-		number_of_pin_diode_boxes = channels // NUMBER_OF_PHOTODIODES
+		number_of_pin_diode_boxes = channels // NUMBER_OF_CHANNELS_PER_BANK
 	ROWS = 1
 	COLUMNS = number_of_pin_diode_boxes
 	wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
@@ -982,7 +1027,7 @@ if __name__ == "__main__":
 	SCREEN_HEIGHT = 720
 	should_update_plots = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
-	plot_name = [ [ "" for j in range(ROWS) ] for i in range(COLUMNS) ]
+	plot_name = [ [ "thresholds" for j in range(ROWS) ] for i in range(COLUMNS) ]
 	feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
