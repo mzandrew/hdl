@@ -17,9 +17,6 @@ thresholds_for_lower_null_scalers_filename = "ampoliros.thresholds_for_lower_nul
 thresholds_for_upper_null_scalers_filename = "ampoliros.thresholds_for_upper_null_scalers"
 threshold_scan_accumulation_time = 0.1
 LTC1631A_PEDESTAL_VOLTAGE = 1.21 # from LTC1963A-adj datasheet
-GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.007 # [1.196,1.214] avg=1.2045
-#GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2 # for when diff_term=true
-GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.012 / 2 # for when diff_term=false
 DAC_EPSILON = 2.5 / 2**16
 #MAX_COUNTER = 1.2 * 2**16 # actual counter is 24 bit, but we only see up to about 75k # for when diff_term=true
 MAX_COUNTER = 650000 # for when diff_term=false
@@ -1124,6 +1121,14 @@ if __name__ == "__main__":
 	desired_window_width = number_of_pin_diode_boxes * box_dimension_x_in * scale_pixels_per_in + wasted_width
 	SCREEN_WIDTH = desired_window_width
 	SCREEN_HEIGHT = 720
+	if 1==number_of_pin_diode_boxes:
+		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.008 # [1.196,1.214] avg=1.2045
+		#GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2 # for when diff_term=true
+		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.060 / 2 # for when diff_term=false
+	else:
+		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.007 # [1.196,1.214] avg=1.2045
+		#GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2 # for when diff_term=true
+		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.012 / 2 # for when diff_term=false
 	should_update_plots = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	plot_name = [ [ "bank" + chr(i+ord('A')) for j in range(ROWS) ] for i in range(COLUMNS) ]
