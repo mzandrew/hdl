@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-04-02 by mza
+# last updated 2024-04-03 by mza
 
 number_of_pin_diode_boxes = 4
 NUMBER_OF_CHANNELS_PER_BANK = 12 # this is probably fixed for protodune at least
@@ -18,10 +18,9 @@ thresholds_for_upper_null_scalers_filename = "ampoliros.thresholds_for_upper_nul
 threshold_scan_accumulation_time = 0.1
 LTC1631A_PEDESTAL_VOLTAGE = 1.21 # from LTC1963A-adj datasheet
 DAC_EPSILON = 2.5 / 2**16
-#MAX_COUNTER = 1.2 * 2**16 # actual counter is 24 bit, but we only see up to about 75k # for when diff_term=true
-MAX_COUNTER = 650000 # for when diff_term=false
-incidentals_for_null_scalers = 0
-incidentals_for_display = 1
+MAX_COUNTER = 650000 # actual counter is 24 bit, but we only see up to about this much for when diff_term=false
+incidentals_for_null_scalers = 10
+incidentals_for_display = 10
 display_precision_of_hex_counter_counts = 6
 display_precision_of_hex_scaler_counts = 4
 display_precision_of_DAC_voltages = 6
@@ -1122,13 +1121,13 @@ if __name__ == "__main__":
 	SCREEN_WIDTH = desired_window_width
 	SCREEN_HEIGHT = 720
 	if 1==number_of_pin_diode_boxes:
+		# ampoliros12 revB
 		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.008 # [1.196,1.214] avg=1.2045
-		#GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2 # for when diff_term=true
 		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.060 / 2 # for when diff_term=false
 	else:
-		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.007 # [1.196,1.214] avg=1.2045
-		#GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2 # for when diff_term=true
-		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.012 / 2 # for when diff_term=false
+		# ampoliros48 revA board #2
+		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.008 # [1.194,1.210] avg=1.203
+		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.016 / 2 # for when diff_term=false
 	should_update_plots = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	plot_name = [ [ "bank" + chr(i+ord('A')) for j in range(ROWS) ] for i in range(COLUMNS) ]
