@@ -35,12 +35,12 @@ def fround(value, precision):
 		extra = -0.5
 	else:
 		extra = 0.5
-	print("")
-	print(str(value))
-	print(str(value/precision))
-	print(str(value/precision+extra))
-	print(str(int(value/precision+extra)))
-	print(str(precision*int(value/precision+extra)))
+	#print("")
+	#print(str(value))
+	#print(str(value/precision))
+	#print(str(value/precision+extra))
+	#print(str(int(value/precision+extra)))
+	#print(str(precision*int(value/precision+extra)))
 	return precision*int(value/precision+extra)
 
 def bin(number, width=1):
