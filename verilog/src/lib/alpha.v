@@ -1,6 +1,6 @@
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-03-29 by mza
+// last updated 2024-04-08 by mza
 
 `ifndef ALPHA_LIB
 `define ALPHA_LIB
@@ -460,6 +460,9 @@ module alpha_readout (
 	input clock, reset, data_a,
 	output [3:0] nybble,
 	output reg header = 0,
+	output reg meat = 0,
+	output reg footer = 0,
+	output strobe,
 	output msn,
 	output [1:0] nybble_counter,
 	output reg [15:0] data_word = 0
@@ -471,34 +474,54 @@ module alpha_readout (
 	localparam SR_PICKOFF = SR_HIGH_BIT - 4;
 	reg [SR_HIGH_BIT:0] data_sr = 0;
 	reg [3:0] data_bit_counter = 0;
-//	reg [12:0] data_word_counter = 15;
+	reg [12:0] data_word_counter = 0;
+	localparam DATA_WORD_COUNTER_MAX = 16+16*256+16+100;
 	wire [15:0] ALFA = 16'ha1fa;
+	wire [15:0] OMGA = 16'h0e6a;
 	always @(posedge clock) begin
 		if (reset) begin
 			data_bit_counter <= 15;
-//			data_word_counter <= 0;
+			data_word_counter <= 0;
 			data_word <= 0;
 			header <= 0;
+			meat <= 0;
+			footer <= 0;
 			data_sr <= 0;
 		end else begin
 			data_sr <= { data_sr[SR_HIGH_BIT-1:0], data_a };
-			if (data_bit_counter==0) begin
-				data_bit_counter <= 15;
-				data_word <= data_sr[SR_PICKOFF-1-:16];
-//				data_word_counter <= data_word_counter + 1'b1;
-				header <= 0;
+			if (data_word_counter<DATA_WORD_COUNTER_MAX) begin
+				if (data_bit_counter==0) begin
+					data_bit_counter <= 15;
+					data_word <= data_sr[SR_PICKOFF-1-:16];
+					data_word_counter <= data_word_counter + 1'b1;
+					header <= 0;
+					footer <= 0;
+				end else begin
+					data_bit_counter <= data_bit_counter - 1'b1;
+				end
 			end else begin
-				data_bit_counter <= data_bit_counter - 1'b1;
+				header <= 0;
+				meat <= 0;
+				footer <= 0;
+				data_bit_counter <= 0; // 2 least significant bits must not be 2'b01 (see assignment for strobe, below)
 			end
 			if (data_sr[SR_PICKOFF-1-:16]==ALFA) begin // WARNING: this might accidentally re-bitslip align on data 0x1fa from channel 0xa
 				data_bit_counter <= 15;
-//				data_word_counter <= 0;
-				header <= 1;
+				data_word_counter <= 0;
+				header <= 1'b1;
+				meat <= 1'b1;
 				data_word <= data_sr[SR_PICKOFF-1-:16];
+			end else if (data_sr[SR_PICKOFF-1-:16]==OMGA) begin // WARNING: this might accidentally re-bitslip align on data 0x0e6a from channel 0xa
+				header <= 0;
+				meat <= 0;
+				footer <= 1'b1;
+//				data_bit_counter <= 0; // 2 least significant bits must not be 2'b01 (see assignment for strobe, below)
+				data_word_counter <= DATA_WORD_COUNTER_MAX - 1;
 			end
 		end
 	end
-	assign msn = nybble_counter==3 ? 1'b1 : 1'b0;
+	assign msn = nybble_counter == 2'b11 ? 1'b1 : 1'b0;
+	assign strobe = data_bit_counter[1:0] == 2'b01 ? 1'b1 : 1'b0;
 	assign nybble_counter = data_bit_counter[3:2];
 	wire [3:0] nyb [3:0];
 	assign nyb[0] = data_word[3:0];

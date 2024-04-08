@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-03-29 by mza
+// last updated 2024-04-08 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -111,19 +111,31 @@ module ALPHAtest #(
 	wire anything_that_is_going_on = tok_a_out || pclk || sclk || sin || dreset || auxtrig || trigin || something_happened;
 	wire data_a;
 	IBUFDS data_in (.I(data_a_out_p), .IB(data_a_out_n), .O(data_a));
-	wire header;
 	wire [3:0] nybble;
 	wire [1:0] nybble_counter;
 	wire [15:0] data_word;
-	wire msn; // most significant nybble
-	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
-	assign pmod[5] = header;
-	assign pmod[4] = msn;
-	assign pmod[3:0] = nybble;
+	wire header, meat, footer, strobe, msn; // msn = most significant nybble
+	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .meat(meat), .footer(footer), .strobe(strobe), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
+	if (0) begin
+		assign pmod[5] = strobe    ? 1'bz : 1'b0;
+		assign pmod[4] = msn       ? 1'bz : 1'b0;
+		assign pmod[3] = nybble[3] ? 1'bz : 1'b0;
+		assign pmod[2] = nybble[2] ? 1'bz : 1'b0;
+		assign pmod[1] = nybble[1] ? 1'bz : 1'b0;
+		assign pmod[0] = nybble[0] ? 1'bz : 1'b0;
+	end else begin
+		assign pmod[5] = strobe;
+		assign pmod[4] = msn;
+		assign pmod[3] = nybble[3];
+		assign pmod[2] = nybble[2];
+		assign pmod[1] = nybble[1];
+		assign pmod[0] = nybble[0];
+	end
+	// tok_a_in tok_a_out anything_that_is_going_on
 	assign coax[0] = data_a;
-	assign coax[1] = tok_a_in;
-	assign coax[2] = tok_a_out;
-	assign coax[3] = anything_that_is_going_on;
+	assign coax[1] = header;
+	assign coax[2] = footer;
+	assign coax[3] = meat;
 	assign coax[4] = header;
 	assign coax[5] = msn;
 	reg [3:0] rot_buffered_a = 0;
