@@ -351,7 +351,7 @@ module ALPHAtest #(
 	end
 	// ----------------------------------------------------------------------
 	wire debounced_button;
-	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b0), .button_activated_pulse(debounced_button), .button_deactivated_pulse(), .button_active());
+	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(100)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b0), .button_activated_pulse(debounced_button), .button_deactivated_pulse(), .button_active());
 	always @(posedge sysclk) begin
 		startup_sequence_1 <= 0;
 		if (reset) begin
