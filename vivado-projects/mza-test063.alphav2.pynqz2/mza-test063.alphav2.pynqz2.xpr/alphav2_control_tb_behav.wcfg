@@ -3,73 +3,180 @@
    <wave_state>
    </wave_state>
    <db_ref_list>
-      <db_ref path="alpha_readout_tb_behav.wdb" id="1">
+      <db_ref path="axi4s_fifo_tb_behav.wdb" id="1">
          <top_modules>
-            <top_module name="alpha_readout_tb" />
+            <top_module name="axi4s_fifo_tb" />
+            <top_module name="axi_dma_pkg" />
+            <top_module name="axi_sg_pkg" />
+            <top_module name="axi_vip_pkg" />
             <top_module name="glbl" />
+            <top_module name="lib_pkg" />
+            <top_module name="std" />
+            <top_module name="vcomponents" />
+            <top_module name="xil_common_vip_pkg" />
          </top_modules>
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="3000001fs"></ZoomEndTime>
-      <Cursor1Time time="3000000fs"></Cursor1Time>
+      <ZoomStartTime time="198830fs"></ZoomStartTime>
+      <ZoomEndTime time="392631fs"></ZoomEndTime>
+      <Cursor1Time time="219230fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="216"></NameColumnWidth>
-      <ValueColumnWidth column_width="97"></ValueColumnWidth>
+      <ValueColumnWidth column_width="93"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="12" />
-   <wvobject type="logic" fp_name="/alpha_readout_tb/clock">
-      <obj_property name="ElementShortName">clock</obj_property>
-      <obj_property name="ObjectShortName">clock</obj_property>
+   <WVObjectSize size="38" />
+   <wvobject type="array" fp_name="/axi4s_fifo_tb/i">
+      <obj_property name="ElementShortName">i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">i[31:0]</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/alpha_readout_tb/reset">
-      <obj_property name="ElementShortName">reset</obj_property>
-      <obj_property name="ObjectShortName">reset</obj_property>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/sclk">
+      <obj_property name="ElementShortName">sclk</obj_property>
+      <obj_property name="ObjectShortName">sclk</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/alpha_readout_tb/dat_a_t2f">
-      <obj_property name="ElementShortName">dat_a_t2f</obj_property>
-      <obj_property name="ObjectShortName">dat_a_t2f</obj_property>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/mclk">
+      <obj_property name="ElementShortName">mclk</obj_property>
+      <obj_property name="ObjectShortName">mclk</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/alpha_readout_tb/nybble">
-      <obj_property name="ElementShortName">nybble[3:0]</obj_property>
-      <obj_property name="ObjectShortName">nybble[3:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/rst">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/alpha_readout_tb/nybble_counter">
-      <obj_property name="ElementShortName">nybble_counter[1:0]</obj_property>
-      <obj_property name="ObjectShortName">nybble_counter[1:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/alpha_readout_tb/data_word">
-      <obj_property name="ElementShortName">data_word[15:0]</obj_property>
-      <obj_property name="ObjectShortName">data_word[15:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/alpha_readout_tb/alpha_readout/data_sr">
-      <obj_property name="ElementShortName">data_sr[23:0]</obj_property>
-      <obj_property name="ObjectShortName">data_sr[23:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/alpha_readout_tb/alpha_readout/data_bit_counter">
-      <obj_property name="ElementShortName">data_bit_counter[3:0]</obj_property>
-      <obj_property name="ObjectShortName">data_bit_counter[3:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/alpha_readout_tb/alpha_readout/data_word_counter">
-      <obj_property name="ElementShortName">data_word_counter[12:0]</obj_property>
-      <obj_property name="ObjectShortName">data_word_counter[12:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/alpha_readout_tb/header">
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/header">
       <obj_property name="ElementShortName">header</obj_property>
       <obj_property name="ObjectShortName">header</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/alpha_readout_tb/msn">
-      <obj_property name="ElementShortName">msn</obj_property>
-      <obj_property name="ObjectShortName">msn</obj_property>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/tok_a_b2f">
+      <obj_property name="ElementShortName">tok_a_b2f</obj_property>
+      <obj_property name="ObjectShortName">tok_a_b2f</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/alpha_readout_tb/alpha_readout/nyb">
-      <obj_property name="ElementShortName">nyb[3:0][3:0]</obj_property>
-      <obj_property name="ObjectShortName">nyb[3:0][3:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
+   <wvobject type="array" fp_name="/axi4s_fifo_tb/nybble">
+      <obj_property name="ElementShortName">nybble[3:0]</obj_property>
+      <obj_property name="ObjectShortName">nybble[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider20" type="divider">
+      <obj_property name="label">DUT</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/sysclk">
+      <obj_property name="ElementShortName">sysclk</obj_property>
+      <obj_property name="ObjectShortName">sysclk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/reset">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/header">
+      <obj_property name="ElementShortName">header</obj_property>
+      <obj_property name="ObjectShortName">header</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/tok_a_b2f">
+      <obj_property name="ElementShortName">tok_a_b2f</obj_property>
+      <obj_property name="ObjectShortName">tok_a_b2f</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/axi4s_fifo_tb/DUT/nybble">
+      <obj_property name="ElementShortName">nybble[3:0]</obj_property>
+      <obj_property name="ObjectShortName">nybble[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/fclk">
+      <obj_property name="ElementShortName">fclk</obj_property>
+      <obj_property name="ObjectShortName">fclk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/fclk_rst_n">
+      <obj_property name="ElementShortName">fclk_rst_n</obj_property>
+      <obj_property name="ObjectShortName">fclk_rst_n</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/axi4s_fifo_tb/DUT/tdata">
+      <obj_property name="ElementShortName">tdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tdata[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/axi4s_fifo_tb/DUT/s_axis_tdata_d">
+      <obj_property name="ElementShortName">s_axis_tdata_d[31:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tdata_d[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/axi4s_fifo_tb/DUT/s_axis_tdata_q">
+      <obj_property name="ElementShortName">s_axis_tdata_q[31:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tdata_q[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tvalid_d">
+      <obj_property name="ElementShortName">s_axis_tvalid_d</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tvalid_d</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tvalid_q">
+      <obj_property name="ElementShortName">s_axis_tvalid_q</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tvalid_q</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tready">
+      <obj_property name="ElementShortName">s_axis_tready</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tready</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tlast_d">
+      <obj_property name="ElementShortName">s_axis_tlast_d</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tlast_d</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tlast_q">
+      <obj_property name="ElementShortName">s_axis_tlast_q</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tlast_q</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tkeep_d">
+      <obj_property name="ElementShortName">s_axis_tkeep_d</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tkeep_d</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tkeep_q">
+      <obj_property name="ElementShortName">s_axis_tkeep_q</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tkeep_q</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/axi4s_fifo_tb/DUT/state_d">
+      <obj_property name="ElementShortName">state_d[1:0]</obj_property>
+      <obj_property name="ObjectShortName">state_d[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/axi4s_fifo_tb/DUT/state_q">
+      <obj_property name="ElementShortName">state_q[1:0]</obj_property>
+      <obj_property name="ObjectShortName">state_q[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/axi4s_fifo_tb/DUT/nybble_d">
+      <obj_property name="ElementShortName">nybble_d[3:0]</obj_property>
+      <obj_property name="ObjectShortName">nybble_d[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/axi4s_fifo_tb/DUT/nybble_q">
+      <obj_property name="ElementShortName">nybble_q[3:0]</obj_property>
+      <obj_property name="ObjectShortName">nybble_q[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/m_axis_tlast">
+      <obj_property name="ElementShortName">m_axis_tlast</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tlast</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/m_axis_tready">
+      <obj_property name="ElementShortName">m_axis_tready</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tready</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/m_axis_tvalid">
+      <obj_property name="ElementShortName">m_axis_tvalid</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tvalid">
+      <obj_property name="ElementShortName">s_axis_tvalid</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tlast">
+      <obj_property name="ElementShortName">s_axis_tlast</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tlast</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/m_axis_tdata">
+      <obj_property name="ElementShortName">m_axis_tdata</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tdata</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/m_axis_tkeep">
+      <obj_property name="ElementShortName">m_axis_tkeep</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tkeep</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tdata">
+      <obj_property name="ElementShortName">s_axis_tdata</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tdata</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/axi4s_fifo_tb/DUT/s_axis_tkeep">
+      <obj_property name="ElementShortName">s_axis_tkeep</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tkeep</obj_property>
    </wvobject>
 </wave_config>
