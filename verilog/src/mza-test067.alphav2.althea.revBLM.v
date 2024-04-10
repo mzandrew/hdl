@@ -14,7 +14,7 @@
 
 module handshake_fifo #(
 	parameter ACKNOWLEDGE_PICKOFF_EARLY = 3,
-	parameter ACKNOWLEDGE_PICKOFF_LATE = ACKNOWLEDGE_PICKOFF_EARLY + 10
+	parameter ACKNOWLEDGE_PICKOFF_LATE = ACKNOWLEDGE_PICKOFF_EARLY + 3
 ) (
 	input clock, reset,
 	input acknowledge,
