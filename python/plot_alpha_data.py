@@ -2,7 +2,7 @@
 
 # written 2024-02-07 by mza and makiko
 # with help from https://docs.python.org/3/library/csv.html
-# last updated 2024-02-07 by mza and makiko
+# last updated 2024-02-21 by mza and makiko
 
 # tried this to get data directly from usb connection to oscilloscope...
 # https://github.com/asvela/keyoscacquire
@@ -105,7 +105,7 @@ for row in rows:
 				channel_number = nybble
 			if we_are_on_actual_data_now:
 				if 0<nybble_counter:
-					value |= nybble * 2**(4*(3-nybble_counter))
+					value |= nybble * int(2**(4*(3-nybble_counter)))
 				string += "*"
 			nybble_counter += 1
 		if number_of_lines_printed_so_far<NUMBER_OF_LINES_TO_PRINT:
@@ -130,6 +130,26 @@ for row in rows:
 			if 0==channel_number:
 				number_of_datapoints_gathered_for_channel_zero += 1
 
+actual_data_series_length = 1000
+for channel in range(NUMBER_OF_CHANNELS):
+	if MAX_NUMBER_OF_SAMPLES_PER_WAVEFORM!=len(data_series[channel]):
+		print("channel " + str(channel) + " only has " + str(len(data_series[channel])) + " data points")
+	if len(data_series[channel])<actual_data_series_length:
+		actual_data_series_length = len(data_series[channel])
+print("shortest number of samples: " + str(actual_data_series_length))
+for channel in range(NUMBER_OF_CHANNELS):
+	data_series[channel] = data_series[channel][0:actual_data_series_length]
+
+average = [ 0 for i in range(actual_data_series_length) ]
+
+for index in range(actual_data_series_length):
+	for channel in range(NUMBER_OF_CHANNELS):
+		average[index] += data_series[channel][index] / NUMBER_OF_CHANNELS
+
+for channel in range(NUMBER_OF_CHANNELS):
+	for index in range(len(data_series[channel])):
+		data_series[channel][index] += channel * 150 - average[index]
+
 total = 0
 for channel in range(NUMBER_OF_CHANNELS):
 	num = len(data_series[channel])
@@ -146,10 +166,11 @@ for channel in range(NUMBER_OF_CHANNELS):
 SST_FREQUENCY_HZ = 100e6
 #SST_FREQUENCY = 250e6
 import numpy as np
-t = np.arange(0.0, MAX_NUMBER_OF_SAMPLES_PER_WAVEFORM/SST_FREQUENCY_HZ, 1/SST_FREQUENCY_HZ)
-s = np.array(data_series[0], dtype='float32')
+t = np.arange(0.0, actual_data_series_length/SST_FREQUENCY_HZ, 1/SST_FREQUENCY_HZ)
+s = [ np.array(data_series[i], dtype='float32') for i in range(NUMBER_OF_CHANNELS) ]
 fig, ax = plt.subplots()
-ax.plot(t, s)
+for i in range(NUMBER_OF_CHANNELS):
+	ax.plot(t, s[i])
 ax.set(xlabel='time (s)', ylabel='ADC value', title='')
 ax.grid()
 plt.show()
