@@ -123,7 +123,8 @@ net pmod<1> loc=p111 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TR
 net pmod<2> loc=p112 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TR broadcom spi peripheral rpi_gpio9_spi_miso
 net pmod<3> loc=p93  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RT broadcom spi peripheral rpi_gpio11_spi_sclk
 net pmod<4> loc=p80  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB broadcom spi peripheral rpi_gpio7_spi_ce1
-net pmod<5> loc=p143 | iostandard=lvcmos25 | drive = 2 | slew = slow; # bank0 - differs from althea revB and revBL
+#net pmod<5> loc=p143 | iostandard=lvcmos25 | drive = 2 | slew = slow; # bank0 - differs from althea revB and revBL
+net acknowledge loc=p143 | iostandard=lvcmos25; # bank0 - differs from althea revB and revBL
 
 #net "button" tig;
 #net "rot<?>" tig;

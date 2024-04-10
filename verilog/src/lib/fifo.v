@@ -1,4 +1,4 @@
-// last updated 2022-10-21 by mza
+// last updated 2024-04-09 by mza
 
 `ifndef FIFO_LIB
 `define FIFO_LIB
@@ -76,6 +76,10 @@ endmodule
 module fifo_single_clock #(
 	parameter DATA_WIDTH = 8,
 	parameter LOG2_OF_DEPTH = 4,
+	parameter PRIMITIVE_ADDRESS_DEPTH = 14, // each s6 BRAM is 16kbits (18kbits)
+	parameter RAM_ADDRESS_DEPTH = PRIMITIVE_ADDRESS_DEPTH - $clog2(DATA_WIDTH), // each BRAM used has this depth
+	parameter ADDRESS_WIDTH = LOG2_OF_DEPTH < RAM_ADDRESS_DEPTH ? RAM_ADDRESS_DEPTH : LOG2_OF_DEPTH,
+	parameter NUMBER_OF_BRAMS_NEEDED = RAM_ADDRESS_DEPTH < LOG2_OF_DEPTH ? LOG2_OF_DEPTH - RAM_ADDRESS_DEPTH : 1,
 	parameter DEPTH = 1<<LOG2_OF_DEPTH
 ) (
 	input clock, reset,
@@ -84,17 +88,29 @@ module fifo_single_clock #(
 	input write_enable,
 	output almost_empty, empty, empty_or_almost_empty,
 	input read_enable,
-	output [DATA_WIDTH-1:0] data_out
+	output [DATA_WIDTH-1:0] data_out,
+	output [23:0] error_count
 );
-	reg [LOG2_OF_DEPTH-1:0] write_address = 0;
-	reg [LOG2_OF_DEPTH-1:0] read_address = 0;
-	reg [DATA_WIDTH-1:0] mem [DEPTH-1:0];
+	reg [ADDRESS_WIDTH-1:0] write_address = 0;
+	reg [ADDRESS_WIDTH-1:0] read_address = 0;
 	localparam MIN_COUNT = 1;
 	localparam MAX_COUNT = MIN_COUNT + DEPTH;
 	reg [LOG2_OF_DEPTH:0] count = MIN_COUNT; // 1 extra bit
-	reg [31:0] write_error_count = 0;
-	reg [31:0] read_error_count = 0;
+	reg [7:0] write_error_count = 0;
+	reg [7:0] read_error_count = 0;
+	reg [7:0] other_error_count = 0;
+	assign error_count = { write_error_count, read_error_count, other_error_count };
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};
+	wire ram_write_enable = write_enable && ((~full) || (read_enable && full));
+	if (0) begin
+		RAM_s6_primitive #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH)) mem (.reset(reset),
+			.write_clock(clock), .write_address(write_address[RAM_ADDRESS_DEPTH-1:0]), .data_in(data_in), .write_enable(ram_write_enable),
+			.read_clock(clock), .read_address(read_address[RAM_ADDRESS_DEPTH-1:0]), .read_enable(1'b1), .data_out(data_out));
+	end else begin
+		RAM_s6_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(ADDRESS_WIDTH)) myuni ( .reset(reset),
+			.clock_a(clock), .address_a(write_address), .data_in_a(data_in), .write_enable_a(ram_write_enable),
+			.clock_b(clock), .address_b(read_address), .data_out_b(data_out));
+	end
 	always @(posedge clock) begin
 		if (reset) begin
 			write_address <= 0;
@@ -102,20 +118,21 @@ module fifo_single_clock #(
 			count <= MIN_COUNT;
 			write_error_count <= 0;
 			read_error_count <= 0;
+			other_error_count <= 0;
 		end else begin
 			casez (rwef)
 				4'b100? : begin read_address <= read_address + 1'd1; count <= count - 1'd1; end
-				4'b101? : begin end // no data to read
-				4'b01?0 : begin mem[write_address] <= data_in; write_address <= write_address + 1'd1; count <= count + 1'd1; end
-				4'b01?1 : begin end // no more room
-				4'b1100 : begin mem[write_address] <= data_in; write_address <= write_address + 1'd1; read_address <= read_address + 1'd1; end
-				4'b1110 : begin mem[write_address] <= data_in; write_address <= write_address + 1'd1; count <= count + 1'd1; end
+				4'b101? : begin read_error_count <= read_error_count + 1'd1; end // no data to read
+				4'b01?0 : begin write_address <= write_address + 1'd1; count <= count + 1'd1; end
+				4'b01?1 : begin write_error_count <= write_error_count + 1'd1; end // no more room to write
+				4'b1100 : begin write_address <= write_address + 1'd1; read_address <= read_address + 1'd1; end
+				4'b1110 : begin write_address <= write_address + 1'd1; count <= count + 1'd1; end
 				4'b1101 : begin read_address <= read_address + 1'd1; count <= count - 1'd1; end
-				default : begin end
+				4'b00?? : begin end // idle
+				default : begin other_error_count <= other_error_count + 1'd1; end
 			endcase
 		end
 	end
-	assign data_out = mem[read_address];
 	assign full  = (count == MAX_COUNT) ? 1'b1 : 1'b0;
 	assign empty = (count == MIN_COUNT) ? 1'b1 : 1'b0;
 	assign almost_full  = (count == MAX_COUNT-1) ? 1'b1 : 1'b0;
@@ -143,7 +160,7 @@ module fifo_single_clock_tb;
 	reg write_enable = 0;
 	reg pre_read_enable = 0;
 	reg read_enable = 0;
-	if (0) begin
+	if (1) begin
 		fifo_single_clock #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(clock), .reset(reset),
 			.data_in(data_in), .write_enable(write_enable), .full(full), .almost_full(almost_full), .full_or_almost_full(full_or_almost_full),
 			.data_out(data_out), .read_enable(read_enable), .empty(empty), .almost_empty(almost_empty), .empty_or_almost_empty(empty_or_almost_empty));
@@ -169,7 +186,7 @@ module fifo_single_clock_tb;
 		#40; pre_data_in <= 8'd05; pre_write_enable <= 1; #4; pre_write_enable <= 0;
 		#40; pre_data_in <= 8'd06; pre_write_enable <= 1; #4; pre_write_enable <= 0;
 		#40; pre_data_in <= 8'd07; pre_write_enable <= 1; #4; pre_write_enable <= 0;
-		#40;
+		#40;                       
 		#40; pre_data_in <= 8'd08; pre_write_enable <= 1; #4; pre_write_enable <= 0;
 		#40; pre_data_in <= 8'd09; pre_write_enable <= 1; #4; pre_write_enable <= 0;
 		#40; pre_data_in <= 8'd10; pre_write_enable <= 1; #4; pre_write_enable <= 0;
@@ -252,8 +269,8 @@ module fifo_single_clock_tb;
 	clock #(.FREQUENCY_OF_CLOCK_HZ(250000000)) c (.clock(clock));
 	reg [31:0] write_counter = 0;
 	reg [31:0] read_counter = 0;
-	localparam CHECK_MEM_DEPTH = 256;
-	reg [DATA_WIDTH-1:0] mem [CHECK_MEM_DEPTH-1:0];
+//	localparam CHECK_MEM_DEPTH = 256;
+//	reg [DATA_WIDTH-1:0] mem [CHECK_MEM_DEPTH-1:0];
 	always @(posedge clock) begin
 		if (write_enable && ~full) begin
 			$display("[%4d] %d (write)", write_counter, data_in);

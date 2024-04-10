@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-04-08 by mza
+// last updated 2024-04-09 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -10,6 +10,141 @@
 `include "lib/alpha.v"
 `include "lib/plldcm.v"
 `include "lib/i2c.v"
+`include "lib/fifo.v"
+
+module handshake_fifo #(
+	parameter ACKNOWLEDGE_PICKOFF_EARLY = 3,
+	parameter ACKNOWLEDGE_PICKOFF_LATE = ACKNOWLEDGE_PICKOFF_EARLY + 10
+) (
+	input clock, reset,
+	input acknowledge,
+	input fifo_empty,
+	output reg fifo_read_strobe = 0,
+	output reg output_strobe = 0
+);
+	reg [ACKNOWLEDGE_PICKOFF_LATE:0] acknowledge_pipeline = 0;
+	always @(posedge clock) begin
+		fifo_read_strobe <= 0;
+		if (reset) begin
+			output_strobe <= 0;
+			acknowledge_pipeline <= 0;
+		end else begin
+			if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_EARLY:ACKNOWLEDGE_PICKOFF_EARLY-1]==2'b01) begin
+				output_strobe <= 0;
+			end else if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_LATE:ACKNOWLEDGE_PICKOFF_LATE-1]==2'b01) begin
+				if (~fifo_empty) begin
+					output_strobe <= 1'b1;
+				end
+			end else if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_LATE:ACKNOWLEDGE_PICKOFF_LATE-1]==2'b10) begin
+				output_strobe <= 0;
+				if (~fifo_empty) begin
+					fifo_read_strobe <= 1'b1;
+				end
+			end
+			acknowledge_pipeline <= { acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_LATE-1:0], acknowledge };
+		end
+	end
+endmodule
+
+module parcel_fifo_tb;
+	localparam HALF_CLOCK_PERIOD = 2;
+	localparam CLOCK_PERIOD = 2 * HALF_CLOCK_PERIOD;
+	localparam EXTRA_WAIT = 8 * CLOCK_PERIOD;
+	localparam DATA_WIDTH = 4;
+	reg clock = 0;
+	reg reset = 1;
+	reg [DATA_WIDTH-1:0] nybble = 0;
+	reg fifo_write_strobe = 0;
+	wire [DATA_WIDTH-1:0] fifo_out_word;
+	reg [DATA_WIDTH-1:0] data = 0;
+	wire pmod_strobe;
+	reg acknowledge = 0;
+	wire fifo_read;
+	wire fifo_empty;
+	fifo_single_clock #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(4)) fsc (.clock(clock), .reset(reset), .error_count(),
+		.data_in(nybble), .write_enable(fifo_write_strobe), .full(), .almost_full(), .full_or_almost_full(),
+		.data_out(fifo_out_word), .read_enable(fifo_read), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
+	handshake_fifo pmod_fifo (.clock(clock), .reset(reset), .fifo_read_strobe(fifo_read), .fifo_empty(fifo_empty), .acknowledge(acknowledge), .output_strobe(pmod_strobe));
+	initial begin
+		#EXTRA_WAIT;
+		reset <= 0;
+		acknowledge <= 0;
+		#EXTRA_WAIT;
+		// initial read of an empty fifo, just to see what happens
+		acknowledge <= 1'b1; #EXTRA_WAIT; acknowledge <= 0; #EXTRA_WAIT;
+		#EXTRA_WAIT;
+		// fill fifo
+		nybble <= 4'hf; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'he; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'hd; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'hc; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'hb; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'ha; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h9; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h8; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h7; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h6; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h5; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h4; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h3; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h2; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h1; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h0; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		#EXTRA_WAIT;
+		// read 'em out slowly
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		#EXTRA_WAIT;
+		// one extra after the fifo should be empty, just to see what happens
+		acknowledge <= 1'b1; #EXTRA_WAIT; acknowledge <= 0; #EXTRA_WAIT;
+		#EXTRA_WAIT;
+		// put some different values in fifo
+		nybble <= 4'ha; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h1; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'hf; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'ha; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h0; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'he; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h6; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'ha; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		#EXTRA_WAIT;
+		// read 'em out slowly
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		#EXTRA_WAIT;
+		// one extra after the fifo should be empty, just to see what happens
+		acknowledge <= 1'b1; #EXTRA_WAIT; acknowledge <= 0; #EXTRA_WAIT;
+		#EXTRA_WAIT;
+		// one extra after the fifo should be empty, just to see what happens
+		acknowledge <= 1'b1; #EXTRA_WAIT; acknowledge <= 0; #EXTRA_WAIT;
+		#EXTRA_WAIT;
+		$finish;
+	end
+	always begin
+		#HALF_CLOCK_PERIOD;
+		clock <= ~clock;
+	end
+endmodule
 
 module ALPHAtest #(
 	parameter ALPHA_V = 2
@@ -24,7 +159,8 @@ module ALPHAtest #(
 	// alpha_eval revC:
 	output sysclk_p, sysclk_n,
 	output ls_i2c,
-	output [5:0] pmod,
+	input acknowledge,
+	output [4:0] pmod,
 	output scl,
 	inout sda,
 	output sin,
@@ -93,7 +229,7 @@ module ALPHAtest #(
 	assign led[3] = startup_sequence_3_has_occurred;
 	assign led[4] = i2c_transfer_has_occurred;
 	assign led[7:5] = { 1'b0, 1'b0, 1'b0 };
-	wire debounced_button_going_inactive;
+//	wire debounced_button_going_inactive;
 	wire should_do_i2c_transfer = 1;
 	wire should_do_startup_sequence_3 = 1;
 	wire should_do_startup_sequence_2 = 1;
@@ -112,32 +248,28 @@ module ALPHAtest #(
 	wire data_a;
 	IBUFDS data_in (.I(data_a_out_p), .IB(data_a_out_n), .O(data_a));
 	wire [3:0] nybble;
-	wire [1:0] nybble_counter;
-	wire [15:0] data_word;
-	wire header, meat, footer, strobe, msn; // msn = most significant nybble
-	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .meat(meat), .footer(footer), .strobe(strobe), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
-	if (0) begin
-		assign pmod[5] = strobe    ? 1'bz : 1'b0;
-		assign pmod[4] = msn       ? 1'bz : 1'b0;
-		assign pmod[3] = nybble[3] ? 1'bz : 1'b0;
-		assign pmod[2] = nybble[2] ? 1'bz : 1'b0;
-		assign pmod[1] = nybble[1] ? 1'bz : 1'b0;
-		assign pmod[0] = nybble[0] ? 1'bz : 1'b0;
-	end else begin
-		assign pmod[5] = strobe;
-		assign pmod[4] = msn;
-		assign pmod[3] = nybble[3];
-		assign pmod[2] = nybble[2];
-		assign pmod[1] = nybble[1];
-		assign pmod[0] = nybble[0];
-	end
-	// tok_a_in tok_a_out anything_that_is_going_on
+//	wire [1:0] nybble_counter;
+//	wire [15:0] data_word;
+	wire header, meat, footer, fifo_write_strobe, msn; // msn = most significant nybble
+	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .meat(meat), .footer(footer), .strobe(fifo_write_strobe), .msn(msn), .nybble(nybble), .nybble_counter(), .data_word());
+	localparam LOG2_OF_DEPTH = 13 + 2; // $clog2(4200) + 2;
+	wire [3:0] fifo_out_word;
+	wire fifo_read_strobe;
+	wire pmod_strobe;
+	wire fifo_empty;
+	fifo_single_clock #(.DATA_WIDTH(4), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(sysclk), .reset(reset), .error_count(),
+		.data_in(nybble), .write_enable(fifo_write_strobe), .full(), .almost_full(), .full_or_almost_full(),
+		.data_out(fifo_out_word), .read_enable(fifo_read_strobe), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
+	handshake_fifo pmod_fifo (.clock(sysclk), .reset(reset), .fifo_read_strobe(fifo_read_strobe), .fifo_empty(fifo_empty), .acknowledge(acknowledge), .output_strobe(pmod_strobe));
+	assign pmod[4] = pmod_strobe;
+	assign pmod[3:0] = fifo_out_word;
+	// tok_a_in tok_a_out anything_that_is_going_on msn header footer meat
 	assign coax[0] = data_a;
 	assign coax[1] = header;
 	assign coax[2] = footer;
 	assign coax[3] = meat;
-	assign coax[4] = header;
-	assign coax[5] = msn;
+	assign coax[4] = msn;
+	assign coax[5] = tok_a_out;
 	reg [3:0] rot_buffered_a = 0;
 	reg [3:0] rot_buffered_b = 0;
 	always @(posedge sysclk) begin
@@ -219,7 +351,7 @@ module ALPHAtest #(
 	end
 	// ----------------------------------------------------------------------
 	wire debounced_button;
-	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b0), .button_activated_pulse(debounced_button), .button_deactivated_pulse(debounced_button_going_inactive), .button_active());
+	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b0), .button_activated_pulse(debounced_button), .button_deactivated_pulse(), .button_active());
 	always @(posedge sysclk) begin
 		startup_sequence_1 <= 0;
 		if (reset) begin

@@ -319,6 +319,7 @@ module alpha_control #(
 	//wire [6:0] address = 7'h39; // i2c spectral analyzer for testing
 	// ----------------------------------------------------------------------
 	// 00 I2C_trigger
+	//assign i2c_value[0] = 0; // I2C trigger
 	// ----------------------------------------------------------------------
 	// 01 SRC register:
 	wire [4:0] I2CupAddr = 5'h17;
