@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-04-09 by mza
+// last updated 2024-04-10 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -31,7 +31,7 @@ module handshake_fifo #(
 		end else begin
 			if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_EARLY:ACKNOWLEDGE_PICKOFF_EARLY-1]==2'b01) begin
 				output_strobe <= 0;
-			end else if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_LATE:ACKNOWLEDGE_PICKOFF_LATE-1]==2'b01) begin
+			end else if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_LATE:ACKNOWLEDGE_PICKOFF_LATE-1]==2'b11) begin
 				if (~fifo_empty) begin
 					output_strobe <= 1'b1;
 				end
