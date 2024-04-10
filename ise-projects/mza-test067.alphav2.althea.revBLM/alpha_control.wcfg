@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test067.alphav2.althea.revBLM/alpha_control_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="alpha_control_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="23" />
+   <wvobject fp_name="/alpha_control_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/startup_sequence_3" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">startup_sequence_3</obj_property>
+      <obj_property name="ObjectShortName">startup_sequence_3</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/sync" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sync</obj_property>
+      <obj_property name="ObjectShortName">sync</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/dreset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">dreset</obj_property>
+      <obj_property name="ObjectShortName">dreset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/startup_sequence_2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">startup_sequence_2</obj_property>
+      <obj_property name="ObjectShortName">startup_sequence_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/sin" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sin</obj_property>
+      <obj_property name="ObjectShortName">sin</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/pclk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pclk</obj_property>
+      <obj_property name="ObjectShortName">pclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/sclk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sclk</obj_property>
+      <obj_property name="ObjectShortName">sclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider20" type="divider">
+      <obj_property name="label">i2c</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/start_i2c_transfer" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">start_i2c_transfer</obj_property>
+      <obj_property name="ObjectShortName">start_i2c_transfer</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/alpha_control/i2c_register" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i2c_register[3:0]</obj_property>
+      <obj_property name="ObjectShortName">i2c_register[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/alpha_control/i2c_inner_start_transfer" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">i2c_inner_start_transfer</obj_property>
+      <obj_property name="ObjectShortName">i2c_inner_start_transfer</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/alpha_control/i2c_transfer_complete" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">i2c_transfer_complete</obj_property>
+      <obj_property name="ObjectShortName">i2c_transfer_complete</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/alpha_control/i2c_working_on_some_transfers" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">i2c_working_on_some_transfers</obj_property>
+      <obj_property name="ObjectShortName">i2c_working_on_some_transfers</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/sda_dir" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sda_dir</obj_property>
+      <obj_property name="ObjectShortName">sda_dir</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/sda_in" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sda_in</obj_property>
+      <obj_property name="ObjectShortName">sda_in</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/sda_out" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sda_out</obj_property>
+      <obj_property name="ObjectShortName">sda_out</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/scl" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scl</obj_property>
+      <obj_property name="ObjectShortName">scl</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/alpha_control/i2c_address_register_enables" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i2c_address_register_enables[15:0]</obj_property>
+      <obj_property name="ObjectShortName">i2c_address_register_enables[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/startup_sequence_1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">startup_sequence_1</obj_property>
+      <obj_property name="ObjectShortName">startup_sequence_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/trig_top" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trig_top</obj_property>
+      <obj_property name="ObjectShortName">trig_top</obj_property>
+   </wvobject>
+   <wvobject fp_name="/alpha_control_tb/tok_a_in" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">tok_a_in</obj_property>
+      <obj_property name="ObjectShortName">tok_a_in</obj_property>
+   </wvobject>
+</wave_config>
