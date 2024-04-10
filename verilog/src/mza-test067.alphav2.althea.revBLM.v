@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-04-09 by mza
+// last updated 2024-04-10 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -14,7 +14,7 @@
 
 module handshake_fifo #(
 	parameter ACKNOWLEDGE_PICKOFF_EARLY = 3,
-	parameter ACKNOWLEDGE_PICKOFF_LATE = ACKNOWLEDGE_PICKOFF_EARLY + 10
+	parameter ACKNOWLEDGE_PICKOFF_LATE = ACKNOWLEDGE_PICKOFF_EARLY + 3
 ) (
 	input clock, reset,
 	input acknowledge,
@@ -31,7 +31,7 @@ module handshake_fifo #(
 		end else begin
 			if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_EARLY:ACKNOWLEDGE_PICKOFF_EARLY-1]==2'b01) begin
 				output_strobe <= 0;
-			end else if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_LATE:ACKNOWLEDGE_PICKOFF_LATE-1]==2'b01) begin
+			end else if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_LATE:ACKNOWLEDGE_PICKOFF_LATE-1]==2'b11) begin
 				if (~fifo_empty) begin
 					output_strobe <= 1'b1;
 				end
@@ -351,7 +351,7 @@ module ALPHAtest #(
 	end
 	// ----------------------------------------------------------------------
 	wire debounced_button;
-	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b0), .button_activated_pulse(debounced_button), .button_deactivated_pulse(), .button_active());
+	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(100)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b0), .button_activated_pulse(debounced_button), .button_deactivated_pulse(), .button_active());
 	always @(posedge sysclk) begin
 		startup_sequence_1 <= 0;
 		if (reset) begin

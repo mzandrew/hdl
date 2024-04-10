@@ -1,21 +1,22 @@
 // written 2018-07-27 by mza
 // originally from file mza-test008.16-segment-driver.button-debounce-duration-counter.v
-// last updated 2024-03-28 by mza
+// last updated 2024-04-10 by mza
 
 // see module button_debounce in file synchronizer.v as well
 
 `ifndef DEBOUNCE_LIB
 `define DEBOUNCE_LIB
 
-module debounceV1 (
+module debounceV1 #(
+	parameter SIMULATION = 0,
+	parameter TIMEOUT = SIMULATION ? 16 : 120000
+) (
 	input clock,
 	input polarity,
 	input raw_button_input,
 	output reg button_active = 0
 );
-	//localparam timeout = 120000; // synthesis
-	localparam timeout = 16; // simulation
-	reg [$clog2(timeout)+1:0] counter = 0;
+	reg [$clog2(TIMEOUT)+1:0] counter = 0;
 	reg old_status = 0;
 	reg new_status = 0;
 	always @(posedge clock) begin
@@ -23,13 +24,13 @@ module debounceV1 (
 			if (raw_button_input==polarity) begin
 				new_status <= 1; // raw_button_input is active
 				if (old_status==0) begin // old_status != new_status, so act, then implement delay before checking again
-					counter <= timeout;
+					counter <= TIMEOUT;
 					button_active <= 1;
 				end
 			end else begin
 				new_status <= 0; // raw_button_input is inactive
 				if (old_status==1) begin // old_status != new_status, so implement delay before checking again
-					counter <= timeout;
+					counter <= TIMEOUT;
 					button_active <= 0;
 				end
 			end
@@ -45,7 +46,7 @@ module debounce #(
 	parameter CLOCK_FREQUENCY = 100000000,
 	parameter TIMEOUT_IN_MILLISECONDS = 50,
 	parameter MILLISECONDS_PER_SECOND = 1000,
-	parameter COUNTER_PICKOFF = $clog2(CLOCK_FREQUENCY*TIMEOUT_IN_MILLISECONDS/MILLISECONDS_PER_SECOND) // 23
+	parameter COUNTER_PICKOFF = $clog2(CLOCK_FREQUENCY/MILLISECONDS_PER_SECOND*TIMEOUT_IN_MILLISECONDS) // 23
 ) (
 	input clock,
 	input polarity,
