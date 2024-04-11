@@ -2,7 +2,7 @@
 
 # written 2024-04-04 by mza
 # based on mza-test046_simple_parallel_interface_and_pollable_memory_althea.py
-# last updated 2024-04-10 by mza
+# last updated 2024-04-11 by mza
 
 filename = "alpha.data"
 
@@ -14,19 +14,22 @@ import althea
 import re # re.search
 import gpiozero
 
-all_gpios = [ 2, 3, 7, 8, 9, 10, 11 ]
-nybble_gpios = [ 11, 9, 10, 8 ]
+if 0: # althea-pmod-to-pmod-hat connection
+	nybble_gpios = [ 11, 9, 10, 8 ]
+	pmod_strobe = gpiozero.InputDevice(2, pull_up=True)
+	pmod_acknowledge = gpiozero.OutputDevice(3)
+else: # althea-on-rpi connection
+	nybble_gpios = [ 8, 10, 9, 11 ]
+	pmod_strobe = gpiozero.InputDevice(7, pull_up=True)
+	pmod_acknowledge = gpiozero.OutputDevice(6)
+bus = []
+for i in range(len(nybble_gpios)):
+	bus.append(gpiozero.InputDevice(nybble_gpios[i], pull_up=False))
 
 #header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger1", "trigger0", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
 HEADER_LENGTH_WORDS = 8
 #header_length_nybbles = HEADER_LENGTH_WORDS * 4
 #header_description_words = [ "ALFA", "IdFi", "cs43", "cs21", "tg10", "SaLo", "StSt", "MiSt" ]
-
-bus = []
-for i in range(len(nybble_gpios)):
-	bus.append(gpiozero.InputDevice(nybble_gpios[i], pull_up=False))
-pmod_strobe = gpiozero.InputDevice(2, pull_up=True)
-pmod_acknowledge = gpiozero.OutputDevice(3)
 
 count = 1
 nybble_counter = 0
