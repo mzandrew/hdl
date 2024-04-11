@@ -602,14 +602,10 @@ module testALPHA #(
 	assign jb[5] = 0;
 	assign jb[6] = header;
 	assign jb[7] = 0;
-	wire [3:0] CMPbias_MSN = 4'h8;
-	wire [3:0] ISEL_MSN    = rot_buffered_b;
-	wire [3:0] SBbias_MSN  = 4'h8;
-	wire [3:0] DBbias_MSN  = 4'h8;
-	wire [11:0] CMPbias = {CMPbias_MSN, 8'h44};
-	wire [11:0] ISEL    = {ISEL_MSN,    8'h44};
-	wire [11:0] SBbias  = {SBbias_MSN,  8'h44};
-	wire [11:0] DBbias  = {DBbias_MSN,  8'h44};
+	wire [11:0] ISEL    = 12'ha80; // 12'hb44=79us ramp on 3*alpha board; 12'ha80=41us on 1*alpha toupee
+	wire [11:0] CMPbias = 12'd1000; // in IRSX PS7 code, CMPbias2 is 737 and CMPbias is 1000
+	wire [11:0] SBbias  = 12'd1300; // in IRSX PS7 code, SBbias is 1300
+	wire [11:0] DBbias  = 12'd1300; // in IRSX PS7 code, SBbias is 1300
 	assign led[3] = rot_buffered_b[3];
 	assign led[2] = rot_buffered_b[2];
 	assign led[1] = rot_buffered_b[1];
