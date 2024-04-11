@@ -36,6 +36,26 @@ data_nybbles = []
 string = ""
 datafile = open(filename, "w+")
 ALFA_OMGA_counter = 0
+FONT_SIZE_PLOT_CAPTION = 3
+FONT_SIZE_FEED_NAME = 3
+
+def setup_pygame_sdl():
+	# from mondrian.py
+	import os # environ
+	os.environ['SDL_AUDIODRIVER'] = 'dsp'
+	os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+	os.environ["SDL_MOUSEDEV"] = "/dev/input/event0"
+	os.environ["SDL_MOUSEDRV"] = "TSLIB"
+	import pygame # sudo apt install -y python3-pip python3-pygame; sudo apt remove -y python3-pygame; pip3 install pygame
+	pygame.display.init()
+	pygame.font.init() # sudo apt install -y libsdl2-ttf-2.0-0
+	#pygame.mixer.quit()
+	global game_clock
+	game_clock = pygame.time.Clock()
+	#pygame.mouse.set_cursor((8,8),(0,0),(0,0,0,0,0,0,0,0),(0,0,0,0,0,0,0,0))
+	pygame.display.set_caption("mondrian")
+	plot_caption_font = pygame.font.SysFont("monospace", FONT_SIZE_PLOT_CAPTION)
+	feed_name_font = pygame.font.SysFont("monospace", FONT_SIZE_FEED_NAME)
 
 def write_strings_and_empty_buffer():
 	global data_string
@@ -82,6 +102,7 @@ def handle_strobe():
 		ALFA_OMGA_counter += 1
 
 if __name__ == "__main__":
+	#setup_pygame_sdl()
 	pmod_acknowledge.value = 1
 	while True:
 		try:
