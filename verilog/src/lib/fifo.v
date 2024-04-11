@@ -1,10 +1,144 @@
-// last updated 2024-04-09 by mza
+// last updated 2024-04-11 by mza
 
 `ifndef FIFO_LIB
 `define FIFO_LIB
 
 `include "generic.v"
 `include "RAM8.v"
+
+module handshake_fifo #(
+	parameter ACKNOWLEDGE_PICKOFF_EARLY = 3,
+	parameter ACKNOWLEDGE_PICKOFF_LATE = ACKNOWLEDGE_PICKOFF_EARLY + 3
+) (
+	input clock, reset,
+	input acknowledge,
+	input fifo_empty,
+	output reg fifo_read_strobe = 0,
+	output reg output_strobe = 0
+);
+	reg [ACKNOWLEDGE_PICKOFF_LATE:0] acknowledge_pipeline = 0;
+	always @(posedge clock) begin
+		fifo_read_strobe <= 0;
+		if (reset) begin
+			output_strobe <= 0;
+			acknowledge_pipeline <= 0;
+		end else begin
+			if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_EARLY:ACKNOWLEDGE_PICKOFF_EARLY-1]==2'b01) begin
+				output_strobe <= 0;
+			end else if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_LATE:ACKNOWLEDGE_PICKOFF_LATE-1]==2'b11) begin
+				if (~fifo_empty) begin
+					output_strobe <= 1'b1;
+				end
+			end else if (acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_LATE:ACKNOWLEDGE_PICKOFF_LATE-1]==2'b10) begin
+				output_strobe <= 0;
+				if (~fifo_empty) begin
+					fifo_read_strobe <= 1'b1;
+				end
+			end
+			acknowledge_pipeline <= { acknowledge_pipeline[ACKNOWLEDGE_PICKOFF_LATE-1:0], acknowledge };
+		end
+	end
+endmodule
+
+module handshake_fifo_tb;
+	localparam HALF_CLOCK_PERIOD = 2;
+	localparam CLOCK_PERIOD = 2 * HALF_CLOCK_PERIOD;
+	localparam EXTRA_WAIT = 8 * CLOCK_PERIOD;
+	localparam DATA_WIDTH = 4;
+	reg clock = 0;
+	reg reset = 1;
+	reg [DATA_WIDTH-1:0] nybble = 0;
+	reg fifo_write_strobe = 0;
+	wire [DATA_WIDTH-1:0] fifo_out_word;
+	reg [DATA_WIDTH-1:0] data = 0;
+	wire pmod_strobe;
+	reg acknowledge = 0;
+	wire fifo_read;
+	wire fifo_empty;
+	fifo_single_clock #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(4)) fsc (.clock(clock), .reset(reset), .error_count(),
+		.data_in(nybble), .write_enable(fifo_write_strobe), .full(), .almost_full(), .full_or_almost_full(),
+		.data_out(fifo_out_word), .read_enable(fifo_read), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
+	handshake_fifo pmod_fifo (.clock(clock), .reset(reset), .fifo_read_strobe(fifo_read), .fifo_empty(fifo_empty), .acknowledge(acknowledge), .output_strobe(pmod_strobe));
+	initial begin
+		#EXTRA_WAIT;
+		reset <= 0;
+		acknowledge <= 0;
+		#EXTRA_WAIT;
+		// initial read of an empty fifo, just to see what happens
+		acknowledge <= 1'b1; #EXTRA_WAIT; acknowledge <= 0; #EXTRA_WAIT;
+		#EXTRA_WAIT;
+		// fill fifo
+		nybble <= 4'hf; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'he; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'hd; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'hc; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'hb; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'ha; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h9; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h8; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h7; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h6; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h5; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h4; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h3; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h2; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h1; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h0; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		#EXTRA_WAIT;
+		// read 'em out slowly
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		#EXTRA_WAIT;
+		// one extra after the fifo should be empty, just to see what happens
+		acknowledge <= 1'b1; #EXTRA_WAIT; acknowledge <= 0; #EXTRA_WAIT;
+		#EXTRA_WAIT;
+		// put some different values in fifo
+		nybble <= 4'ha; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h1; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'hf; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'ha; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h0; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'he; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'h6; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		nybble <= 4'ha; fifo_write_strobe <= 1'b1; #CLOCK_PERIOD; fifo_write_strobe <= 0; #CLOCK_PERIOD;
+		#EXTRA_WAIT;
+		// read 'em out slowly
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		acknowledge <= 1'b1; @(posedge pmod_strobe) data <= fifo_out_word; #EXTRA_WAIT; acknowledge <= 0; #(4*EXTRA_WAIT);
+		#EXTRA_WAIT;
+		// one extra after the fifo should be empty, just to see what happens
+		acknowledge <= 1'b1; #EXTRA_WAIT; acknowledge <= 0; #EXTRA_WAIT;
+		#EXTRA_WAIT;
+		// one extra after the fifo should be empty, just to see what happens
+		acknowledge <= 1'b1; #EXTRA_WAIT; acknowledge <= 0; #EXTRA_WAIT;
+		#EXTRA_WAIT;
+		$finish;
+	end
+	always begin
+		#HALF_CLOCK_PERIOD;
+		clock <= ~clock;
+	end
+endmodule
 
 //	fifo_single_clock_using_single_bram #(.DATA_WIDTH(DATA_WIDTH), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(clock), .reset(reset),
 //		.data_in(data_in), .write_enable(write_enable), .full(full), .almost_full(almost_full), .full_or_almost_full(full_or_almost_full),
