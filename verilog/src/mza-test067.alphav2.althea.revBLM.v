@@ -285,15 +285,10 @@ module ALPHAtest #(
 	assign coax_led[2] = rot_buffered_b[2];
 	assign coax_led[1] = rot_buffered_b[1];
 	assign coax_led[0] = rot_buffered_b[0];
-	wire [3:0] ISEL_setting = 4'hb; // 79 us ramp
-	wire [3:0] CMPbias_MSN = 4'h8;
-	wire [3:0] ISEL_MSN    = ISEL_setting;
-	wire [3:0] SBbias_MSN  = 4'h8;
-	wire [3:0] DBbias_MSN  = 4'h8;
-	wire [11:0] CMPbias = {CMPbias_MSN, 8'h44};
-	wire [11:0] ISEL    = {ISEL_MSN,    8'h44};
-	wire [11:0] SBbias  = {SBbias_MSN,  8'h44};
-	wire [11:0] DBbias  = {DBbias_MSN,  8'h44};
+	wire [11:0] ISEL    = 12'ha80; // 12'hb44=79us ramp on 3*alpha board; 12'ha80=41us on 1*alpha toupee
+	wire [11:0] CMPbias = 12'd1000; // in IRSX PS7 code, CMPbias2 is 737 and CMPbias is 1000
+	wire [11:0] SBbias  = 12'd1300; // in IRSX PS7 code, SBbias is 1300
+	wire [11:0] DBbias  = 12'd1300; // in IRSX PS7 code, SBbias is 1300
 	// ----------------------------------------------------------------------
 	localparam STARTUP_SEQUENCE_3_COUNTER_PICKOFF = 26;
 	reg [STARTUP_SEQUENCE_3_COUNTER_PICKOFF:0] startup_sequence_3_counter = 0;
