@@ -1,6 +1,6 @@
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-04-10 by mza
+// last updated 2024-04-11 by mza
 
 `ifndef ALPHA_LIB
 `define ALPHA_LIB
@@ -61,7 +61,7 @@ module alpha_control #(
 	parameter SIMULATION = 0
 ) (
 	input clock, reset,
-	input startup_sequence_1, startup_sequence_2, startup_sequence_3, start_i2c_transfer,
+	input initiate_trigger, initiate_legacy_serial_sequence, initiate_dreset_sequence, start_i2c_transfer,
 	input sda_in,
 	input [11:0] CMPbias, ISEL, SBbias, DBbias,
 	output reg sync, dreset, tok_a_in, sin, pclk, sclk, trig_top,
@@ -96,7 +96,7 @@ module alpha_control #(
 				end else begin
 				end
 			end
-			if (startup_sequence_3) begin
+			if (initiate_dreset_sequence) begin
 				counter3 <= 0;
 				sync <= 0;
 				dreset <= 0;
@@ -127,7 +127,7 @@ module alpha_control #(
 				end else begin
 				end
 			end
-			if (startup_sequence_1) begin
+			if (initiate_trigger) begin
 				counter1 <= 0;
 				tok_a_in <= 0;
 				trig_top <= 0;
@@ -299,7 +299,7 @@ module alpha_control #(
 					// no operation
 				end
 			end
-			if (startup_sequence_2) begin
+			if (initiate_legacy_serial_sequence) begin
 				counter2 <= 0;
 				sin <= 0;
 				sclk <= 0;
@@ -433,9 +433,9 @@ module alpha_control_tb;
 	localparam clock_period = 2*half_clock_period;
 	reg clock = 0;
 	reg reset = 1;
-	reg startup_sequence_1 = 0;
-	reg startup_sequence_2 = 0;
-	reg startup_sequence_3 = 0;
+	reg initiate_trigger = 0;
+	reg initiate_legacy_serial_sequence = 0;
+	reg initiate_dreset_sequence = 0;
 	reg start_i2c_transfer = 0;
 	wire sync, dreset, tok_a_in;
 	wire scl, sda_out, sda_dir, sin, pclk, sclk, trig_top;
@@ -443,10 +443,10 @@ module alpha_control_tb;
 	initial begin
 		reset <= 1; #101; reset <= 0;
 		#100;
-		startup_sequence_3 <= 1; #clock_period; startup_sequence_3 <= 0; #600;
-		startup_sequence_2 <= 1; #clock_period; startup_sequence_2 <= 0; #4000;
+		initiate_dreset_sequence <= 1; #clock_period; initiate_dreset_sequence <= 0; #600;
+		initiate_legacy_serial_sequence <= 1; #clock_period; initiate_legacy_serial_sequence <= 0; #4000;
 		start_i2c_transfer <= 1; #clock_period; start_i2c_transfer <= 0; #34000;
-		startup_sequence_1 <= 1; #clock_period; startup_sequence_1 <= 0; #4000;
+		initiate_trigger <= 1; #clock_period; initiate_trigger <= 0; #4000;
 		#400;
 		$finish;
 	end
@@ -454,7 +454,7 @@ module alpha_control_tb;
 		clock <= ~clock;
 		#half_clock_period;
 	end
-	alpha_control #(.SIMULATION(1)) alpha_control (.clock(clock), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .start_i2c_transfer(start_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
+	alpha_control #(.SIMULATION(1)) alpha_control (.clock(clock), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .start_i2c_transfer(start_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
 endmodule
 
 module alpha_readout (
