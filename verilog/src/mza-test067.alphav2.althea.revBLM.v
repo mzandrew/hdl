@@ -32,7 +32,7 @@ module ALPHAtestPMOD #(
 	output sin,
 	output actual_sclk,
 	output actual_pclk,
-	input shout,
+//	input shout,
 	output sstclk_p, sstclk_n,
 	output tok_a_in,
 	input tok_a_out,
