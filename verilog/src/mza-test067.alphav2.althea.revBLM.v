@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-04-10 by mza
+// last updated 2024-04-11 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -22,11 +22,11 @@ module ALPHAtest #(
 	output [3:0] coax_led,
 	output [7:0] led,
 	input [3:0] rot,
-	// alpha_eval revC:
-	output sysclk_p, sysclk_n,
-	output ls_i2c,
 	input acknowledge,
 	output [4:0] pmod,
+	// alpha_eval revC / revD:
+	output sysclk_p, sysclk_n,
+	output ls_i2c,
 	output scl,
 	inout sda,
 	output sin,
@@ -89,27 +89,27 @@ module ALPHAtest #(
 	assign ls_i2c = 1'b1; // 0=i2c; 1=ls
 	//assign ls_i2c = 1'b0; // 0=i2c; 1=ls
 	// ----------------------------------------------------------------------
-	assign led[0] = ~first_pll_locked;
-	assign led[1] = startup_sequence_1_has_occurred;
-	assign led[2] = startup_sequence_2_has_occurred;
-	assign led[3] = startup_sequence_3_has_occurred;
-	assign led[4] = i2c_transfer_has_occurred;
-	assign led[7:5] = { 1'b0, 1'b0, 1'b0 };
-//	wire debounced_button_going_inactive;
 	wire should_do_i2c_transfer = 1;
-	wire should_do_startup_sequence_3 = 1;
+	wire should_do_dreset_sequence = 1;
 	wire should_do_startup_sequence_2 = 1;
 	wire should_do_startup_sequence_1 = 1;
 	reg start_i2c_transfer = 0;
-	reg startup_sequence_3 = 0;
+	reg initiate_dreset_sequence = 0;
 	reg startup_sequence_2 = 0;
 	reg startup_sequence_1 = 0;
 	reg i2c_transfer_has_occurred = 0;
-	reg startup_sequence_3_has_occurred = 0;
+	reg dreset_sequence_has_occurred = 0;
 	reg startup_sequence_2_has_occurred = 0;
 	reg startup_sequence_1_has_occurred = 0;
+//	wire debounced_button_going_inactive;
+	assign led[0] = ~first_pll_locked;
+	assign led[1] = startup_sequence_1_has_occurred;
+	assign led[2] = startup_sequence_2_has_occurred;
+	assign led[3] = dreset_sequence_has_occurred;
+	assign led[4] = i2c_transfer_has_occurred;
+	assign led[7:5] = { 1'b0, 1'b0, 1'b0 };
 	// ----------------------------------------------------------------------
-	wire something_happened = startup_sequence_3 || startup_sequence_2 || startup_sequence_1 || start_i2c_transfer;
+	wire something_happened = initiate_dreset_sequence || startup_sequence_2 || startup_sequence_1 || start_i2c_transfer;
 	wire anything_that_is_going_on = tok_a_out || pclk || sclk || sin || dreset || auxtrig || trigin || something_happened;
 	wire data_a;
 	IBUFDS data_in (.I(data_a_out_p), .IB(data_a_out_n), .O(data_a));
@@ -156,20 +156,20 @@ module ALPHAtest #(
 	wire [11:0] SBbias  = 12'd1300; // in IRSX PS7 code, SBbias is 1300
 	wire [11:0] DBbias  = 12'd1300; // in IRSX PS7 code, SBbias is 1300
 	// ----------------------------------------------------------------------
-	localparam STARTUP_SEQUENCE_3_COUNTER_PICKOFF = 26;
-	reg [STARTUP_SEQUENCE_3_COUNTER_PICKOFF:0] startup_sequence_3_counter = 0;
+	localparam INITIATE_DRESET_SEQUENCE_COUNTER_PICKOFF = 26;
+	reg [INITIATE_DRESET_SEQUENCE_COUNTER_PICKOFF:0] initiate_dreset_sequence_counter = 0;
 	always @(posedge sysclk) begin
-		startup_sequence_3 <= 0;
+		initiate_dreset_sequence <= 0;
 		if (reset) begin
-			startup_sequence_3_has_occurred <= 0;
-		end else if (~startup_sequence_3_has_occurred) begin
-			if (startup_sequence_3_counter[STARTUP_SEQUENCE_3_COUNTER_PICKOFF]) begin
-				if (should_do_startup_sequence_3) begin
-					startup_sequence_3 <= 1'b1;
-					startup_sequence_3_has_occurred <= 1'b1;
+			dreset_sequence_has_occurred <= 0;
+		end else if (~dreset_sequence_has_occurred) begin
+			if (initiate_dreset_sequence_counter[INITIATE_DRESET_SEQUENCE_COUNTER_PICKOFF]) begin
+				if (should_do_dreset_sequence) begin
+					initiate_dreset_sequence <= 1'b1;
+					dreset_sequence_has_occurred <= 1'b1;
 				end
 			end else begin
-				startup_sequence_3_counter <= startup_sequence_3_counter + 1'b1;
+				initiate_dreset_sequence_counter <= initiate_dreset_sequence_counter + 1'b1;
 			end
 		end
 	end
@@ -180,7 +180,7 @@ module ALPHAtest #(
 		startup_sequence_2 <= 0;
 		if (reset) begin
 			startup_sequence_2_has_occurred <= 0;
-		end else if ((startup_sequence_3_has_occurred||~should_do_startup_sequence_3) && ~startup_sequence_2_has_occurred) begin
+		end else if ((dreset_sequence_has_occurred||~should_do_dreset_sequence) && ~startup_sequence_2_has_occurred) begin
 			if (startup_sequence_2_counter[STARTUP_SEQUENCE_2_COUNTER_PICKOFF]) begin
 				if (should_do_startup_sequence_2) begin
 					startup_sequence_2 <= 1'b1;
@@ -198,8 +198,8 @@ module ALPHAtest #(
 		start_i2c_transfer <= 0;
 		if (reset) begin
 			i2c_transfer_has_occurred <= 0;
-		//end else if (startup_sequence_3_has_occurred && startup_sequence_2_has_occurred && ~i2c_transfer_has_occurred) begin
-		end else if ((startup_sequence_3_has_occurred||~should_do_startup_sequence_3) && (startup_sequence_2_has_occurred||~should_do_startup_sequence_2) && ~i2c_transfer_has_occurred) begin
+		//end else if (dreset_sequence_has_occurred && startup_sequence_2_has_occurred && ~i2c_transfer_has_occurred) begin
+		end else if ((dreset_sequence_has_occurred||~should_do_dreset_sequence) && (startup_sequence_2_has_occurred||~should_do_startup_sequence_2) && ~i2c_transfer_has_occurred) begin
 			if (start_i2c_transfer_counter[START_I2C_TRANSFER_COUNTER_PICKOFF]) begin
 				if (should_do_i2c_transfer) begin
 					start_i2c_transfer <= 1'b1;
@@ -217,7 +217,7 @@ module ALPHAtest #(
 		startup_sequence_1 <= 0;
 		if (reset) begin
 			startup_sequence_1_has_occurred <= 0;
-		end else if ((startup_sequence_3_has_occurred||~should_do_startup_sequence_3) && (startup_sequence_2_has_occurred||~should_do_startup_sequence_2) && (i2c_transfer_has_occurred||~should_do_i2c_transfer)) begin
+		end else if ((dreset_sequence_has_occurred||~should_do_dreset_sequence) && (startup_sequence_2_has_occurred||~should_do_startup_sequence_2) && (i2c_transfer_has_occurred||~should_do_i2c_transfer)) begin
 			if (debounced_button) begin
 				startup_sequence_1 <= 1;
 				startup_sequence_1_has_occurred <= 1;
@@ -228,6 +228,6 @@ module ALPHAtest #(
 	wire sda_in, sda_out, sda_dir;
 	assign sda = sda_dir ? sda_out : 1'bz;
 	assign sda_in = sda;
-	alpha_control alpha_control (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .start_i2c_transfer(start_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trigin), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	alpha_control alpha_control (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .initiate_dreset_sequence(initiate_dreset_sequence), .start_i2c_transfer(start_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trigin), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 endmodule
 
