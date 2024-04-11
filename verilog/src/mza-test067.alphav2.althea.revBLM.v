@@ -12,7 +12,7 @@
 `include "lib/i2c.v"
 `include "lib/fifo.v"
 
-module ALPHAtest #(
+module ALPHAtestPMOD #(
 	parameter ALPHA_V = 2
 ) (
 	// althea revBLM:
@@ -92,24 +92,24 @@ module ALPHAtest #(
 	wire should_do_i2c_transfer = 1;
 	wire should_do_dreset_sequence = 1;
 	wire should_do_legacy_serial_sequence = 1;
-	wire should_do_startup_sequence_1 = 1;
+	wire should_do_trigger = 1;
 	reg start_i2c_transfer = 0;
 	reg initiate_dreset_sequence = 0;
 	reg initiate_legacy_serial_sequence = 0;
-	reg startup_sequence_1 = 0;
+	reg initiate_trigger = 0;
 	reg i2c_transfer_has_occurred = 0;
 	reg dreset_sequence_has_occurred = 0;
 	reg legacy_serial_sequence_has_occurred = 0;
-	reg startup_sequence_1_has_occurred = 0;
+	reg trigger_has_occurred = 0;
 //	wire debounced_button_going_inactive;
 	assign led[0] = ~first_pll_locked;
-	assign led[1] = startup_sequence_1_has_occurred;
+	assign led[1] = trigger_has_occurred;
 	assign led[2] = legacy_serial_sequence_has_occurred;
 	assign led[3] = dreset_sequence_has_occurred;
 	assign led[4] = i2c_transfer_has_occurred;
 	assign led[7:5] = { 1'b0, 1'b0, 1'b0 };
 	// ----------------------------------------------------------------------
-	wire something_happened = initiate_dreset_sequence || initiate_legacy_serial_sequence || startup_sequence_1 || start_i2c_transfer;
+	wire something_happened = initiate_dreset_sequence || initiate_legacy_serial_sequence || initiate_trigger || start_i2c_transfer;
 	wire anything_that_is_going_on = tok_a_out || pclk || sclk || sin || dreset || auxtrig || trigin || something_happened;
 	wire data_a;
 	IBUFDS data_in (.I(data_a_out_p), .IB(data_a_out_n), .O(data_a));
@@ -214,13 +214,13 @@ module ALPHAtest #(
 	wire debounced_button;
 	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(100)) button_debounce (.clock(sysclk), .raw_button_input(button), .polarity(1'b0), .button_activated_pulse(debounced_button), .button_deactivated_pulse(), .button_active());
 	always @(posedge sysclk) begin
-		startup_sequence_1 <= 0;
+		initiate_trigger <= 0;
 		if (reset) begin
-			startup_sequence_1_has_occurred <= 0;
+			trigger_has_occurred <= 0;
 		end else if ((dreset_sequence_has_occurred||~should_do_dreset_sequence) && (legacy_serial_sequence_has_occurred||~should_do_legacy_serial_sequence) && (i2c_transfer_has_occurred||~should_do_i2c_transfer)) begin
 			if (debounced_button) begin
-				startup_sequence_1 <= 1;
-				startup_sequence_1_has_occurred <= 1;
+				initiate_trigger <= 1;
+				trigger_has_occurred <= 1;
 			end
 		end
 	end
@@ -228,6 +228,6 @@ module ALPHAtest #(
 	wire sda_in, sda_out, sda_dir;
 	assign sda = sda_dir ? sda_out : 1'bz;
 	assign sda_in = sda;
-	alpha_control alpha_control (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .start_i2c_transfer(start_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trigin), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	alpha_control alpha_control (.clock(sysclk), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .start_i2c_transfer(start_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trigin), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 endmodule
 

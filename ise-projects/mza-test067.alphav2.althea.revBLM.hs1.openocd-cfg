@@ -36,7 +36,7 @@ source [find cpld/xilinx-xc6s.cfg]
 #source [find cpld/jtagspi.cfg]
 
 init
-pld load 0 ./mza-test067.alphav2.althea.revBLM/ALPHAtest.bit
+pld load 0 ./mza-test067.alphav2.althea.revBLM/ALPHAtestPMOD.bit
 
 exit
 
