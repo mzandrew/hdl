@@ -61,7 +61,7 @@ module alpha_control #(
 	parameter SIMULATION = 0
 ) (
 	input clock, reset,
-	input initiate_trigger, initiate_legacy_serial_sequence, initiate_dreset_sequence, start_i2c_transfer,
+	input initiate_trigger, initiate_legacy_serial_sequence, initiate_dreset_sequence, initiate_i2c_transfer,
 	input sda_in,
 	input [11:0] CMPbias, ISEL, SBbias, DBbias,
 	output reg sync, dreset, tok_a_in, sin, pclk, sclk, trig_top,
@@ -393,7 +393,7 @@ module alpha_control #(
 					end
 				end
 			end
-			if (start_i2c_transfer) begin
+			if (initiate_i2c_transfer) begin
 				i2c_register <= 0;
 				i2c_working_on_some_transfers <= 1;
 				i2c_transitioning_to_the_next_transfer <= 0;
@@ -436,7 +436,7 @@ module alpha_control_tb;
 	reg initiate_trigger = 0;
 	reg initiate_legacy_serial_sequence = 0;
 	reg initiate_dreset_sequence = 0;
-	reg start_i2c_transfer = 0;
+	reg initiate_i2c_transfer = 0;
 	wire sync, dreset, tok_a_in;
 	wire scl, sda_out, sda_dir, sin, pclk, sclk, trig_top;
 	reg sda_in = 0;
@@ -445,7 +445,7 @@ module alpha_control_tb;
 		#100;
 		initiate_dreset_sequence <= 1; #clock_period; initiate_dreset_sequence <= 0; #600;
 		initiate_legacy_serial_sequence <= 1; #clock_period; initiate_legacy_serial_sequence <= 0; #4000;
-		start_i2c_transfer <= 1; #clock_period; start_i2c_transfer <= 0; #34000;
+		initiate_i2c_transfer <= 1; #clock_period; initiate_i2c_transfer <= 0; #34000;
 		initiate_trigger <= 1; #clock_period; initiate_trigger <= 0; #4000;
 		#400;
 		$finish;
@@ -454,7 +454,7 @@ module alpha_control_tb;
 		clock <= ~clock;
 		#half_clock_period;
 	end
-	alpha_control #(.SIMULATION(1)) alpha_control (.clock(clock), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .start_i2c_transfer(start_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
+	alpha_control #(.SIMULATION(1)) alpha_control (.clock(clock), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
 endmodule
 
 module alpha_readout (
