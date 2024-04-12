@@ -213,7 +213,6 @@ module fifo_single_clock #(
 	parameter PRIMITIVE_ADDRESS_DEPTH = 14, // each s6 BRAM is 16kbits (18kbits)
 	parameter RAM_ADDRESS_DEPTH = PRIMITIVE_ADDRESS_DEPTH - $clog2(DATA_WIDTH), // each BRAM used has this depth
 	parameter ADDRESS_WIDTH = LOG2_OF_DEPTH < RAM_ADDRESS_DEPTH ? RAM_ADDRESS_DEPTH : LOG2_OF_DEPTH,
-	parameter NUMBER_OF_BRAMS_NEEDED = RAM_ADDRESS_DEPTH < LOG2_OF_DEPTH ? LOG2_OF_DEPTH - RAM_ADDRESS_DEPTH : 1,
 	parameter DEPTH = 1<<LOG2_OF_DEPTH
 ) (
 	input clock, reset,
