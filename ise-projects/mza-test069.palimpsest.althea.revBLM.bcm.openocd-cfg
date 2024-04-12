@@ -16,7 +16,7 @@ bcm2835gpio_peripheral_base 0x3F000000; # rpi2
 bcm2835gpio_speed_coeffs 146203 36; # Raspi2 BCM2836 (900Mhz)
 #bcm2835gpio_speed_coeffs 194938 48; # Raspi3 BCM2837 (1200Mhz)
 #bcm2835gpio_speed_coeffs 236181 60; # Raspi4
-adapter speed 100
+adapter speed 1000
 # gpio/bcm #s         tck tms tdi tdo
 #bcm2835gpio_jtag_nums 23  22  27  24; # revB and revBL
 bcm2835gpio_jtag_nums 25  26  27  24; # revBLM
