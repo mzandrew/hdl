@@ -1,6 +1,6 @@
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-04-11 by mza
+// last updated 2024-04-12 by mza
 
 `ifndef ALPHA_LIB
 `define ALPHA_LIB
@@ -340,7 +340,7 @@ module alpha_control #(
 	assign i2c_value[4] = lookback_windows; // LBW
 	// ----------------------------------------------------------------------
 	// 05 nSP: number of samples
-	wire [7:0] number_of_samples = 8'h30;
+	wire [7:0] number_of_samples = 8'h00; // 0 here means 256
 	assign i2c_value[5] = number_of_samples; // nSP
 	// ----------------------------------------------------------------------
 	// 06 OSs: status?
