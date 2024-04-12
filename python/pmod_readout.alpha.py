@@ -26,10 +26,10 @@ bus = []
 for i in range(len(nybble_gpios)):
 	bus.append(gpiozero.InputDevice(nybble_gpios[i], pull_up=False))
 
-#header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger1", "trigger0", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
+#header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
 HEADER_LENGTH_WORDS = 8
 #header_length_nybbles = HEADER_LENGTH_WORDS * 4
-#header_description_words = [ "ALFA", "IdFi", "cs43", "cs21", "tg10", "SaLo", "StSt", "MiSt" ]
+header_description_words = [ "ALFA", "IdFi", "cs43", "cs21", "tg21", "AfLo", "ReSt", "MiSt" ]
 
 count = 1
 nybble_counter = 0
@@ -89,6 +89,9 @@ def handle_strobe():
 		match = re.search("a1fa", string)
 		if match:
 			ALFA_OMGA_counter = 0
+			print("")
+			for header_string in header_description_words:
+				print(header_string, end=" ")
 			print("")
 			#write_strings_and_empty_buffer()
 		print(string, end=" ")
