@@ -457,6 +457,7 @@ module alpha_control_tb;
 	alpha_control #(.SIMULATION(1)) alpha_control (.clock(clock), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
 endmodule
 
+// this module is ALWAYS hunting for the pattern a1fa...
 module alpha_readout (
 	input clock, reset, data_a,
 	output [3:0] nybble,
@@ -479,6 +480,7 @@ module alpha_readout (
 	localparam DATA_WORD_COUNTER_MAX = 16+16*256+16+100;
 	wire [15:0] ALFA = 16'ha1fa;
 	wire [15:0] OMGA = 16'h0e6a;
+	reg strobe_valid = 0;
 	always @(posedge clock) begin
 		if (reset) begin
 			data_bit_counter <= 15;
@@ -488,17 +490,16 @@ module alpha_readout (
 			meat <= 0;
 			footer <= 0;
 			data_sr <= 0;
+			strobe_valid <= 0;
 		end else begin
 			data_sr <= { data_sr[SR_HIGH_BIT-1:0], data_a };
+			data_bit_counter <= data_bit_counter - 1'b1;
 			if (data_word_counter<DATA_WORD_COUNTER_MAX) begin
 				if (data_bit_counter==0) begin
-					data_bit_counter <= 15;
 					data_word <= data_sr[SR_PICKOFF-1-:16];
 					data_word_counter <= data_word_counter + 1'b1;
 					header <= 0;
 					footer <= 0;
-				end else begin
-					data_bit_counter <= data_bit_counter - 1'b1;
 				end
 			end else begin
 				header <= 0;
@@ -506,13 +507,14 @@ module alpha_readout (
 				footer <= 0;
 				data_bit_counter <= 0; // 2 least significant bits must not be 2'b01 (see assignment for strobe, below)
 			end
-			if (data_sr[SR_PICKOFF-1-:16]==ALFA) begin // WARNING: this might accidentally re-bitslip align on data 0x1fa from channel 0xa
+			if (data_sr[SR_PICKOFF-1-:16]==ALFA) begin // WARNING: this might accidentally re-bitslip align on data 0x1fa from channel 0xa (might need a deeper pipeline and to check that the very next word is 16'hb... or something)
+				strobe_valid <= 1;
 				data_bit_counter <= 15;
 				data_word_counter <= 0;
 				header <= 1'b1;
 				meat <= 1'b1;
 				data_word <= data_sr[SR_PICKOFF-1-:16];
-			end else if (data_sr[SR_PICKOFF-1-:16]==OMGA) begin // WARNING: this might accidentally re-bitslip align on data 0x0e6a from channel 0xa
+			end else if (data_sr[SR_PICKOFF-1-:16]==OMGA) begin // WARNING: this might accidentally re-bitslip align on data 0x0e6a from channel 0x0
 				header <= 0;
 				meat <= 0;
 				footer <= 1'b1;
@@ -522,7 +524,8 @@ module alpha_readout (
 		end
 	end
 	assign msn = nybble_counter == 2'b11 ? 1'b1 : 1'b0;
-	assign strobe = data_bit_counter[1:0] == 2'b01 ? 1'b1 : 1'b0;
+	wire potential_strobe = data_bit_counter[1:0] == 2'b01 ? 1'b1 : 1'b0;
+	assign strobe = potential_strobe & strobe_valid;
 	assign nybble_counter = data_bit_counter[3:2];
 	wire [3:0] nyb [3:0];
 	assign nyb[0] = data_word[3:0];
