@@ -14,7 +14,12 @@ ISEL    = 0xa80
 SBbias  = 1300
 DBbias  = 1300
 datafile_name = "alpha.data"
-number_of_words_to_read_from_the_fifo = 8200
+number_of_words_to_read_from_the_fifo = 4200
+ALFA = 0xa1fa
+OMGA = 0x0e6a
+
+MAX_SAMPLES_PER_WAVEFORM = 256
+timestep = 1
 
 NUMBER_OF_CHANNELS_PER_ASIC = 16
 gui_update_period = 0.2 # in seconds
@@ -66,7 +71,6 @@ white = (255, 255, 255)
 grey = (127, 127, 127)
 red = (255, 0, 0)
 green = (0, 255, 0)
-darkgreen = (0, 127, 0)
 blue = (75, 75, 255)
 yellow = (255, 255, 0)
 brown = (127, 127, 0)
@@ -81,7 +85,7 @@ grid_color_bright = (63, 63, 63)
 grid_color_faint = (15, 15, 15)
 grey = (127, 127, 127 )
 
-color = [ black, white, red, green, blue, yellow, teal, pink, maroon, dark_green, light_blue, orange, purple, grey ]
+color = [ black, white, red, green, blue, yellow, teal, pink, maroon, dark_green, light_blue, orange, purple, grey, brown, teal, teal, teal ]
 
 selection = 0
 coax_mux = [ 0 for i in range(4) ]
@@ -156,25 +160,16 @@ def update_plot(i, j):
 	global plots_were_updated
 	pygame.event.pump()
 	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
-	scale = 1 / MAX_ADC
+	scale = 1.8 / MAX_ADC
 	#print(str(scale))
-	for n in range(len(threshold_scan[i][j])):
+	for n in range(len(waveform_data[i][j][0])):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			voltage = threshold_scan[i][j][n][k][0]
-			scaler = threshold_scan[i][j][n][k][1]
-			#print(str(voltage) + "," + str(scaler))
-			if scaler>0:
-				#if scaler>1000:
-				#	print(str(voltage) + "," + str(scaler))
-				x = int((voltage - minimum_threshold_value_to_plot)/(DAC_EPSILON*threshold_scan_horizontal_scale))
-				if x<=0:
-					continue
-				elif plot_width<=x:
-					continue
-				formatted_data[k][x] = scaler * scale
-				#if 0==n%40:
-				#	print(str(threshold_scan[i][j][n][k]))
-				#	print(str(voltage) + "," + str(scaler) + ":" + str(x) + ":" + str(formatted_data[k][x]))
+			voltage = waveform_data[i][j][k][n]
+			time = timestep*n
+			x = int(time)
+			formatted_data[k][x] = voltage * scale
+			if 0==n%40:
+				print(str(time) + "," + str(voltage) + ":" + str(x) + ":" + str(formatted_data[k][x]))
 	pygame.event.pump()
 	print("plotting data...")
 	# fill with colors for now:
@@ -213,7 +208,7 @@ def setup():
 	print("usable_width: " + str(usable_width))
 	usable_height = int(SCREEN_HEIGHT - GAP_Y_TOP - GAP_Y_BOTTOM - (ROWS-1)*GAP_Y_BETWEEN_PLOTS)
 	print("usable_height: " + str(usable_height))
-	plot_width = int(usable_width / COLUMNS)
+	plot_width = MAX_SAMPLES_PER_WAVEFORM
 	plot_height = int(usable_height / ROWS / 4)
 	#print("plot_width: " + str(plot_width))
 	print("plot_height: " + str(plot_height))
@@ -346,12 +341,12 @@ def loop():
 			update_bank6_registers()
 #			update_bank1_bank2_scalers()
 #			update_counters()
-#	global have_just_run_threshold_scan
-#	for i in range(COLUMNS):
-#		for j in range(ROWS):
-#			if have_just_run_threshold_scan[i]:
-#				have_just_run_threshold_scan[i] = False
-#				update_plot(i, j)
+	global have_just_gathered_waveform_data
+	for i in range(COLUMNS):
+		for j in range(ROWS):
+			if have_just_gathered_waveform_data[i]:
+				have_just_gathered_waveform_data[i] = False
+				update_plot(i, j)
 	for i in range(COLUMNS):
 		for j in range(ROWS):
 			blit(i, j)
@@ -419,7 +414,7 @@ def update_bank0_registers():
 		for i in range(len(bank0_register_names)):
 			try:
 				temp_surface = pygame.Surface(bank0_register_object[i].get_size())
-				temp_surface.fill(darkgreen)
+				temp_surface.fill(dark_green)
 				screen.blit(temp_surface, bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
 			except Exception as e:
 				#print(str(e))
@@ -510,6 +505,35 @@ def get_fifo_empty():
 	fifo_empty, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 2, 1, False)
 	return fifo_empty
 
+buffer_new = []
+buffer_old = []
+ALFA_OMGA_counter = 0
+NUMBER_OF_WORDS_PER_HEADER = 8
+NUMBER_OF_WORDS_PER_FOOTER = 2
+NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT = NUMBER_OF_WORDS_PER_HEADER + NUMBER_OF_WORDS_PER_FOOTER
+def gulp(word):
+	global buffer_new
+	global buffer_old
+	global waveform_data
+	global ALFA_OMGA_counter
+	if ALFA==word:
+		buffer_new = []
+		ALFA_OMGA_counter = 0
+	buffer_new.append(word)
+	ALFA_OMGA_counter += 1
+	if OMGA==word:
+		buffer_old = buffer_new
+		number_of_samples_per_waveform = (ALFA_OMGA_counter-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT)/NUMBER_OF_CHANNELS_PER_ASIC
+		print("number_of_samples_per_waveform: " + str(number_of_samples_per_waveform))
+		index = NUMBER_OF_WORDS_PER_HEADER
+		for n in range(MAX_SAMPLES_PER_WAVEFORM):
+			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+				#waveform_data[0][0][k][n] = buffer_old[NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT+n*(NUMBER_OF_CHANNELS_PER_ASIC-k)]
+				waveform_data[0][0][k][n] = buffer_old[index] & 0xfff
+				index += 1
+		print(str(waveform_data[0][0][0]))
+		have_just_gathered_waveform_data[0] = True
+
 def readout_some_data_from_the_fifo(number_of_words):
 	bank = 5
 	count = 0
@@ -518,6 +542,7 @@ def readout_some_data_from_the_fifo(number_of_words):
 		if fifo_empty:
 			break
 		fifo_data, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, 1, False)
+		gulp(fifo_data)
 		datafile.write(hex(fifo_data, 4))
 		count += 1
 	datafile.write("\n")
@@ -543,6 +568,8 @@ if __name__ == "__main__":
 	short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
 	maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
+	waveform_data = [ [ [ [ 0.0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	have_just_gathered_waveform_data = [ False for i in range(COLUMNS) ]
 	setup()
 	#write_to_pollable_memory_value()
 	running = True
