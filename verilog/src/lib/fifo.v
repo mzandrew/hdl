@@ -1,4 +1,4 @@
-// last updated 2024-04-11 by mza
+// last updated 2024-04-12 by mza
 
 `ifndef FIFO_LIB
 `define FIFO_LIB
@@ -211,8 +211,6 @@ module fifo_single_clock #(
 	parameter DATA_WIDTH = 8,
 	parameter LOG2_OF_DEPTH = 4,
 	parameter PRIMITIVE_ADDRESS_DEPTH = 14, // each s6 BRAM is 16kbits (18kbits)
-	parameter RAM_ADDRESS_DEPTH = PRIMITIVE_ADDRESS_DEPTH - $clog2(DATA_WIDTH), // each BRAM used has this depth
-	parameter ADDRESS_WIDTH = LOG2_OF_DEPTH < RAM_ADDRESS_DEPTH ? RAM_ADDRESS_DEPTH : LOG2_OF_DEPTH,
 	parameter DEPTH = 1<<LOG2_OF_DEPTH
 ) (
 	input clock, reset,
@@ -224,8 +222,8 @@ module fifo_single_clock #(
 	output [DATA_WIDTH-1:0] data_out,
 	output [23:0] error_count
 );
-	reg [ADDRESS_WIDTH-1:0] write_address = 0;
-	reg [ADDRESS_WIDTH-1:0] read_address = 0;
+	reg [LOG2_OF_DEPTH-1:0] write_address = 0;
+	reg [LOG2_OF_DEPTH-1:0] read_address = 0;
 	localparam MIN_COUNT = 1;
 	localparam MAX_COUNT = MIN_COUNT + DEPTH;
 	reg [LOG2_OF_DEPTH:0] count = MIN_COUNT; // 1 extra bit
@@ -235,15 +233,9 @@ module fifo_single_clock #(
 	assign error_count = { write_error_count, read_error_count, other_error_count };
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};
 	wire ram_write_enable = write_enable && ((~full) || (read_enable && full));
-	if (0) begin
-		RAM_s6_primitive #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH)) mem (.reset(reset),
-			.write_clock(clock), .write_address(write_address[RAM_ADDRESS_DEPTH-1:0]), .data_in(data_in), .write_enable(ram_write_enable),
-			.read_clock(clock), .read_address(read_address[RAM_ADDRESS_DEPTH-1:0]), .read_enable(1'b1), .data_out(data_out));
-	end else begin
-		RAM_s6_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(ADDRESS_WIDTH)) myuni ( .reset(reset),
-			.clock_a(clock), .address_a(write_address), .data_in_a(data_in), .write_enable_a(ram_write_enable),
-			.clock_b(clock), .address_b(read_address), .data_out_b(data_out));
-	end
+	RAM_s6_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH)) myuni ( .reset(reset),
+		.clock_a(clock), .address_a(write_address), .data_in_a(data_in), .write_enable_a(ram_write_enable),
+		.clock_b(clock), .address_b(read_address), .data_out_b(data_out));
 	always @(posedge clock) begin
 		if (reset) begin
 			write_address <= 0;
