@@ -123,8 +123,7 @@ module half_duplex_rpi_bus #(
 		end else begin
 			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF:ENABLE_PIPELINE_PICKOFF-1]==2'b01) begin
 				ready_for_new_read_data_word <= 0;
-			end
-			if (enable_pipeline[ENABLE_PIPELINE_PICKOFF:ENABLE_PIPELINE_PICKOFF-1]==2'b11) begin // enable=1
+			end else if (enable_pipeline[ENABLE_PIPELINE_PICKOFF:ENABLE_PIPELINE_PICKOFF-1]==2'b11) begin // enable=1
 				if (read_pipeline[READ_PIPELINE_PICKOFF:READ_PIPELINE_PICKOFF-1]==2'b11) begin // read mode
 					pre_ack_valid <= 1;
 					if (rstate[1]==0) begin
