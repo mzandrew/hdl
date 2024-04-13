@@ -1122,7 +1122,7 @@ if __name__ == "__main__":
 	ROWS = 1
 	COLUMNS = number_of_pin_diode_boxes
 	wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
-	desired_window_width = number_of_pin_diode_boxes * box_dimension_x_in * scale_pixels_per_in + wasted_width
+	desired_window_width = int(number_of_pin_diode_boxes * box_dimension_x_in * scale_pixels_per_in + wasted_width)
 	SCREEN_WIDTH = desired_window_width
 	SCREEN_HEIGHT = 720
 	if 1==number_of_pin_diode_boxes:
