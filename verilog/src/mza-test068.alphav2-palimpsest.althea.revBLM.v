@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test067.alphav2.althea.revBLM.v and mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
-// last updated 2024-04-11 by mza
+// last updated 2024-04-19 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -240,9 +240,11 @@ module ALPHAtestPALIMPSEST #(
 	assign bank6[15] = bank_w_strobe_counter[7];
 	// ----------------------------------------------------------------------
 	// bank7 pollable memory
-	RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank7 (.reset(reset100),
-		.clock_a(clock100), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[7]), .data_out_a(read_data_word[7]),
-		.clock_b(clock100), .address_b(15'd0), .data_out_b());
+	if (0) begin
+		RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank7 (.reset(reset100),
+			.clock_a(clock100), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[7]), .data_out_a(read_data_word[7]),
+			.clock_b(clock100), .address_b(15'd0), .data_out_b());
+	end
 	// ----------------------------------------------------------------------
 	wire trigin;
 	OBUFDS obuf_trigin (.I(trigin), .O(trigin_p), .OB(trigin_n));
@@ -284,9 +286,9 @@ module ALPHAtestPALIMPSEST #(
 	wire header, meat, footer, fifo_write_strobe, msn; // msn = most significant nybble
 	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .meat(meat), .footer(footer), .alfa_counter(alfa_counter), .omga_counter(omga_counter), .strobe(fifo_write_strobe), .msn(msn), .nybble(), .nybble_counter(), .data_word(data_word_from_asic));
 	counter_level asic_output_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(fifo_write_strobe), .counter(asic_output_strobe_counter));
-	localparam LOG2_OF_DEPTH = 13+1; // $clog2(4200)
+	localparam LOG2_OF_DEPTH = 13+2; // $clog2(4200)
 	fifo_single_clock #(.DATA_WIDTH(16), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(sysclk), .reset(reset), .error_count(fifo_error_count),
-		.data_in(data_word_from_asic), .write_enable(fifo_write_strobe), .full(), .almost_full(), .full_or_almost_full(),
+		.data_in(data_word_from_asic), .write_enable(fifo_write_strobe && msn), .full(), .almost_full(), .full_or_almost_full(),
 		.data_out(asic_data_from_fifo), .read_enable(fifo_read_strobe), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
 	counter_level fifo_output_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(fifo_read_strobe), .counter(fifo_output_strobe_counter));
 	// tok_a_in tok_a_out anything_that_is_going_on msn header footer meat
