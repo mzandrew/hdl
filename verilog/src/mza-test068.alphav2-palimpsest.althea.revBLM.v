@@ -116,6 +116,24 @@ module ALPHAtestPALIMPSEST #(
 		.write_data_word(write_data_word), .read_data_word(read_data_word[bank]), .address_word_reg(address_word_full),
 		.read_errors(hdrb_read_errors), .write_errors(hdrb_write_errors), .address_errors(hdrb_address_errors)
 	);
+	wire [31:0] bank_r_strobe_counter [7:0];
+	wire [31:0] bank_w_strobe_counter [7:0];
+	counter_level bank0_r_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(read_strobe[0]),  .counter(bank_r_strobe_counter[0]));
+	counter_level bank1_r_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(read_strobe[1]),  .counter(bank_r_strobe_counter[1]));
+	counter_level bank2_r_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(read_strobe[2]),  .counter(bank_r_strobe_counter[2]));
+	counter_level bank3_r_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(read_strobe[3]),  .counter(bank_r_strobe_counter[3]));
+	counter_level bank4_r_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(read_strobe[4]),  .counter(bank_r_strobe_counter[4]));
+	counter_level bank5_r_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(read_strobe[5]),  .counter(bank_r_strobe_counter[5]));
+	counter_level bank6_r_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(read_strobe[6]),  .counter(bank_r_strobe_counter[6]));
+	counter_level bank7_r_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(read_strobe[7]),  .counter(bank_r_strobe_counter[7]));
+	counter_level bank0_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[0]), .counter(bank_w_strobe_counter[0]));
+	counter_level bank1_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[1]), .counter(bank_w_strobe_counter[1]));
+	counter_level bank2_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[2]), .counter(bank_w_strobe_counter[2]));
+	counter_level bank3_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[3]), .counter(bank_w_strobe_counter[3]));
+	counter_level bank4_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[4]), .counter(bank_w_strobe_counter[4]));
+	counter_level bank5_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[5]), .counter(bank_w_strobe_counter[5]));
+	counter_level bank6_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[6]), .counter(bank_w_strobe_counter[6]));
+	counter_level bank7_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[7]), .counter(bank_w_strobe_counter[7]));
 	// ----------------------------------------------------------------------
 	wire [31:0] bank0 [15:0]; // general settings
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank0 (.clock(sysclk), .reset(reset),
@@ -136,15 +154,19 @@ module ALPHAtestPALIMPSEST #(
 		.data_in_b_c(bank1[12]), .data_in_b_d(bank1[13]), .data_in_b_e(bank1[14]), .data_in_b_f(bank1[15]),
 		.write_strobe_b(1'b1));
 	wire [7:0] status8;
-	reg [7:0] number_of_triggers_since_reset;
+	reg [7:0] number_of_triggers_since_reset = 0;
 	wire fifo_empty;
 //	wire [:] fifo_pending;
 	wire [23:0] fifo_error_count;
+	wire [31:0] asic_output_strobe_counter;
+	wire [31:0] fifo_output_strobe_counter;
 	assign bank1[0] = { hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8 };
 	assign bank1[1][7:0] = number_of_triggers_since_reset;
 	assign bank1[2][0] = fifo_empty;
 //	assign bank1[3][:] = fifo_pending;
 	assign bank1[4][23:0] = fifo_error_count;
+	assign bank1[5] = asic_output_strobe_counter;
+	assign bank1[6] = fifo_output_strobe_counter;
 	// ----------------------------------------------------------------------
 	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(sysclk),
@@ -178,15 +200,45 @@ module ALPHAtestPALIMPSEST #(
 		.data_out_b_4(bank4[4]),  .data_out_b_5(bank4[5]),  .data_out_b_6(bank4[6]),  .data_out_b_7(bank4[7]),
 		.data_out_b_8(bank4[8]),  .data_out_b_9(bank4[9]),  .data_out_b_a(bank4[10]), .data_out_b_b(bank4[11]),
 		.data_out_b_c(bank4[12]), .data_out_b_d(bank4[13]), .data_out_b_e(bank4[14]), .data_out_b_f(bank4[15]));
-	wire [11:0] CMPbias                         = bank4[0][11:0];
-	wire [11:0] ISEL                            = bank4[1][11:0];
-	wire [11:0] SBbias                          = bank4[2][11:0];
-	wire [11:0] DBbias                          = bank4[3][11:0];
+	wire [11:0] CMPbias = bank4[0][11:0]; // 1000
+	wire [11:0] ISEL    = bank4[1][11:0]; // 0xa80
+	wire [11:0] SBbias  = bank4[2][11:0]; // 1300
+	wire [11:0] DBbias  = bank4[3][11:0]; // 1300
 	// ----------------------------------------------------------------------
 	// bank5 asic fifo data
 	wire [15:0] asic_data_from_fifo;
 	assign read_data_word[5] = { 16'd0, asic_data_from_fifo };
 	wire fifo_read_strobe = read_strobe[5];
+	// ----------------------------------------------------------------------
+	wire [31:0] bank6 [15:0]; // status
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(sysclk),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
+		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
+		.data_in_b_4(bank6[4]),  .data_in_b_5(bank6[5]),  .data_in_b_6(bank6[6]),  .data_in_b_7(bank6[7]),
+		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
+		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
+		.write_strobe_b(1'b1));
+	assign bank6[0] = bank_r_strobe_counter[0];
+	assign bank6[1] = bank_r_strobe_counter[1];
+	assign bank6[2] = bank_r_strobe_counter[2];
+	assign bank6[3] = bank_r_strobe_counter[3];
+	assign bank6[4] = bank_r_strobe_counter[4];
+	assign bank6[5] = bank_r_strobe_counter[5];
+	assign bank6[6] = bank_r_strobe_counter[6];
+	assign bank6[7] = bank_r_strobe_counter[7];
+	assign bank6[8]  = bank_w_strobe_counter[0];
+	assign bank6[9]  = bank_w_strobe_counter[1];
+	assign bank6[10] = bank_w_strobe_counter[2];
+	assign bank6[11] = bank_w_strobe_counter[3];
+	assign bank6[12] = bank_w_strobe_counter[4];
+	assign bank6[13] = bank_w_strobe_counter[5];
+	assign bank6[14] = bank_w_strobe_counter[6];
+	assign bank6[15] = bank_w_strobe_counter[7];
+	// ----------------------------------------------------------------------
+	// bank7 pollable memory
+	RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank7 (.reset(reset100),
+		.clock_a(clock100), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[7]), .data_out_a(read_data_word[7]),
+		.clock_b(clock100), .address_b(15'd0), .data_out_b());
 	// ----------------------------------------------------------------------
 	wire trigin;
 	OBUFDS obuf_trigin (.I(trigin), .O(trigin_p), .OB(trigin_n));
@@ -211,11 +263,11 @@ module ALPHAtestPALIMPSEST #(
 	reg legacy_serial_sequence_has_occurred = 0;
 	reg trigger_has_occurred = 0;
 	assign status8[7] = ~first_pll_locked;
-	assign status8[6] = dreset_sequence_has_occurred;
-	assign status8[5] = legacy_serial_sequence_has_occurred;
-	assign status8[4] = i2c_transfer_has_occurred;
-	assign status8[3] = trigger_has_occurred;
-	assign status8[2:0] = { 1'b0, 1'b0, 1'b0 };
+	assign status8[6:4] = { 1'b0, 1'b0, 1'b0 };
+	assign status8[3] = dreset_sequence_has_occurred;
+	assign status8[2] = legacy_serial_sequence_has_occurred;
+	assign status8[1] = i2c_transfer_has_occurred;
+	assign status8[0] = trigger_has_occurred;
 	assign led = status8;
 	// ----------------------------------------------------------------------
 	wire something_happened = initiate_dreset_sequence || initiate_legacy_serial_sequence || initiate_trigger || initiate_i2c_transfer;
@@ -227,10 +279,12 @@ module ALPHAtestPALIMPSEST #(
 	wire [15:0] data_word_from_asic;
 	wire header, meat, footer, fifo_write_strobe, msn; // msn = most significant nybble
 	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .meat(meat), .footer(footer), .strobe(fifo_write_strobe), .msn(msn), .nybble(), .nybble_counter(), .data_word(data_word_from_asic));
-	localparam LOG2_OF_DEPTH = 13; // $clog2(4200)
+	counter_level asic_output_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(fifo_write_strobe), .counter(asic_output_strobe_counter));
+	localparam LOG2_OF_DEPTH = 13+1; // $clog2(4200)
 	fifo_single_clock #(.DATA_WIDTH(16), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(sysclk), .reset(reset), .error_count(fifo_error_count),
 		.data_in(data_word_from_asic), .write_enable(fifo_write_strobe), .full(), .almost_full(), .full_or_almost_full(),
 		.data_out(asic_data_from_fifo), .read_enable(fifo_read_strobe), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
+	counter_level fifo_output_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(fifo_read_strobe), .counter(fifo_output_strobe_counter));
 	// tok_a_in tok_a_out anything_that_is_going_on msn header footer meat
 	assign coax[0] = data_a;
 	assign coax[1] = header;
