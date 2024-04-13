@@ -60,7 +60,7 @@ net data_a_out_n loc=p43 | iostandard=lvds_25 | diff_term=true; # H- bank2 BL
 
 # raspberry pi 40pin headers, general purpose IO:
 net sda loc=p138 | iostandard=lvcmos25 | pullup; # bank0 TL broadcom i2c peripheral rpi_gpio2_i2c1_sda
-net scl loc=p137 | iostandard=lvcmos25 | pullup; # bank0 TL broadcom i2c peripheral rpi_gpio3_i2c1_scl
+net scl loc=p137 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TL broadcom i2c peripheral rpi_gpio3_i2c1_scl
 #net rpi_gpio<4>  loc=p88  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB broadcom gpclk peripheral rpi_gpio4_gpclk0 - differs from althea revB
 #net rpi_gpio<5>  loc=p66  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank2 BR rpi_gpio5
 net acknowledge   loc=p67  | iostandard=lvcmos25; # bank2 BR broadcom gpclk peripheral rpi_gpio6_gpclk2 - differs from althea revB and revBL
