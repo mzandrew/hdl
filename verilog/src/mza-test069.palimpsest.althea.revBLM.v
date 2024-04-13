@@ -90,8 +90,8 @@ module palimpsest_simple_pollable_memory #(
 	RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank0 (.reset(reset100),
 		.clock_a(clock100), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[0]), .data_out_a(read_data_word[0]),
 		.clock_b(clock100), .address_b(15'd0), .data_out_b());
-	RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank1 (.reset(reset100),
-		.clock_a(clock100), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[1]), .data_out_a(read_data_word[1]),
+	RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank7 (.reset(reset100),
+		.clock_a(clock100), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[7]), .data_out_a(read_data_word[7]),
 		.clock_b(clock100), .address_b(15'd0), .data_out_b());
 	// ----------------------------------------------------------------------
 	assign coax[3] = register_select;
