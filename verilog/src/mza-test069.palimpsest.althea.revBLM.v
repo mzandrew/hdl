@@ -36,9 +36,9 @@ module palimpsest_simple_pollable_memory #(
 	inout [5:0] coax,
 //	input [2:0] rot,
 	inout [BUS_WIDTH-1:0] bus,
-	input read, // 0=write; 1=read
-	input register_select, // 0=address; 1=data
-	input enable, // 1=active; 0=inactive
+	input read,            // 0=write;    1=read
+	input register_select, // 0=address;  1=data
+	input enable,          // 0=inactive; 1=active
 	output ack_valid,
 	output other,
 //	output [7-LEFT_DAC_OUTER*4:4-LEFT_DAC_OUTER*4] led,
@@ -74,28 +74,17 @@ module palimpsest_simple_pollable_memory #(
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_write_errors;
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_address_errors;
 	half_duplex_rpi_bus #(
-		.BUS_WIDTH(BUS_WIDTH),
-		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD),
-		.TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD),
-		.BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
-		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
+		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH), .ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE),
+		.TRANSACTIONS_PER_DATA_WORD(TRANSACTIONS_PER_DATA_WORD), .TRANSACTIONS_PER_ADDRESS_WORD(TRANSACTIONS_PER_ADDRESS_WORD)
 	) hdrb (
-		.clock(clock100),
-		.reset(reset100),
 		.bus(bus),
-		.read(read), // 0=write; 1=read
-		.register_select(register_select), // 0=address; 1=data
-		.enable(enable), // 1=active; 0=inactive
+		.read(read),                       // 0=write;    1=read
+		.register_select(register_select), // 0=address;  1=data
+		.enable(enable),                   // 0=inactive; 1=active
 		.ack_valid(ack_valid),
-		.write_strobe(write_strobe),
-		.read_strobe(read_strobe),
-		.write_data_word(write_data_word),
-		.read_data_word(read_data_word[bank]),
-		.address_word_reg(address_word_full),
-		.read_errors(hdrb_read_errors),
-		.write_errors(hdrb_write_errors),
-		.address_errors(hdrb_address_errors),
-		.bank(bank)
+		.clock(clock100), .reset(reset100), .bank(bank), .write_strobe(write_strobe), .read_strobe(read_strobe),
+		.write_data_word(write_data_word), .read_data_word(read_data_word[bank]), .address_word_reg(address_word_full),
+		.read_errors(hdrb_read_errors), .write_errors(hdrb_write_errors), .address_errors(hdrb_address_errors)
 	);
 	// ----------------------------------------------------------------------
 	RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank0 (.reset(reset100),
@@ -105,7 +94,11 @@ module palimpsest_simple_pollable_memory #(
 		.clock_a(clock100), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[1]), .data_out_a(read_data_word[1]),
 		.clock_b(clock100), .address_b(15'd0), .data_out_b());
 	// ----------------------------------------------------------------------
-	for (i=0; i<=5; i=i+1) begin : dummy_coax
+	assign coax[3] = register_select;
+	assign coax[2] = ack_valid;
+	assign coax[1] = read;
+	assign coax[0] = enable;
+	for (i=4; i<=5; i=i+1) begin : dummy_coax
 		assign coax[i] = 0;
 	end
 	assign other = 0;
@@ -143,7 +136,7 @@ module palimpsest #(
 	// other IOs:
 	output rpi_gpio22, // ack_valid
 	input rpi_gpio23, // register_select
-	input rpi_gpio4_gpclk0, // enable
+//	input rpi_gpio4_gpclk0, // enable // pulled out the wrong pin
 	input rpi_gpio5, // read
 	// 16 bit bus:
 	inout rpi_gpio6_gpclk2, rpi_gpio7_spi_ce1, rpi_gpio8_spi_ce0, rpi_gpio9_spi_miso,
@@ -151,6 +144,8 @@ module palimpsest #(
 	inout rpi_gpio14, rpi_gpio15, rpi_gpio16, rpi_gpio17,
 	inout rpi_gpio18, rpi_gpio19, rpi_gpio20, rpi_gpio21,
 	// other IOs:
+	input n, // pulled out the wrong pin
+//	input rpi_gpio2_i2c1_sda, // pulled out the wrong pin
 	//input [2:0] rot
 //	input button, // reset
 	output other, // goes to PMOD connector
@@ -182,7 +177,9 @@ module palimpsest #(
 			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
 		}),
 		.register_select(rpi_gpio23), .read(rpi_gpio5),
-		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio22),
+//		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio22),
+//		.enable(rpi_gpio2_i2c1_sda), .ack_valid(rpi_gpio22), // pulled out the wrong pin
+		.enable(n), .ack_valid(rpi_gpio22), // pulled out the wrong pin
 //		.rot(rot),
 		.other(other),
 //		.led(internal_led),

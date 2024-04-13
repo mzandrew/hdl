@@ -33,7 +33,9 @@ module ALPHAtestPALIMPSEST #(
 	output [3:0] coax_led,
 	output [7:0] led,
 	input [3:0] rot,
-	inout [23:4] rpi_gpio,
+	//inout [23:4] rpi_gpio, // pulled out the wrong pin
+	inout [23:5] rpi_gpio, // pulled out the wrong pin
+	input n, // pulled out the wrong pin
 	// alpha_eval revC / revD:
 	output sysclk_p, sysclk_n,
 	output ls_i2c,
@@ -108,7 +110,8 @@ module ALPHAtestPALIMPSEST #(
 		      .ack_valid(rpi_gpio[22]),
 		            .bus(rpi_gpio[21:6]),
 		           .read(rpi_gpio[5]),  // 0=write;    1=read
-		         .enable(rpi_gpio[4]),  // 0=inactive; 1=active
+		         //.enable(rpi_gpio[4]),  // 0=inactive; 1=active // pulled out the wrong pin
+		         .enable(n          ),  // 0=inactive; 1=active // pulled out the wrong pin
 		.write_strobe(write_strobe), .read_strobe(read_strobe), .bank(bank), .clock(sysclk), .reset(reset),
 		.write_data_word(write_data_word), .read_data_word(read_data_word[bank]), .address_word_reg(address_word_full),
 		.read_errors(hdrb_read_errors), .write_errors(hdrb_write_errors), .address_errors(hdrb_address_errors)
