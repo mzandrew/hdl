@@ -89,7 +89,7 @@ module half_duplex_rpi_bus #(
 `endif
 	reg [1:0] rstate = 0;
 	for (i=0; i<NUMBER_OF_BANKS; i=i+1) begin : bank_read_strobes
-		assign read_strobe[i] = rstate[1] && bank^i;
+		assign read_strobe[i] = bank==i ? rstate[1] : 1'b0;
 	end
 	reg [LOG2_OF_TRANSACTIONS_PER_DATA_WORD-1:0] rword = TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 	reg [BUS_WIDTH-1:0] pre_bus = 0;
