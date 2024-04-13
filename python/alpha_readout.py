@@ -7,6 +7,7 @@
 
 bank0_register_names = [ "ls_i2c" ]
 bank1_register_names = [ "hdrb errors, status8", "triggers since reset", "fifo empty", "fifo pending", "fifo errors", "asic output strobes", "fifo output strobes", "alfa counter", "omga counter" ]
+bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
 CMPbias = 1000
 ISEL    = 0xa80
@@ -15,10 +16,10 @@ DBbias  = 1300
 datafile_name = "alpha.data"
 number_of_words_to_read_from_the_fifo = 8200
 
-NUMBER_OF_CHANNELS_PER_BANK = 16
+NUMBER_OF_CHANNELS_PER_ASIC = 16
 gui_update_period = 0.2 # in seconds
 
-MAX_COUNTER = 650000 # actual counter is 24 bit, but we only see up to about this much for when diff_term=false
+MAX_ADC = 4095
 display_precision_of_hex_counter_counts = 6
 display_precision_of_hex_scaler_counts = 4
 
@@ -45,16 +46,17 @@ X_POSITION_OF_SCALERS = 190
 #X_POSITION_OF_TOT = 450
 X_POSITION_OF_BANK0_REGISTERS = 100
 X_POSITION_OF_BANK1_REGISTERS = 100
+X_POSITION_OF_BANK4_REGISTERS = 100
 X_POSITION_OF_BANK6_REGISTERS = 400
 
 box_dimension_x_in = 6.0
 box_dimension_y_in = 2.0
 scale_pixels_per_in = 80
 
-#channel_range = range(1, NUMBER_OF_CHANNELS_PER_BANK+1)
+#channel_range = range(1, NUMBER_OF_CHANNELS_PER_ASIC+1)
 
 channel_names = [ "" ]
-channel_names.extend(["ch" + str(i+1) for i in range(NUMBER_OF_CHANNELS_PER_BANK)])
+channel_names.extend(["ch" + str(i+1) for i in range(NUMBER_OF_CHANNELS_PER_ASIC)])
 #channel_names.extend([ "trigger_count", "suggested_inversion_map", "hit_counter" ])
 #print(str(channel_names))
 bank1_register_values = [ i for i in range(len(channel_names)) ]
@@ -64,8 +66,10 @@ white = (255, 255, 255)
 grey = (127, 127, 127)
 red = (255, 0, 0)
 green = (0, 255, 0)
+darkgreen = (0, 127, 0)
 blue = (75, 75, 255)
 yellow = (255, 255, 0)
+brown = (127, 127, 0)
 teal = (0, 255, 255)
 pink = (255, 63, 63)
 maroon = (255, 0, 127)
@@ -86,6 +90,7 @@ should_show_counters = True
 should_show_scalers = True
 should_show_bank0_registers = True
 should_show_bank1_registers = True
+should_show_bank4_registers = True
 should_show_bank6_registers = True
 scaler_values_seen = set()
 
@@ -150,32 +155,11 @@ BANK_ADDRESS_DEPTH = 13
 def update_plot(i, j):
 	global plots_were_updated
 	pygame.event.pump()
-	global threshold_scan_horizontal_scale
-	average_value_of_peak_scalers = 0
-	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-		average_value_of_peak_scalers += voltage_at_peak_scaler[k]
-	average_value_of_peak_scalers /= NUMBER_OF_CHANNELS_PER_BANK
-	print("average_value_of_peak_scalers: " + str(average_value_of_peak_scalers))
-	if (0):
-		minimum_threshold_value_to_plot = average_value_of_peak_scalers - plot_width / 2 * DAC_EPSILON * threshold_scan_horizontal_scale
-		maximum_threshold_value_to_plot = average_value_of_peak_scalers + plot_width / 2 * DAC_EPSILON * threshold_scan_horizontal_scale
-	else:
-		minimum_threshold_value_to_plot = 2.5
-		maximum_threshold_value_to_plot = 0.0
-		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-			if voltage_at_lower_null_scaler[k]<minimum_threshold_value_to_plot:
-				minimum_threshold_value_to_plot = voltage_at_lower_null_scaler[k]
-			if maximum_threshold_value_to_plot<voltage_at_upper_null_scaler[k]:
-				maximum_threshold_value_to_plot = voltage_at_upper_null_scaler[k]
-		threshold_scan_horizontal_scale = (maximum_threshold_value_to_plot-minimum_threshold_value_to_plot)/DAC_EPSILON/plot_width
-	print("minimum_threshold_value_to_plot: " + str(minimum_threshold_value_to_plot))
-	print("maximum_threshold_value_to_plot: " + str(maximum_threshold_value_to_plot))
-	#print(str(volts_per_pixel_x))
-	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-	scale = 1 / MAX_COUNTER
+	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+	scale = 1 / MAX_ADC
 	#print(str(scale))
 	for n in range(len(threshold_scan[i][j])):
-		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			voltage = threshold_scan[i][j][n][k][0]
 			scaler = threshold_scan[i][j][n][k][1]
 			#print(str(voltage) + "," + str(scaler))
@@ -200,7 +184,7 @@ def update_plot(i, j):
 		pygame.event.pump()
 		for y in range(plot_height):
 			plot[i][j].set_at((x, y), black)
-			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 				yn = int(plot_height - plot_height * formatted_data[k][x])
 				doit = False
 				if y==yn:
@@ -239,6 +223,7 @@ def setup():
 	#global Y_POSITION_OF_TOT
 	global Y_POSITION_OF_BANK0_REGISTERS
 	global Y_POSITION_OF_BANK1_REGISTERS
+	global Y_POSITION_OF_BANK4_REGISTERS
 	global Y_POSITION_OF_BANK6_REGISTERS
 	gap = 20
 	Y_POSITION_OF_CHANNEL_NAMES = plot_height + gap
@@ -246,7 +231,8 @@ def setup():
 	Y_POSITION_OF_SCALERS = plot_height + gap + FONT_SIZE_BANKS
 	#Y_POSITION_OF_TOT = plot_height + gap + FONT_SIZE_BANKS
 	Y_POSITION_OF_BANK0_REGISTERS = plot_height + gap + 20
-	Y_POSITION_OF_BANK1_REGISTERS = plot_height + gap + 20 + 50
+	Y_POSITION_OF_BANK1_REGISTERS = plot_height + gap + 20 + 25
+	Y_POSITION_OF_BANK4_REGISTERS = plot_height + gap + 20 + 170
 	Y_POSITION_OF_BANK6_REGISTERS = plot_height + gap + 20
 	setup_pygame_sdl()
 	#pygame.mixer.quit()
@@ -282,14 +268,17 @@ def setup():
 	for i in range(len(bank1_register_names)):
 		register_name = banks_font.render(bank1_register_names[i], 1, white)
 		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK1_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
+	for i in range(len(bank4_register_names)):
+		register_name = banks_font.render(bank4_register_names[i], 1, white)
+		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK4_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK4_REGISTERS+FONT_SIZE_BANKS*i)))
 	for i in range(len(bank6_register_names)):
 		register_name = banks_font.render(bank6_register_names[i], 1, white)
 		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK6_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK6_REGISTERS+FONT_SIZE_BANKS*i)))
-	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
+	#for i in range(NUMBER_OF_CHANNELS_PER_ASIC):
 #	for i in range(len(channel_names)):
 #		register_name = banks_font.render(channel_names[i], 1, white)
 #		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_CHANNEL_NAMES+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_CHANNEL_NAMES+FONT_SIZE_BANKS*i)))
-	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
+	#for i in range(NUMBER_OF_CHANNELS_PER_ASIC):
 	#	channel_name = banks_font.render(channel_names[i], 1, white)
 	#	screen.blit(channel_name, channel_name.get_rect(center=(X_POSITION_OF_BANK6_COUNTERS+BANKS_X_GAP+channel_name.get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
 	for i in range(COLUMNS):
@@ -353,6 +342,7 @@ def loop():
 		elif event.type == should_check_for_new_data:
 			update_bank0_registers()
 			update_bank1_registers()
+			update_bank4_registers()
 			update_bank6_registers()
 #			update_bank1_bank2_scalers()
 #			update_counters()
@@ -407,6 +397,11 @@ def read_bank1_registers():
 	bank = 1
 	bank1_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank1_register_names), False)
 
+def read_bank4_registers():
+	global bank4_register_values
+	bank = 4
+	bank4_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank4_register_names), False)
+
 def read_bank6_registers():
 	global bank6_register_values
 	bank = 6
@@ -414,6 +409,7 @@ def read_bank6_registers():
 
 bank0_register_object = [ 0 for i in range(len(bank0_register_names)) ]
 bank1_register_object = [ 0 for i in range(len(bank1_register_names)) ]
+bank4_register_object = [ 0 for i in range(len(bank1_register_names)) ]
 bank6_register_object = [ 0 for i in range(len(bank6_register_names)) ]
 
 def update_bank0_registers():
@@ -423,7 +419,7 @@ def update_bank0_registers():
 		for i in range(len(bank0_register_names)):
 			try:
 				temp_surface = pygame.Surface(bank0_register_object[i].get_size())
-				temp_surface.fill(green)
+				temp_surface.fill(darkgreen)
 				screen.blit(temp_surface, bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
 			except Exception as e:
 				#print(str(e))
@@ -446,6 +442,21 @@ def update_bank1_registers():
 			bank1_register_object[i] = banks_font.render(hex(bank1_register_values[i], 8, True), False, white)
 			screen.blit(bank1_register_object[i], bank1_register_object[i].get_rect(center=(X_POSITION_OF_BANK1_REGISTERS-bank1_register_object[i].get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
 
+def update_bank4_registers():
+	global bank4_register_object
+	read_bank4_registers()
+	if should_show_bank4_registers:
+		for i in range(len(bank4_register_names)):
+			try:
+				temp_surface = pygame.Surface(bank4_register_object[i].get_size())
+				temp_surface.fill(blue)
+				screen.blit(temp_surface, bank4_register_object[i].get_rect(center=(X_POSITION_OF_BANK4_REGISTERS-bank4_register_object[i].get_width()//2,Y_POSITION_OF_BANK4_REGISTERS+FONT_SIZE_BANKS*i)))
+			except Exception as e:
+				#print(str(e))
+				pass
+			bank4_register_object[i] = banks_font.render(hex(bank4_register_values[i], 8, True), False, white)
+			screen.blit(bank4_register_object[i], bank4_register_object[i].get_rect(center=(X_POSITION_OF_BANK4_REGISTERS-bank4_register_object[i].get_width()//2,Y_POSITION_OF_BANK4_REGISTERS+FONT_SIZE_BANKS*i)))
+
 def update_bank6_registers():
 	global bank6_register_object
 	read_bank6_registers()
@@ -453,7 +464,7 @@ def update_bank6_registers():
 		for i in range(len(bank6_register_names)):
 			try:
 				temp_surface = pygame.Surface(bank6_register_object[i].get_size())
-				temp_surface.fill(purple)
+				temp_surface.fill(brown)
 				screen.blit(temp_surface, bank6_register_object[i].get_rect(center=(X_POSITION_OF_BANK6_REGISTERS-bank6_register_object[i].get_width()//2,Y_POSITION_OF_BANK6_REGISTERS+FONT_SIZE_BANKS*i)))
 			except Exception as e:
 				#print(str(e))
@@ -528,7 +539,7 @@ if __name__ == "__main__":
 	SCREEN_WIDTH = desired_window_width
 	SCREEN_HEIGHT = 360
 	plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
-	plot_name = [ [ "bank" + chr(i+ord('A')) for j in range(ROWS) ] for i in range(COLUMNS) ]
+	plot_name = [ [ "alpha" for j in range(ROWS) ] for i in range(COLUMNS) ]
 	short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
 	maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
