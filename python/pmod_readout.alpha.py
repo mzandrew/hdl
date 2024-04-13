@@ -2,7 +2,7 @@
 
 # written 2024-04-04 by mza
 # based on mza-test046_simple_parallel_interface_and_pollable_memory_althea.py
-# last updated 2024-04-11 by mza
+# last updated 2024-04-12 by mza
 
 filename = "alpha.data"
 
@@ -37,7 +37,7 @@ data_string = []
 data_nybbles = []
 #alignment_nybbles = ( 0xa, 0x1, 0xf, 0xa )
 string = ""
-datafile = open(filename, "w+")
+datafile = open(filename, "a")
 ALFA_OMGA_counter = 0
 FONT_SIZE_PLOT_CAPTION = 3
 FONT_SIZE_FEED_NAME = 3
