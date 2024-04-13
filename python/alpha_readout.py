@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-04-12 by mza
+# last updated 2024-04-19 by mza
 
 bank0_register_names = [ "ls_i2c" ]
 bank1_register_names = [ "hdrb errors, status8", "triggers since reset", "fifo empty", "fifo pending", "fifo errors", "asic output strobes", "fifo output strobes", "alfa counter", "omga counter" ]
@@ -507,7 +507,7 @@ def readout_some_data_from_the_fifo(number_of_words):
 		if fifo_empty:
 			break
 		fifo_data, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, 1, False)
-		datafile.write(hex(fifo_data))
+		datafile.write(hex(fifo_data, 4))
 		count += 1
 	datafile.write("\n")
 	datafile.flush()
