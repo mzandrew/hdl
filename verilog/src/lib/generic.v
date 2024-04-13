@@ -4,6 +4,46 @@
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
+module counter_level #(
+	parameter POLARITY = 1,
+	parameter LOG2_OF_WIDTH = 32
+) (
+	input clock, reset, in,
+	output reg [LOG2_OF_WIDTH-1:0] counter = 0
+);
+	always @(posedge clock) begin
+		if (reset) begin
+			counter <= 0;
+		end else begin
+			if (in==POLARITY) begin
+				counter <= counter + 1'b1;
+			end
+		end
+	end
+endmodule
+
+module counter_edge #(
+	parameter POLARITY = 1, // 1 means 0-to-1 transition
+	parameter PIPELINE_PICKOFF = 4,
+	parameter LOG2_OF_WIDTH = 32
+) (
+	input clock, reset, in,
+	output reg [LOG2_OF_WIDTH-1:0] counter = 0
+);
+	reg [PIPELINE_PICKOFF:0] pipeline = 0;
+	always @(posedge clock) begin
+		if (reset) begin
+			counter <= 0;
+			pipeline <= 0;
+		end else begin
+			pipeline <= { pipeline[PIPELINE_PICKOFF-1:0], in };
+			if (pipeline[PIPELINE_PICKOFF:PIPELINE_PICKOFF-1]=={~POLARITY,POLARITY}) begin
+				counter <= counter + 1'b1;
+			end
+		end
+	end
+endmodule
+
 //	mux #(.WIDTH(8)) mymux (.I0(), .I1(), .S(), .O());
 module mux #(
 	parameter WIDTH = 1
