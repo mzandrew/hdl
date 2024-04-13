@@ -464,6 +464,8 @@ module alpha_readout (
 	output reg header = 0,
 	output reg meat = 0,
 	output reg footer = 0,
+	output reg [31:0] alfa_counter = 0,
+	output reg [31:0] omga_counter = 0,
 	output strobe,
 	output msn,
 	output [1:0] nybble_counter,
@@ -491,6 +493,8 @@ module alpha_readout (
 			footer <= 0;
 			data_sr <= 0;
 			strobe_valid <= 0;
+			alfa_counter <= 0;
+			omga_counter <= 0;
 		end else begin
 			data_sr <= { data_sr[SR_HIGH_BIT-1:0], data_a };
 			data_bit_counter <= data_bit_counter - 1'b1;
@@ -514,12 +518,14 @@ module alpha_readout (
 				header <= 1'b1;
 				meat <= 1'b1;
 				data_word <= data_sr[SR_PICKOFF-1-:16];
+				alfa_counter <= alfa_counter + 1'b1;
 			end else if (data_sr[SR_PICKOFF-1-:16]==OMGA) begin // WARNING: this might accidentally re-bitslip align on data 0x0e6a from channel 0x0
 				header <= 0;
 				meat <= 0;
 				footer <= 1'b1;
 //				data_bit_counter <= 0; // 2 least significant bits must not be 2'b01 (see assignment for strobe, below)
 				data_word_counter <= DATA_WORD_COUNTER_MAX - 1;
+				omga_counter <= omga_counter + 1'b1;
 			end
 		end
 	end

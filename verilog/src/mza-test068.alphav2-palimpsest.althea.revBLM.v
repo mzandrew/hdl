@@ -160,6 +160,8 @@ module ALPHAtestPALIMPSEST #(
 	wire [23:0] fifo_error_count;
 	wire [31:0] asic_output_strobe_counter;
 	wire [31:0] fifo_output_strobe_counter;
+	wire [31:0] alfa_counter;
+	wire [31:0] omga_counter;
 	assign bank1[0] = { hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8 };
 	assign bank1[1][7:0] = number_of_triggers_since_reset;
 	assign bank1[2][0] = fifo_empty;
@@ -167,6 +169,8 @@ module ALPHAtestPALIMPSEST #(
 	assign bank1[4][23:0] = fifo_error_count;
 	assign bank1[5] = asic_output_strobe_counter;
 	assign bank1[6] = fifo_output_strobe_counter;
+	assign bank1[7] = alfa_counter;
+	assign bank1[8] = omga_counter;
 	// ----------------------------------------------------------------------
 	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(sysclk),
@@ -278,7 +282,7 @@ module ALPHAtestPALIMPSEST #(
 //	wire [1:0] nybble_counter;
 	wire [15:0] data_word_from_asic;
 	wire header, meat, footer, fifo_write_strobe, msn; // msn = most significant nybble
-	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .meat(meat), .footer(footer), .strobe(fifo_write_strobe), .msn(msn), .nybble(), .nybble_counter(), .data_word(data_word_from_asic));
+	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .meat(meat), .footer(footer), .alfa_counter(alfa_counter), .omga_counter(omga_counter), .strobe(fifo_write_strobe), .msn(msn), .nybble(), .nybble_counter(), .data_word(data_word_from_asic));
 	counter_level asic_output_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(fifo_write_strobe), .counter(asic_output_strobe_counter));
 	localparam LOG2_OF_DEPTH = 13+1; // $clog2(4200)
 	fifo_single_clock #(.DATA_WIDTH(16), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(sysclk), .reset(reset), .error_count(fifo_error_count),
