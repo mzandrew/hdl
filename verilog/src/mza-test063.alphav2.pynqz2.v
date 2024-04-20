@@ -2,11 +2,13 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2024-03-18 by mza and makiko
+// last updated 2024-04-11 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
 
+`include "lib/reset.v"
+`include "lib/debounce.v"
 `include "lib/alpha.v"
 
 module icyrus7series10bit (
@@ -456,9 +458,15 @@ module testALPHA #(
 	assign dat_a_f2b = 1'b0;
 	assign tok_b_f2m = 1'b0;
 	// ------------------------------------------
-	wire reset = btn[0];
 	wire clock;
 	IBUFGDS clock_in_diff (.I(ja[4]), .IB(ja[5]), .O(clock));
+	// ------------------------------------------
+	wire reset;
+	localparam RESET_COUNTER_PICKOFF = 9;
+	wire debounced_reset_button;
+	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) reset_button_debounce (.clock(clock), .raw_button_input(1'b0), .polarity(1'b1), .button_activated_pulse(debounced_reset_button), .button_deactivated_pulse(), .button_active());
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(RESET_COUNTER_PICKOFF)) reset_btn_wait4pll (.reset_input(debounced_reset_button), .pll_locked_input(1'b1), .clock_input(clock), .reset_output(reset));
+	// ------------------------------------------
 	//IBUFG clock_in_se (.I(ja[7]), .O(clock));
 //	OBUFDS (.I(clock), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
 	//wire clock_enable;
@@ -588,20 +596,16 @@ module testALPHA #(
 	wire [1:0] nybble_counter;
 	wire [15:0] data_word;
 	wire msn; // most significant nybble
-	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .dat_a_t2f(dat_a_t2f), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
+	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(dat_a_t2f), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
 	assign jb[3:0] = nybble;
 	assign jb[4] = msn;
 	assign jb[5] = 0;
 	assign jb[6] = header;
 	assign jb[7] = 0;
-	wire [3:0] CMPbias_MSN = 4'h8;
-	wire [3:0] ISEL_MSN    = rot_buffered_b;
-	wire [3:0] SBbias_MSN  = 4'h8;
-	wire [3:0] DBbias_MSN  = 4'h8;
-	wire [11:0] CMPbias = {CMPbias_MSN, 8'h44};
-	wire [11:0] ISEL    = {ISEL_MSN,    8'h44};
-	wire [11:0] SBbias  = {SBbias_MSN,  8'h44};
-	wire [11:0] DBbias  = {DBbias_MSN,  8'h44};
+	wire [11:0] ISEL    = 12'ha80; // 12'hb44=79us ramp on 3*alpha board; 12'ha80=41us on 1*alpha toupee
+	wire [11:0] CMPbias = 12'd1000; // in IRSX PS7 code, CMPbias2 is 737 and CMPbias is 1000
+	wire [11:0] SBbias  = 12'd1300; // in IRSX PS7 code, SBbias is 1300
+	wire [11:0] DBbias  = 12'd1300; // in IRSX PS7 code, SBbias is 1300
 	assign led[3] = rot_buffered_b[3];
 	assign led[2] = rot_buffered_b[2];
 	assign led[1] = rot_buffered_b[1];
@@ -610,41 +614,16 @@ module testALPHA #(
 //	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk1 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[1]));
 //	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk2 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[2]));
 //	ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_sysclk3 (.C(sysclk), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(jc[3]));
-	localparam BUTTON_PICKOFF = 6;
-	reg [BUTTON_PICKOFF:0] button1_pipeline = 0;
-	reg [BUTTON_PICKOFF:0] button2_pipeline = 0;
-	reg [BUTTON_PICKOFF:0] button3_pipeline = 0;
-	reg startup_sequence_1 = 0;
-	reg startup_sequence_2 = 0;
-	reg startup_sequence_3 = 0;
-	always @(posedge sysclk) begin
-		startup_sequence_1 <= 0;
-		startup_sequence_2 <= 0;
-		startup_sequence_3 <= 0;
-		if (reset) begin
-			button1_pipeline <= 0;
-			button2_pipeline <= 0;
-			button3_pipeline <= 0;
-		end else begin
-			if (button1_pipeline[BUTTON_PICKOFF:BUTTON_PICKOFF-1]==2'b10) begin
-				startup_sequence_1 <= 1;
-			end
-			if (button2_pipeline[BUTTON_PICKOFF:BUTTON_PICKOFF-1]==2'b10) begin
-				startup_sequence_2 <= 1;
-			end
-			if (button3_pipeline[BUTTON_PICKOFF:BUTTON_PICKOFF-1]==2'b10) begin
-				startup_sequence_3 <= 1;
-			end
-			button1_pipeline <= { button1_pipeline[BUTTON_PICKOFF-1:0], btn[1] };
-			button2_pipeline <= { button2_pipeline[BUTTON_PICKOFF-1:0], btn[2] };
-			button3_pipeline <= { button3_pipeline[BUTTON_PICKOFF-1:0], btn[3] };
-		end
-	end
+	wire initiate_dreset_sequence, initiate_legacy_serial_sequence, initiate_i2c_transfer, initiate_trigger;
+	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_3_debounce (.clock(sysclk), .raw_button_input(btn[3]), .polarity(1'b1), .button_activated_pulse(initiate_dreset_sequence), .button_deactivated_pulse(), .button_active());
+	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_2_debounce (.clock(sysclk), .raw_button_input(btn[2]), .polarity(1'b1), .button_activated_pulse(initiate_legacy_serial_sequence), .button_deactivated_pulse(), .button_active());
+	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_1_debounce (.clock(sysclk), .raw_button_input(btn[1]), .polarity(1'b1), .button_activated_pulse(initiate_i2c_transfer), .button_deactivated_pulse(), .button_active());
+	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_0_debounce (.clock(sysclk), .raw_button_input(btn[0]), .polarity(1'b1), .button_activated_pulse(initiate_trigger), .button_deactivated_pulse(), .button_active());
 	wire trig;
 	wire sda_in, sda_out, sda_dir;
 	assign sda = sda_dir ? sda_out : 1'bz;
 	assign sda_in = sda;
-	alpha_control alpha_control (.clock(sysclk), .reset(reset), .startup_sequence_1(startup_sequence_1), .startup_sequence_2(startup_sequence_2), .startup_sequence_3(startup_sequence_3), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_dir(sda_dir), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	alpha_control alpha_control (.clock(sysclk), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .initiate_dreset_sequence(initiate_dreset_sequence), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_dir(sda_dir), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 	assign trig_top = trig;
 	//assign trig_mid = sw[0] ? trig : 1'b0; // trig_mid is on a 3.3V bank but only ever reaches 200mV
 	assign trig_mid = 1'b0;

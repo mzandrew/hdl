@@ -1,4 +1,4 @@
-sudo apt install -y python3-spidev python3-distutils python3-dev libraspberrypi-dev python3-full python3-rpi.gpio python3.11-venv
+sudo apt install -y python3-spidev python3-distutils python3-dev libraspberrypi-dev python3-full python3-rpi.gpio python3-venv
 python3 -m venv pypath
 cd ../print_string
 ../pypath/bin/pip install .

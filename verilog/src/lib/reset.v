@@ -1,6 +1,11 @@
 // written 2020-05-23 by mza
 // last updated 2021-07-11 by mza
 
+`ifndef RESET_LIB
+`define RESET_LIB
+
+`include "generic.v"
+
 //	reset_wait4pll #(.COUNTER_BIT_PICKOFF(CLOCK1_BIT_PICKOFF), .PLL_LOCKED_PIPELINE_PICKOFF(PLL_LOCKED_PIPELINE_CLOCK1_PICKOFF), .RESET_PIPELINE_PICKOFF(RESET_PIPELINE_PICKOFF)) reset1_wait4pll (.reset_input(reset_input), .pll_locked_input(pll_locked1_input), .clock_input(clock1_input), .reset_output(reset1_output));
 module reset_wait4pll #(
 	parameter COUNTER_BIT_PICKOFF = 20,
@@ -111,10 +116,10 @@ endmodule
 
 //	reset #(.FREQUENCY(10000000)) myr (.upstream_clock(), .upstream_reset(), .downstream_pll_locked(), .downstream_reset());
 module reset #(
-	parameter FREQUENCY = 10000000.0, // in Hertz
-	parameter PLL_LOCK_TIME = 0.05, // in seconds
+	parameter FREQUENCY_HZ = 10000000, // in Hertz
+	parameter PLL_LOCK_TIME_IN_MILLISECONDS = 50, // in milliseconds
 	parameter SYNCHRONOUS_ONLY = 1,
-	parameter SIGNIFICANT_BIT_NUMBER_B = $clog2(FREQUENCY*PLL_LOCK_TIME) + 1, // synthesis
+	parameter SIGNIFICANT_BIT_NUMBER_B = $clog2(FREQUENCY_HZ*PLL_LOCK_TIME_IN_MILLISECONDS/1000) + 1, // synthesis
 //	parameter SIGNIFICANT_BIT_NUMBER_B = 5, // simulation
 	parameter SIGNIFICANT_BIT_NUMBER_A = SIGNIFICANT_BIT_NUMBER_B/4
 ) (
@@ -199,4 +204,6 @@ module reset_tb();
 		end
 	end
 endmodule
+
+`endif
 
