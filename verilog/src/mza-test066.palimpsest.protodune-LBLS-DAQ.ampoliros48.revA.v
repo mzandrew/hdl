@@ -1,6 +1,6 @@
 // written 2024-03-08 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-03-25 by mza
+// last updated 2024-04-17 by mza
 
 `define ampoliros48_revA
 `include "lib/duneLBLS.v"
@@ -276,15 +276,17 @@ module LBLS48 #(
 	assign outR[1] = 0;
 	assign outR[2] = 0;
 	assign outR[3] = 0;
-	assign outF[1] = button;
-	assign outF[2] = 0;
-	assign outF[3] = 0;
-	assign tR[1] = 0;
-	assign tR[2] = 0;
-	assign tR[3] = 0;
-	assign tF[1] = 1;
-	assign tF[2] = 0;
-	assign tF[3] = 0;
+	assign outF[1] = inR[1];
+	assign outF[2] = inR[2];
+	assign outF[3] = inR[3];
+	assign tR[1] = 0; // 0=input; 1=output
+	assign tR[2] = 0; // 0=input; 1=output
+	assign tR[3] = 0; // 0=input; 1=output
+	assign tF[1] = 1; // 0=input; 1=output
+	assign tF[2] = 1; // 0=input; 1=output
+	assign tF[3] = 1; // 0=input; 1=output
+	assign inoutM[1] = inR[2];
+	assign inoutM[2] = inR[3];
 	assign toupee_diff[11] = ~pll_oserdes_locked;
 	assign toupee_diff[10] = reset;
 	assign toupee_diff[9]  = reset100;
@@ -293,10 +295,10 @@ module LBLS48 #(
 	assign toupee_diff[6]  = anyB;
 	assign toupee_diff[5]  = anyC;
 	assign toupee_diff[4]  = anyD;
-	assign toupee_diff[3] = 0;
-	assign toupee_diff[2] = inF[1];
-	assign toupee_diff[1] = 0;
-	assign toupee_diff[0] = button;
+	assign toupee_diff[3] = inR[3];
+	assign toupee_diff[2] = inR[2];
+	assign toupee_diff[1] = inR[1];
+	assign toupee_diff[0] = ~button;
 	if (0) begin
 		wire clock100_for_output;
 		wire word_clock_for_output;
@@ -317,11 +319,6 @@ module LBLS48 #(
 		BUFG wordraw180 (.I(word_clock_raw180), .O(word_clock_180));
 		clock_ODDR_out clock100_ODDR   (.clock_in_p(clock100_0),   .clock_in_n(clock100_180),   .reset(reset), .clock_out(clock100_for_output));
 		clock_ODDR_out word_clock_ODDR (.clock_in_p(word_clock_0), .clock_in_n(word_clock_180), .reset(reset), .clock_out(word_clock_for_output));
-		assign inoutM[1] = clock100_for_output;
-		assign inoutM[2] = word_clock_for_output;
-	end else begin
-		assign inoutM[1] = reset;
-		assign inoutM[2] = reset100;
 	end
 	wire [31:0] start_sample = 0;
 	wire [31:0] end_sample = 5120;
