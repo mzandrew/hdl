@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-04-19 by mza
+# last updated 2024-04-22 by mza
 
 bank0_register_names = [ "ls_i2c" ]
 bank1_register_names = [ "hdrb errors, status8", "triggers since reset", "fifo empty", "fifo pending", "fifo errors", "asic output strobes", "fifo output strobes", "alfa counter", "omga counter" ]
@@ -84,8 +84,12 @@ purple = (255, 0, 255)
 grid_color_bright = (63, 63, 63)
 grid_color_faint = (15, 15, 15)
 grey = (127, 127, 127 )
+dark_teal = (0, 127, 127)
+dark_red = (127, 0, 0)
+dark_blue = (0, 0, 127)
+dark_purple = (127, 0, 127)
 
-color = [ black, white, red, green, blue, yellow, teal, pink, maroon, dark_green, light_blue, orange, purple, grey, brown, teal, teal, teal ]
+color = [ black, white, grey, red, dark_red, orange, pink, maroon, purple, dark_purple, green, teal, dark_teal, dark_green, blue, dark_blue, light_blue, yellow, brown ]
 
 selection = 0
 coax_mux = [ 0 for i in range(4) ]
@@ -160,7 +164,7 @@ def update_plot(i, j):
 	global plots_were_updated
 	pygame.event.pump()
 	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
-	scale = 1.8 / MAX_ADC
+	scale = 1.0 / MAX_ADC
 	#print(str(scale))
 	for n in range(len(waveform_data[i][j][0])):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
@@ -168,25 +172,25 @@ def update_plot(i, j):
 			time = timestep*n
 			x = int(time)
 			formatted_data[k][x] = voltage * scale
-			if 0==n%40:
-				print(str(time) + "," + str(voltage) + ":" + str(x) + ":" + str(formatted_data[k][x]))
+			#if 0==n%40:
+			#	print(str(time) + "," + str(voltage) + ":" + str(x) + ":" + str(formatted_data[k][x]))
 	pygame.event.pump()
 	print("plotting data...")
 	# fill with colors for now:
 	#plot[i][j].fill((random.randrange(0, 255), random.randrange(0, 255), random.randrange(0, 255)))
 	print("[" + str(i) + "][" + str(j) + "]")
-	for x in range(plot_width):
+	for x in range(extra_gap_x, plot_width+extra_gap_x):
 		pygame.event.pump()
-		for y in range(plot_height):
+		for y in range(extra_gap_y, plot_height+extra_gap_y):
 			plot[i][j].set_at((x, y), black)
 			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-				yn = int(plot_height - plot_height * formatted_data[k][x])
+				yn = int(plot_height - plot_height * formatted_data[k][x-extra_gap_x])
 				doit = False
 				if y==yn:
 					doit = True
-				elif 0==y and yn<0:
+				elif extra_gap_y==y and yn<0:
 					doit = True
-				elif plot_height-1==y and plot_height<yn:
+				elif plot_height-1-extra_gap_y==y and plot_height<yn:
 					doit = True
 				if doit:
 					plot[i][j].set_at((x, y), color[k+2]) # first two indices are black and white
@@ -197,20 +201,19 @@ def draw_plot_border(i, j):
 	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
 
 def setup():
-	global plot_width
-	global plot_height
-	global screen
-	global plot
-	global something_was_updated
+	global plot_width, plot_height, screen, plot, something_was_updated
 	something_was_updated = False
 	print("screen_width: " + str(SCREEN_WIDTH))
 	usable_width = int(SCREEN_WIDTH - GAP_X_LEFT - GAP_X_RIGHT - (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
 	print("usable_width: " + str(usable_width))
 	usable_height = int(SCREEN_HEIGHT - GAP_Y_TOP - GAP_Y_BOTTOM - (ROWS-1)*GAP_Y_BETWEEN_PLOTS)
 	print("usable_height: " + str(usable_height))
-	plot_width = MAX_SAMPLES_PER_WAVEFORM
-	plot_height = int(usable_height / ROWS / 4)
-	#print("plot_width: " + str(plot_width))
+	global extra_gap_x, extra_gap_y
+	extra_gap_x = 1
+	extra_gap_y = 1
+	plot_width = MAX_SAMPLES_PER_WAVEFORM + 2*extra_gap_x
+	plot_height = int(0.7 * usable_height / ROWS) + 2*extra_gap_y
+	print("plot_width: " + str(plot_width))
 	print("plot_height: " + str(plot_height))
 	global Y_POSITION_OF_CHANNEL_NAMES
 	global Y_POSITION_OF_COUNTERS
@@ -358,6 +361,7 @@ def blit(i, j):
 	if plots_were_updated[i][j]:
 		#print("blitting...")
 		screen.blit(plot[i][j], (GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)))
+		pygame.image.save(plot[i][j], "alpha.data.png")
 		pygame.event.pump()
 		plots_were_updated[i][j] = False
 		something_was_updated = True
@@ -511,27 +515,31 @@ ALFA_OMGA_counter = 0
 NUMBER_OF_WORDS_PER_HEADER = 8
 NUMBER_OF_WORDS_PER_FOOTER = 2
 NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT = NUMBER_OF_WORDS_PER_HEADER + NUMBER_OF_WORDS_PER_FOOTER
+start_sample = 0
 def gulp(word):
-	global buffer_new
-	global buffer_old
-	global waveform_data
-	global ALFA_OMGA_counter
+	global buffer_new, buffer_old, waveform_data, ALFA_OMGA_counter, start_sample
 	if ALFA==word:
 		buffer_new = []
 		ALFA_OMGA_counter = 0
 	buffer_new.append(word)
 	ALFA_OMGA_counter += 1
+	if 4==ALFA_OMGA_counter:
+		start_sample = word & 0xff
+		print("start_sample: " + str(start_sample))
 	if OMGA==word:
 		buffer_old = buffer_new
-		number_of_samples_per_waveform = (ALFA_OMGA_counter-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT)/NUMBER_OF_CHANNELS_PER_ASIC
+		number_of_samples_per_waveform = int((ALFA_OMGA_counter-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT)/NUMBER_OF_CHANNELS_PER_ASIC)
 		print("number_of_samples_per_waveform: " + str(number_of_samples_per_waveform))
 		index = NUMBER_OF_WORDS_PER_HEADER
-		for n in range(MAX_SAMPLES_PER_WAVEFORM):
+		for n in range(start_sample, MAX_SAMPLES_PER_WAVEFORM):
 			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-				#waveform_data[0][0][k][n] = buffer_old[NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT+n*(NUMBER_OF_CHANNELS_PER_ASIC-k)]
 				waveform_data[0][0][k][n] = buffer_old[index] & 0xfff
 				index += 1
-		print(str(waveform_data[0][0][0]))
+		for n in range(start_sample):
+			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+				waveform_data[0][0][k][n] = buffer_old[index] & 0xfff
+				index += 1
+		#print(str(waveform_data[0][0][0]))
 		have_just_gathered_waveform_data[0] = True
 
 def readout_some_data_from_the_fifo(number_of_words):
@@ -562,7 +570,7 @@ if __name__ == "__main__":
 	wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
 	desired_window_width = int(COLUMNS * box_dimension_x_in * scale_pixels_per_in + wasted_width)
 	SCREEN_WIDTH = desired_window_width
-	SCREEN_HEIGHT = 360
+	SCREEN_HEIGHT = 890
 	plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	plot_name = [ [ "alpha" for j in range(ROWS) ] for i in range(COLUMNS) ]
 	short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
