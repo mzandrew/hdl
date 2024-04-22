@@ -17,6 +17,7 @@ datafile_name = "alpha.data"
 number_of_words_to_read_from_the_fifo = 4200
 ALFA = 0xa1fa
 OMGA = 0x0e6a
+LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 5
 
 MAX_SAMPLES_PER_WAVEFORM = 256
 timestep = 1
@@ -101,6 +102,16 @@ should_show_bank1_registers = True
 should_show_bank4_registers = True
 should_show_bank6_registers = True
 scaler_values_seen = set()
+pedestal_mode = False
+
+buffer_new = []
+buffer_old = []
+ALFA_OMGA_counter = 0
+NUMBER_OF_WORDS_PER_HEADER = 8
+NUMBER_OF_WORDS_PER_FOOTER = 2
+NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT = NUMBER_OF_WORDS_PER_HEADER + NUMBER_OF_WORDS_PER_FOOTER
+start_sample = 0
+pedestals_have_been_taken = False
 
 # when run as a systemd service, it gets sent a SIGHUP upon pygame.init(), hence this dummy signal handler
 # see https://stackoverflow.com/questions/39198961/pygame-init-fails-when-run-with-systemd
@@ -169,6 +180,8 @@ def update_plot(i, j):
 	for n in range(len(waveform_data[i][j][0])):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			voltage = waveform_data[i][j][k][n]
+			if pedestals_have_been_taken:
+				voltage -= pedestal_data[i][j][k][n]
 			time = timestep*n
 			x = int(time)
 			formatted_data[k][x] = voltage * scale
@@ -195,6 +208,7 @@ def update_plot(i, j):
 				if doit:
 					plot[i][j].set_at((x, y), color[k+2]) # first two indices are black and white
 	plots_were_updated[i][j] = True
+	print("done")
 
 def draw_plot_border(i, j):
 	#print("drawing plot border...")
@@ -318,7 +332,7 @@ def loop():
 	#pressed_keys = pygame.key.get_pressed()
 	#pygame.event.wait()
 	mouse = pygame.mouse.get_pos()
-	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_c, K_d, K_s, K_z, K_q, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
+	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_c, K_d, K_p, K_s, K_z, K_q, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
 	for event in pygame.event.get():
 		if event.type == KEYDOWN:
 			if K_ESCAPE==event.key or K_q==event.key:
@@ -331,6 +345,8 @@ def loop():
 				initiate_i2c_transfer()
 			elif K_F4==event.key:
 				initiate_trigger()
+			elif K_p==event.key:
+				gather_pedestals(0, 0)
 			elif K_F5==event.key:
 				readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 			elif K_F6==event.key:
@@ -344,15 +360,14 @@ def loop():
 			update_bank6_registers()
 #			update_bank1_bank2_scalers()
 #			update_counters()
-	global have_just_gathered_waveform_data
-	for i in range(COLUMNS):
-		for j in range(ROWS):
-			if have_just_gathered_waveform_data[i]:
-				have_just_gathered_waveform_data[i] = False
-				update_plot(i, j)
-	for i in range(COLUMNS):
-		for j in range(ROWS):
-			blit(i, j)
+	if not pedestal_mode:
+		global have_just_gathered_waveform_data
+		for i in range(COLUMNS):
+			for j in range(ROWS):
+				if have_just_gathered_waveform_data[i]:
+					have_just_gathered_waveform_data[i] = False
+					update_plot(i, j)
+					blit(i, j)
 #	draw_photodiode_box(i, j)
 	flip()
 
@@ -509,13 +524,6 @@ def get_fifo_empty():
 	fifo_empty, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 2, 1, False)
 	return fifo_empty
 
-buffer_new = []
-buffer_old = []
-ALFA_OMGA_counter = 0
-NUMBER_OF_WORDS_PER_HEADER = 8
-NUMBER_OF_WORDS_PER_FOOTER = 2
-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT = NUMBER_OF_WORDS_PER_HEADER + NUMBER_OF_WORDS_PER_FOOTER
-start_sample = 0
 def gulp(word):
 	global buffer_new, buffer_old, waveform_data, ALFA_OMGA_counter, start_sample
 	if ALFA==word:
@@ -563,6 +571,31 @@ def drain_fifo():
 	while count:
 		count = readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 
+def gather_pedestals(i, j):
+	# need to ensure the number of samples to readout is MAX_SAMPLES_PER_WAVEFORM
+	global pedestal_mode, pedestal_data, pedestals_have_been_taken
+	pedestal_mode = True
+	number_of_acquisisitions_so_far = 0
+	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		for n in range(MAX_SAMPLES_PER_WAVEFORM):
+			pedestal_data[i][j][k][n] = 0
+	while number_of_acquisisitions_so_far<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
+		initiate_trigger()
+		readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
+		if have_just_gathered_waveform_data[0]:
+			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+				for n in range(MAX_SAMPLES_PER_WAVEFORM):
+					pedestal_data[i][j][k][n] += waveform_data[i][j][k][n]
+			number_of_acquisisitions_so_far += 1
+		print("number_of_acquisisitions_so_far: " + str(number_of_acquisisitions_so_far))
+	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		for n in range(MAX_SAMPLES_PER_WAVEFORM):
+			pedestal_data[i][j][k][n] >>= LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+	have_just_gathered_waveform_data[0] = False
+	pedestals_have_been_taken = True
+	print("pedestals acquired")
+	pedestal_mode = False
+
 if __name__ == "__main__":
 	datafile = open(datafile_name, "a")
 	ROWS = 1
@@ -576,7 +609,8 @@ if __name__ == "__main__":
 	short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
 	maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
-	waveform_data = [ [ [ [ 0.0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	waveform_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	pedestal_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	have_just_gathered_waveform_data = [ False for i in range(COLUMNS) ]
 	setup()
 	#write_to_pollable_memory_value()
