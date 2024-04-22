@@ -179,9 +179,9 @@ def update_plot(i, j):
 	#print(str(scale))
 	for n in range(len(waveform_data[i][j][0])):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			voltage = waveform_data[i][j][k][n]
+			voltage = data_and_pedestal_coefficients[i][0] * waveform_data[i][j][k][n]
 			if pedestals_have_been_taken:
-				voltage -= pedestal_data[i][j][k][n]
+				voltage += data_and_pedestal_coefficients[i][1] * pedestal_data[i][j][k][n]
 			time = timestep*n
 			x = int(time)
 			formatted_data[k][x] = voltage * scale
@@ -376,7 +376,7 @@ def blit(i, j):
 	if plots_were_updated[i][j]:
 		#print("blitting...")
 		screen.blit(plot[i][j], (GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)))
-		pygame.image.save(plot[i][j], "alpha.data.png")
+		pygame.image.save(plot[i][j], "alpha.data." + str(i) + ".png")
 		pygame.event.pump()
 		plots_were_updated[i][j] = False
 		something_was_updated = True
@@ -542,13 +542,19 @@ def gulp(word):
 		for n in range(start_sample, MAX_SAMPLES_PER_WAVEFORM):
 			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 				waveform_data[0][0][k][n] = buffer_old[index] & 0xfff
+				waveform_data[1][0][k][n] = buffer_old[index] & 0xfff
+				waveform_data[2][0][k][n] = buffer_old[index] & 0xfff
 				index += 1
 		for n in range(start_sample):
 			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 				waveform_data[0][0][k][n] = buffer_old[index] & 0xfff
+				waveform_data[1][0][k][n] = buffer_old[index] & 0xfff
+				waveform_data[2][0][k][n] = buffer_old[index] & 0xfff
 				index += 1
 		#print(str(waveform_data[0][0][0]))
-		have_just_gathered_waveform_data[0] = True
+		have_just_gathered_waveform_data[1] = True
+		if pedestals_have_been_taken:
+			have_just_gathered_waveform_data[2] = True
 
 def readout_some_data_from_the_fifo(number_of_words):
 	bank = 5
@@ -582,7 +588,7 @@ def gather_pedestals(i, j):
 	while number_of_acquisisitions_so_far<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
 		initiate_trigger()
 		readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
-		if have_just_gathered_waveform_data[0]:
+		if have_just_gathered_waveform_data[1]:
 			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 				for n in range(MAX_SAMPLES_PER_WAVEFORM):
 					pedestal_data[i][j][k][n] += waveform_data[i][j][k][n]
@@ -591,21 +597,27 @@ def gather_pedestals(i, j):
 	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		for n in range(MAX_SAMPLES_PER_WAVEFORM):
 			pedestal_data[i][j][k][n] >>= LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-	have_just_gathered_waveform_data[0] = False
-	pedestals_have_been_taken = True
+			pedestal_data[1][j][k][n] = pedestal_data[i][j][k][n]
+			pedestal_data[2][j][k][n] = pedestal_data[i][j][k][n]
 	print("pedestals acquired")
+	pedestals_have_been_taken = True
+	have_just_gathered_waveform_data[0] = True
+	have_just_gathered_waveform_data[1] = False
+	have_just_gathered_waveform_data[2] = False
 	pedestal_mode = False
 
 if __name__ == "__main__":
 	datafile = open(datafile_name, "a")
 	ROWS = 1
-	COLUMNS = 1
+	COLUMNS = 3
 	wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
 	desired_window_width = int(COLUMNS * box_dimension_x_in * scale_pixels_per_in + wasted_width)
 	SCREEN_WIDTH = desired_window_width
 	SCREEN_HEIGHT = 890
 	plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
-	plot_name = [ [ "alpha" for j in range(ROWS) ] for i in range(COLUMNS) ]
+	#plot_name = [ [ "alpha" for j in range(ROWS) ] for i in range(COLUMNS) ]
+	plot_name = [ ["pedestals"], ["RAW"], ["pedestal subtracted"] ]
+	data_and_pedestal_coefficients = [ [0,1], [1,0], [1,-1] ]
 	short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
 	maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
