@@ -14,10 +14,12 @@ ISEL    = 0xa80
 SBbias  = 1300
 DBbias  = 1300
 datafile_name = "alpha.data"
-number_of_words_to_read_from_the_fifo = 4200
+number_of_words_to_read_from_the_fifo = 4106
 ALFA = 0xa1fa
 OMGA = 0x0e6a
-LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 5
+MIN_RMS = 1.0
+MAX_RMS = 50.0
+LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 4
 
 MAX_SAMPLES_PER_WAVEFORM = 256
 timestep = 1
@@ -55,7 +57,7 @@ X_POSITION_OF_BANK1_REGISTERS = 100
 X_POSITION_OF_BANK4_REGISTERS = 100
 X_POSITION_OF_BANK6_REGISTERS = 400
 
-box_dimension_x_in = 6.0
+box_dimension_x_in = 3.0
 box_dimension_y_in = 2.0
 scale_pixels_per_in = 80
 
@@ -525,7 +527,7 @@ def get_fifo_empty():
 	return fifo_empty
 
 def gulp(word):
-	global buffer_new, buffer_old, waveform_data, ALFA_OMGA_counter, start_sample
+	global buffer_new, buffer_old, waveform_data, ALFA_OMGA_counter, start_sample, have_just_gathered_waveform_data
 	if ALFA==word:
 		buffer_new = []
 		ALFA_OMGA_counter = 0
@@ -536,21 +538,41 @@ def gulp(word):
 		print("start_sample: " + str(start_sample))
 	if OMGA==word:
 		buffer_old = buffer_new
+		print("len(buffer_old): " + str(len(buffer_old)))
 		number_of_samples_per_waveform = int((ALFA_OMGA_counter-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT)/NUMBER_OF_CHANNELS_PER_ASIC)
-		print("number_of_samples_per_waveform: " + str(number_of_samples_per_waveform))
+		print("number_of_samples_per_waveform (from packet length): " + str(number_of_samples_per_waveform))
+		number_of_samples_per_waveform_from_header = (buffer_old[6]>>8) & 0xff
+		if 0==number_of_samples_per_waveform_from_header:
+			number_of_samples_per_waveform_from_header = 256
+		print("number_of_samples_per_waveform (from header): " + str(number_of_samples_per_waveform_from_header))
+		if not number_of_samples_per_waveform==number_of_samples_per_waveform_from_header:
+			return
 		index = NUMBER_OF_WORDS_PER_HEADER
+#		index = 0
+#		datafile.write(hex(buffer_old[index], 4)); index += 1
+#		datafile.write(hex(buffer_old[index], 4)); index += 1
+#		datafile.write(hex(buffer_old[index], 4)); index += 1
+#		datafile.write(hex(buffer_old[index], 4)); index += 1
+#		datafile.write(hex(buffer_old[index], 4)); index += 1
+#		datafile.write(hex(buffer_old[index], 4)); index += 1
+#		datafile.write(hex(buffer_old[index], 4)); index += 1
+#		datafile.write(hex(buffer_old[index], 4)); index += 1
 		for n in range(start_sample, MAX_SAMPLES_PER_WAVEFORM):
 			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 				waveform_data[0][0][k][n] = buffer_old[index] & 0xfff
 				waveform_data[1][0][k][n] = buffer_old[index] & 0xfff
 				waveform_data[2][0][k][n] = buffer_old[index] & 0xfff
+#				datafile.write(hex(buffer_old[index], 4))
 				index += 1
 		for n in range(start_sample):
 			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 				waveform_data[0][0][k][n] = buffer_old[index] & 0xfff
 				waveform_data[1][0][k][n] = buffer_old[index] & 0xfff
 				waveform_data[2][0][k][n] = buffer_old[index] & 0xfff
+#				datafile.write(hex(buffer_old[index], 4))
 				index += 1
+#		datafile.write(hex(buffer_old[index], 4)); index += 1
+#		datafile.write(hex(buffer_old[index], 4)); index += 1
 		#print(str(waveform_data[0][0][0]))
 		have_just_gathered_waveform_data[1] = True
 		if pedestals_have_been_taken:
@@ -565,8 +587,8 @@ def readout_some_data_from_the_fifo(number_of_words):
 			break
 		fifo_data, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, 1, False)
 		gulp(fifo_data)
-		datafile.write(hex(fifo_data, 4))
 		count += 1
+		datafile.write(hex(fifo_data, 4))
 	datafile.write("\n")
 	datafile.flush()
 	print("wrote " + str(count) + " words to file " + datafile_name)
@@ -581,19 +603,50 @@ def gather_pedestals(i, j):
 	# need to ensure the number of samples to readout is MAX_SAMPLES_PER_WAVEFORM
 	global pedestal_mode, pedestal_data, pedestals_have_been_taken
 	pedestal_mode = True
-	number_of_acquisisitions_so_far = 0
 	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		for n in range(MAX_SAMPLES_PER_WAVEFORM):
 			pedestal_data[i][j][k][n] = 0
-	while number_of_acquisisitions_so_far<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
+	number_of_acquisitions_so_far = [ 0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+	if 1:
+		# workaround for high rms channels?:
+		number_of_acquisitions_so_far[5] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+		number_of_acquisitions_so_far[13] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+		number_of_acquisitions_so_far[14] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+		number_of_acquisitions_so_far[15] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+	if 1:
+		# workaround for low rms channels?:
+		number_of_acquisitions_so_far[0] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+		number_of_acquisitions_so_far[1] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+		number_of_acquisitions_so_far[3] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+		number_of_acquisitions_so_far[4] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+		number_of_acquisitions_so_far[7] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+		number_of_acquisitions_so_far[8] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+		number_of_acquisitions_so_far[9] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+		number_of_acquisitions_so_far[11] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+	not_done = True
+	while not_done:
 		initiate_trigger()
 		readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 		if have_just_gathered_waveform_data[1]:
+			rms = [ 0.0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+				mean_square = 0.0
 				for n in range(MAX_SAMPLES_PER_WAVEFORM):
-					pedestal_data[i][j][k][n] += waveform_data[i][j][k][n]
-			number_of_acquisisitions_so_far += 1
-		print("number_of_acquisisitions_so_far: " + str(number_of_acquisisitions_so_far))
+					value = waveform_data[i][j][k][n]
+					square = value**2
+					mean_square += square
+				rms[k] = math.sqrt(mean_square)
+				if number_of_acquisitions_so_far[k]<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
+					if MIN_RMS<=rms[k] and rms[k]<=MAX_RMS:
+						number_of_acquisitions_so_far[k] += 1
+						for n in range(MAX_SAMPLES_PER_WAVEFORM):
+							pedestal_data[i][j][k][n] += waveform_data[i][j][k][n]
+			print(str(rms))
+			not_done = False
+			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+				if number_of_acquisitions_so_far[k]<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
+					not_done = True
+		print("number_of_acquisitions_so_far: " + str(number_of_acquisitions_so_far))
 	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		for n in range(MAX_SAMPLES_PER_WAVEFORM):
 			pedestal_data[i][j][k][n] >>= LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
@@ -605,6 +658,8 @@ def gather_pedestals(i, j):
 	have_just_gathered_waveform_data[1] = False
 	have_just_gathered_waveform_data[2] = False
 	pedestal_mode = False
+	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		print("peds for ch" + str(k) + ": " + str(pedestal_data[i][j][k]))
 
 if __name__ == "__main__":
 	datafile = open(datafile_name, "a")
