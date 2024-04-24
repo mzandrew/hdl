@@ -528,6 +528,7 @@ def setup_half_duplex_bus_test058():
 		register_select=23,
 		read=5,
 		enable=4,
+		#enable=2, # pulled out the wrong pin
 		ack_valid=22,
 		verbosity=2
 	)

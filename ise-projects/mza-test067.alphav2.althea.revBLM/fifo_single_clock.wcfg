@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test067.alphav2.althea.revBLM/fifo_single_clock_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="fifo_single_clock_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="24" />
+   <wvobject fp_name="/fifo_single_clock_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/full" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">full</obj_property>
+      <obj_property name="ObjectShortName">full</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">empty</obj_property>
+      <obj_property name="ObjectShortName">empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/almost_full" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">almost_full</obj_property>
+      <obj_property name="ObjectShortName">almost_full</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/almost_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">almost_empty</obj_property>
+      <obj_property name="ObjectShortName">almost_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/full_or_almost_full" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">full_or_almost_full</obj_property>
+      <obj_property name="ObjectShortName">full_or_almost_full</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/empty_or_almost_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">empty_or_almost_empty</obj_property>
+      <obj_property name="ObjectShortName">empty_or_almost_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/DATA_WIDTH" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">DATA_WIDTH[31:0]</obj_property>
+      <obj_property name="ObjectShortName">DATA_WIDTH[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/LOG2_OF_DEPTH" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">LOG2_OF_DEPTH[31:0]</obj_property>
+      <obj_property name="ObjectShortName">LOG2_OF_DEPTH[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider281" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/write_enable" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">write_enable</obj_property>
+      <obj_property name="ObjectShortName">write_enable</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/data_in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_in[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_in[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/write_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">write_counter[31:0]</obj_property>
+      <obj_property name="ObjectShortName">write_counter[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider282" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/read_enable" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">read_enable</obj_property>
+      <obj_property name="ObjectShortName">read_enable</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/data_out" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_out[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_out[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/read_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">read_counter[31:0]</obj_property>
+      <obj_property name="ObjectShortName">read_counter[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/fsc/myuni/\mem_array[0].mem /RAMB16BWER_inst/WEA" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">WEA[3:0]</obj_property>
+      <obj_property name="ObjectShortName">WEA[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/fsc/myuni/\mem_array[0].mem /RAMB16BWER_inst/WEB" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">WEB[3:0]</obj_property>
+      <obj_property name="ObjectShortName">WEB[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/fsc/myuni/\mem_array[0].mem /RAMB16BWER_inst/weawel_int" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">weawel_int[3:0]</obj_property>
+      <obj_property name="ObjectShortName">weawel_int[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/fsc/myuni/\mem_array[0].mem /RAMB16BWER_inst/weawel_reg" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">weawel_reg[7:0]</obj_property>
+      <obj_property name="ObjectShortName">weawel_reg[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/fsc/myuni/write_enable_a" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">write_enable_a</obj_property>
+      <obj_property name="ObjectShortName">write_enable_a</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_single_clock_tb/fsc/myuni/write_enable_a_array" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">write_enable_a_array[0:0]</obj_property>
+      <obj_property name="ObjectShortName">write_enable_a_array[0:0]</obj_property>
+   </wvobject>
+</wave_config>

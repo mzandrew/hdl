@@ -2,7 +2,7 @@
 # based off of mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.ucf
 # for an ampoliros48 revA
 # see ug385 for spartan6 package pins to bank mapping
-# last updated 2024-03-08 by mza
+# last updated 2024-04-02 by mza
 
 # 100 MHz local oscillator:
 #net clock100_p loc=f3 | iostandard=lvds_33 | diff_term=true; # bank3 CLOCK100+
@@ -91,111 +91,111 @@ net x loc=g9  | iostandard=lvttl | drive = 2 | slew = slow; # bank0 X GCLK
 net y loc=d4  | iostandard=lvttl | drive = 2 | slew = slow; # bank0 Y 
 net z loc=c4  | iostandard=lvttl | drive = 2 | slew = slow; # bank0 Z 
 
-net ap<1>  loc=y11  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<1>  loc=ab11 | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<2>  loc=v11  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<2>  loc=w11  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<3>  loc=w9   | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<3>  loc=y8   | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<4>  loc=aa8  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<4>  loc=ab8  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<5>  loc=y7   | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<5>  loc=ab7  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<6>  loc=y5   | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<6>  loc=ab5  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<7>  loc=aa10 | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<7>  loc=ab10 | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<8>  loc=w10  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<8>  loc=y10  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<9>  loc=y9   | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<9>  loc=ab9  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<10> loc=aa6  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<10> loc=ab6  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<11> loc=w6   | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<11> loc=y6   | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net ap<12> loc=aa4  | iostandard=lvds_33 | diff_term=true; # bank2 BL
-net an<12> loc=ab4  | iostandard=lvds_33 | diff_term=true; # bank2 BL
+net ap<1>  loc=y11  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<1>  loc=ab11 | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<2>  loc=v11  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<2>  loc=w11  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<3>  loc=w9   | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<3>  loc=y8   | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<4>  loc=aa8  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<4>  loc=ab8  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<5>  loc=y7   | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<5>  loc=ab7  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<6>  loc=y5   | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<6>  loc=ab5  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<7>  loc=aa10 | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<7>  loc=ab10 | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<8>  loc=w10  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<8>  loc=y10  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<9>  loc=y9   | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<9>  loc=ab9  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<10> loc=aa6  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<10> loc=ab6  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<11> loc=w6   | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<11> loc=y6   | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net ap<12> loc=aa4  | iostandard=lvds_33 | diff_term=false; # bank2 BL
+net an<12> loc=ab4  | iostandard=lvds_33 | diff_term=false; # bank2 BL
 
-net bp<1>  loc=y17  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bn<1>  loc=ab17 | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bp<2>  loc=aa16 | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bn<2>  loc=ab16 | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bp<3>  loc=aa14 | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bn<3>  loc=ab14 | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bp<4>  loc=v13  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bn<4>  loc=w13  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bp<5>  loc=y13  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bn<5>  loc=ab13 | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bp<6>  loc=w12  | iostandard=lvds_33 | diff_term=true; # bank2  BL
-net bn<6>  loc=y12  | iostandard=lvds_33 | diff_term=true; # bank2  BL
-#net bp<6>  loc=u14  | iostandard=lvds_33 | diff_term=true; # bank2 BR warning: fake!
-#net bn<6>  loc=u13  | iostandard=lvds_33 | diff_term=true; # bank2 BR warning: fake!
-net bp<7>  loc=aa18 | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bn<7>  loc=ab18 | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bp<8>  loc=w17  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bn<8>  loc=y18  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bp<9>  loc=y16  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bn<9>  loc=w15  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bp<10> loc=y15  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bn<10> loc=ab15 | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bp<11> loc=w14  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bn<11> loc=y14  | iostandard=lvds_33 | diff_term=true; # bank2 BR
-net bp<12> loc=aa12 | iostandard=lvds_33 | diff_term=true; # bank2  BL
-net bn<12> loc=ab12 | iostandard=lvds_33 | diff_term=true; # bank2  BL
-#net bp<12> loc=r11  | iostandard=lvds_33 | diff_term=true; # bank2 BR warning: fake!
-#net bn<12> loc=t11  | iostandard=lvds_33 | diff_term=true; # bank2 BR warning: fake!
+net bp<1>  loc=y17  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bn<1>  loc=ab17 | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bp<2>  loc=aa16 | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bn<2>  loc=ab16 | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bp<3>  loc=aa14 | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bn<3>  loc=ab14 | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bp<4>  loc=v13  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bn<4>  loc=w13  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bp<5>  loc=y13  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bn<5>  loc=ab13 | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bp<6>  loc=w12  | iostandard=lvds_33 | diff_term=false; # bank2  BL
+net bn<6>  loc=y12  | iostandard=lvds_33 | diff_term=false; # bank2  BL
+#net bp<6>  loc=u14  | iostandard=lvds_33 | diff_term=false; # bank2 BR warning: fake!
+#net bn<6>  loc=u13  | iostandard=lvds_33 | diff_term=false; # bank2 BR warning: fake!
+net bp<7>  loc=aa18 | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bn<7>  loc=ab18 | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bp<8>  loc=w17  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bn<8>  loc=y18  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bp<9>  loc=y16  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bn<9>  loc=w15  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bp<10> loc=y15  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bn<10> loc=ab15 | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bp<11> loc=w14  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bn<11> loc=y14  | iostandard=lvds_33 | diff_term=false; # bank2 BR
+net bp<12> loc=aa12 | iostandard=lvds_33 | diff_term=false; # bank2  BL
+net bn<12> loc=ab12 | iostandard=lvds_33 | diff_term=false; # bank2  BL
+#net bp<12> loc=r11  | iostandard=lvds_33 | diff_term=false; # bank2 BR warning: fake!
+#net bn<12> loc=t11  | iostandard=lvds_33 | diff_term=false; # bank2 BR warning: fake!
 
-net cp<1>  loc=l20  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<1>  loc=l22  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cp<2>  loc=m20  | iostandard=lvds_33 | diff_term=true; # bank1  RT
-net cn<2>  loc=m19  | iostandard=lvds_33 | diff_term=true; # bank1  RT
-#net cp<2>  loc=p20  | iostandard=lvds_33 | diff_term=true; # bank1 RB warning: fake!
-#net cn<2>  loc=n19  | iostandard=lvds_33 | diff_term=true; # bank1 RB warning: fake!
-net cp<3>  loc=p21  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<3>  loc=p22  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cp<4>  loc=t21  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<4>  loc=t22  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cp<5>  loc=u20  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<5>  loc=u22  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cp<6>  loc=y21  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<6>  loc=y22  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cp<7>  loc=m21  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<7>  loc=m22  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cp<8>  loc=n20  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<8>  loc=n22  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cp<9>  loc=r20  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<9>  loc=r22  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cp<10> loc=u19  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<10> loc=t20  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cp<11> loc=v21  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<11> loc=v22  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cp<12> loc=w20  | iostandard=lvds_33 | diff_term=true; # bank1 RB
-net cn<12> loc=w22  | iostandard=lvds_33 | diff_term=true; # bank1 RB
+net cp<1>  loc=l20  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<1>  loc=l22  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cp<2>  loc=m20  | iostandard=lvds_33 | diff_term=false; # bank1  RT
+net cn<2>  loc=m19  | iostandard=lvds_33 | diff_term=false; # bank1  RT
+#net cp<2>  loc=p20  | iostandard=lvds_33 | diff_term=false; # bank1 RB warning: fake!
+#net cn<2>  loc=n19  | iostandard=lvds_33 | diff_term=false; # bank1 RB warning: fake!
+net cp<3>  loc=p21  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<3>  loc=p22  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cp<4>  loc=t21  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<4>  loc=t22  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cp<5>  loc=u20  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<5>  loc=u22  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cp<6>  loc=y21  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<6>  loc=y22  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cp<7>  loc=m21  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<7>  loc=m22  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cp<8>  loc=n20  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<8>  loc=n22  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cp<9>  loc=r20  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<9>  loc=r22  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cp<10> loc=u19  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<10> loc=t20  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cp<11> loc=v21  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<11> loc=v22  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cp<12> loc=w20  | iostandard=lvds_33 | diff_term=false; # bank1 RB
+net cn<12> loc=w22  | iostandard=lvds_33 | diff_term=false; # bank1 RB
 
-net dp<1>  loc=b21  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<1>  loc=b22  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<2>  loc=d21  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<2>  loc=d22  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<3>  loc=f21  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<3>  loc=f22  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<4>  loc=g20  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<4>  loc=g22  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<5>  loc=h21  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<5>  loc=h22  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<6>  loc=k21  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<6>  loc=k22  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<7>  loc=c20  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<7>  loc=c22  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<8>  loc=e20  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<8>  loc=e22  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<9>  loc=g19  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<9>  loc=f20  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<10> loc=j20  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<10> loc=j22  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<11> loc=j19  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<11> loc=h20  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dp<12> loc=k20  | iostandard=lvds_33 | diff_term=true; # bank1 RT
-net dn<12> loc=l19  | iostandard=lvds_33 | diff_term=true; # bank1 RT
+net dp<1>  loc=b21  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<1>  loc=b22  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<2>  loc=d21  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<2>  loc=d22  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<3>  loc=f21  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<3>  loc=f22  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<4>  loc=g20  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<4>  loc=g22  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<5>  loc=h21  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<5>  loc=h22  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<6>  loc=k21  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<6>  loc=k22  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<7>  loc=c20  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<7>  loc=c22  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<8>  loc=e20  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<8>  loc=e22  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<9>  loc=g19  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<9>  loc=f20  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<10> loc=j20  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<10> loc=j22  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<11> loc=j19  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<11> loc=h20  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dp<12> loc=k20  | iostandard=lvds_33 | diff_term=false; # bank1 RT
+net dn<12> loc=l19  | iostandard=lvds_33 | diff_term=false; # bank1 RT
 
 #net "button" tig;
 #net "althea/word_clock_sel<?>" tig;

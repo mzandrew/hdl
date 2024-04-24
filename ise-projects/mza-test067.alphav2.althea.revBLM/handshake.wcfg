@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test067.alphav2.althea.revBLM/parcel_fifo_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="parcel_fifo_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="10" />
+   <wvobject fp_name="/parcel_fifo_tb/fifo_out_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">fifo_out_word[3:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_out_word[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/parcel_fifo_tb/fifo_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fifo_empty</obj_property>
+      <obj_property name="ObjectShortName">fifo_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/parcel_fifo_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/parcel_fifo_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/parcel_fifo_tb/nybble" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">nybble[3:0]</obj_property>
+      <obj_property name="ObjectShortName">nybble[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/parcel_fifo_tb/fifo_write_strobe" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fifo_write_strobe</obj_property>
+      <obj_property name="ObjectShortName">fifo_write_strobe</obj_property>
+   </wvobject>
+   <wvobject fp_name="/parcel_fifo_tb/acknowledge" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">acknowledge</obj_property>
+      <obj_property name="ObjectShortName">acknowledge</obj_property>
+   </wvobject>
+   <wvobject fp_name="/parcel_fifo_tb/pmod_strobe" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pmod_strobe</obj_property>
+      <obj_property name="ObjectShortName">pmod_strobe</obj_property>
+   </wvobject>
+   <wvobject fp_name="/parcel_fifo_tb/data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data[3:0]</obj_property>
+      <obj_property name="ObjectShortName">data[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/parcel_fifo_tb/fifo_read" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fifo_read</obj_property>
+      <obj_property name="ObjectShortName">fifo_read</obj_property>
+   </wvobject>
+</wave_config>

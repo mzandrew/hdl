@@ -1,8 +1,48 @@
 // written 2019-09-22 by mza
-// last updated 2024-03-18 by mza
+// last updated 2024-04-12 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
+
+module counter_level #(
+	parameter POLARITY = 1,
+	parameter LOG2_OF_WIDTH = 32
+) (
+	input clock, reset, in,
+	output reg [LOG2_OF_WIDTH-1:0] counter = 0
+);
+	always @(posedge clock) begin
+		if (reset) begin
+			counter <= 0;
+		end else begin
+			if (in==POLARITY) begin
+				counter <= counter + 1'b1;
+			end
+		end
+	end
+endmodule
+
+module counter_edge #(
+	parameter POLARITY = 1, // 1 means 0-to-1 transition
+	parameter PIPELINE_PICKOFF = 4,
+	parameter LOG2_OF_WIDTH = 32
+) (
+	input clock, reset, in,
+	output reg [LOG2_OF_WIDTH-1:0] counter = 0
+);
+	reg [PIPELINE_PICKOFF:0] pipeline = 0;
+	always @(posedge clock) begin
+		if (reset) begin
+			counter <= 0;
+			pipeline <= 0;
+		end else begin
+			pipeline <= { pipeline[PIPELINE_PICKOFF-1:0], in };
+			if (pipeline[PIPELINE_PICKOFF:PIPELINE_PICKOFF-1]=={~POLARITY,POLARITY}) begin
+				counter <= counter + 1'b1;
+			end
+		end
+	end
+endmodule
 
 //	mux #(.WIDTH(8)) mymux (.I0(), .I1(), .S(), .O());
 module mux #(
@@ -132,24 +172,6 @@ module mux_32to1 #(
 		               in31;
 endmodule
 
-module demux_1to8 #(
-	parameter WIDTH = 1,
-	parameter [WIDTH-1:0] default_value = 0
-) (
-	input [WIDTH-1:0] in,
-	input [2:0] sel,
-	output [WIDTH-1:0] out0, out1, out2, out3, out4, out5, out6, out7
-);
-	assign out0 = (sel==3'd0) ? in : default_value;
-	assign out1 = (sel==3'd1) ? in : default_value;
-	assign out2 = (sel==3'd2) ? in : default_value;
-	assign out3 = (sel==3'd3) ? in : default_value;
-	assign out4 = (sel==3'd4) ? in : default_value;
-	assign out5 = (sel==3'd5) ? in : default_value;
-	assign out6 = (sel==3'd6) ? in : default_value;
-	assign out7 = (sel==3'd7) ? in : default_value;
-endmodule
-
 module mux_8to1_tb;
 	wire out;
 	reg a, b, c, d, e, f, g, h;
@@ -176,6 +198,50 @@ module mux_8to1_tb;
 		#1; sel <= 3'd7; a <= 1; b <= 1; c <= 1; d <= 1; e <= 1; f <= 1; g <= 1; h <= 0;
 	end
 	mux_8to1 tst (.in0(a), .in1(b), .in2(c), .in3(d), .in4(e), .in5(f), .in6(g), .in7(h), .sel(sel), .out(out));
+endmodule
+
+module demux_1to2 #(
+	parameter WIDTH = 1,
+	parameter [WIDTH-1:0] default_value = 0
+) (
+	input [WIDTH-1:0] in,
+	input [0:0] sel,
+	output [WIDTH-1:0] out0, out1
+);
+	assign out0 = (sel==3'd0) ? in : default_value;
+	assign out1 = (sel==3'd1) ? in : default_value;
+endmodule
+
+module demux_1to4 #(
+	parameter WIDTH = 1,
+	parameter [WIDTH-1:0] default_value = 0
+) (
+	input [WIDTH-1:0] in,
+	input [1:0] sel,
+	output [WIDTH-1:0] out0, out1, out2, out3
+);
+	assign out0 = (sel==3'd0) ? in : default_value;
+	assign out1 = (sel==3'd1) ? in : default_value;
+	assign out2 = (sel==3'd2) ? in : default_value;
+	assign out3 = (sel==3'd3) ? in : default_value;
+endmodule
+
+module demux_1to8 #(
+	parameter WIDTH = 1,
+	parameter [WIDTH-1:0] default_value = 0
+) (
+	input [WIDTH-1:0] in,
+	input [2:0] sel,
+	output [WIDTH-1:0] out0, out1, out2, out3, out4, out5, out6, out7
+);
+	assign out0 = (sel==3'd0) ? in : default_value;
+	assign out1 = (sel==3'd1) ? in : default_value;
+	assign out2 = (sel==3'd2) ? in : default_value;
+	assign out3 = (sel==3'd3) ? in : default_value;
+	assign out4 = (sel==3'd4) ? in : default_value;
+	assign out5 = (sel==3'd5) ? in : default_value;
+	assign out6 = (sel==3'd6) ? in : default_value;
+	assign out7 = (sel==3'd7) ? in : default_value;
 endmodule
 
 module demux_1to16 #(
@@ -494,8 +560,8 @@ module clock #(
 	end
 endmodule
 
-//clock_ODDR_out sysclk_ODDR (.clock(sysclk), .clock_p(sysclk_p), .clock_n(sysclk_n));
-module clock_ODDR_out #(
+//clock_ODDR_out_diff sysclk_ODDR (.clock(sysclk), .clock_p(sysclk_p), .clock_n(sysclk_n));
+module clock_ODDR_out_diff #(
 	parameter SERIES = "spartan6"
 ) (
 	input clock_in_n, clock_in_p,
@@ -512,10 +578,31 @@ module clock_ODDR_out #(
 //		BUFG c0 (.I(raw_clock0), .O(clock0));
 //		BUFG c1 (.I(raw_clock180), .O(clock180));
 		ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(clock_in_p), .C1(clock_in_n), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(reset), .S(1'b0), .Q(clock_for_output));
-	end else begin
-		ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_clock (.C(clock), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_for_output));
+//	end else begin
+//		ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_clock (.C(clock), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_for_output));
 	end
 	OBUFDS obuf_clock (.I(clock_for_output), .O(clock_out_p), .OB(clock_out_n));
+endmodule
+
+module clock_ODDR_out #(
+	parameter SERIES = "spartan6"
+) (
+	input clock_in_n, clock_in_p,
+	input reset,
+	output clock_out
+);
+	wire clock_for_output;
+	if (SERIES=="spartan6") begin
+		wire raw_clock0, raw_clock180;
+		wire clock0, clock180;
+//		BUFIO2 #(.DIVIDE(2), .USE_DOUBLER("TRUE"),  .I_INVERT("FALSE")) b0 (.I(clock), .IOCLK(raw_clock0),   .DIVCLK(), .SERDESSTROBE());
+//		BUFIO2 #(.DIVIDE(2), .USE_DOUBLER("FALSE"), .I_INVERT("TRUE"))  b1 (.I(clock), .IOCLK(raw_clock180), .DIVCLK(), .SERDESSTROBE());
+//		BUFG c0 (.I(raw_clock0), .O(clock0));
+//		BUFG c1 (.I(raw_clock180), .O(clock180));
+		ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(clock_in_p), .C1(clock_in_n), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(reset), .S(1'b0), .Q(clock_out));
+//	end else begin
+//		ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_clock (.C(clock), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_out));
+	end
 endmodule
 
 //	ddr mario (.clock(clock), .reset(reset), .data0_in(), .data1_in(), .data_out());
