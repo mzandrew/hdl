@@ -17,9 +17,7 @@ datafile_name = "alpha.data"
 number_of_words_to_read_from_the_fifo = 4106
 ALFA = 0xa1fa
 OMGA = 0x0e6a
-MIN_RMS = 0.0
-MAX_RMS = 4096.0
-LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 4
+LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 8
 enabled_channels = [ 1, 0, 0, 0,  0, 1, 1, 0,  0, 0, 0, 0,  0, 0, 0, 1 ]
 
 MAX_SAMPLES_PER_WAVEFORM = 256
@@ -649,23 +647,15 @@ def gather_pedestals(i):
 		readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 		for j in range(ROWS):
 			if have_just_gathered_waveform_data[i][j]:
-				rms = [ 0.0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 				for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-					sum_squares = 0.0
-					for n in range(MAX_SAMPLES_PER_WAVEFORM):
-						value = waveform_data[i][j][k][n]
-						square = value**2
-						sum_squares += square
-					mean_square = sum_squares / MAX_SAMPLES_PER_WAVEFORM
-					rms[k] = math.sqrt(mean_square)
 					if number_of_acquisitions_so_far[j][k]<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
-						if MIN_RMS<=rms[k] and rms[k]<=MAX_RMS:
-							number_of_acquisitions_so_far[j][k] += 1
-							if 15==k:
-								print(str(waveform_data[i][j][k]))
-							for n in range(MAX_SAMPLES_PER_WAVEFORM):
-								pedestal_data[i][j][k][n] += waveform_data[i][j][k][n]
-				#print(str(rms))
+						number_of_acquisitions_so_far[j][k] += 1
+						if 15==k:
+							print("waveform_data[" + str(j) + "][" + str(k) + "]: " + str(waveform_data[i][j][k]))
+						for n in range(MAX_SAMPLES_PER_WAVEFORM):
+							pedestal_data[i][j][k][n] += waveform_data[i][j][k][n]
+						if 15==k:
+							print("pedestal_data[" + str(j) + "][" + str(k) + "]: " + str(pedestal_data[i][j][k]))
 			print("number_of_acquisitions_so_far[" + str(j) + "]: " + str(number_of_acquisitions_so_far[j]))
 		not_done = False
 		for j in range(ROWS):
@@ -681,6 +671,8 @@ def gather_pedestals(i):
 				pedestal_data[0][j][k][n] = pedestal_data[i][j][k][n]
 				pedestal_data[1][j][k][n] = pedestal_data[i][j][k][n]
 				pedestal_data[2][j][k][n] = pedestal_data[i][j][k][n]
+			if 15==k:
+				print("pedestal_data[" + str(j) + "][" + str(k) + "]: " + str(pedestal_data[i][j][k]))
 	print("pedestals acquired")
 	pedestals_have_been_taken = True
 	pedestal_mode = False
