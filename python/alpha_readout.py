@@ -20,6 +20,7 @@ OMGA = 0x0e6a
 MIN_RMS = 0.0
 MAX_RMS = 4096.0
 LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 4
+enabled_channels = [ 1, 0, 0, 0,  0, 1, 1, 0,  0, 0, 0, 0,  0, 0, 0, 1 ]
 
 MAX_SAMPLES_PER_WAVEFORM = 256
 timestep = 1
@@ -92,7 +93,8 @@ dark_red = (127, 0, 0)
 dark_blue = (0, 0, 127)
 dark_purple = (127, 0, 127)
 
-color = [ black, white, grey, red, dark_red, orange, pink, maroon, purple, dark_purple, green, teal, dark_teal, dark_green, blue, dark_blue, light_blue, yellow, brown ]
+# grey
+color = [ black, white, white, red, dark_red, pink, maroon, orange, purple, dark_purple, green, teal, dark_teal, dark_green, blue, dark_blue, light_blue, yellow, brown ]
 
 selection = 0
 coax_mux = [ 0 for i in range(4) ]
@@ -181,6 +183,8 @@ def update_plot(i, j):
 	#print(str(scale))
 	for n in range(len(waveform_data[i][j][0])):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			if not enabled_channels[k]:
+				continue
 			voltage = data_and_pedestal_coefficients[i][0] * waveform_data[i][j][k][n]
 			if pedestals_have_been_taken:
 				voltage += data_and_pedestal_coefficients[i][1] * pedestal_data[i][j][k][n]
@@ -194,21 +198,44 @@ def update_plot(i, j):
 	# fill with colors for now:
 	#plot[i][j].fill((random.randrange(0, 255), random.randrange(0, 255), random.randrange(0, 255)))
 	print("[" + str(i) + "][" + str(j) + "]")
-	for x in range(extra_gap_x, plot_width+extra_gap_x):
+	plot[i][j].fill(black)
+	how_many_times_we_did_not_plot = 0
+	offscale_count = 0
+	number_of_enabled_channels = sum(enabled_channels)
+	#print("plot_height: " + str(plot_height))
+	for x in range(extra_gap_x, plot_width-extra_gap_x):
 		pygame.event.pump()
-		for y in range(extra_gap_y, plot_height+extra_gap_y):
-			plot[i][j].set_at((x, y), black)
-			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-				yn = int(plot_height - plot_height * formatted_data[k][x-extra_gap_x])
+		how_many_things_were_plotted_at_this_x_value = 0
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			if not enabled_channels[k]:
+				continue
+			yn = int(plot_height-extra_gap_y-1 - (plot_height-2*extra_gap_y)*formatted_data[k][x-extra_gap_x] + 0.5)
+			for y in range(extra_gap_y, plot_height-extra_gap_y):
 				doit = False
-				if y==yn:
+				if yn==y:
 					doit = True
-				elif extra_gap_y==y and yn<0:
+				elif extra_gap_y==y and yn<extra_gap_y:
 					doit = True
-				elif plot_height-1-extra_gap_y==y and plot_height<yn:
+					offscale_count += 1
+				elif plot_height-extra_gap_y-1==y and plot_height-extra_gap_y-1<yn:
 					doit = True
+					offscale_count += 1
 				if doit:
+					how_many_things_were_plotted_at_this_x_value += 1
 					plot[i][j].set_at((x, y), color[k+2]) # first two indices are black and white
+		if how_many_things_were_plotted_at_this_x_value<number_of_enabled_channels:
+			#print(str(x) + ":" + str(how_many_things_were_plotted_at_this_x_value) + "/" + str(number_of_enabled_channels))
+			how_many_times_we_did_not_plot += number_of_enabled_channels - how_many_things_were_plotted_at_this_x_value
+		if 0:
+			if extra_gap_x==x:
+				string = ""
+				for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+					if not enabled_channels[k]:
+						continue
+					string += str(formatted_data[k][x-extra_gap_x]) + " " + str(int(plot_height-extra_gap_y-1 - (plot_height-2*extra_gap_y)*formatted_data[k][x-extra_gap_x] + 0.5)) + ", "
+				print(string)
+	#print("how_many_times_we_did_not_plot: " + str(how_many_times_we_did_not_plot))
+	#print("offscale_count: " + str(offscale_count))
 	plots_were_updated[i][j] = True
 	print("done")
 
@@ -225,8 +252,8 @@ def setup():
 	usable_height = int(SCREEN_HEIGHT - GAP_Y_TOP - GAP_Y_BOTTOM - (ROWS-1)*GAP_Y_BETWEEN_PLOTS)
 	print("usable_height: " + str(usable_height))
 	global extra_gap_x, extra_gap_y
-	extra_gap_x = 1
-	extra_gap_y = 1
+	extra_gap_x = 4
+	extra_gap_y = 4
 	plot_width = MAX_SAMPLES_PER_WAVEFORM + 2*extra_gap_x
 	plot_height = int(0.7 * usable_height / ROWS) + 2*extra_gap_y
 	print("plot_width: " + str(plot_width))
@@ -239,7 +266,7 @@ def setup():
 	global Y_POSITION_OF_BANK1_REGISTERS
 	global Y_POSITION_OF_BANK4_REGISTERS
 	global Y_POSITION_OF_BANK6_REGISTERS
-	gap = 22
+	gap = 20
 	#Y_POSITION_OF_CHANNEL_NAMES = plot_height + gap
 	#Y_POSITION_OF_COUNTERS = plot_height + gap + FONT_SIZE_BANKS
 	#Y_POSITION_OF_SCALERS = plot_height + gap + FONT_SIZE_BANKS
@@ -348,11 +375,13 @@ def loop():
 			elif K_F4==event.key:
 				initiate_trigger()
 			elif K_p==event.key:
-				gather_pedestals(0)
+				gather_pedestals(1)
 			elif K_F5==event.key:
 				readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 			elif K_F6==event.key:
-				drain_fifo()
+				initiate_trigger()
+				readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
+				#drain_fifo()
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -535,22 +564,22 @@ def gulp(word):
 	ALFA_OMGA_counter += 1
 	if 4==ALFA_OMGA_counter:
 		start_sample = word & 0xff
-		print("start_sample: " + str(start_sample))
+		#print("start_sample: " + str(start_sample))
 	if OMGA==word:
 		buffer_old = buffer_new
 		print("len(buffer_old): " + str(len(buffer_old)))
-		number_of_samples_per_waveform = int((ALFA_OMGA_counter-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT)/NUMBER_OF_CHANNELS_PER_ASIC)
-		print("number_of_samples_per_waveform (from packet length): " + str(number_of_samples_per_waveform))
+		number_of_samples_per_waveform = (ALFA_OMGA_counter-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT)/NUMBER_OF_CHANNELS_PER_ASIC
 		number_of_samples_per_waveform_from_header = (buffer_old[6]>>8) & 0xff
 		if 0==number_of_samples_per_waveform_from_header:
 			number_of_samples_per_waveform_from_header = 256
-		print("number_of_samples_per_waveform (from header): " + str(number_of_samples_per_waveform_from_header))
 		if not number_of_samples_per_waveform==number_of_samples_per_waveform_from_header:
+			print("number_of_samples_per_waveform (from packet length): " + str(number_of_samples_per_waveform))
+			print("number_of_samples_per_waveform (from header): " + str(number_of_samples_per_waveform_from_header))
 			return
 		sampling_bank = 0
 		if (buffer_old[1]>>8)&1:
 			sampling_bank = 1
-		print("sampling_bank: " + str(sampling_bank))
+		#print("sampling_bank: " + str(sampling_bank))
 		index = NUMBER_OF_WORDS_PER_HEADER
 #		index = 0
 #		datafile.write(hex(buffer_old[index], 4)); index += 1
@@ -604,7 +633,7 @@ def drain_fifo():
 		count = readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 
 def gather_pedestals(i):
-	# need to ensure the number of samples to readout is MAX_SAMPLES_PER_WAVEFORM
+	# need to ensure the number of samples to readout is MAX_SAMPLES_PER_WAVEFORM before starting this
 	global pedestal_mode, pedestal_data, pedestals_have_been_taken
 	pedestal_mode = True
 	number_of_acquisitions_so_far = [ [ 0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
@@ -612,28 +641,14 @@ def gather_pedestals(i):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			for n in range(MAX_SAMPLES_PER_WAVEFORM):
 				pedestal_data[i][j][k][n] = 0
-		if 0: # workaround for high rms channels?:
-			number_of_acquisitions_so_far[j][5] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-			number_of_acquisitions_so_far[j][13] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-			number_of_acquisitions_so_far[j][14] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-			number_of_acquisitions_so_far[j][15] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-		if 0: # workaround for low rms channels?:
-			number_of_acquisitions_so_far[j][0] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-			number_of_acquisitions_so_far[j][1] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-			number_of_acquisitions_so_far[j][3] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-			number_of_acquisitions_so_far[j][4] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-			number_of_acquisitions_so_far[j][7] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-			number_of_acquisitions_so_far[j][8] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-			number_of_acquisitions_so_far[j][9] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-			number_of_acquisitions_so_far[j][11] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-		if 0: # slow to gather triggers?
-			number_of_acquisitions_so_far[j][12] = 2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
 	not_done = True
 	while not_done:
+		for j in range(ROWS):
+			have_just_gathered_waveform_data[i][j] = False
 		initiate_trigger()
 		readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 		for j in range(ROWS):
-			if have_just_gathered_waveform_data[1][j]:
+			if have_just_gathered_waveform_data[i][j]:
 				rms = [ 0.0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 				for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 					sum_squares = 0.0
@@ -646,18 +661,24 @@ def gather_pedestals(i):
 					if number_of_acquisitions_so_far[j][k]<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
 						if MIN_RMS<=rms[k] and rms[k]<=MAX_RMS:
 							number_of_acquisitions_so_far[j][k] += 1
+							if 15==k:
+								print(str(waveform_data[i][j][k]))
 							for n in range(MAX_SAMPLES_PER_WAVEFORM):
 								pedestal_data[i][j][k][n] += waveform_data[i][j][k][n]
-				print(str(rms))
-				not_done = False
-				for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-					if number_of_acquisitions_so_far[j][k]<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
-						not_done = True
+				#print(str(rms))
 			print("number_of_acquisitions_so_far[" + str(j) + "]: " + str(number_of_acquisitions_so_far[j]))
+		not_done = False
+		for j in range(ROWS):
+			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+				if not enabled_channels[k]:
+					continue
+				if number_of_acquisitions_so_far[j][k]<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
+					not_done = True
 	for j in range(ROWS):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			for n in range(MAX_SAMPLES_PER_WAVEFORM):
 				pedestal_data[i][j][k][n] >>= LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+				pedestal_data[0][j][k][n] = pedestal_data[i][j][k][n]
 				pedestal_data[1][j][k][n] = pedestal_data[i][j][k][n]
 				pedestal_data[2][j][k][n] = pedestal_data[i][j][k][n]
 	print("pedestals acquired")
@@ -668,7 +689,9 @@ def gather_pedestals(i):
 		have_just_gathered_waveform_data[1][j] = False
 		have_just_gathered_waveform_data[2][j] = False
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			print("peds for ch" + str(k) + ": " + str(pedestal_data[i][j][k]))
+			if not enabled_channels[k]:
+				continue
+			print("peds for ch" + str(k) + " bank" + str(j) + ": " + str(pedestal_data[i][j][k]))
 
 if __name__ == "__main__":
 	datafile = open(datafile_name, "a")
@@ -677,7 +700,7 @@ if __name__ == "__main__":
 	wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
 	desired_window_width = int(COLUMNS * box_dimension_x_in * scale_pixels_per_in + wasted_width)
 	SCREEN_WIDTH = desired_window_width
-	SCREEN_HEIGHT = 890
+	SCREEN_HEIGHT = 892
 	plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#plot_name = [ [ "alpha" for j in range(ROWS) ] for i in range(COLUMNS) ]
 	plot_name = [ ["pedestals(bankA)","pedestals(bankB)"], ["RAW(bankA)","RAW(bankB)"], ["pedestal subtracted(bankA)","pedestal subtracted(bankB)"] ]
