@@ -108,8 +108,8 @@ should_show_bank6_registers = True
 scaler_values_seen = set()
 pedestal_mode = False
 
-buffer_new = []
-buffer_old = []
+buffer_new = [ 0 for z in range(number_of_words_to_read_from_the_fifo) ]
+buffer_old = [ 0 for z in range(number_of_words_to_read_from_the_fifo) ]
 ALFA_OMGA_counter = 0
 NUMBER_OF_WORDS_PER_HEADER = 8
 NUMBER_OF_WORDS_PER_FOOTER = 2
@@ -558,6 +558,10 @@ def get_fifo_empty():
 def gulp(word):
 	global buffer_new, buffer_old, waveform_data, ALFA_OMGA_counter, start_sample, have_just_gathered_waveform_data
 	if ALFA==word:
+		if not buffer_new[0]==ALFA:
+			print("first word of previous buffer: " + hex(buffer_new[0], 4))
+		if not buffer_new[-1]==OMGA:
+			print("last word of previous buffer: " + hex(buffer_new[-1], 4))
 		buffer_new = []
 		ALFA_OMGA_counter = 0
 	buffer_new.append(word)
@@ -599,11 +603,11 @@ def gulp(word):
 		print("fine_time: " + str(fine_time))
 		print("coarse_time: " + str(coarse_time))
 		print("asic_trigger_number: " + str(asic_trigger_number))
-		print("samples_after_trigger: 0x" + hex(samples_after_trigger))
-		print("lookback_samples: 0x" + hex(lookback_samples))
+		print("samples_after_trigger: 0x" + hex(samples_after_trigger, 2))
+		print("lookback_samples: 0x" + hex(lookback_samples, 2))
 		if 0==samples_to_read:
 			samples_to_read = 0x100
-		print("samples_to_read: 0x" + hex(samples_to_read))
+		print("samples_to_read: 0x" + hex(samples_to_read, 3))
 		print("starting_sample: " + str(starting_sample))
 		print("missed_triggers: " + str(missed_triggers))
 		print("asic_status: " + str(asic_status))
