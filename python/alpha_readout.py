@@ -569,10 +569,12 @@ def gulp(word):
 	if OMGA==word:
 		buffer_old = buffer_new
 		#print("len(buffer_old): " + str(len(buffer_old)))
-		number_of_samples_per_waveform = (ALFA_OMGA_counter-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT)/NUMBER_OF_CHANNELS_PER_ASIC
+		if len(buffer_old)<7:
+			return
 		number_of_samples_per_waveform_from_header = (buffer_old[6]>>8) & 0xff
 		if 0==number_of_samples_per_waveform_from_header:
 			number_of_samples_per_waveform_from_header = 256
+		number_of_samples_per_waveform = (ALFA_OMGA_counter-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT)/NUMBER_OF_CHANNELS_PER_ASIC
 		if not number_of_samples_per_waveform==number_of_samples_per_waveform_from_header:
 			print("number_of_samples_per_waveform (from packet length): " + str(number_of_samples_per_waveform))
 			print("number_of_samples_per_waveform (from header): " + str(number_of_samples_per_waveform_from_header))
