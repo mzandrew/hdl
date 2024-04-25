@@ -1,6 +1,6 @@
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-04-12 by mza
+// last updated 2024-04-25 by mza
 
 `ifndef ALPHA_LIB
 `define ALPHA_LIB
@@ -64,6 +64,9 @@ module alpha_control #(
 	input initiate_trigger, initiate_legacy_serial_sequence, initiate_dreset_sequence, initiate_i2c_transfer,
 	input sda_in,
 	input [11:0] CMPbias, ISEL, SBbias, DBbias,
+	input [4:0] I2CupAddr,
+	input LVDSA_pwr, LVDSB_pwr, SRCsel, TMReg_Reset,
+	input [7:0] samples_after_trigger, lookback_windows, number_of_samples,
 	output reg sync, dreset, tok_a_in, sin, pclk, sclk, trig_top,
 	output scl, sda_out, sda_dir
 );
@@ -322,25 +325,26 @@ module alpha_control #(
 	//assign i2c_value[0] = 0; // I2C trigger
 	// ----------------------------------------------------------------------
 	// 01 SRC register:
-	wire [4:0] I2CupAddr = 5'h17;
-	wire LVDSB_pwr = 0;
-	wire LVDSA_pwr = 0;
-	wire SRCsel = 0; // set this to zero or the data will come from data_b (you probably don't want that)
-	wire [7:0] ASICID = { I2CupAddr, i2c_address_pins };
+	//wire [4:0] I2CupAddr = 5'h17;
+	//wire LVDSB_pwr = 0;
+	//wire LVDSA_pwr = 0;
+	//wire SRCsel = 0; // set this to zero or the data will come from data_b (you probably don't want that)
+	//wire [7:0] ASICID = { I2CupAddr, i2c_address_pins };
 	assign i2c_value[1] = { I2CupAddr, LVDSB_pwr, LVDSA_pwr, SRCsel }; // SRC
 	// ----------------------------------------------------------------------
 	// 02 RST: TMReg_Reset
+	assign i2c_value[2] = TMReg_Reset; // TMReg_Reset
 	// ----------------------------------------------------------------------
 	// 03 SAT: samples after trigger
-	wire [7:0] samples_after_trigger = 8'h10;
+	//wire [7:0] samples_after_trigger = 8'h10;
 	assign i2c_value[3] = samples_after_trigger; // SAT
 	// ----------------------------------------------------------------------
 	// 04 LBW: lookback windows
-	wire [7:0] lookback_windows = 8'h20;
+	//wire [7:0] lookback_windows = 8'h20;
 	assign i2c_value[4] = lookback_windows; // LBW
 	// ----------------------------------------------------------------------
 	// 05 nSP: number of samples
-	wire [7:0] number_of_samples = 8'h00; // 0 here means 256
+	//wire [7:0] number_of_samples = 8'h00; // 0 here means 256
 	assign i2c_value[5] = number_of_samples; // nSP
 	// ----------------------------------------------------------------------
 	// 06 OSs: status?
@@ -363,7 +367,7 @@ module alpha_control #(
 	// ----------------------------------------------------------------------
 	// 15 pck: not implemented
 	// ----------------------------------------------------------------------
-	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0011_1010; // nSP, LBW, SAT, SRC, 
+	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0011_1110; // nSP, LBW, SAT, TMReg_Reset, SRC, 
 	//wire [15:0] i2c_address_register_enables = 16'b_1111_1111_1111_1111; // for testing
 	reg i2c_working_on_some_transfers = 0;
 	reg i2c_transitioning_to_the_next_transfer = 0;

@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test067.alphav2.althea.revBLM.v and mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
-// last updated 2024-04-19 by mza
+// last updated 2024-04-25 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -188,13 +188,14 @@ module ALPHAtestPALIMPSEST #(
 		.data_out_b_4(bank3[4]),  .data_out_b_5(bank3[5]),  .data_out_b_6(bank3[6]),  .data_out_b_7(bank3[7]),
 		.data_out_b_8(bank3[8]),  .data_out_b_9(bank3[9]),  .data_out_b_a(bank3[10]), .data_out_b_b(bank3[11]),
 		.data_out_b_c(bank3[12]), .data_out_b_d(bank3[13]), .data_out_b_e(bank3[14]), .data_out_b_f(bank3[15]));
-//	wire [4:0] I2CupAddr                         = bank3[1][7:3];
-//	wire LVDSB_pwr                               = bank3[1][2];
-//	wire LVDSA_pwr                               = bank3[1][1];
-//	wire SRCsel                                  = bank3[1][0]; // set this to zero or the data will come from data_b (you probably don't want that)
-//	wire [7:0] samples_after_trigger             = bank3[3][7:0] = 8'h10;
-//	wire [7:0] lookback_windows                  = bank3[4][7:0] = 8'h20;
-//	wire [7:0] number_of_samples                 = bank3[5][7:0] = 8'h30;
+	wire [4:0] I2CupAddr             = bank3[1][7:3];
+	wire LVDSB_pwr                   = bank3[1][2];
+	wire LVDSA_pwr                   = bank3[1][1];
+	wire SRCsel                      = bank3[1][0]; // set this to zero or the data will come from data_b (you probably don't want that)
+	wire TMReg_Reset                 = bank3[2][0];
+	wire [7:0] samples_after_trigger = bank3[3][7:0];
+	wire [7:0] lookback_windows      = bank3[4][7:0];
+	wire [7:0] number_of_samples     = bank3[5][7:0];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank4 [15:0]; // legacy serial registers
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank4 (.clock(sysclk), .reset(reset),
@@ -367,6 +368,12 @@ module ALPHAtestPALIMPSEST #(
 	wire sda_in, sda_out, sda_dir;
 	assign sda = sda_dir ? sda_out : 1'bz;
 	assign sda_in = sda;
-	alpha_control alpha_control (.clock(sysclk), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trigin), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	alpha_control alpha_control (.clock(sysclk), .reset(reset), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in),
+		.initiate_trigger(initiate_trigger), .trig_top(trigin), .initiate_dreset_sequence(initiate_dreset_sequence),
+		.scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .initiate_i2c_transfer(initiate_i2c_transfer),
+		.sin(sin), .pclk(pclk), .sclk(sclk), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence),
+		.I2CupAddr(I2CupAddr), .LVDSA_pwr(LVDSA_pwr), .LVDSB_pwr(LVDSB_pwr), .SRCsel(SRCsel), .TMReg_Reset(TMReg_Reset), 
+		.samples_after_trigger(samples_after_trigger), .lookback_windows(lookback_windows), .number_of_samples(number_of_samples), 
+		.CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 endmodule
 
