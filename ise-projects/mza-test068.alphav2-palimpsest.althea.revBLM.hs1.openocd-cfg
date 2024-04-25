@@ -17,7 +17,7 @@ source [find interface/ftdi/digilent-hs1.cfg]
 # gpio/bcm #s         tck tms tdi tdo
 #bcm2835gpio_jtag_nums 23  22  27  24; # althea revB and revBL
 #bcm2835gpio_jtag_nums 25  26  27  24; # althea revBLM and ampoliros revA
-#adapter speed 100
+adapter speed 300
 
 #adapter driver sysfsgpio
 # gpio/bcm #s        tck tms tdi tdo
