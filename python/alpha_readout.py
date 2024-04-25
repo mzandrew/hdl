@@ -578,66 +578,76 @@ def gulp(word):
 			print("number_of_samples_per_waveform (from header): " + str(number_of_samples_per_waveform_from_header))
 			#print("corrupt packet")
 			return
-		global sampling_bank, ASICID, fine_time, coarse_time, asic_trigger_number, samples_after_trigger, lookback_samples, samples_to_read, starting_sample, missed_triggers, asic_status
-		#header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
-		#header_description_words = [ "ALFA", "IdFi", "cs43", "cs21", "tg21", "AfLo", "ReSt", "MiSt" ]
-		#header_decode_descriptions
-		sampling_bank = 0
-		if (buffer_old[1]>>8)&1:
-			sampling_bank = 1
-		ASICID =                (buffer_old[1]>>8) & 0xfe
-		fine_time =              buffer_old[1]     & 0xff
-		coarse_time =           (buffer_old[2]<<16)     | buffer_old[3]
-		asic_trigger_number =    buffer_old[4]
-		samples_after_trigger = (buffer_old[5]>>8) & 0xff
-		lookback_samples =       buffer_old[5]     & 0xff
-		samples_to_read =       (buffer_old[6]>>8) & 0xff
-		starting_sample =        buffer_old[6]     & 0xff
-		missed_triggers =       (buffer_old[7]>>8) & 0xff
-		asic_status =            buffer_old[7]     & 0xff
-		print("sampling_bank: " + str(sampling_bank))
-		print("ASICID: " + str(ASICID))
-		print("fine_time: " + str(fine_time))
-		print("coarse_time: " + str(coarse_time))
-		print("asic_trigger_number: " + str(asic_trigger_number))
-		print("samples_after_trigger: 0x" + hex(samples_after_trigger, 2))
-		print("lookback_samples: 0x" + hex(lookback_samples, 2))
-		if 0==samples_to_read:
-			samples_to_read = 0x100
-		print("samples_to_read: 0x" + hex(samples_to_read, 3))
-		print("starting_sample: " + str(starting_sample))
-		print("missed_triggers: " + str(missed_triggers))
-		print("asic_status: " + str(asic_status))
-		index = NUMBER_OF_WORDS_PER_HEADER
-#		index = 0
-#		datafile.write(hex(buffer_old[index], 4)); index += 1
-#		datafile.write(hex(buffer_old[index], 4)); index += 1
-#		datafile.write(hex(buffer_old[index], 4)); index += 1
-#		datafile.write(hex(buffer_old[index], 4)); index += 1
-#		datafile.write(hex(buffer_old[index], 4)); index += 1
-#		datafile.write(hex(buffer_old[index], 4)); index += 1
-#		datafile.write(hex(buffer_old[index], 4)); index += 1
-#		datafile.write(hex(buffer_old[index], 4)); index += 1
-		for n in range(starting_sample, MAX_SAMPLES_PER_WAVEFORM):
-			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-				waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
-				waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
-				waveform_data[2][sampling_bank][k][n] = buffer_old[index] & 0xfff
-#				datafile.write(hex(buffer_old[index], 4))
-				index += 1
-		for n in range(starting_sample):
-			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-				waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
-				waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
-				waveform_data[2][sampling_bank][k][n] = buffer_old[index] & 0xfff
-#				datafile.write(hex(buffer_old[index], 4))
-				index += 1
-#		datafile.write(hex(buffer_old[index], 4)); index += 1
-#		datafile.write(hex(buffer_old[index], 4)); index += 1
-		#print(str(waveform_data[0][0][0]))
-		have_just_gathered_waveform_data[1][sampling_bank] = True
-		if pedestals_have_been_taken:
-			have_just_gathered_waveform_data[2][sampling_bank] = True
+		parse_packet()
+
+def parse_packet():
+	global sampling_bank, ASICID, fine_time, coarse_time, asic_trigger_number, samples_after_trigger, lookback_samples, samples_to_read, starting_sample, missed_triggers, asic_status
+	#header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
+	#header_description_words = [ "ALFA", "IdFi", "cs43", "cs21", "tg21", "AfLo", "ReSt", "MiSt" ]
+	#header_decode_descriptions
+	sampling_bank = 0
+	if (buffer_old[1]>>8)&1:
+		sampling_bank = 1
+	ASICID =                (buffer_old[1]>>8) & 0xfe
+	fine_time =              buffer_old[1]     & 0xff
+	coarse_time =           (buffer_old[2]<<16)     | buffer_old[3]
+	asic_trigger_number =    buffer_old[4]
+	samples_after_trigger = (buffer_old[5]>>8) & 0xff
+	lookback_samples =       buffer_old[5]     & 0xff
+	samples_to_read =       (buffer_old[6]>>8) & 0xff
+	starting_sample =        buffer_old[6]     & 0xff
+	missed_triggers =       (buffer_old[7]>>8) & 0xff
+	asic_status =            buffer_old[7]     & 0xff
+	print("sampling_bank: " + str(sampling_bank))
+	print("ASICID: " + str(ASICID))
+	print("fine_time: " + str(fine_time))
+	print("coarse_time: " + str(coarse_time))
+	print("asic_trigger_number: " + str(asic_trigger_number))
+	print("samples_after_trigger: 0x" + hex(samples_after_trigger, 2))
+	print("lookback_samples: 0x" + hex(lookback_samples, 2))
+	if 0==samples_to_read:
+		samples_to_read = 0x100
+	print("samples_to_read: 0x" + hex(samples_to_read, 3))
+	print("starting_sample: " + str(starting_sample))
+	print("missed_triggers: " + str(missed_triggers))
+	print("asic_status: " + str(asic_status))
+	index = NUMBER_OF_WORDS_PER_HEADER
+#	index = 0
+#	datafile.write(hex(buffer_old[index], 4)); index += 1
+#	datafile.write(hex(buffer_old[index], 4)); index += 1
+#	datafile.write(hex(buffer_old[index], 4)); index += 1
+#	datafile.write(hex(buffer_old[index], 4)); index += 1
+#	datafile.write(hex(buffer_old[index], 4)); index += 1
+#	datafile.write(hex(buffer_old[index], 4)); index += 1
+#	datafile.write(hex(buffer_old[index], 4)); index += 1
+#	datafile.write(hex(buffer_old[index], 4)); index += 1
+	for n in range(starting_sample, MAX_SAMPLES_PER_WAVEFORM):
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
+			waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
+			waveform_data[2][sampling_bank][k][n] = buffer_old[index] & 0xfff
+#			datafile.write(hex(buffer_old[index], 4))
+			index += 1
+	for n in range(starting_sample):
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
+			waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
+			waveform_data[2][sampling_bank][k][n] = buffer_old[index] & 0xfff
+#			datafile.write(hex(buffer_old[index], 4))
+			index += 1
+#	datafile.write(hex(buffer_old[index], 4)); index += 1
+#	datafile.write(hex(buffer_old[index], 4)); index += 1
+	#print(str(waveform_data[0][0][0]))
+	string = ""
+	for word in buffer_old:
+		string += hex(word, 4)
+	datafile.write(string)
+	datafile.write("\n")
+	datafile.flush()
+	print("wrote " + str(len(buffer_old)) + " words to file " + datafile_name)
+	have_just_gathered_waveform_data[1][sampling_bank] = True
+	if pedestals_have_been_taken:
+		have_just_gathered_waveform_data[2][sampling_bank] = True
 
 def readout_some_data_from_the_fifo(number_of_words):
 	bank = 5
@@ -649,10 +659,6 @@ def readout_some_data_from_the_fifo(number_of_words):
 		fifo_data, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, 1, False)
 		gulp(fifo_data)
 		count += 1
-		datafile.write(hex(fifo_data, 4))
-	datafile.write("\n")
-	datafile.flush()
-	print("wrote " + str(count) + " words to file " + datafile_name)
 	return count
 
 def drain_fifo():
@@ -682,12 +688,12 @@ def gather_pedestals(i):
 						continue
 					if number_of_acquisitions_so_far[j][k]<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
 						number_of_acquisitions_so_far[j][k] += 1
-						if 15==k:
-							print("waveform_data[" + str(j) + "][" + str(k) + "]: " + str(waveform_data[i][j][k]))
+						#if 15==k:
+						#	print("waveform_data[" + str(j) + "][" + str(k) + "]: " + str(waveform_data[i][j][k]))
 						for n in range(MAX_SAMPLES_PER_WAVEFORM):
 							pedestal_data[i][j][k][n] += waveform_data[i][j][k][n]
-						if 15==k:
-							print("pedestal_data[" + str(j) + "][" + str(k) + "]: " + str(pedestal_data[i][j][k]))
+						#if 15==k:
+						#	print("pedestal_data[" + str(j) + "][" + str(k) + "]: " + str(pedestal_data[i][j][k]))
 			print("number_of_acquisitions_so_far[" + str(j) + "]: " + str(number_of_acquisitions_so_far[j]))
 		not_done = False
 		for j in range(ROWS):
@@ -734,7 +740,7 @@ def gather_pedestals(i):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			if not enabled_channels[k]:
 				continue
-			print("peds for ch" + str(k) + " bank" + str(j) + ": " + str(pedestal_data[i][j][k]))
+			#print("peds for ch" + str(k) + " bank" + str(j) + ": " + str(pedestal_data[i][j][k]))
 
 if __name__ == "__main__":
 	datafile = open(datafile_name, "a")
