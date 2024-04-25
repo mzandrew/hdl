@@ -15,6 +15,7 @@ CMPbias = 1000
 ISEL    = 0xa80
 SBbias  = 1300
 DBbias  = 1300
+DAC_values = [CMPbias, ISEL, SBbias, DBbias]
 datafile_name = "alpha.data"
 number_of_words_to_read_from_the_fifo = 4106
 ALFA = 0xa1fa
@@ -107,6 +108,7 @@ should_show_bank4_registers = True
 should_show_bank6_registers = True
 scaler_values_seen = set()
 pedestal_mode = False
+DAC_to_control = 0
 
 buffer_new = [ 0 for z in range(number_of_words_to_read_from_the_fifo) ]
 buffer_old = [ 0 for z in range(number_of_words_to_read_from_the_fifo) ]
@@ -350,18 +352,17 @@ def setup():
 	print("gui_update_period: " + str(gui_update_period))
 	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
 	set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
-	setup_DAC_values()
+	write_DAC_values()
 
 def loop():
 	#pygame.time.wait(10)
 	game_clock.tick(100)
-	global running
-	global something_was_updated
+	global running, something_was_updated, DAC_to_control
 	something_was_updated = True
 	#pressed_keys = pygame.key.get_pressed()
 	#pygame.event.wait()
 	mouse = pygame.mouse.get_pos()
-	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_c, K_d, K_p, K_s, K_z, K_q, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
+	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_F9, K_F10, K_F11, K_F12, K_c, K_d, K_p, K_s, K_z, K_q, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
 	for event in pygame.event.get():
 		if event.type == KEYDOWN:
 			if K_ESCAPE==event.key or K_q==event.key:
@@ -382,6 +383,22 @@ def loop():
 				initiate_trigger()
 				readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 				#drain_fifo()
+			elif K_F9==event.key:
+				DAC_to_control = 0
+				print("now controlling CMPbias")
+			elif K_F10==event.key:
+				DAC_to_control = 1
+				print("now controlling ISEL")
+			elif K_F11==event.key:
+				DAC_to_control = 2
+				print("now controlling SBbias")
+			elif K_F12==event.key:
+				DAC_to_control = 3
+				print("now controlling DBbias")
+			elif K_RIGHTBRACKET==event.key:
+				change_DAC_value(+0x100)
+			elif K_LEFTBRACKET==event.key:
+				change_DAC_value(-0x100)
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -521,10 +538,18 @@ def set_ls_i2c_mode(mode):
 	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [mode], False)
 
-def setup_DAC_values():
+def write_DAC_values():
 	bank = 4
-	DAC_values = [CMPbias, ISEL, SBbias, DBbias]
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, DAC_values, False)
+
+def change_DAC_value(delta):
+	global DAC_values
+	DAC_values[DAC_to_control] += delta
+	if DAC_values[DAC_to_control]<0:
+		DAC_values[DAC_to_control] = 0
+	elif 4095<DAC_values[DAC_to_control]:
+		DAC_values[DAC_to_control] = 4095
+	write_DAC_values()
 
 def initiate_dreset_sequence():
 	bank = 2
