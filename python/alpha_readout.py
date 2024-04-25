@@ -10,11 +10,11 @@ bank1_register_names = [ "hdrb errors, status8", "triggers since reset", "fifo e
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
 #header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
-header_decode_descriptions = [ "ASICID", "bank", "fine time", "coarse time", "trigger#", "samples after trigger", "lookback samples", "samples to read", "starting sample", "missed triggers", "status" ]
-CMPbias = 1000
+#header_decode_descriptions = [ "ASICID", "bank", "fine time", "coarse time", "trigger#", "samples after trigger", "lookback samples", "samples to read", "starting sample", "missed triggers", "status" ]
+CMPbias = 0x1e8
 ISEL    = 0xa80
-SBbias  = 1300
-DBbias  = 1300
+SBbias  = 0xdff
+DBbias  = 0x7ff
 DAC_values = [CMPbias, ISEL, SBbias, DBbias]
 datafile_name = "alpha.data"
 number_of_words_to_read_from_the_fifo = 4106
@@ -22,6 +22,14 @@ ALFA = 0xa1fa
 OMGA = 0x0e6a
 LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 8
 enabled_channels = [ 1, 0, 0, 0,  0, 1, 1, 0,  0, 0, 0, 0,  0, 0, 0, 1 ]
+I2CupAddr = 0x0
+LVDSA_pwr = 0 # 0 is high power mode
+LVDSB_pwr = 0 # 0 is high power mode
+SRCsel = 0 # 0 means data path A which is probably what you want while testing
+TMReg_Reset = 0
+samples_after_trigger = 0x10
+lookback_windows = 0x20
+number_of_samples = 0x00 # 0 means 256 here
 
 MAX_SAMPLES_PER_WAVEFORM = 256
 timestep = 1
@@ -95,7 +103,7 @@ dark_blue = (0, 0, 127)
 dark_purple = (127, 0, 127)
 
 # grey
-color = [ black, white, white, red, dark_red, pink, maroon, orange, purple, dark_purple, green, teal, dark_teal, dark_green, blue, dark_blue, light_blue, yellow, brown ]
+color = [ black, white, white, red, dark_red, pink, maroon, purple, orange, dark_purple, green, teal, dark_teal, dark_green, blue, dark_blue, light_blue, yellow, brown ]
 
 selection = 0
 coax_mux = [ 0 for i in range(4) ]
@@ -374,6 +382,7 @@ def setup():
 	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
 	set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
 	write_DAC_values()
+	write_I2C_register_values()
 
 def loop():
 	#pygame.time.wait(10)
@@ -562,6 +571,12 @@ def set_ls_i2c_mode(mode):
 def write_DAC_values():
 	bank = 4
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, DAC_values, False)
+
+SRC = I2CupAddr<<3 | LVDSB_pwr<<2 | LVDSA_pwr<<1 | SRCsel
+I2C_register_values = [ 0, SRC, TMReg_Reset, samples_after_trigger, lookback_windows, number_of_samples ]
+def write_I2C_register_values():
+	bank = 3
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, I2C_register_values, False)
 
 def change_DAC_value(delta):
 	global DAC_values
