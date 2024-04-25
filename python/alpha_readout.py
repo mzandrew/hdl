@@ -648,6 +648,8 @@ def gather_pedestals(i):
 		for j in range(ROWS):
 			if have_just_gathered_waveform_data[i][j]:
 				for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+					if not enabled_channels[k]:
+						continue
 					if number_of_acquisitions_so_far[j][k]<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
 						number_of_acquisitions_so_far[j][k] += 1
 						if 15==k:
@@ -666,8 +668,27 @@ def gather_pedestals(i):
 					not_done = True
 	for j in range(ROWS):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			if not enabled_channels[k]:
+				continue
+			average_pedestal = 0.0
 			for n in range(MAX_SAMPLES_PER_WAVEFORM):
 				pedestal_data[i][j][k][n] >>= LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+				average_pedestal += pedestal_data[i][j][k][n]
+			average_pedestal /= MAX_SAMPLES_PER_WAVEFORM
+			print("average_pedestal for ch" + str(k) + " bank" + str(j) + ": " + str(average_pedestal))
+			if 0:
+				pedestal_offset[j][k] = int(average_pedestal)
+			if 0:
+				if 0.0<average_pedestal:
+					pedestal_scale[j][k] = 2048.0 / average_pedestal
+				else:
+					pedestal_scale[j][k] = 1.0
+			for n in range(MAX_SAMPLES_PER_WAVEFORM):
+				pedestal_data[i][j][k][n] *= pedestal_scale[j][k]
+				#pedestal_data[i][j][k][n] += pedestal_offset[j][k]
+	for j in range(ROWS):
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			for n in range(MAX_SAMPLES_PER_WAVEFORM):
 				pedestal_data[0][j][k][n] = pedestal_data[i][j][k][n]
 				pedestal_data[1][j][k][n] = pedestal_data[i][j][k][n]
 				pedestal_data[2][j][k][n] = pedestal_data[i][j][k][n]
@@ -703,6 +724,8 @@ if __name__ == "__main__":
 	waveform_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	pedestal_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	have_just_gathered_waveform_data = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
+	pedestal_scale = [ [ 1.0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
+	pedestal_offset = [ [ -2048 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
 	setup()
 	#write_to_pollable_memory_value()
 	running = True
