@@ -3,12 +3,14 @@
 # written 2023-08-23 by mza
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-04-24 by mza
+# last updated 2024-04-25 by mza
 
 bank0_register_names = [ "ls_i2c" ]
 bank1_register_names = [ "hdrb errors, status8", "triggers since reset", "fifo empty", "fifo pending", "fifo errors", "asic output strobes", "fifo output strobes", "alfa counter", "omga counter" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
+#header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
+header_decode_descriptions = [ "ASICID", "bank", "fine time", "coarse time", "trigger#", "samples after trigger", "lookback samples", "samples to read", "starting sample", "missed triggers", "status" ]
 CMPbias = 1000
 ISEL    = 0xa80
 SBbias  = 1300
@@ -540,13 +542,13 @@ def initiate_i2c_transfer():
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [1], False)
 	print("i2c transfer")
 
-trigger_number = 0
+software_trigger_number = 0
 def initiate_trigger():
 	bank = 2
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 3, [1], False)
-	global trigger_number
-	trigger_number += 1
-	print("trigger " + str(trigger_number))
+	global software_trigger_number
+	software_trigger_number += 1
+	print("trigger " + str(software_trigger_number))
 
 def get_fifo_empty():
 	bank = 1
@@ -573,11 +575,38 @@ def gulp(word):
 		if not number_of_samples_per_waveform==number_of_samples_per_waveform_from_header:
 			print("number_of_samples_per_waveform (from packet length): " + str(number_of_samples_per_waveform))
 			print("number_of_samples_per_waveform (from header): " + str(number_of_samples_per_waveform_from_header))
+			print("corrupt packet")
 			return
+		global sampling_bank, ASICID, fine_time, coarse_time, asic_trigger_number, samples_after_trigger, lookback_samples, samples_to_read, starting_sample, missed_triggers, asic_status
+		#header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
+		#header_description_words = [ "ALFA", "IdFi", "cs43", "cs21", "tg21", "AfLo", "ReSt", "MiSt" ]
+		#header_decode_descriptions
 		sampling_bank = 0
 		if (buffer_old[1]>>8)&1:
 			sampling_bank = 1
-		#print("sampling_bank: " + str(sampling_bank))
+		ASICID =                (buffer_old[1]>>8) & 0xfe
+		fine_time =              buffer_old[1]     & 0xff
+		coarse_time =           (buffer_old[2]<<16)     | buffer_old[3]
+		asic_trigger_number =    buffer_old[4]
+		samples_after_trigger = (buffer_old[5]>>8) & 0xff
+		lookback_samples =       buffer_old[5]     & 0xff
+		samples_to_read =       (buffer_old[6]>>8) & 0xff
+		starting_sample =        buffer_old[6]     & 0xff
+		missed_triggers =       (buffer_old[7]>>8) & 0xff
+		asic_status =            buffer_old[7]     & 0xff
+		print("sampling_bank: " + str(sampling_bank))
+		print("ASICID: " + str(ASICID))
+		print("fine_time: " + str(fine_time))
+		print("coarse_time: " + str(coarse_time))
+		print("asic_trigger_number: " + str(asic_trigger_number))
+		print("samples_after_trigger: 0x" + hex(samples_after_trigger))
+		print("lookback_samples: 0x" + hex(lookback_samples))
+		if 0==samples_to_read:
+			samples_to_read = 0x100
+		print("samples_to_read: 0x" + hex(samples_to_read))
+		print("starting_sample: " + str(starting_sample))
+		print("missed_triggers: " + str(missed_triggers))
+		print("asic_status: " + str(asic_status))
 		index = NUMBER_OF_WORDS_PER_HEADER
 #		index = 0
 #		datafile.write(hex(buffer_old[index], 4)); index += 1
