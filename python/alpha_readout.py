@@ -183,11 +183,17 @@ def update_plot(i, j):
 	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 	scale = 1.0 / MAX_ADC
 	#print(str(scale))
+	max_data_value_seen = 0
 	for n in range(len(waveform_data[i][j][0])):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			if not enabled_channels[k]:
 				continue
+			if max_data_value_seen<waveform_data[i][j][k][n]:
+				max_data_value_seen = waveform_data[i][j][k][n]
 			voltage = data_and_pedestal_coefficients[i][0] * waveform_data[i][j][k][n]
+			#if 15==k and 0==n:
+			#	voltage = MAX_ADC
+			# when the TDC should be pegged near ~4095 for large input voltages, the decoded gcc_counter rolls over to a low number
 			if pedestals_have_been_taken:
 				voltage += data_and_pedestal_coefficients[i][1] * pedestal_data[i][j][k][n]
 			time = timestep*n
@@ -195,6 +201,7 @@ def update_plot(i, j):
 			formatted_data[k][x] = voltage * scale
 			#if 0==n%40:
 			#	print(str(time) + "," + str(voltage) + ":" + str(x) + ":" + str(formatted_data[k][x]))
+	print("max_data_value_seen: 0x" + hex(max_data_value_seen, 3))
 	pygame.event.pump()
 	print("plotting data...")
 	# fill with colors for now:
@@ -205,23 +212,37 @@ def update_plot(i, j):
 	offscale_count = 0
 	number_of_enabled_channels = sum(enabled_channels)
 	#print("plot_height: " + str(plot_height))
+	#print("extra_gap_y: " + str(extra_gap_y))
+	first_y = extra_gap_y
+	last_y = plot_height - extra_gap_y
+	scale_y = last_y - first_y
 	for x in range(extra_gap_x, plot_width-extra_gap_x):
 		pygame.event.pump()
 		how_many_things_were_plotted_at_this_x_value = 0
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			if not enabled_channels[k]:
 				continue
-			yn = int(plot_height-extra_gap_y-1 - (plot_height-2*extra_gap_y)*formatted_data[k][x-extra_gap_x] + 0.5)
-			for y in range(extra_gap_y, plot_height-extra_gap_y):
+			yn = int(last_y - scale_y*formatted_data[k][x-extra_gap_x] + 0.5)
+			#if 15==k:
+			#	print("yn: " + str(yn) + " " + str(formatted_data[k][x-extra_gap_x] ))
+			for y in range(first_y, last_y+1):
 				doit = False
-				if yn==y:
+				if first_y==y:
+					if yn<=first_y:
+						doit = True
+						offscale_count += 1
+						#if 15==k:
+						#	print("first case")
+				elif last_y==y:
+					if last_y<=yn:
+						doit = True
+						offscale_count += 1
+						#if 15==k:
+						#	print("second case")
+				elif yn==y:
 					doit = True
-				elif extra_gap_y==y and yn<extra_gap_y:
-					doit = True
-					offscale_count += 1
-				elif plot_height-extra_gap_y-1==y and plot_height-extra_gap_y-1<yn:
-					doit = True
-					offscale_count += 1
+					#if 15==k:
+					#	print("exact")
 				if doit:
 					how_many_things_were_plotted_at_this_x_value += 1
 					plot[i][j].set_at((x, y), color[k+2]) # first two indices are black and white
@@ -237,7 +258,7 @@ def update_plot(i, j):
 					string += str(formatted_data[k][x-extra_gap_x]) + " " + str(int(plot_height-extra_gap_y-1 - (plot_height-2*extra_gap_y)*formatted_data[k][x-extra_gap_x] + 0.5)) + ", "
 				print(string)
 	#print("how_many_times_we_did_not_plot: " + str(how_many_times_we_did_not_plot))
-	#print("offscale_count: " + str(offscale_count))
+	print("offscale_count: " + str(offscale_count))
 	plots_were_updated[i][j] = True
 	print("done")
 
