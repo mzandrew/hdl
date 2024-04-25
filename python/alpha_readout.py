@@ -114,7 +114,7 @@ ALFA_OMGA_counter = 0
 NUMBER_OF_WORDS_PER_HEADER = 8
 NUMBER_OF_WORDS_PER_FOOTER = 2
 NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT = NUMBER_OF_WORDS_PER_HEADER + NUMBER_OF_WORDS_PER_FOOTER
-start_sample = 0
+starting_sample = 0
 pedestals_have_been_taken = False
 
 # when run as a systemd service, it gets sent a SIGHUP upon pygame.init(), hence this dummy signal handler
@@ -556,7 +556,7 @@ def get_fifo_empty():
 	return fifo_empty
 
 def gulp(word):
-	global buffer_new, buffer_old, waveform_data, ALFA_OMGA_counter, start_sample, have_just_gathered_waveform_data
+	global buffer_new, buffer_old, waveform_data, ALFA_OMGA_counter, have_just_gathered_waveform_data
 	if ALFA==word:
 		if not buffer_new[0]==ALFA:
 			print("first word of previous buffer: " + hex(buffer_new[0], 4))
@@ -566,12 +566,9 @@ def gulp(word):
 		ALFA_OMGA_counter = 0
 	buffer_new.append(word)
 	ALFA_OMGA_counter += 1
-	if 4==ALFA_OMGA_counter:
-		start_sample = word & 0xff
-		#print("start_sample: " + str(start_sample))
 	if OMGA==word:
 		buffer_old = buffer_new
-		print("len(buffer_old): " + str(len(buffer_old)))
+		#print("len(buffer_old): " + str(len(buffer_old)))
 		number_of_samples_per_waveform = (ALFA_OMGA_counter-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT)/NUMBER_OF_CHANNELS_PER_ASIC
 		number_of_samples_per_waveform_from_header = (buffer_old[6]>>8) & 0xff
 		if 0==number_of_samples_per_waveform_from_header:
@@ -579,7 +576,7 @@ def gulp(word):
 		if not number_of_samples_per_waveform==number_of_samples_per_waveform_from_header:
 			print("number_of_samples_per_waveform (from packet length): " + str(number_of_samples_per_waveform))
 			print("number_of_samples_per_waveform (from header): " + str(number_of_samples_per_waveform_from_header))
-			print("corrupt packet")
+			#print("corrupt packet")
 			return
 		global sampling_bank, ASICID, fine_time, coarse_time, asic_trigger_number, samples_after_trigger, lookback_samples, samples_to_read, starting_sample, missed_triggers, asic_status
 		#header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
@@ -621,14 +618,14 @@ def gulp(word):
 #		datafile.write(hex(buffer_old[index], 4)); index += 1
 #		datafile.write(hex(buffer_old[index], 4)); index += 1
 #		datafile.write(hex(buffer_old[index], 4)); index += 1
-		for n in range(start_sample, MAX_SAMPLES_PER_WAVEFORM):
+		for n in range(starting_sample, MAX_SAMPLES_PER_WAVEFORM):
 			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 				waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
 				waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
 				waveform_data[2][sampling_bank][k][n] = buffer_old[index] & 0xfff
 #				datafile.write(hex(buffer_old[index], 4))
 				index += 1
-		for n in range(start_sample):
+		for n in range(starting_sample):
 			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 				waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
 				waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
@@ -708,7 +705,7 @@ def gather_pedestals(i):
 				pedestal_data[i][j][k][n] >>= LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
 				average_pedestal += pedestal_data[i][j][k][n]
 			average_pedestal /= MAX_SAMPLES_PER_WAVEFORM
-			print("average_pedestal for ch" + str(k) + " bank" + str(j) + ": " + str(average_pedestal))
+			#print("average_pedestal for ch" + str(k) + " bank" + str(j) + ": " + str(average_pedestal))
 			if 0:
 				pedestal_offset[j][k] = int(average_pedestal)
 			if 0:
@@ -725,8 +722,8 @@ def gather_pedestals(i):
 				pedestal_data[0][j][k][n] = pedestal_data[i][j][k][n]
 				pedestal_data[1][j][k][n] = pedestal_data[i][j][k][n]
 				pedestal_data[2][j][k][n] = pedestal_data[i][j][k][n]
-			if 15==k:
-				print("pedestal_data[" + str(j) + "][" + str(k) + "]: " + str(pedestal_data[i][j][k]))
+			#if 15==k:
+			#	print("pedestal_data[" + str(j) + "][" + str(k) + "]: " + str(pedestal_data[i][j][k]))
 	print("pedestals acquired")
 	pedestals_have_been_taken = True
 	pedestal_mode = False
