@@ -20,7 +20,7 @@ datafile_name = "alpha.data"
 number_of_words_to_read_from_the_fifo = 4106
 ALFA = 0xa1fa
 OMGA = 0x0e6a
-LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 8
+LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 6
 enabled_channels = [ 1, 0, 0, 0,  0, 1, 1, 0,  0, 0, 0, 0,  0, 0, 0, 1 ]
 I2CupAddr = 0x0
 LVDSA_pwr = 0 # 0 is high power mode
@@ -30,6 +30,7 @@ TMReg_Reset = 0
 samples_after_trigger = 0x10
 lookback_windows = 0x20
 number_of_samples = 0x00 # 0 means 256 here
+previous_number_of_samples = 0x00 # 0 means 256 here
 
 MAX_SAMPLES_PER_WAVEFORM = 256
 timestep = 1
@@ -572,9 +573,24 @@ def write_DAC_values():
 	bank = 4
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, DAC_values, False)
 
-SRC = I2CupAddr<<3 | LVDSB_pwr<<2 | LVDSA_pwr<<1 | SRCsel
-I2C_register_values = [ 0, SRC, TMReg_Reset, samples_after_trigger, lookback_windows, number_of_samples ]
+def change_number_of_samples(value):
+	global previous_number_of_samples, number_of_samples
+	previous_number_of_samples = number_of_samples
+	print("previous_number_of_samples: " + str(previous_number_of_samples))
+	print("current number_of_samples: " + str(number_of_samples))
+	print("desired number_of_samples: " + str(value))
+	number_of_samples = value
+	if number_of_samples<0:
+		number_of_samples = 0 # 0 means 256 here
+	elif 255<number_of_samples:
+		number_of_samples = 0 # 0 means 256 here
+	write_I2C_register_values()
+	initiate_i2c_transfer()
+	return previous_number_of_samples
+
 def write_I2C_register_values():
+	SRC = I2CupAddr<<3 | LVDSB_pwr<<2 | LVDSA_pwr<<1 | SRCsel
+	I2C_register_values = [ 0, SRC, TMReg_Reset, samples_after_trigger, lookback_windows, number_of_samples ]
 	bank = 3
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, I2C_register_values, False)
 
@@ -684,7 +700,15 @@ def parse_packet():
 #	datafile.write(hex(buffer_old[index], 4)); index += 1
 #	datafile.write(hex(buffer_old[index], 4)); index += 1
 #	datafile.write(hex(buffer_old[index], 4)); index += 1
+	for n in range(MAX_SAMPLES_PER_WAVEFORM):
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			waveform_data[0][sampling_bank][k][n] = 0
+			waveform_data[1][sampling_bank][k][n] = 0
+			waveform_data[2][sampling_bank][k][n] = 0
 	for n in range(starting_sample, MAX_SAMPLES_PER_WAVEFORM):
+		#print("n:" + str(n) + " index:" + str(index) + " starting_sample: " + str(starting_sample))
+		if len(buffer_old)-NUMBER_OF_CHANNELS_PER_ASIC-NUMBER_OF_WORDS_PER_FOOTER<index:
+			break
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
 			waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
@@ -692,6 +716,8 @@ def parse_packet():
 #			datafile.write(hex(buffer_old[index], 4))
 			index += 1
 	for n in range(starting_sample):
+		if len(buffer_old)-NUMBER_OF_CHANNELS_PER_ASIC-NUMBER_OF_WORDS_PER_FOOTER<index:
+			break
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
 			waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
@@ -730,7 +756,8 @@ def drain_fifo():
 		count = readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 
 def gather_pedestals(i):
-	# need to ensure the number of samples to readout is MAX_SAMPLES_PER_WAVEFORM before starting this
+	previous_number_of_samples = change_number_of_samples(256)
+	initiate_legacy_serial_sequence()
 	global pedestal_mode, pedestal_data, pedestals_have_been_taken
 	pedestal_mode = True
 	number_of_acquisitions_so_far = [ [ 0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
@@ -804,6 +831,8 @@ def gather_pedestals(i):
 			if not enabled_channels[k]:
 				continue
 			#print("peds for ch" + str(k) + " bank" + str(j) + ": " + str(pedestal_data[i][j][k]))
+	change_number_of_samples(previous_number_of_samples)
+	initiate_legacy_serial_sequence()
 
 if __name__ == "__main__":
 	datafile = open(datafile_name, "a")
