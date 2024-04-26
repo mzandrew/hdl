@@ -333,7 +333,7 @@ module alpha_control #(
 	assign i2c_value[1] = { I2CupAddr, LVDSB_pwr, LVDSA_pwr, SRCsel }; // SRC
 	// ----------------------------------------------------------------------
 	// 02 RST: TMReg_Reset
-	assign i2c_value[2] = TMReg_Reset; // TMReg_Reset
+	assign i2c_value[2] = TMReg_Reset; // any write to this address switches DAC control temporarily back to I2C and clears the DAC registers no matter the setting of the LS_I2C pin, so don't write anything to this address
 	// ----------------------------------------------------------------------
 	// 03 SAT: samples after trigger
 	//wire [7:0] samples_after_trigger = 8'h10;
@@ -367,7 +367,7 @@ module alpha_control #(
 	// ----------------------------------------------------------------------
 	// 15 pck: not implemented
 	// ----------------------------------------------------------------------
-	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0011_1110; // nSP, LBW, SAT, TMReg_Reset, SRC, 
+	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0011_1010; // nSP, LBW, SAT, SRC
 	//wire [15:0] i2c_address_register_enables = 16'b_1111_1111_1111_1111; // for testing
 	reg i2c_working_on_some_transfers = 0;
 	reg i2c_transitioning_to_the_next_transfer = 0;
