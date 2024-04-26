@@ -20,15 +20,17 @@ datafile_name = "alpha.data"
 number_of_words_to_read_from_the_fifo = 4106
 ALFA = 0xa1fa
 OMGA = 0x0e6a
-LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 6
-enabled_channels = [ 1, 0, 0, 0,  0, 1, 1, 0,  0, 0, 0, 0,  0, 0, 0, 1 ]
+LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 8
+enabled_channels = [ 0, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 0,  0, 0, 1, 0 ] # two good channels
+#enabled_channels = [ 1, 0, 0, 0,  0, 1, 1, 0,  0, 0, 0, 0,  0, 0, 0, 1 ] # how the board is wired
+#enabled_channels = [ 1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1 ] # all channels
 I2CupAddr = 0x0
 LVDSA_pwr = 0 # 0 is high power mode
 LVDSB_pwr = 0 # 0 is high power mode
 SRCsel = 0 # 0 means data path A which is probably what you want while testing
-TMReg_Reset = 0
-samples_after_trigger = 0x10
-lookback_windows = 0x20
+TMReg_Reset = 0 # not currently implemented; breaks ls_i2c somehow
+samples_after_trigger = 0x80
+lookback_windows = 0x80
 number_of_samples = 0x00 # 0 means 256 here
 previous_number_of_samples = 0x00 # 0 means 256 here
 
@@ -104,7 +106,7 @@ dark_blue = (0, 0, 127)
 dark_purple = (127, 0, 127)
 
 # grey
-color = [ black, white, white, red, dark_red, pink, maroon, purple, orange, dark_purple, green, teal, dark_teal, dark_green, blue, dark_blue, light_blue, yellow, brown ]
+color = [ black, white, yellow, red, dark_red, pink, maroon, purple, orange, dark_purple, green, light_blue, dark_teal, dark_green, blue, dark_blue, teal, grey, brown ]
 
 selection = 0
 coax_mux = [ 0 for i in range(4) ]
@@ -430,9 +432,9 @@ def loop():
 				DAC_to_control = 3
 				print("now controlling DBbias")
 			elif K_RIGHTBRACKET==event.key:
-				change_DAC_value(+0x100)
+				change_DAC_value(+0x80)
 			elif K_LEFTBRACKET==event.key:
-				change_DAC_value(-0x100)
+				change_DAC_value(-0x80)
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
