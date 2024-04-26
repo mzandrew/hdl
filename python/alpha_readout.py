@@ -204,7 +204,10 @@ def update_plot(i, j):
 			#	voltage = MAX_ADC
 			# when the TDC should be pegged near ~4095 for large input voltages, the decoded gcc_counter rolls over to a low number
 			if pedestals_have_been_taken:
-				voltage += data_and_pedestal_coefficients[i][1] * pedestal_data[i][j][k][n]
+				if 0==i:
+					voltage += data_and_pedestal_coefficients[i][1] * pedestal_data[i][j][k][n]
+				else:
+					voltage += data_and_pedestal_coefficients[i][1] * (pedestal_data[i][j][k][n] - average_pedestal[j][k])
 			time = timestep*n
 			x = int(time)
 			formatted_data[k][x] = voltage * scale
@@ -792,26 +795,17 @@ def gather_pedestals(i):
 					continue
 				if number_of_acquisitions_so_far[j][k]<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
 					not_done = True
+	global average_pedestal
 	for j in range(ROWS):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			if not enabled_channels[k]:
 				continue
-			average_pedestal = 0.0
+			average_pedestal[j][k] = 0.0
 			for n in range(MAX_SAMPLES_PER_WAVEFORM):
 				pedestal_data[i][j][k][n] >>= LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-				average_pedestal += pedestal_data[i][j][k][n]
-			average_pedestal /= MAX_SAMPLES_PER_WAVEFORM
-			#print("average_pedestal for ch" + str(k) + " bank" + str(j) + ": " + str(average_pedestal))
-			if 0:
-				pedestal_offset[j][k] = int(average_pedestal)
-			if 0:
-				if 0.0<average_pedestal:
-					pedestal_scale[j][k] = 2048.0 / average_pedestal
-				else:
-					pedestal_scale[j][k] = 1.0
-			for n in range(MAX_SAMPLES_PER_WAVEFORM):
-				pedestal_data[i][j][k][n] *= pedestal_scale[j][k]
-				#pedestal_data[i][j][k][n] += pedestal_offset[j][k]
+				average_pedestal[j][k] += pedestal_data[i][j][k][n]
+			average_pedestal[j][k] /= MAX_SAMPLES_PER_WAVEFORM
+			print("average_pedestal for ch" + str(k) + " bank" + str(j) + ": " + str(average_pedestal[j][k]))
 	for j in range(ROWS):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			for n in range(MAX_SAMPLES_PER_WAVEFORM):
@@ -852,8 +846,7 @@ if __name__ == "__main__":
 	waveform_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	pedestal_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	have_just_gathered_waveform_data = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
-	pedestal_scale = [ [ 1.0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
-	pedestal_offset = [ [ -2048 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
+	average_pedestal = [ [ 2047.0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
 	setup()
 	#write_to_pollable_memory_value()
 	running = True
