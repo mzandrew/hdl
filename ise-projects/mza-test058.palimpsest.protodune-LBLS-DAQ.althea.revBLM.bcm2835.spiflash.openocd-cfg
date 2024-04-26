@@ -1,5 +1,4 @@
 # written 2020-06-20 by mza
-# based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.openocd-cfg
 # last updated 2024-04-17 by mza
 
 #source [find interface/ftdi/digilent-hs1.cfg]
@@ -27,9 +26,14 @@ reset_config none
 transport select jtag
 
 source [find cpld/xilinx-xc6s.cfg]
+source [find cpld/jtagspi.cfg]
 
 init
-pld load 0 ./mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA/DUNELBLS48.bit
+xc6s_program xc6s.tap
+#xc6s_print_dna xc6s.tap
+jtagspi_init 0 contrib/bscan_spi_xc6slx9.bit
+jtagspi_program ./mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM/DUNELBLS12.bin 0
+xc6s_program xc6s.tap
 
 exit
 

@@ -1,8 +1,8 @@
 # written 2020-06-20 by mza
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.openocd-cfg
-# last updated 2024-04-17 by mza
+# last updated 2024-04-19 by mza
 
-#source [find interface/ftdi/digilent-hs1.cfg]
+source [find interface/ftdi/digilent-hs1.cfg]
 #source [find interface/ftdi/digilent-hs2.cfg]
 #source [find interface/ftdi/digilent_jtag_hs3.cfg]
 
@@ -17,19 +17,20 @@
 # gpio/bcm #s         tck tms tdi tdo
 #bcm2835gpio_jtag_nums 23  22  27  24; # althea revB and revBL
 #bcm2835gpio_jtag_nums 25  26  27  24; # althea revBLM and ampoliros revA
-#adapter speed 100
+adapter speed 300
 
-adapter driver sysfsgpio
+#adapter driver sysfsgpio
 # gpio/bcm #s        tck tms tdi tdo
-sysfsgpio_jtag_nums  25  26  27  24; # althea revBLM and ampoliros revA
+#sysfsgpio_jtag_nums  25  26  27  24; # althea revBLM and ampoliros revA
 
 reset_config none
 transport select jtag
 
 source [find cpld/xilinx-xc6s.cfg]
+#source [find cpld/jtagspi.cfg]
 
 init
-pld load 0 ./mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA/DUNELBLS48.bit
+pld load 0 ./mza-test068.alphav2-palimpsest.althea.revBLM/ALPHAtestPALIMPSEST.bit
 
 exit
 

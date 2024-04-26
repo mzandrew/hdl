@@ -105,11 +105,14 @@ if 0:
 	althea.reset_pulse()
 	time.sleep(0.1)
 
-if 1:
+if 0:
 	althea.setup_half_duplex_bus("test046")
 
 if 0:
 	althea.setup_half_duplex_bus("test049")
+
+if 1:
+	althea.setup_half_duplex_bus("test058")
 
 if 0:
 	j = 2
@@ -134,7 +137,7 @@ if 0:
 		print(hex(readback[i], 8))
 	#althea.test_writing_data_to_half_duplex_bus()
 
-if 1: # mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM
+if 0: # mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM
 	j = 2
 	print("bank" + str(j) + ":")
 	values = [ 0 for a in range(2**4) ]
@@ -156,7 +159,7 @@ if 1: # mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM
 	for i in range(16):
 		print(hex(readback[i], 8))
 
-if 1:
+if 0:
 #	for j in range(4):
 #		print()
 	j = 1
@@ -166,7 +169,7 @@ if 1:
 #	for i in range(8):
 		print(hex(readback[i], 8))
 
-if 1:
+if 0:
 	depth = 4
 	print("fifo" + ":")
 	readback_4321 = althea.read_data_from_pollable_memory_on_half_duplex_bus(3 * 2**BANK_ADDRESS_DEPTH, 2**depth)
@@ -175,7 +178,7 @@ if 1:
 	for i in range(2**depth):
 		print(hex(readback_cba9[i], 8) + " " + hex(readback_8765[i], 8) + " " + hex(readback_4321[i], 8))
 
-if 0:
+if 1:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
 	#values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
 	#values = [ 0 for a in range(2**14) ]
@@ -212,7 +215,11 @@ if 0:
 	values[27] = 0x1f3f7fff
 	values[28] = 0x00000000
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, values)
-	althea.write_to_half_duplex_bus_and_then_verify(0, values)
+	bank = 7
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH, values)
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 2**4)
+	for i in range(16):
+		print(hex(readback[i], 8))
 
 if 0:
 	#max_address_plus_one = 2**14

@@ -1,6 +1,6 @@
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-04-11 by mza
+// last updated 2024-04-25 by mza
 
 `ifndef ALPHA_LIB
 `define ALPHA_LIB
@@ -64,6 +64,9 @@ module alpha_control #(
 	input initiate_trigger, initiate_legacy_serial_sequence, initiate_dreset_sequence, initiate_i2c_transfer,
 	input sda_in,
 	input [11:0] CMPbias, ISEL, SBbias, DBbias,
+	input [4:0] I2CupAddr,
+	input LVDSA_pwr, LVDSB_pwr, SRCsel, TMReg_Reset,
+	input [7:0] samples_after_trigger, lookback_windows, number_of_samples,
 	output reg sync, dreset, tok_a_in, sin, pclk, sclk, trig_top,
 	output scl, sda_out, sda_dir
 );
@@ -322,25 +325,26 @@ module alpha_control #(
 	//assign i2c_value[0] = 0; // I2C trigger
 	// ----------------------------------------------------------------------
 	// 01 SRC register:
-	wire [4:0] I2CupAddr = 5'h17;
-	wire LVDSB_pwr = 0;
-	wire LVDSA_pwr = 0;
-	wire SRCsel = 0; // set this to zero or the data will come from data_b (you probably don't want that)
-	wire [7:0] ASICID = { I2CupAddr, i2c_address_pins };
+	//wire [4:0] I2CupAddr = 5'h17;
+	//wire LVDSB_pwr = 0;
+	//wire LVDSA_pwr = 0;
+	//wire SRCsel = 0; // set this to zero or the data will come from data_b (you probably don't want that)
+	//wire [7:0] ASICID = { I2CupAddr, i2c_address_pins };
 	assign i2c_value[1] = { I2CupAddr, LVDSB_pwr, LVDSA_pwr, SRCsel }; // SRC
 	// ----------------------------------------------------------------------
 	// 02 RST: TMReg_Reset
+	assign i2c_value[2] = TMReg_Reset; // any write to this address switches DAC control temporarily back to I2C and clears the DAC registers no matter the setting of the LS_I2C pin, so don't write anything to this address
 	// ----------------------------------------------------------------------
 	// 03 SAT: samples after trigger
-	wire [7:0] samples_after_trigger = 8'h10;
+	//wire [7:0] samples_after_trigger = 8'h10;
 	assign i2c_value[3] = samples_after_trigger; // SAT
 	// ----------------------------------------------------------------------
 	// 04 LBW: lookback windows
-	wire [7:0] lookback_windows = 8'h20;
+	//wire [7:0] lookback_windows = 8'h20;
 	assign i2c_value[4] = lookback_windows; // LBW
 	// ----------------------------------------------------------------------
 	// 05 nSP: number of samples
-	wire [7:0] number_of_samples = 8'h30;
+	//wire [7:0] number_of_samples = 8'h00; // 0 here means 256
 	assign i2c_value[5] = number_of_samples; // nSP
 	// ----------------------------------------------------------------------
 	// 06 OSs: status?
@@ -363,7 +367,7 @@ module alpha_control #(
 	// ----------------------------------------------------------------------
 	// 15 pck: not implemented
 	// ----------------------------------------------------------------------
-	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0011_1010; // nSP, LBW, SAT, SRC, 
+	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0011_1010; // nSP, LBW, SAT, SRC
 	//wire [15:0] i2c_address_register_enables = 16'b_1111_1111_1111_1111; // for testing
 	reg i2c_working_on_some_transfers = 0;
 	reg i2c_transitioning_to_the_next_transfer = 0;
@@ -457,12 +461,15 @@ module alpha_control_tb;
 	alpha_control #(.SIMULATION(1)) alpha_control (.clock(clock), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
 endmodule
 
+// this module is ALWAYS hunting for the pattern a1fa...
 module alpha_readout (
 	input clock, reset, data_a,
 	output [3:0] nybble,
 	output reg header = 0,
 	output reg meat = 0,
 	output reg footer = 0,
+	output reg [31:0] alfa_counter = 0,
+	output reg [31:0] omga_counter = 0,
 	output strobe,
 	output msn,
 	output [1:0] nybble_counter,
@@ -479,6 +486,7 @@ module alpha_readout (
 	localparam DATA_WORD_COUNTER_MAX = 16+16*256+16+100;
 	wire [15:0] ALFA = 16'ha1fa;
 	wire [15:0] OMGA = 16'h0e6a;
+	reg strobe_valid = 0;
 	always @(posedge clock) begin
 		if (reset) begin
 			data_bit_counter <= 15;
@@ -488,17 +496,18 @@ module alpha_readout (
 			meat <= 0;
 			footer <= 0;
 			data_sr <= 0;
+			strobe_valid <= 0;
+			alfa_counter <= 0;
+			omga_counter <= 0;
 		end else begin
 			data_sr <= { data_sr[SR_HIGH_BIT-1:0], data_a };
+			data_bit_counter <= data_bit_counter - 1'b1;
 			if (data_word_counter<DATA_WORD_COUNTER_MAX) begin
 				if (data_bit_counter==0) begin
-					data_bit_counter <= 15;
 					data_word <= data_sr[SR_PICKOFF-1-:16];
 					data_word_counter <= data_word_counter + 1'b1;
 					header <= 0;
 					footer <= 0;
-				end else begin
-					data_bit_counter <= data_bit_counter - 1'b1;
 				end
 			end else begin
 				header <= 0;
@@ -506,23 +515,27 @@ module alpha_readout (
 				footer <= 0;
 				data_bit_counter <= 0; // 2 least significant bits must not be 2'b01 (see assignment for strobe, below)
 			end
-			if (data_sr[SR_PICKOFF-1-:16]==ALFA) begin // WARNING: this might accidentally re-bitslip align on data 0x1fa from channel 0xa
+			if (data_sr[SR_PICKOFF-1-:16]==ALFA) begin // WARNING: this might accidentally re-bitslip align on data 0x1fa from channel 0xa (might need a deeper pipeline and to check that the very next word is 16'hb... or something)
+				strobe_valid <= 1;
 				data_bit_counter <= 15;
 				data_word_counter <= 0;
 				header <= 1'b1;
 				meat <= 1'b1;
 				data_word <= data_sr[SR_PICKOFF-1-:16];
-			end else if (data_sr[SR_PICKOFF-1-:16]==OMGA) begin // WARNING: this might accidentally re-bitslip align on data 0x0e6a from channel 0xa
+				alfa_counter <= alfa_counter + 1'b1;
+			end else if (data_sr[SR_PICKOFF-1-:16]==OMGA) begin // WARNING: this might accidentally re-bitslip align on data 0x0e6a from channel 0x0
 				header <= 0;
 				meat <= 0;
 				footer <= 1'b1;
 //				data_bit_counter <= 0; // 2 least significant bits must not be 2'b01 (see assignment for strobe, below)
 				data_word_counter <= DATA_WORD_COUNTER_MAX - 1;
+				omga_counter <= omga_counter + 1'b1;
 			end
 		end
 	end
 	assign msn = nybble_counter == 2'b11 ? 1'b1 : 1'b0;
-	assign strobe = data_bit_counter[1:0] == 2'b01 ? 1'b1 : 1'b0;
+	wire potential_strobe = data_bit_counter[1:0] == 2'b01 ? 1'b1 : 1'b0;
+	assign strobe = potential_strobe & strobe_valid;
 	assign nybble_counter = data_bit_counter[3:2];
 	wire [3:0] nyb [3:0];
 	assign nyb[0] = data_word[3:0];

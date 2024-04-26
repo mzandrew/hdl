@@ -1,5 +1,5 @@
 // updated 2020-10-02 by mza
-// last updated 2024-04-09 by mza
+// last updated 2024-04-12 by mza
 
 `ifndef RAM8_LIB
 `define RAM8_LIB
@@ -7,6 +7,23 @@
 `define LOG2_OF_BASE_BLOCK_MEMORY_SIZE 14
 
 `include "generic.v"
+
+module memory_bank_interface_with_pulse_outputs #(
+	parameter ADDR_WIDTH = 4,
+	parameter NUMBER_OF_ADDRESSES = 1<<ADDR_WIDTH
+) (
+	input clock,
+	input [ADDR_WIDTH-1:0] address,
+	input strobe,
+	output reg [NUMBER_OF_ADDRESSES-1:0] pulse_out = 0
+);
+	always @(posedge clock) begin
+		pulse_out <= 0;
+		if (strobe) begin
+			pulse_out[address] <= 1'b1;
+		end
+	end
+endmodule
 
 // modified from MemoryUsageGuideforiCE40Devices.pdf
 module RAM_inferred #(
@@ -36,8 +53,6 @@ module RAM_inferred #(
 	end
 endmodule
 
-// untested
-// from the untested systemverilog version
 module RAM_inferred_with_register_outputs #(
 	parameter ADDR_WIDTH = 4,
 	parameter NUMBER_OF_ADDRESSES = 1<<ADDR_WIDTH,
@@ -753,8 +768,8 @@ module RAM_s6_unidirectional #(
 	parameter DATA_WIDTH_B = 8, // 8; 4; 8
 	parameter ADDRESS_WIDTH_B = ADDRESS_WIDTH_A + $clog2(DATA_WIDTH_A) - $clog2(DATA_WIDTH_B), // 14 + 5 - 3 = 16; 12; 11
 	parameter RAM_ADDRESS_WIDTH_B = PRIMITIVE_ADDRESS_DEPTH - $clog2(DATA_WIDTH_B), // 11; 12; 11
-	parameter NUMBER_OF_BRAMS_NEEDED = ADDRESS_WIDTH_A + $clog2(DATA_WIDTH_A) < PRIMITIVE_ADDRESS_DEPTH ? ADDRESS_WIDTH_A + $clog2(DATA_WIDTH_A) - PRIMITIVE_ADDRESS_DEPTH : 1, // 32; 1; 1
-	parameter LOG2_OF_NUMBER_OF_BRAMS_NEEDED = $clog2(NUMBER_OF_BRAMS_NEEDED) // 5; 0; 0
+	parameter LOG2_OF_NUMBER_OF_BRAMS_NEEDED = ADDRESS_WIDTH_A + $clog2(DATA_WIDTH_A) < PRIMITIVE_ADDRESS_DEPTH ? 1 : ADDRESS_WIDTH_A + $clog2(DATA_WIDTH_A) - PRIMITIVE_ADDRESS_DEPTH,
+	parameter NUMBER_OF_BRAMS_NEEDED = 1<<LOG2_OF_NUMBER_OF_BRAMS_NEEDED
 ) (
 	input reset,
 	input clock_a,
@@ -779,14 +794,16 @@ module RAM_s6_unidirectional #(
 	wire [DATA_WIDTH_B-1:0] buffered_data_out_b_0;
 //	reg [DATA_WIDTH_A-1:0] buffered_data_out_a_1 = 0;
 	reg [DATA_WIDTH_B-1:0] buffered_data_out_b_1 = 0;
+//	reg [LOG2_OF_NUMBER_OF_BRAMS_NEEDED-1:0] buffered_sel_a_0 = 0; // [4:0]
+	reg [LOG2_OF_NUMBER_OF_BRAMS_NEEDED-1:0] buffered_sel_b_0 = 0; // [4:0]
 	if (1<NUMBER_OF_BRAMS_NEEDED) begin
-		reg [LOG2_OF_NUMBER_OF_BRAMS_NEEDED-1:0] buffered_sel_a_0 = 0; // [4:0]
-		reg [LOG2_OF_NUMBER_OF_BRAMS_NEEDED-1:0] buffered_sel_b_0 = 0; // [4:0]
-		always @(posedge clock_a) begin
-			buffered_sel_a_0 <= address_a[LOG2_OF_NUMBER_OF_BRAMS_NEEDED+RAM_ADDRESS_WIDTH_A:RAM_ADDRESS_WIDTH_A]; // [13:9]
-		end
+//		always @(posedge clock_a) begin
+//			//buffered_sel_a_0 <= address_a[LOG2_OF_NUMBER_OF_BRAMS_NEEDED+RAM_ADDRESS_WIDTH_A:RAM_ADDRESS_WIDTH_A]; // [13:9]
+//			buffered_sel_a_0 <= address_a[ADDRESS_WIDTH_A-1:RAM_ADDRESS_WIDTH_A]; // [13:9]
+//		end
 		always @(posedge clock_b) begin
-			buffered_sel_b_0 <= address_b[LOG2_OF_NUMBER_OF_BRAMS_NEEDED+RAM_ADDRESS_WIDTH_B:RAM_ADDRESS_WIDTH_B]; // [15:11]
+			//buffered_sel_b_0 <= address_b[LOG2_OF_NUMBER_OF_BRAMS_NEEDED+RAM_ADDRESS_WIDTH_B:RAM_ADDRESS_WIDTH_B]; // [15:11]
+			buffered_sel_b_0 <= address_b[ADDRESS_WIDTH_B-1:RAM_ADDRESS_WIDTH_B]; // [15:11]
 		end
 	end
 	always @(posedge clock_b) begin
@@ -825,14 +842,51 @@ module RAM_s6_unidirectional #(
 			.out20(write_enable_a_array[20]), .out21(write_enable_a_array[21]), .out22(write_enable_a_array[22]), .out23(write_enable_a_array[23]),
 			.out24(write_enable_a_array[24]), .out25(write_enable_a_array[25]), .out26(write_enable_a_array[26]), .out27(write_enable_a_array[27]),
 			.out28(write_enable_a_array[28]), .out29(write_enable_a_array[29]), .out30(write_enable_a_array[30]), .out31(write_enable_a_array[31]),
-			.in(write_enable_a), .sel(address_a[LOG2_OF_NUMBER_OF_BRAMS_NEEDED+RAM_ADDRESS_WIDTH_A:RAM_ADDRESS_WIDTH_A]));
+			.in(write_enable_a), .sel(address_a[ADDRESS_WIDTH_A-1:RAM_ADDRESS_WIDTH_A]));
+	end else if (NUMBER_OF_BRAMS_NEEDED==16) begin
+		mux_16to1 #(.WIDTH(DATA_WIDTH_B)) db_b (
+			.in00(data_out_b_array[00]), .in01(data_out_b_array[01]), .in02(data_out_b_array[02]), .in03(data_out_b_array[03]),
+			.in04(data_out_b_array[04]), .in05(data_out_b_array[05]), .in06(data_out_b_array[06]), .in07(data_out_b_array[07]),
+			.in08(data_out_b_array[08]), .in09(data_out_b_array[09]), .in10(data_out_b_array[10]), .in11(data_out_b_array[11]),
+			.in12(data_out_b_array[12]), .in13(data_out_b_array[13]), .in14(data_out_b_array[14]), .in15(data_out_b_array[15]),
+			.sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
+		demux_1to16 we (
+			.out00(write_enable_a_array[00]), .out01(write_enable_a_array[01]), .out02(write_enable_a_array[02]), .out03(write_enable_a_array[03]),
+			.out04(write_enable_a_array[04]), .out05(write_enable_a_array[05]), .out06(write_enable_a_array[06]), .out07(write_enable_a_array[07]),
+			.out08(write_enable_a_array[08]), .out09(write_enable_a_array[09]), .out10(write_enable_a_array[10]), .out11(write_enable_a_array[11]),
+			.out12(write_enable_a_array[12]), .out13(write_enable_a_array[13]), .out14(write_enable_a_array[14]), .out15(write_enable_a_array[15]),
+			.in(write_enable_a), .sel(address_a[ADDRESS_WIDTH_A-1:RAM_ADDRESS_WIDTH_A]));
+	end else if (NUMBER_OF_BRAMS_NEEDED==8) begin
+		mux_8to1 #(.WIDTH(DATA_WIDTH_B)) db_b (
+			.in0(data_out_b_array[0]), .in1(data_out_b_array[1]), .in2(data_out_b_array[2]), .in3(data_out_b_array[3]),
+			.in4(data_out_b_array[4]), .in5(data_out_b_array[5]), .in6(data_out_b_array[6]), .in7(data_out_b_array[7]),
+			.sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
+		demux_1to8 we (
+			.out0(write_enable_a_array[0]), .out1(write_enable_a_array[1]), .out2(write_enable_a_array[2]), .out3(write_enable_a_array[3]),
+			.out4(write_enable_a_array[4]), .out5(write_enable_a_array[5]), .out6(write_enable_a_array[6]), .out7(write_enable_a_array[7]),
+			.in(write_enable_a), .sel(address_a[ADDRESS_WIDTH_A-1:RAM_ADDRESS_WIDTH_A]));
+	end else if (NUMBER_OF_BRAMS_NEEDED==4) begin
+		mux_4to1 #(.WIDTH(DATA_WIDTH_B)) db_b (
+			.in0(data_out_b_array[0]), .in1(data_out_b_array[1]), .in2(data_out_b_array[2]), .in3(data_out_b_array[3]),
+			.sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
+		demux_1to4 we (
+			.out0(write_enable_a_array[0]), .out1(write_enable_a_array[1]), .out2(write_enable_a_array[2]), .out3(write_enable_a_array[3]),
+			.in(write_enable_a), .sel(address_a[ADDRESS_WIDTH_A-1:RAM_ADDRESS_WIDTH_A]));
 	end else if (NUMBER_OF_BRAMS_NEEDED==2) begin
-		mux_2to1 #(.WIDTH(DATA_WIDTH_B)) db_b ( .in0(data_out_b_array[0]), .in1(data_out_b_array[1]), .sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
-		demux_1to2 we ( .out0(write_enable_a_array[0]), .out1(write_enable_a_array[1]), .in(write_enable_a),
-			.sel(address_a[LOG2_OF_NUMBER_OF_BRAMS_NEEDED+RAM_ADDRESS_WIDTH_A:RAM_ADDRESS_WIDTH_A]));
+		mux_2to1 #(.WIDTH(DATA_WIDTH_B)) db_b (
+			.in0(data_out_b_array[0]), .in1(data_out_b_array[1]),
+			.sel(buffered_sel_b_0), .out(buffered_data_out_b_0));
+		demux_1to2 we (
+			.out0(write_enable_a_array[0]), .out1(write_enable_a_array[1]),
+			.in(write_enable_a), .sel(address_a[LOG2_OF_NUMBER_OF_BRAMS_NEEDED+RAM_ADDRESS_WIDTH_A:RAM_ADDRESS_WIDTH_A]));
 	end else if (NUMBER_OF_BRAMS_NEEDED==1) begin
 		assign buffered_data_out_b_0 = data_out_b_array[0];
 		assign write_enable_a_array[0] = write_enable_a;
+	end else begin
+		// this case is not handled
+	end
+	initial begin
+		$display("NUMBER_OF_BRAMS_NEEDED=%d", NUMBER_OF_BRAMS_NEEDED);
 	end
 endmodule
 

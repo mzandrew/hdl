@@ -1,0 +1,139 @@
+# written 2021-10-28 by mza
+# based off of mza-test067.alphav2.althea.revBLM.ucf
+# for an althea revBLM with an alpha_eval revC/revD
+# see ug385 page 24 for spartan6 tqg133 package pins to bank mapping
+# last updated 2024-04-12 by mza
+
+# 100 MHz local oscillator:
+net clock100_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK100+
+net clock100_n loc=p126 | iostandard=lvds_25 | diff_term=true; # CLOCK100-
+net "clock100_p" tnm_net = tnm_clock100_p;
+timespec "ts_clock100_p" = period "tnm_clock100_p" 10.0 ns high 50%; # 100 MHz
+
+# first column, closest to FPGA on left side of board
+net sin            loc=p116 | iostandard=lvcmos25 | drive = 4 | slew = slow; # A- bank0 TR
+net actual_sclk    loc=p117 | iostandard=lvcmos25 | drive = 4 | slew = slow; # A+ bank0 TR
+net actual_pclk    loc=p131 | iostandard=lvcmos25 | drive = 4 | slew = slow; # C- bank0 TL
+net shout          loc=p132 | iostandard=lvcmos25; # C+ bank0 TL
+#net                loc=p139 | iostandard=lvds_25 | diff_term=true; # D- bank0 TL
+#net                loc=p140 | iostandard=lvds_25 | diff_term=true; # D+ bank0 TL
+net actual_auxtrig loc=p141 | iostandard=lvcmos25 | drive = 4 | slew = slow; # F- bank0 TL
+net tok_a_out      loc=p142 | iostandard=lvcmos25 | drive = 4 | slew = slow; # F+ bank0 TL
+
+# middle column, on left side of board
+#net        loc=p123 | iostandard=lvcmos25 | drive = 4 | slew = slow; # B- bank0 TR
+#net        loc=p124 | iostandard=lvcmos25 | drive = 4 | slew = slow; # B+ bank0 TR
+#net        loc=p133 | iostandard=lvcmos25 | drive = 4 | slew = slow; # E- bank0 TL
+net ls_i2c loc=p134 | iostandard=lvcmos25 | drive = 4 | slew = slow; # E+ bank0 TL
+
+# third column, on left side of board
+#net z loc=p17 | iostandard=lvcmos25 | drive = 2 | slew = slow; # Z bank3 LT - conflicts with led<4> when using cascaded serdes
+#net y loc=p15 | iostandard=lvcmos25 | drive = 2 | slew = slow; # Y bank3 LT - conflicts with led<5> when using cascaded serdes
+#net x loc=p12 | iostandard=lvcmos25 | drive = 2 | slew = slow; # X bank3 LT - conflicts with led<6> when using cascaded serdes
+#net w loc=p10 | iostandard=lvcmos25 | drive = 2 | slew = slow; # W bank3 LT - conflicts with led<7> when using cascaded serdes
+#net v loc=p8  | iostandard=lvcmos25 | drive = 2 | slew = slow; # V bank3 LT - conflicts with rot<1> when using cascaded serdes
+#net u loc=p2  | iostandard=lvcmos25 | drive = 2 | slew = slow; # U bank3 LT - conflicts with button when using cascaded serdes
+
+# first column, closest to FPGA on right side of board
+net trigin_p loc=p58 | iostandard=lvds_25; # M+ bank2 BR
+net trigin_n loc=p57 | iostandard=lvds_25; # M- bank2 BR
+net sstclk_p loc=p48 | iostandard=lvds_25; # L+ bank2 BL
+net sstclk_n loc=p47 | iostandard=lvds_25; # L- bank2 BL
+net sysclk_p loc=p46 | iostandard=lvds_25; # J+ bank2 BL
+net sysclk_n loc=p45 | iostandard=lvds_25; # J- bank2 BL
+net tok_a_in loc=p41 | iostandard=lvcmos25; # G+ bank2 BL
+#net          loc=p40 | iostandard=lvcmos25 | drive = 4 | slew = slow; # G- bank2 BL
+
+# middle column, on right side of board
+net sync loc=p56 | iostandard=lvcmos25 | drive = 4 | slew = slow; # K+ bank2 BR
+#net k_n loc=p55 | iostandard=lvds_25 | diff_term=true; # K- bank2 BR
+net data_a_out_p loc=p44 | iostandard=lvds_25 | diff_term=true; # H+ bank2 BL
+net data_a_out_n loc=p43 | iostandard=lvds_25 | diff_term=true; # H- bank2 BL
+
+# third column, on right side of board
+net n loc=p30 | iostandard=lvcmos25 | drive = 4 | slew = slow; # N bank3 LB
+#net p loc=p35 | iostandard=lvcmos25 | drive = 2 | slew = slow; # P bank3 LB - conflicts with rot<4> when using cascaded serdes
+#net q loc=p22 | iostandard=lvcmos25 | drive = 2 | slew = slow; # Q bank3 LB - differs from althea revB
+#net r loc=p27 | iostandard=lvcmos25 | drive = 2 | slew = slow; # R bank3 LB
+#net s loc=p24 | iostandard=lvcmos25 | drive = 2 | slew = slow; # S bank3 LB
+#net t loc=p51 | iostandard=lvcmos25 | drive = 2 | slew = slow; # T bank2 BL - differs from althea revB and revBL - conflicts with rot<2> when using cascaded serdes
+
+# raspberry pi 40pin headers, general purpose IO:
+net sda loc=p138 | iostandard=lvcmos25 | pullup; # bank0 TL broadcom i2c peripheral rpi_gpio2_i2c1_sda
+net scl loc=p137 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TL broadcom i2c peripheral rpi_gpio3_i2c1_scl
+#net rpi_gpio<4>  loc=p88  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB broadcom gpclk peripheral rpi_gpio4_gpclk0 - differs from althea revB
+net rpi_gpio<5>  loc=p66  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank2 BR rpi_gpio5
+net rpi_gpio<6>  loc=p67  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank2 BR broadcom gpclk peripheral rpi_gpio6_gpclk2 - differs from althea revB and revBL
+net rpi_gpio<7>  loc=p80  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB broadcom spi peripheral rpi_gpio7_spi_ce1
+net rpi_gpio<8>  loc=p82  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB broadcom spi peripheral rpi_gpio8_spi_ce0
+net rpi_gpio<9>  loc=p112 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TR broadcom spi peripheral rpi_gpio9_spi_miso
+net rpi_gpio<10> loc=p111 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TR broadcom spi peripheral rpi_gpio10_spi_mosi
+net rpi_gpio<11> loc=p93  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RT broadcom spi peripheral rpi_gpio11_spi_sclk
+net rpi_gpio<12> loc=p78  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB rpi_gpio12
+net rpi_gpio<13> loc=p61  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank2 BR rpi_gpio13
+net rpi_gpio<14> loc=p99  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RT rpi_gpio14 - differs from althea revB
+net rpi_gpio<15> loc=p118 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TR rpi_gpio15
+net rpi_gpio<16> loc=p59  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank2 BR rpi_gpio16
+net rpi_gpio<17> loc=p101 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RT rpi_gpio17
+net rpi_gpio<18> loc=p115 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TR rpi_gpio18
+net rpi_gpio<19> loc=p87  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB rpi_gpio19 - differs from althea revB
+net rpi_gpio<20> loc=p83  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB rpi_gpio20
+net rpi_gpio<21> loc=p79  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB rpi_gpio21 - differs from althea revB
+net rpi_gpio<22> loc=p62  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank2 BR rpi_gpio22 - differs from althea revB and revBL
+net rpi_gpio<23> loc=p100 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RT rpi_gpio23 - differs from althea revB and revBL
+#net rpi_gpio<24>                                                      ; # used for jtag (TDO)
+#net rpi_gpio<25>                                                      ; # used for jtag (TCK) - differs from althea revB and revBL
+#net rpi_gpio<26>                                                      ; # used for jtag (TMS) - differs from althea revB and revBL
+#net rpi_gpio<27>                                                      ; # used for jtag (TDI)
+
+# hexadecimal rotary encoder:
+net rot<0> loc=p7  | iostandard=lvcmos25 | pullup; # rot_1 bank0 - differs from althea revB and revBL - conflicts with v when using cascaded serdes
+net rot<1> loc=p50 | iostandard=lvcmos25 | pullup; # rot_2 bank0 - differs from althea revB and revBL - conflicts with t when using cascaded serdes
+net rot<2> loc=p34 | iostandard=lvcmos25 | pullup; # rot_4 bank0 - differs from althea revB and revBL - conflicts with p when using cascaded serdes
+net rot<3> loc=p97 | iostandard=lvcmos25 | pullup; # rot_8 bank0 - differs from althea revB and revBL
+
+# momentary pushbutton, normally open:
+net button loc=p1 | iostandard=lvcmos25 | pullup; # bank3 - this conflicts with u in cascaded serdes mode
+
+# array of 8 LEDs:
+net led<0> loc=p29 | iostandard=lvcmos25 | drive = 2 | slew = slow; # on same p/n pair as N
+net led<1> loc=p26 | iostandard=lvcmos25 | drive = 2 | slew = slow; # on same p/n pair as R
+net led<2> loc=p23 | iostandard=lvcmos25 | drive = 2 | slew = slow; # on same p/n pair as S
+net led<3> loc=p21 | iostandard=lvcmos25 | drive = 2 | slew = slow; # on same p/n pair as Q
+net led<4> loc=p16 | iostandard=lvcmos25 | drive = 2 | slew = slow; # on same p/n pair as Z
+net led<5> loc=p14 | iostandard=lvcmos25 | drive = 2 | slew = slow; # on same p/n pair as Y
+net led<6> loc=p11 | iostandard=lvcmos25 | drive = 2 | slew = slow; # on same p/n pair as X
+net led<7> loc=p9  | iostandard=lvcmos25 | drive = 2 | slew = slow; # on same p/n pair as W
+
+# 4 more LEDs, one next to each of the first 4 coax connectors:
+net coax_led<0> loc=p102 | iostandard=lvcmos25 | drive = 2 | slew = slow; # differs from althea revB
+net coax_led<1> loc=p98  | iostandard=lvcmos25 | drive = 2 | slew = slow; # differs from althea revB
+net coax_led<2> loc=p92  | iostandard=lvcmos25 | drive = 2 | slew = slow;
+net coax_led<3> loc=p81  | iostandard=lvcmos25 | drive = 2 | slew = slow; # differs from althea revB
+
+net coax<0> loc=p105 | iostandard=lvcmos25 | drive = 24 | slew = fast; # bank1
+net coax<1> loc=p95  | iostandard=lvcmos25 | drive = 24 | slew = fast; # bank1 - differs from althea revB
+net coax<2> loc=p85  | iostandard=lvcmos25 | drive = 24 | slew = fast; # bank1 - differs from althea revB
+net coax<3> loc=p75  | iostandard=lvcmos25 | drive = 24 | slew = fast; # bank1
+net coax<4> loc=p6   | iostandard=lvcmos25 | drive = 24 | slew = fast; # bank3
+net coax<5> loc=p33  | iostandard=lvcmos25 | drive = 24 | slew = fast; # bank3 - differs from althea revB
+
+#net pmod<0> loc=p82  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB broadcom spi peripheral rpi_gpio8_spi_ce0
+#net pmod<1> loc=p111 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TR broadcom spi peripheral rpi_gpio10_spi_mosi
+#net pmod<2> loc=p112 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TR broadcom spi peripheral rpi_gpio9_spi_miso
+#net pmod<3> loc=p93  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RT broadcom spi peripheral rpi_gpio11_spi_sclk
+#net pmod<4> loc=p80  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB broadcom spi peripheral rpi_gpio7_spi_ce1
+#net pmod<5> loc=p143 | iostandard=lvcmos25 | drive = 2 | slew = slow; # bank0 - differs from althea revB and revBL
+#net acknowledge loc=p143 | iostandard=lvcmos25; # bank0 - differs from althea revB and revBL
+
+#net "button" tig;
+#net "rot<?>" tig;
+#net "althea/word_clock_sel<?>" tig;
+#net "led<?>" tig;
+net "coax_led<?>" tig;
+#net "*cdc*" tig;
+
+vccaux=2.5;
+temperature=85c;
+#voltage=1.21v;
+

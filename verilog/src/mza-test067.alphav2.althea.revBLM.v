@@ -219,8 +219,10 @@ module ALPHAtestPMOD #(
 			trigger_has_occurred <= 0;
 		end else if ((dreset_sequence_has_occurred||~should_do_dreset_sequence) && (legacy_serial_sequence_has_occurred||~should_do_legacy_serial_sequence) && (i2c_transfer_has_occurred||~should_do_i2c_transfer)) begin
 			if (debounced_button) begin
-				initiate_trigger <= 1;
-				trigger_has_occurred <= 1;
+				if (should_do_trigger) begin
+					initiate_trigger <= 1;
+					trigger_has_occurred <= 1;
+				end
 			end
 		end
 	end

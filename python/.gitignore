@@ -1,4 +1,8 @@
+*.png
+2024*
+output
 backup
+*.data
 *.swp
 *.raw_threshold_scan
 ampoliros.threshold*
