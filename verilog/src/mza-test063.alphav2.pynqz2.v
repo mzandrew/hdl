@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2024-04-11 by mza and makiko
+// last updated 2024-04-26 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -591,6 +591,16 @@ module testALPHA #(
 			rot_buffered_a <= ~rot;
 		end
 	end
+	// ----------------------------------------------------------------------
+	wire [4:0] I2CupAddr             = 5'd7; // whatever you like
+	wire LVDSB_pwr                   = 0; // 0 means high power mode
+	wire LVDSA_pwr                   = 0; // 0 means high power mode
+	wire SRCsel                      = 0; // set this to zero or the data will come from data_b (you probably don't want that)
+	wire TMReg_Reset                 = 0; // unimplemented; writing anything to this i2c register causes the DAC registers to get cleared
+	wire [7:0] samples_after_trigger = 8'h80;
+	wire [7:0] lookback_windows      = 8'h80;
+	wire [7:0] number_of_samples     = 8'h00; // 0 means 256 here
+	// ----------------------------------------------------------------------
 	wire header;
 	wire [3:0] nybble;
 	wire [1:0] nybble_counter;
@@ -602,10 +612,10 @@ module testALPHA #(
 	assign jb[5] = 0;
 	assign jb[6] = header;
 	assign jb[7] = 0;
+	wire [11:0] CMPbias = 12'h1e8; // in IRSX PS7 code, CMPbias2 is 737 and CMPbias is 1000
 	wire [11:0] ISEL    = 12'ha80; // 12'hb44=79us ramp on 3*alpha board; 12'ha80=41us on 1*alpha toupee
-	wire [11:0] CMPbias = 12'd1000; // in IRSX PS7 code, CMPbias2 is 737 and CMPbias is 1000
-	wire [11:0] SBbias  = 12'd1300; // in IRSX PS7 code, SBbias is 1300
-	wire [11:0] DBbias  = 12'd1300; // in IRSX PS7 code, SBbias is 1300
+	wire [11:0] SBbias  = 12'hdff; // in IRSX PS7 code, SBbias is 1300
+	wire [11:0] DBbias  = 12'h7ff; // in IRSX PS7 code, SBbias is 1300
 	assign led[3] = rot_buffered_b[3];
 	assign led[2] = rot_buffered_b[2];
 	assign led[1] = rot_buffered_b[1];
@@ -623,7 +633,14 @@ module testALPHA #(
 	wire sda_in, sda_out, sda_dir;
 	assign sda = sda_dir ? sda_out : 1'bz;
 	assign sda_in = sda;
-	alpha_control alpha_control (.clock(sysclk), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .initiate_dreset_sequence(initiate_dreset_sequence), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_dir(sda_dir), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	//alpha_control alpha_control (.clock(sysclk), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .initiate_dreset_sequence(initiate_dreset_sequence), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_dir(sda_dir), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	alpha_control alpha_control (.clock(sysclk), .reset(reset), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in),
+		.initiate_trigger(initiate_trigger), .trig_top(trig), .initiate_dreset_sequence(initiate_dreset_sequence),
+		.scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .initiate_i2c_transfer(initiate_i2c_transfer),
+		.sin(sin), .pclk(pclk), .sclk(sclk), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence),
+		.I2CupAddr(I2CupAddr), .LVDSA_pwr(LVDSA_pwr), .LVDSB_pwr(LVDSB_pwr), .SRCsel(SRCsel), .TMReg_Reset(TMReg_Reset), 
+		.samples_after_trigger(samples_after_trigger), .lookback_windows(lookback_windows), .number_of_samples(number_of_samples), 
+		.CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 	assign trig_top = trig;
 	//assign trig_mid = sw[0] ? trig : 1'b0; // trig_mid is on a 3.3V bank but only ever reaches 200mV
 	assign trig_mid = 1'b0;

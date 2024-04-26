@@ -314,7 +314,9 @@ module alpha_control #(
 		end
 	end
 	// ----------------------------------------------------------------------
-	wire [2:0] i2c_address_pins = 3'b000; // hard-coded on alpha-eval-toupee revC and revD
+	//wire [2:0] i2c_address_pins = 3'b000; // hard-coded on alpha-eval-toupee revC and revD; alpha_top
+	//wire [2:0] i2c_address_pins = 3'b100; // alpha_middle/alpha_test
+	wire [2:0] i2c_address_pins = 3'b010; // alpha_bot
 	reg [3:0] i2c_register = 0;
 	wire [6:0] address = { i2c_address_pins, i2c_register };
 	wire [7:0] i2c_value [15:0];
