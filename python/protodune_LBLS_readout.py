@@ -15,9 +15,9 @@ cliff = "upper" # you want this for positive-going pulses
 threshold_scan_accumulation_time = 0.1
 LTC1631A_PEDESTAL_VOLTAGE = 1.21 # from LTC1963A-adj datasheet
 DAC_EPSILON = 2.5 / 2**16
-MAX_COUNTER = 650000 # actual counter is 24 bit, but we only see up to about this much for when diff_term=false
-incidentals_for_null_scalers = 10
-incidentals_for_display = 10
+MAX_COUNTER = 1e6 # actual counter is 24 bit
+incidentals_for_null_scalers = 3
+incidentals_for_display = 3
 display_precision_of_hex_counter_counts = 6
 display_precision_of_hex_scaler_counts = 4
 display_precision_of_DAC_voltages = 6
@@ -225,6 +225,7 @@ def update_plot(i, j):
 				if doit:
 					plot[i][j].set_at((x, y), color[k+2]) # first two indices are black and white
 	plots_were_updated[i][j] = True
+	print("done")
 
 def draw_photodiode_box(i, j):
 	width = int(box_dimension_x_in * scale_pixels_per_in)
@@ -373,12 +374,16 @@ def loop():
 				running = False
 			elif K_F1==event.key:
 				sophisticated_threshold_scan(0, 0)
+				after_running_sophisticated_threshold_scan(0, 0)
 			elif K_F2==event.key:
 				sophisticated_threshold_scan(1, 0)
+				after_running_sophisticated_threshold_scan(1, 0)
 			elif K_F3==event.key:
 				sophisticated_threshold_scan(2, 0)
+				after_running_sophisticated_threshold_scan(2, 0)
 			elif K_F4==event.key:
 				sophisticated_threshold_scan(3, 0)
+				after_running_sophisticated_threshold_scan(3, 0)
 			elif K_F5==event.key:
 				set_thresholds_for_this_scaler_rate_during_this_accumulation_time(0, 0, 10, 0.5)
 			elif K_F6==event.key:
@@ -429,6 +434,10 @@ def loop():
 			update_ToT()
 		elif event.type == pygame.MOUSEBUTTONDOWN:
 			do_something()
+#	draw_photodiode_box(i, j)
+	flip()
+
+def after_running_sophisticated_threshold_scan(i, j):
 	global have_just_run_threshold_scan
 	for i in range(COLUMNS):
 		for j in range(ROWS):
@@ -439,8 +448,6 @@ def loop():
 	for i in range(COLUMNS):
 		for j in range(ROWS):
 			blit(i, j)
-#	draw_photodiode_box(i, j)
-	flip()
 
 def blit(i, j):
 	global something_was_updated
@@ -846,7 +853,7 @@ def read_thresholds_for_lower_null_scalers_file(i, j):
 def read_thresholds_for_upper_null_scalers_file(i, j):
 	voltage_at_peak_scaler = read_thresholds_for_peak_scalers_file(i, j)
 	#print("peak: " + str(voltage_at_peak_scaler))
-	default_voltage_at_upper_null_scaler = [ voltage_at_peak_scaler[k] - GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	default_voltage_at_upper_null_scaler = [ voltage_at_peak_scaler[k] + GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	#print("null: " + str(default_voltage_at_upper_null_scaler))
 	if not os.path.exists(thresholds_for_upper_null_scalers_filename[i]):
 		print("thresholds for null scalers file not found")
@@ -902,6 +909,7 @@ def prepare_string_with_voltages(voltage):
 
 import copy
 upper_null_scaler_zero_value = 1
+lower_null_scaler_zero_value = 1
 def sophisticated_threshold_scan(i, j):
 	print("running threshold scan for bank" + chr(i+ord('A')) + "...")
 	global have_just_run_threshold_scan
@@ -913,8 +921,11 @@ def sophisticated_threshold_scan(i, j):
 	global voltage_at_lower_null_scaler
 	global voltage_at_upper_null_scaler
 	voltage_at_lower_null_scaler = read_thresholds_for_lower_null_scalers_file(i, j)
-	voltage_at_upper_null_scaler = [ voltage_at_lower_null_scaler[k] + 2*GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL + 2*extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-	voltage = [ voltage_at_lower_null_scaler[k] - extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	voltage_at_upper_null_scaler = read_thresholds_for_upper_null_scalers_file(i, j)
+	if "lower"==cliff:
+		voltage = [ voltage_at_lower_null_scaler[k] - extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	else:
+		voltage = [ voltage_at_upper_null_scaler[k] + extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	#print(str(voltage))
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		#voltage[k] = fround(voltage[k], 0.000001)
@@ -952,24 +963,41 @@ def sophisticated_threshold_scan(i, j):
 				voltage_at_peak_scaler[k] = voltage[k]
 			total_hits_seen_so_far_in_this_scan[k] += counters[k]
 			if total_hits_seen_so_far_in_this_scan[k]<=incidentals_for_null_scalers:
-				voltage_at_lower_null_scaler[k] = voltage[k]
+				if "lower"==cliff:
+					voltage_at_lower_null_scaler[k] = voltage[k]
+				else:
+					voltage_at_upper_null_scaler[k] = voltage[k]
 				string += "*"
 			else:
 				string += " "
-			if previous_count_was_nonzero[k] and upper_null_scaler_zero_value==counters[k]:
-				voltage_at_upper_null_scaler[k] = voltage[k]
-				#print("ch" + str(k) + " v:" + str(voltage[k]))
+			if "lower"==cliff:
+				if previous_count_was_nonzero[k] and upper_null_scaler_zero_value==counters[k]:
+					voltage_at_upper_null_scaler[k] = voltage[k]
+					#print("ch" + str(k) + " v:" + str(voltage[k]))
+			else:
+				if previous_count_was_nonzero[k] and lower_null_scaler_zero_value==counters[k]:
+					voltage_at_lower_null_scaler[k] = voltage[k]
+					#print("ch" + str(k) + " v:" + str(voltage[k]))
 		print(string)
 #		raw_threshold_scan_file.write(string + "\n")
 #		if 0==n%10:
 #			raw_threshold_scan_file.flush()
 		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-			if upper_null_scaler_zero_value==counters[k]:
-				previous_count_was_nonzero[k] = False
+			if "lower"==cliff:
+				if upper_null_scaler_zero_value==counters[k]:
+					previous_count_was_nonzero[k] = False
+				else:
+					previous_count_was_nonzero[k] = True
 			else:
-				previous_count_was_nonzero[k] = True
+				if lower_null_scaler_zero_value==counters[k]:
+					previous_count_was_nonzero[k] = False
+				else:
+					previous_count_was_nonzero[k] = True
 		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-			voltage[k] += threshold_step_size_in_volts
+			if "lower"==cliff:
+				voltage[k] += threshold_step_size_in_volts
+			else:
+				voltage[k] -= threshold_step_size_in_volts
 	with open(thresholds_for_peak_scalers_filename[i], "w") as thresholds_for_peak_scalers_file:
 		string = prepare_string_with_voltages(voltage_at_peak_scaler)
 		print("peak: " + string)
@@ -1098,8 +1126,8 @@ if __name__ == "__main__":
 		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.060 / 2 # for when diff_term=false
 	else:
 		# ampoliros48 revA board #2
-		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.008 # [1.194,1.210] avg=1.203
-		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.016 / 2 # for when diff_term=false
+		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.006 # [1.194,1.210] avg=1.203
+		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2 # for when diff_term=false
 	thresholds_for_peak_scalers_filename = []
 	thresholds_for_lower_null_scalers_filename = []
 	thresholds_for_upper_null_scalers_filename = []
