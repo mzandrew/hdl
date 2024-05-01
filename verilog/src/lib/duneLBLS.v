@@ -1,7 +1,7 @@
 // written 2024-03-11 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
 // based on mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
-// last updated 2024-03-12 by mza
+// last updated 2024-05-01 by mza
 
 `ifndef duneLBLS_LIB
 `define duneLBLS_LIB
@@ -135,22 +135,25 @@ module LBLS_bank #(
 //		count_ones c1s_before (.clock(clock), .data_in(word[i]), .count_out(word_ones_counter_before[i]));
 		count_ones c1s_after (.clock(clock), .data_in(word_buffered_and_maybe_inverted_a[i]), .count_out(word_ones_counter_after[i]));
 	end
+	reg old_trigger_active = 0;
 	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
 		always @(posedge clock) begin
 //			fifo_write_enable[i] <= 0;
 			if (reset) begin
 				previous_time_over_threshold[i] <= 0;
 				time_over_threshold[i] <= 0;
+				old_trigger_active <= 0;
 			end else begin
 				if (trigger_active) begin
 					time_over_threshold[i] <= time_over_threshold[i] + word_ones_counter_after[i];
-				end else begin
+				end else if (old_trigger_active) begin
 					previous_time_over_threshold[i] <= time_over_threshold[i];
 					if (time_over_threshold[i]) begin
 //						fifo_write_enable[i] <= 1;
 						time_over_threshold[i] <= 0;
 					end
 				end
+				old_trigger_active <= trigger_active;
 			end
 		end
 	end
