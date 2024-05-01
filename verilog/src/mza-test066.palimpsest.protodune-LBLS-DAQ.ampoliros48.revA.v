@@ -1,6 +1,6 @@
 // written 2024-03-08 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-04-17 by mza
+// last updated 2024-05-01 by mza
 
 `define ampoliros48_revA
 `include "lib/duneLBLS.v"
@@ -55,10 +55,10 @@ module LBLS48 #(
 );
 	genvar i;
 	// PLL_ADV VCO range is 400 MHz to 1080 MHz
-	localparam PERIOD = 10.0;
-	localparam MULTIPLY = 8;
-	localparam DIVIDE = 2;
-	localparam EXTRA_DIVIDE = 16;
+	localparam PERIOD = 10.0; // 100 MHz
+	localparam MULTIPLY = 8; // 800 MHz
+	localparam DIVIDE = 2; // 400 MHz
+	localparam EXTRA_DIVIDE = 16; // 25 MHz
 	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [7:0] status8;
@@ -141,7 +141,7 @@ module LBLS48 #(
 	wire        clear_channel_counters          = bank0[5][3];
 	wire        clear_channel_ones_counters     = bank0[5][4];
 	assign      ampen                           = bank0[6][0];
-	wire [31:0] bank1 [15:0];
+	wire [31:0] bank1 [15:0]; // scalers are mapped here: bank1[1] up to bank1[12]
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
 		.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
@@ -149,17 +149,18 @@ module LBLS48 #(
 		.data_in_b_8(bank1[8]),  .data_in_b_9(bank1[9]),  .data_in_b_a(bank1[10]), .data_in_b_b(bank1[11]),
 		.data_in_b_c(bank1[12]), .data_in_b_d(bank1[13]), .data_in_b_e(bank1[14]), .data_in_b_f(bank1[15]),
 		.write_strobe_b(1'b1));
+	reg [31:0] trigger_count = 0;
+	reg [31:0] raw_trigger_count = 0;
 	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[7:0], status8 };
-//	assign bank1[13] = trigger_count;
+	assign bank1[13] = trigger_count;
+	assign bank1[14] = raw_trigger_count;
 //	assign bank1[14] = suggested_inversion_map;
 //	assign bank1[15] = hit_counter_buffered;
-	assign bank1[13] = 0;
-	assign bank1[14] = 0;
 	assign bank1[15] = 0;
 //	for (i=1; i<=15; i=i+1) begin : dummy_bank1
 //		assign bank1[i] = 0;
 //	end
-	wire [31:0] bank2 [15:0];
+	wire [31:0] bank2 [15:0]; // scalers are mapped here: bank2[1] up to bank2[12]
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank2 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[2]),
 		.data_in_b_0(bank2[0]),  .data_in_b_1(bank2[1]),  .data_in_b_2(bank2[2]),  .data_in_b_3(bank2[3]),
@@ -271,6 +272,8 @@ module LBLS48 #(
 //		assign bank7[i] = 32'habcdef07;
 //	end
 	// ----------------------------------------------------------------------
+	reg trigger_active = 0;
+	wire laser1_or_laser2 = inR[2] | inR[3];
 	wire any;
 	assign ldac = 0;
 	assign outR[1] = 0;
@@ -285,8 +288,8 @@ module LBLS48 #(
 	assign tF[1] = 1; // 0=input; 1=output
 	assign tF[2] = 1; // 0=input; 1=output
 	assign tF[3] = 1; // 0=input; 1=output
-	assign inoutM[1] = inR[2];
-	assign inoutM[2] = inR[3];
+	assign inoutM[1] = trigger_active;
+	assign inoutM[2] = laser1_or_laser2;
 	assign toupee_diff[11] = ~pll_oserdes_locked;
 	assign toupee_diff[10] = reset;
 	assign toupee_diff[9]  = reset100;
@@ -351,7 +354,7 @@ module LBLS48 #(
 		.word_out_7d(wd[7]), .word_out_8d(wd[8]), .word_out_9d(wd[9]), .word_out_10d(wd[10]), .word_out_11d(wd[11]), .word_out_12d(wd[12])
 	);
 	// ----------------------------------------------------------------------
-	wire raw_trigger = 0;
+	wire raw_trigger = laser1_or_laser2;
 	localparam TRIGGER_TRAIN_PICKOFF = 4;
 	reg [TRIGGER_TRAIN_PICKOFF:0] trigger_train = 0;
 	wire trigger = trigger_train[TRIGGER_TRAIN_PICKOFF];
@@ -362,15 +365,17 @@ module LBLS48 #(
 			trigger_train <= { trigger_train[TRIGGER_TRAIN_PICKOFF-1:0], raw_trigger };
 		end
 	end
-	reg trigger_active = 0;
 	reg [31:0] trigger_active_counter = 0;
-	reg [31:0] trigger_count = 0;
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			trigger_active <= 0;
 			trigger_active_counter <= 0;
 			trigger_count <= 0;
+			raw_trigger_count <= 0;
 		end else begin
+			if (trigger_train[TRIGGER_TRAIN_PICKOFF:TRIGGER_TRAIN_PICKOFF-1]==2'b01) begin
+				raw_trigger_count <= raw_trigger_count + 1'b1;
+			end
 			if (clear_trigger_count) begin
 				trigger_active <= 0;
 				trigger_active_counter <= 0;
