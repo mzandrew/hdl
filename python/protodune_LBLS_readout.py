@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-05-01 by mza
+# last updated 2024-05-02 by mza
 
 number_of_pin_diode_boxes = 4
 NUMBER_OF_CHANNELS_PER_BANK = 12 # this is probably fixed for protodune at least
@@ -11,6 +11,7 @@ gui_update_period = 0.2 # in seconds
 cliff = "upper" # you want this for positive-going pulses
 #cliff = "lower" # you want this for negative-going pulses
 ToT_threshold = 0
+exaggerate_sensitive_dimension = True
 
 #raw_threshold_scan_filename = "ampoliros.raw_threshold_scan"
 threshold_scan_accumulation_time = 0.1
@@ -39,16 +40,21 @@ GAP_Y_TOP = 24
 GAP_Y_BOTTOM = 24
 
 # geometry of protodune LBLS PIN photodiode array:
-#a_in = 0.5 # lattice spacing, in in
-photodiode_can_diameter_in = 0.325
-photodiode_positions_x_in = [ +1.375 - 0.5 * i for i in range(6) ] + [ +1.125 - 0.5 * i for i in range(6) ]
-photodiode_positions_y_in = [ -0.25 for i in range(6)] + [ +0.25 for i in range(6) ]
 #for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 #	print("PD" + str(i+1) + " " + str(photodiode_positions_x_in[i]) + "," + str(photodiode_positions_y_in[i]))
-box_dimension_x_in = 5.0
-box_dimension_y_in = 2.0
+box_dimension_x_in = 4.0
+box_dimension_y_in = 1.6
 scale_pixels_per_in = 80
-active_square_size_in = 0.125
+if exaggerate_sensitive_dimension:
+	a_in = 0.62 # lattice spacing, in in
+	photodiode_can_diameter_in = 0.6
+	active_square_size_in = 0.45
+else:
+	a_in = 0.5 # lattice spacing, in in
+	photodiode_can_diameter_in = 0.325
+	active_square_size_in = 0.125
+photodiode_positions_x_in = [ +2.75*a_in - a_in*i for i in range(6) ] + [ +2.25*a_in - a_in*i for i in range(6) ]
+photodiode_positions_y_in = [ -a_in/2 for i in range(6)] + [ +a_in/2 for i in range(6) ]
 active_square_size = active_square_size_in * scale_pixels_per_in
 
 FONT_SIZE_PLOT_CAPTION = 18
@@ -160,6 +166,15 @@ from generic import * # hex, eng
 import althea
 BANK_ADDRESS_DEPTH = 13
 import ltc2657
+
+def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
+	setup_hit_mask(0b111111111111)
+	#setup_hit_mask(0b000000000001)
+	setup_inversion_mask(0b000000000000)
+	#setup_inversion_mask(0b111111111111)
+	setup_desired_trigger_quantity(1e9)
+	setup_trigger_duration(300000)
+#	select(0)
 
 def update_plot(i, j):
 	global plots_were_updated
@@ -1136,15 +1151,6 @@ def show_stuff():
 	#readout_fifo_multiple(4)
 	#show_fifo_split()
 	pass
-
-def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
-	setup_hit_mask(0b111111111111)
-	#setup_hit_mask(0b000000000001)
-	setup_inversion_mask(0b000000000000)
-	#setup_inversion_mask(0b111111111111)
-	setup_desired_trigger_quantity(1e9)
-	setup_trigger_duration(50)
-#	select(0)
 
 if __name__ == "__main__":
 	from sys import argv
