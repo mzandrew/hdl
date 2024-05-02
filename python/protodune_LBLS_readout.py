@@ -10,6 +10,7 @@ NUMBER_OF_CHANNELS_PER_BANK = 12 # this is probably fixed for protodune at least
 gui_update_period = 0.2 # in seconds
 cliff = "upper" # you want this for positive-going pulses
 #cliff = "lower" # you want this for negative-going pulses
+ToT_threshold = 0
 
 #raw_threshold_scan_filename = "ampoliros.raw_threshold_scan"
 threshold_scan_accumulation_time = 0.1
@@ -184,7 +185,6 @@ def update_plot(i, j):
 	print("minimum_threshold_value_to_plot: " + str(minimum_threshold_value_to_plot))
 	print("maximum_threshold_value_to_plot: " + str(maximum_threshold_value_to_plot))
 	#print(str(volts_per_pixel_x))
-	plot[i][j].fill(black)
 	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	scale = 1 / MAX_COUNTER
 	#print(str(scale))
@@ -207,45 +207,79 @@ def update_plot(i, j):
 				#	print(str(voltage) + "," + str(scaler) + ":" + str(x) + ":" + str(formatted_data[k][x]))
 	pygame.event.pump()
 	print("plotting data...")
-	# fill with colors for now:
-	#plot[i][j].fill((random.randrange(0, 255), random.randrange(0, 255), random.randrange(0, 255)))
 	print("[" + str(i) + "][" + str(j) + "]")
-	for x in range(plot_width):
+	plot[i][j].fill(black)
+	how_many_times_we_did_not_plot = 0
+	offscale_count = 0
+	first_y = extra_gap_y
+	last_y = plot_height - extra_gap_y
+	scale_y = last_y - first_y
+	for x in range(extra_gap_x, plot_width-extra_gap_x):
 		pygame.event.pump()
-		for y in range(plot_height):
-			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-				yn = int(plot_height - plot_height * formatted_data[k][x])
+		how_many_things_were_plotted_at_this_x_value = 0
+		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+			yn = int(last_y - scale_y*formatted_data[k][x-extra_gap_x] + 0.5)
+			#if 15==k:
+			#	print("yn: " + str(yn) + " " + str(formatted_data[k][x-extra_gap_x] ))
+			for y in range(first_y, last_y+1):
 				doit = False
-				if y==yn:
+				if first_y==y:
+					if yn<=first_y:
+						doit = True
+						offscale_count += 1
+						#if 15==k:
+						#	print("first case")
+				elif last_y==y:
+					if last_y<=yn:
+						doit = True
+						offscale_count += 1
+						#if 15==k:
+						#	print("second case")
+				elif yn==y:
 					doit = True
-				elif 0==y and yn<0:
-					doit = True
-				elif plot_height-1==y and plot_height<yn:
-					doit = True
+					#if 15==k:
+					#	print("exact")
 				if doit:
+					how_many_things_were_plotted_at_this_x_value += 1
 					plot[i][j].set_at((x, y), color[k+2]) # first two indices are black and white
+		if how_many_things_were_plotted_at_this_x_value<NUMBER_OF_CHANNELS_PER_BANK:
+			#print(str(x) + ":" + str(how_many_things_were_plotted_at_this_x_value) + "/" + str(NUMBER_OF_CHANNELS_PER_BANK))
+			how_many_times_we_did_not_plot += NUMBER_OF_CHANNELS_PER_BANK - how_many_things_were_plotted_at_this_x_value
+		if 0:
+			if extra_gap_x==x:
+				string = ""
+				for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+					string += str(formatted_data[k][x-extra_gap_x]) + " " + str(int(plot_height-extra_gap_y-1 - (plot_height-2*extra_gap_y)*formatted_data[k][x-extra_gap_x] + 0.5)) + ", "
+				print(string)
+	#print("how_many_times_we_did_not_plot: " + str(how_many_times_we_did_not_plot))
+	print("offscale_count: " + str(offscale_count))
 	plots_were_updated[i][j] = True
 	print("done")
 
 def draw_photodiode_box(i, j):
-	width = int(box_dimension_x_in * scale_pixels_per_in)
-	height = int(box_dimension_y_in * scale_pixels_per_in)
-	offset_x = 0 # GAP_X_LEFT+i*(width+GAP_X_BETWEEN_PLOTS)
-	offset_y = 0 # GAP_Y_TOP+j*(height+GAP_Y_BETWEEN_PLOTS)
+	offset_x = 0 # GAP_X_LEFT+i*(photodiode_box_width+GAP_X_BETWEEN_PLOTS)
+	offset_y = 0 # GAP_Y_TOP+j*(photodiode_box_height+GAP_Y_BETWEEN_PLOTS)
 	radius = int(photodiode_can_diameter_in * scale_pixels_per_in / 2.0)
-	box = pygame.draw.rect(flarb[i][j], grey, pygame.Rect(offset_x, offset_y, width, height), 0)
+	box = pygame.draw.rect(photodiode_box[i][j], grey, pygame.Rect(offset_x, offset_y, photodiode_box_width, photodiode_box_height), 0)
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-		x = int(offset_x + width/2 + photodiode_positions_x_in[k] * scale_pixels_per_in)
-		y = int(offset_y + height/2 - photodiode_positions_y_in[k] * scale_pixels_per_in)
-		pygame.draw.circle(flarb[i][j], white, (x, y), radius, 0)
-		pygame.draw.rect(flarb[i][j], black, pygame.Rect(x-active_square_size//2, y-active_square_size//2, active_square_size, active_square_size), 0)
-	screen.blit(flarb[i][j], (GAP_X_LEFT+i*(width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(height+GAP_Y_BETWEEN_PLOTS)))
+		x = int(offset_x + photodiode_box_width/2 + photodiode_positions_x_in[k] * scale_pixels_per_in)
+		y = int(offset_y + photodiode_box_height/2 - photodiode_positions_y_in[k] * scale_pixels_per_in)
+		pygame.draw.circle(photodiode_box[i][j], white, (x, y), radius, 0)
+		if ToT_threshold<ToT[i][k]:
+			color = blue
+		else:
+			color = black
+		pygame.draw.rect(photodiode_box[i][j], color, pygame.Rect(x-active_square_size//2, y-active_square_size//2, active_square_size, active_square_size), 0)
+	screen.blit(photodiode_box[i][j], (GAP_X_LEFT+i*(photodiode_box_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(photodiode_box_height+GAP_Y_BETWEEN_PLOTS)))
 
 def draw_plot_border(i, j):
 	#print("drawing plot border...")
-	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
+	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+photodiode_box_height+5+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
 
 def setup():
+	global extra_gap_x, extra_gap_y
+	extra_gap_x = 4
+	extra_gap_y = 4
 	global plot_width
 	global plot_height
 	global screen
@@ -258,22 +292,25 @@ def setup():
 	usable_height = int(SCREEN_HEIGHT - GAP_Y_TOP - GAP_Y_BOTTOM - (ROWS-1)*GAP_Y_BETWEEN_PLOTS)
 	print("usable_height: " + str(usable_height))
 	plot_width = int(usable_width / COLUMNS)
-	plot_height = int(usable_height / ROWS / 3)
+	plot_height = int(usable_height / ROWS / 4)
 	#print("plot_width: " + str(plot_width))
 	print("plot_height: " + str(plot_height))
+	global photodiode_box_width, photodiode_box_height
+	photodiode_box_width = int(box_dimension_x_in * scale_pixels_per_in)
+	photodiode_box_height = int(box_dimension_y_in * scale_pixels_per_in)
 	global Y_POSITION_OF_CHANNEL_NAMES
 	global Y_POSITION_OF_COUNTERS
 	global Y_POSITION_OF_SCALERS
 	global Y_POSITION_OF_TOT
 	global Y_POSITION_OF_BANK0_REGISTERS
 	global Y_POSITION_OF_BANK1_REGISTERS
-	gap = 20
-	Y_POSITION_OF_CHANNEL_NAMES = plot_height + gap
-	Y_POSITION_OF_COUNTERS = plot_height + gap + FONT_SIZE_BANKS
-	Y_POSITION_OF_SCALERS = plot_height + gap + FONT_SIZE_BANKS
-	Y_POSITION_OF_TOT = plot_height + gap + FONT_SIZE_BANKS
-	Y_POSITION_OF_BANK0_REGISTERS = plot_height + gap + 200
-	Y_POSITION_OF_BANK1_REGISTERS = plot_height + gap + 375
+	gap = 25
+	Y_POSITION_OF_CHANNEL_NAMES   = photodiode_box_height + plot_height + gap
+	Y_POSITION_OF_COUNTERS        = photodiode_box_height + plot_height + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_SCALERS         = photodiode_box_height + plot_height + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_TOT             = photodiode_box_height + plot_height + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_BANK0_REGISTERS = photodiode_box_height + plot_height + gap + 200
+	Y_POSITION_OF_BANK1_REGISTERS = photodiode_box_height + plot_height + gap + 375
 	global number_of_threshold_steps
 	number_of_threshold_steps = plot_width
 	number_of_steps_we_might_have_to_take = 2*(GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL+extra_voltage)/DAC_EPSILON
@@ -303,10 +340,8 @@ def setup():
 	screen.fill(black)
 	pygame.event.pump()
 	plot = [ [ pygame.Surface((plot_width, plot_height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
-	width = int(box_dimension_x_in * scale_pixels_per_in)
-	height = int(box_dimension_y_in * scale_pixels_per_in)
-	global flarb
-	flarb = [ [ pygame.Surface((width, height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
+	global photodiode_box
+	photodiode_box = [ [ pygame.Surface((photodiode_box_width, photodiode_box_height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#plot_rect = [ [ plot[i][j].get_rect() for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#clear_plots()
 	global banks_font
@@ -343,7 +378,7 @@ def setup():
 			draw_plot_border(i, j)
 #			update_plot(i, j)
 #			blit(i, j)
-			#draw_photodiode_box(i, j)
+			draw_photodiode_box(i, j)
 			flip()
 			sys.stdout.flush()
 	althea.setup_half_duplex_bus("test058")
@@ -434,7 +469,8 @@ def loop():
 			update_ToT()
 		elif event.type == pygame.MOUSEBUTTONDOWN:
 			do_something()
-#	draw_photodiode_box(i, j)
+	for i in range(number_of_pin_diode_boxes):
+		draw_photodiode_box(i, 0)
 	flip()
 
 def after_running_sophisticated_threshold_scan(i, j):
@@ -453,7 +489,8 @@ def blit(i, j):
 	global something_was_updated
 	if plots_were_updated[i][j]:
 		#print("blitting...")
-		screen.blit(plot[i][j], (GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)))
+		screen.blit(plot[i][j], (GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+photodiode_box_height+5+j*(plot_height+GAP_Y_BETWEEN_PLOTS)))
+		#pygame.image.save(plot[i][j], "protodune." + str(i) + ".png")
 		pygame.event.pump()
 		plots_were_updated[i][j] = False
 		something_was_updated = True
@@ -562,6 +599,7 @@ def setup_inversion_mask(inversion_mask):
 
 def setup_desired_trigger_quantity(quantity):
 	bank = 0
+	quantity = int(quantity)
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [quantity], False)
 
 def setup_trigger_duration(number_of_word_clocks):
@@ -1104,7 +1142,7 @@ def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
 	#setup_hit_mask(0b000000000001)
 	setup_inversion_mask(0b000000000000)
 	#setup_inversion_mask(0b111111111111)
-	setup_desired_trigger_quantity(int(1e3))
+	setup_desired_trigger_quantity(1e9)
 	setup_trigger_duration(50)
 #	select(0)
 
@@ -1119,7 +1157,7 @@ if __name__ == "__main__":
 	wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
 	desired_window_width = int(number_of_pin_diode_boxes * box_dimension_x_in * scale_pixels_per_in + wasted_width)
 	SCREEN_WIDTH = desired_window_width
-	SCREEN_HEIGHT = 720
+	SCREEN_HEIGHT = 775
 	if 1==number_of_pin_diode_boxes:
 		# ampoliros12 revB
 		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.008 # [1.196,1.214] avg=1.2045
