@@ -41,8 +41,8 @@ GAP_Y_BOTTOM = 24
 # geometry of protodune LBLS PIN photodiode array:
 #a_in = 0.5 # lattice spacing, in in
 photodiode_can_diameter_in = 0.325
-photodiode_positions_x_in = [ -1.375 + 0.5 * i for i in range(6) ] + [ -1.125 + 0.5 * i for i in range(6) ]
-photodiode_positions_y_in = [ 0.25 for i in range(6)] + [ -0.25 for i in range(6) ]
+photodiode_positions_x_in = [ +1.375 - 0.5 * i for i in range(6) ] + [ +1.125 - 0.5 * i for i in range(6) ]
+photodiode_positions_y_in = [ -0.25 for i in range(6)] + [ +0.25 for i in range(6) ]
 #for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 #	print("PD" + str(i+1) + " " + str(photodiode_positions_x_in[i]) + "," + str(photodiode_positions_y_in[i]))
 box_dimension_x_in = 5.0
