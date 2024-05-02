@@ -2,9 +2,9 @@
 # based on mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.openocd-cfg
 # last updated 2020-06-20 by mza
 
-source [find interface/ftdi/digilent-hs1.cfg]
+#source [find interface/ftdi/digilent-hs1.cfg]
 #source [find interface/ftdi/digilent-hs2.cfg]
-#source [find interface/ftdi/digilent_jtag_hs3.cfg]
+source [find interface/ftdi/digilent_jtag_hs3.cfg]
 
 ##source [find interface/raspberrypi2-native.cfg]
 #adapter driver bcm2835gpio
