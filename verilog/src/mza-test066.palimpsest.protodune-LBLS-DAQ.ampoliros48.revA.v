@@ -357,7 +357,7 @@ module LBLS48 #(
 	wire raw_trigger = laser1_or_laser2;
 	localparam TRIGGER_TRAIN_PICKOFF = 4;
 	reg [TRIGGER_TRAIN_PICKOFF:0] trigger_train = 0;
-	wire trigger = trigger_train[TRIGGER_TRAIN_PICKOFF];
+	wire [1:0] trigger = trigger_train[TRIGGER_TRAIN_PICKOFF:TRIGGER_TRAIN_PICKOFF-1];
 	always @(posedge word_clock) begin
 		if (reset_word) begin
 			trigger_train <= 0;
@@ -373,7 +373,7 @@ module LBLS48 #(
 			trigger_count <= 0;
 			raw_trigger_count <= 0;
 		end else begin
-			if (trigger_train[TRIGGER_TRAIN_PICKOFF:TRIGGER_TRAIN_PICKOFF-1]==2'b01) begin
+			if (trigger==2'b01) begin
 				raw_trigger_count <= raw_trigger_count + 1'b1;
 			end
 			if (clear_trigger_count) begin
@@ -388,7 +388,7 @@ module LBLS48 #(
 						trigger_active <= 0;
 					end
 				end else begin
-					if (trigger) begin
+					if (trigger==2'b01) begin
 						if (trigger_count < desired_trigger_quantity) begin
 							trigger_active <= 1;
 							trigger_active_counter <= 0;
