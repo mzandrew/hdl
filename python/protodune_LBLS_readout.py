@@ -25,6 +25,7 @@ display_precision_of_hex_scaler_counts = 4
 display_precision_of_DAC_voltages = 6
 bump_amount = 0.000250 # for the [,] keys during running to bump the dac settings up or down
 extra_voltage = 0.001 # a bit of padding on each side of the threshold scan
+EXTRA_EXTRA_BUMP = 0.010
 
 # typical threshold scan has peak scalers at these voltages:
 # 1.215078 1.214924 1.217697 1.211535 1.212697 1.213695 1.216734 1.218696 1.214115 1.212620 1.218383 1.215811
@@ -35,18 +36,18 @@ extra_voltage = 0.001 # a bit of padding on each side of the threshold scan
 GAP_X_BETWEEN_PLOTS = 20
 GAP_Y_BETWEEN_PLOTS = 44
 GAP_X_LEFT = 14
-GAP_X_RIGHT = 205
+GAP_X_RIGHT = 14
 GAP_Y_TOP = 24
 GAP_Y_BOTTOM = 24
 
 # geometry of protodune LBLS PIN photodiode array:
 #for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 #	print("PD" + str(i+1) + " " + str(photodiode_positions_x_in[i]) + "," + str(photodiode_positions_y_in[i]))
-box_dimension_x_in = 4.0
-box_dimension_y_in = 1.6
+box_dimension_x_in = 4.5
+box_dimension_y_in = 1.4
 scale_pixels_per_in = 80
 if exaggerate_sensitive_dimension:
-	a_in = 0.62 # lattice spacing, in in
+	a_in = 0.7 # lattice spacing, in in
 	photodiode_can_diameter_in = 0.6
 	active_square_size_in = 0.45
 else:
@@ -70,9 +71,10 @@ BANKS_X_GAP = 10
 X_POSITION_OF_CHANNEL_NAMES = 15
 X_POSITION_OF_COUNTERS = 140
 X_POSITION_OF_SCALERS = 190
-X_POSITION_OF_TOT = 220
+X_POSITION_OF_TOT = 230
 X_POSITION_OF_BANK0_REGISTERS = 100
 X_POSITION_OF_BANK1_REGISTERS = 100
+X_POSITION_OF_COLUMN_HEADERS = 100
 
 #channel_range = range(1, NUMBER_OF_CHANNELS_PER_BANK+1)
 
@@ -173,7 +175,7 @@ def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
 	setup_inversion_mask(0b000000000000)
 	#setup_inversion_mask(0b111111111111)
 	setup_desired_trigger_quantity(1e9)
-	setup_trigger_duration(300000)
+	setup_trigger_duration(40000)
 #	select(0)
 
 def update_plot(i, j):
@@ -319,13 +321,15 @@ def setup():
 	global Y_POSITION_OF_TOT
 	global Y_POSITION_OF_BANK0_REGISTERS
 	global Y_POSITION_OF_BANK1_REGISTERS
+	global Y_POSITION_OF_COLUMN_HEADERS
 	gap = 25
-	Y_POSITION_OF_CHANNEL_NAMES   = photodiode_box_height + plot_height + gap
-	Y_POSITION_OF_COUNTERS        = photodiode_box_height + plot_height + gap + FONT_SIZE_BANKS
-	Y_POSITION_OF_SCALERS         = photodiode_box_height + plot_height + gap + FONT_SIZE_BANKS
-	Y_POSITION_OF_TOT             = photodiode_box_height + plot_height + gap + FONT_SIZE_BANKS
-	Y_POSITION_OF_BANK0_REGISTERS = photodiode_box_height + plot_height + gap + 200
-	Y_POSITION_OF_BANK1_REGISTERS = photodiode_box_height + plot_height + gap + 375
+	Y_POSITION_OF_CHANNEL_NAMES   = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap
+	Y_POSITION_OF_COUNTERS        = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_SCALERS         = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_TOT             = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_BANK0_REGISTERS = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap + 200
+	Y_POSITION_OF_BANK1_REGISTERS = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap + 375
+	Y_POSITION_OF_COLUMN_HEADERS  = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap
 	global number_of_threshold_steps
 	number_of_threshold_steps = plot_width
 	number_of_steps_we_might_have_to_take = 2*(GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL+extra_voltage)/DAC_EPSILON
@@ -361,6 +365,11 @@ def setup():
 	#clear_plots()
 	global banks_font
 	banks_font = pygame.font.SysFont("monospace", FONT_SIZE_BANKS)
+	column_headers = [ "count", "scal", "ToT" ]
+	x_positions_of_column_headers = [ X_POSITION_OF_COUNTERS-4, X_POSITION_OF_SCALERS, X_POSITION_OF_TOT+4 ]
+	for i in range(len(column_headers)):
+		register_name = banks_font.render(column_headers[i], 1, white)
+		screen.blit(register_name, register_name.get_rect(center=(x_positions_of_column_headers[i]-register_name.get_width()//2,Y_POSITION_OF_COLUMN_HEADERS)))
 	for i in range(len(bank0_register_names)):
 		register_name = banks_font.render(bank0_register_names[i], 1, white)
 		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK0_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
@@ -371,9 +380,6 @@ def setup():
 	for i in range(len(channel_names)):
 		register_name = banks_font.render(channel_names[i], 1, white)
 		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_CHANNEL_NAMES+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_CHANNEL_NAMES+FONT_SIZE_BANKS*i)))
-	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
-	#	channel_name = banks_font.render(channel_names[i], 1, white)
-	#	screen.blit(channel_name, channel_name.get_rect(center=(X_POSITION_OF_BANK6_COUNTERS+BANKS_X_GAP+channel_name.get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
 	for i in range(COLUMNS):
 		for j in range(ROWS):
 			pygame.event.pump()
@@ -401,7 +407,8 @@ def setup():
 	import board
 	i2c = board.I2C()
 	ltc2657.setup(i2c)
-	set_threshold_voltages(0.456789)
+	#set_threshold_voltages(0.456789)
+	set_thresholds_for_upper_null_scaler(i, 0)
 	global should_check_for_new_data
 	should_check_for_new_data = pygame.USEREVENT + 1
 	#print("gui_update_period: " + str(gui_update_period))
@@ -877,6 +884,7 @@ def set_thresholds_for_lower_null_scaler(i, j):
 def set_thresholds_for_upper_null_scaler(i, j):
 	voltage_at_upper_null_scaler = read_thresholds_for_upper_null_scalers_file(i, j)
 	print(prepare_string_with_voltages(voltage_at_upper_null_scaler))
+	voltage_at_upper_null_scaler = [ voltage_at_upper_null_scaler[k] + EXTRA_EXTRA_BUMP for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		set_threshold_voltage(i, k, voltage_at_upper_null_scaler[k])
 
@@ -1163,7 +1171,7 @@ if __name__ == "__main__":
 	wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
 	desired_window_width = int(number_of_pin_diode_boxes * box_dimension_x_in * scale_pixels_per_in + wasted_width)
 	SCREEN_WIDTH = desired_window_width
-	SCREEN_HEIGHT = 775
+	SCREEN_HEIGHT = 725
 	if 1==number_of_pin_diode_boxes:
 		# ampoliros12 revB
 		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.008 # [1.196,1.214] avg=1.2045
