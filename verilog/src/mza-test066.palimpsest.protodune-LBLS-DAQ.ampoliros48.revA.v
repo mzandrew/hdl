@@ -56,9 +56,9 @@ module LBLS48 #(
 	genvar i;
 	// PLL_ADV VCO range is 400 MHz to 1080 MHz
 	localparam PERIOD = 10.0; // 100 MHz
-	localparam MULTIPLY = 8; // 800 MHz
-	localparam DIVIDE = 2; // 400 MHz
-	localparam EXTRA_DIVIDE = 16; // 25 MHz
+	localparam MULTIPLY = 10; // 1000 MHz
+	localparam DIVIDE = 1; // 1000 MHz
+	localparam EXTRA_DIVIDE = 1; // 1000 MHz
 	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [7:0] status8;
