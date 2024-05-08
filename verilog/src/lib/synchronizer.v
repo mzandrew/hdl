@@ -49,7 +49,7 @@ module pipeline_synchronizer #(
 	assign out2 = intermediate2[DEPTH-1];
 endmodule
 
-//	ssynchronizer #(.WIDTH(1)) mysin (.clock1(), .clock2(), .reset1(), .reset2(), .in1(), .out2());
+//	ssynchronizer mysin (.clock1(), .clock2(), .reset1(), .reset2(), .in1(), .out2());
 module ssynchronizer #(
 	parameter WIDTH=1
 ) (

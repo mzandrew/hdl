@@ -1,6 +1,6 @@
 // written 2024-03-08 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-05-01 by mza
+// last updated 2024-05-08 by mza
 
 `define ampoliros48_revA
 `include "lib/duneLBLS.v"
@@ -58,6 +58,7 @@ module LBLS48 #(
 	localparam PERIOD = 10.0; // 100 MHz
 	localparam MULTIPLY = 10; // 1000 MHz
 	localparam DIVIDE = 1; // 1000 MHz
+	//localparam EXTRA_DIVIDE = 1; // 1000 MHz bit clock; 125 MHz word clock (fails timing by 52 ps)
 	localparam EXTRA_DIVIDE = 2; // 500 MHz bit clock; 62.5 MHz word clock
 	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	localparam ERROR_COUNT_PICKOFF = 7;
@@ -80,11 +81,11 @@ module LBLS48 #(
 	wire reset100;
 //	wire clock100;
 //	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock100), .reset_output(reset100));
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset1_input(reset), .pll_locked1_input(1'b1), .clock1_input(clock100), .clock2_input(clock100), .reset2_output(reset100));
 	wire word_clock;
 	// ----------------------------------------------------------------------
 	wire reset_word;
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset100), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock), .reset_output(reset_word));
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(reset100), .pll_locked1_input(pll_oserdes_locked), .clock1_input(clock100), .clock2_input(word_clock), .reset2_output(reset_word));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
 	wire [BANK_ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[BANK_ADDRESS_DEPTH-1:0];
@@ -340,6 +341,8 @@ module LBLS48 #(
 	wire [7:0] wb [12:1]; // word_B output from iserdes for bankB
 	wire [7:0] wc [12:1]; // word_C output from iserdes for bankC
 	wire [7:0] wd [12:1]; // word_D output from iserdes for bankD
+	wire pll_oserdes_locked_copy_on_word_clock;
+	ssynchronizer #(.WIDTH(1)) mysin (.clock1(clock100), .clock2(word_clock), .reset1(reset100), .reset2(reset_word), .in1(pll_oserdes_locked), .out2(pll_oserdes_locked_copy_on_word_clock));
 	iserdes_tetracontaoctagon_input #(
 		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE), .SCOPE(SCOPE)
 	) bankABCD (
@@ -523,7 +526,7 @@ module LBLS48 #(
 		assign status8[5] = anyB;
 		assign status8[4] = anyA;
 		// -------------------------------------
-		assign status8[3] = ~pll_oserdes_locked;
+		assign status8[3] = ~pll_oserdes_locked_copy_on_word_clock;
 		assign status8[2] = trigger_active;
 		assign status8[1] = 0;
 		assign status8[0] = any;
