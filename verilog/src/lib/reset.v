@@ -18,19 +18,20 @@ module reset_wait4pll #(
 	output reg reset_output = 1
 );
 	reg [COUNTER_BIT_PICKOFF:0] counter = 0;
-	(* KEEP = "TRUE" *) wire should_be_in_reset_cdc = ~pll_locked_input || reset_input;
-	wire should_be_in_reset_pipeline;
-	//pipeline #(.WIDTH(1), .DEPTH(PIPELINE_PICKOFF)) z (.clock(clock_input), .in(should_be_in_reset_cdc), .out(should_be_in_reset_pipeline));
-	pipeline_synchronizer #(.WIDTH(1), .DEPTH(PIPELINE_PICKOFF)) myps (.clock1(clock_input), .clock2(clock_input), .reset1(reset_input), .reset2(reset_input), .in1(should_be_in_reset_cdc), .out2(should_be_in_reset_pipeline));
+	wire should_be_in_reset_pre = ~pll_locked_input || reset_input;
+	wire should_be_in_reset_post;
+	//pipeline #(.WIDTH(1), .DEPTH(PIPELINE_PICKOFF)) z (.clock(clock_input), .in(should_be_in_reset_pre), .out(should_be_in_reset_post));
+	pipeline_synchronizer #(.WIDTH(1), .DEPTH(PIPELINE_PICKOFF)) myps (.clock1(clock_input), .clock2(clock_input), .reset1(reset_input), .reset2(reset_input), .in1(should_be_in_reset_pre), .out2(should_be_in_reset_post));
 	always @(posedge clock_input) begin
-		if (should_be_in_reset_cdc || should_be_in_reset_pipeline) begin
+		if (should_be_in_reset_post) begin
 			counter <= 0;
 			reset_output <= 1;
-		end else if (reset_output) begin
+		end else begin
 			if (counter[COUNTER_BIT_PICKOFF]) begin
 				reset_output <= 0;
+			end else begin
+				counter <= counter + 1'b1;
 			end
-			counter <= counter + 1'b1;
 		end
 	end
 endmodule
