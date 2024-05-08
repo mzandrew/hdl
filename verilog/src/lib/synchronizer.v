@@ -1,7 +1,53 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
 // based partly off mza-test029
-// last updated 2021-01-23 by mza
+// last updated 2024-05-08 by mza
+
+//	pipeline_synchronizer #(.WIDTH(2), .DEPTH(3)) mysin (.clock1(), .clock2(), .reset1(), .reset2(), .in1(), .out2());
+module pipeline_synchronizer #(
+	parameter DEPTH=2,
+	parameter WIDTH=1
+) (
+	input clock1, clock2,
+	input reset1, reset2,
+	input [WIDTH-1:0] in1,
+	output [WIDTH-1:0] out2
+);
+	reg [WIDTH-1:0] intermediate1 [DEPTH-1:0];
+	reg [WIDTH-1:0] intermediate2 [DEPTH-1:0];
+	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
+	integer i;
+	always @(posedge clock1) begin
+		for (i=1; i<DEPTH; i=i+1) begin : pipeline1
+			if (reset1) begin
+				intermediate1[i] <= 0;
+			end else begin
+				intermediate1[i] <= intermediate1[i-1];
+			end
+		end
+		if (reset1) begin
+			intermediate1[0] <= 0;
+		end else begin
+			intermediate1[0] <= in1;
+		end
+	end
+	assign cdc = intermediate1[DEPTH-1];
+	always @(posedge clock1) begin
+		for (i=1; i<DEPTH; i=i+1) begin : pipeline2
+			if (reset1) begin
+				intermediate2[i] <= 0;
+			end else begin
+				intermediate2[i] <= intermediate2[i-1];
+			end
+		end
+		if (reset1) begin
+			intermediate2[0] <= 0;
+		end else begin
+			intermediate2[0] <= cdc;
+		end
+	end
+	assign out2 = intermediate2[DEPTH-1];
+endmodule
 
 //	ssynchronizer #(.WIDTH(1)) mysin (.clock1(), .clock2(), .reset1(), .reset2(), .in1(), .out2());
 module ssynchronizer #(

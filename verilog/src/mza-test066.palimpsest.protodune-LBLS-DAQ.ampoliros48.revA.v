@@ -13,7 +13,7 @@
 `include "lib/half_duplex_rpi_bus.v"
 `include "lib/sequencer.v"
 `include "lib/reset.v"
-`include "lib/edge_to_pulse.v"
+//`include "lib/edge_to_pulse.v"
 `include "lib/frequency_counter.v"
 
 module LBLS48 #(
@@ -58,7 +58,7 @@ module LBLS48 #(
 	localparam PERIOD = 10.0; // 100 MHz
 	localparam MULTIPLY = 10; // 1000 MHz
 	localparam DIVIDE = 1; // 1000 MHz
-	localparam EXTRA_DIVIDE = 1; // 1000 MHz
+	localparam EXTRA_DIVIDE = 2; // 500 MHz bit clock; 62.5 MHz word clock
 	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [7:0] status8;
