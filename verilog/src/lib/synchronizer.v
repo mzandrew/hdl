@@ -32,15 +32,15 @@ module pipeline_synchronizer #(
 		end
 	end
 	assign cdc = intermediate1[DEPTH-1];
-	always @(posedge clock1) begin
+	always @(posedge clock2) begin
 		for (i=1; i<DEPTH; i=i+1) begin : pipeline2
-			if (reset1) begin
+			if (reset2) begin
 				intermediate2[i] <= 0;
 			end else begin
 				intermediate2[i] <= intermediate2[i-1];
 			end
 		end
-		if (reset1) begin
+		if (reset2) begin
 			intermediate2[0] <= 0;
 		end else begin
 			intermediate2[0] <= cdc;
