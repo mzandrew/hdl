@@ -1,6 +1,6 @@
 // written 2024-03-08 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-05-08 by mza
+// last updated 2024-05-09 by mza
 
 `define ampoliros48_revA
 `include "lib/duneLBLS.v"
@@ -13,7 +13,6 @@
 `include "lib/half_duplex_rpi_bus.v"
 `include "lib/sequencer.v"
 `include "lib/reset.v"
-//`include "lib/edge_to_pulse.v"
 `include "lib/frequency_counter.v"
 
 module LBLS48 #(
@@ -57,7 +56,6 @@ module LBLS48 #(
 	inout [2:1] inoutM,
 	input [3:1] inR, inF,
 	output [3:1] tR, tF,
-//	output a_p, b_p, c_p, d_p, e_p, f_p, a_n, b_n, c_n, d_n, e_n, f_n,
 	output [11:0] toupee_diff,
 //	output u, v, w, x, y, z,
 	input [12:1] a, b, c, d,
@@ -139,13 +137,14 @@ module LBLS48 #(
 	wire [12:1] inversion_mask                  = bank0[1][11:0];
 	wire [31:0] desired_trigger_quantity        = bank0[2][31:0];
 	wire [31:0] trigger_duration_in_word_clocks = bank0[3][31:0];
-	wire [3:0]  monitor_channel                 = bank0[4][3:0];
 	wire        clear_gate_counter              = bank0[5][0];
 	wire        clear_trigger_count             = bank0[5][1];
 	wire        clear_hit_counter               = bank0[5][2];
 	wire        clear_channel_counters          = bank0[5][3];
 	wire        clear_channel_ones_counters     = bank0[5][4];
 	assign      ampen                           = bank0[6][0];
+	wire [1:0]  monitor_bank                    = bank0[7][1:0];
+	wire [3:0]  monitor_channel                 = bank0[8][3:0];
 	wire [31:0] bank1 [15:0]; // scalers are mapped here: bank1[1] up to bank1[12]
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
@@ -159,12 +158,8 @@ module LBLS48 #(
 	assign bank1[0]  = { hdrb_read_errors[7:0], hdrb_write_errors[7:0], hdrb_address_errors[7:0], status8 };
 	assign bank1[13] = trigger_count;
 	assign bank1[14] = raw_trigger_count;
-//	assign bank1[14] = suggested_inversion_map;
 //	assign bank1[15] = hit_counter_buffered;
 	assign bank1[15] = 0;
-//	for (i=1; i<=15; i=i+1) begin : dummy_bank1
-//		assign bank1[i] = 0;
-//	end
 	wire [31:0] bank2 [15:0]; // scalers are mapped here: bank2[1] up to bank2[12]
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank2 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[2]),
@@ -177,9 +172,6 @@ module LBLS48 #(
 	assign bank2[13] = 0;
 	assign bank2[14] = 0;
 	assign bank2[15] = 0;
-//	for (i=0; i<=15; i=i+1) begin : dummy_bank2
-//		assign bank2[i] = 0;
-//	end
 	wire [31:0] bank3 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank3 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[3]),
@@ -192,9 +184,6 @@ module LBLS48 #(
 	assign bank3[13] = 0;
 	assign bank3[14] = 0;
 	assign bank3[15] = 0;
-//	for (i=0; i<=15; i=i+1) begin : dummy_bank3
-//		assign bank3[i] = 0;
-//	end
 	wire [31:0] bank4 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank4 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[4]),
@@ -207,26 +196,6 @@ module LBLS48 #(
 	assign bank4[13] = 0;
 	assign bank4[14] = 0;
 	assign bank4[15] = 0;
-//	for (i=0; i<=15; i=i+1) begin : dummy_bank4
-//		assign bank4[i] = 0;
-//	end
-//	reg [12:1] fifo_write_enable;
-//	wire [12:1] fifo_read_enable;
-//	wire fifo_empty = 0;
-/*
-	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc_4321 (.clock(word_clock), .reset(reset_word), .error_count(),
-		.data_in({previous_time_over_threshold[4],previous_time_over_threshold[3],previous_time_over_threshold[2],previous_time_over_threshold[1]}),
-		.write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
-		.data_out(read_data_word[3]), .read_enable(read_strobe[3]), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
-	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc_8765 (.clock(word_clock), .reset(reset_word), .error_count(),
-		.data_in({previous_time_over_threshold[8],previous_time_over_threshold[7],previous_time_over_threshold[6],previous_time_over_threshold[5]}),
-		.write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
-		.data_out(read_data_word[4]), .read_enable(read_strobe[4]), .empty(), .almost_empty(), .empty_or_almost_empty());
-	fifo_single_clock_using_single_bram #(.DATA_WIDTH(32), .LOG2_OF_DEPTH(10)) fsc_cba9 (.clock(word_clock), .reset(reset_word), .error_count(),
-		.data_in({previous_time_over_threshold[12],previous_time_over_threshold[11],previous_time_over_threshold[10],previous_time_over_threshold[9]}),
-		.write_enable(|fifo_write_enable), .full(), .almost_full(), .full_or_almost_full(),
-		.data_out(read_data_word[5]), .read_enable(read_strobe[5]), .empty(), .almost_empty(), .empty_or_almost_empty());
-*/
 	wire [31:0] bank5 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank5 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[5]),
@@ -239,9 +208,6 @@ module LBLS48 #(
 	assign bank5[13] = 0;
 	assign bank5[14] = 0;
 	assign bank5[15] = 0;
-//	for (i=0; i<=15; i=i+1) begin : dummy_bank5
-//		assign bank5[i] = 0;
-//	end
 	wire [31:0] bank6 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
@@ -254,9 +220,6 @@ module LBLS48 #(
 	assign bank6[13] = 0;
 	assign bank6[14] = 0;
 	assign bank6[15] = 0;
-//	for (i=0; i<=15; i=i+1) begin : dummy_bank6
-//		assign bank6[i] = 0;
-//	end
 	wire [31:0] bank7 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank7 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[7]),
@@ -269,13 +232,6 @@ module LBLS48 #(
 	assign bank7[13] = 0;
 	assign bank7[14] = 0;
 	assign bank7[15] = 0;
-//	for (i=0; i<=15; i=i+1) begin : dummy_bank7
-//		assign bank7[i] = 0;
-//	end
-//	for (i=13; i<=15; i=i+1) begin : dummy_bank6_bank7_mapping
-//		assign bank6[i] = 32'habcdef06;
-//		assign bank7[i] = 32'habcdef07;
-//	end
 	// ----------------------------------------------------------------------
 	reg trigger_active = 0;
 	wire laser1_or_laser2 = inR[2] | inR[3];
@@ -293,43 +249,33 @@ module LBLS48 #(
 	assign tF[1] = 1; // 0=input; 1=output
 	assign tF[2] = 1; // 0=input; 1=output
 	assign tF[3] = 1; // 0=input; 1=output
+	wire monitor =
+		monitor_bank==3 ? d[monitor_channel] :
+		monitor_bank==2 ? c[monitor_channel] :
+		monitor_bank==1 ? b[monitor_channel] :
+		                  a[monitor_channel] ;
 	assign inoutM[1] = trigger_active;
-	assign inoutM[2] = laser1_or_laser2;
+	assign inoutM[2] = monitor;
 	wire pll_oserdes_locked_copy_on_word_clock;
 	ssynchronizer mysin (.clock1(clock100), .clock2(word_clock), .reset1(reset100), .reset2(reset_word), .in1(pll_oserdes_locked), .out2(pll_oserdes_locked_copy_on_word_clock));
-	assign toupee_diff[11] = ~pll_oserdes_locked_copy_on_word_clock;
-	assign toupee_diff[10] = reset;
-	assign toupee_diff[9]  = reset100;
-	assign toupee_diff[8]  = reset_word;
-	assign toupee_diff[7]  = anyA;
-	assign toupee_diff[6]  = anyB;
-	assign toupee_diff[5]  = anyC;
-	assign toupee_diff[4]  = anyD;
-	assign toupee_diff[3] = inR[3];
-	assign toupee_diff[2] = inR[2];
-	assign toupee_diff[1] = inR[1];
-	assign toupee_diff[0] = ~button;
-	if (0) begin
-		wire clock100_for_output;
-		wire word_clock_for_output;
-		wire clock100_raw0, clock100_raw180, word_clock_raw0, word_clock_raw180;
-		wire clock100_0, clock100_180, word_clock_0, word_clock_180;
-		wire first_pll_locked;
-		simplepll_BASE #(.PERIOD(10.0), .OVERALL_DIVIDE(1), .MULTIPLY(4), .COMPENSATION("INTERNAL"),
-			.DIVIDE0(4), .DIVIDE1(4), .DIVIDE2(4), .DIVIDE3(4), .DIVIDE4(4), .DIVIDE5(4),
-			.PHASE0(0.0), .PHASE1(180.0), .PHASE2(0.0), .PHASE3(180.0), .PHASE4(0.0), .PHASE5(0.0)
-		) pll_sys_sst (.clockin(clock100), .reset(reset), .locked(first_pll_locked),
-			.clock0out(clock100_raw0), .clock1out(clock100_raw180),
-			.clock2out(word_clock_raw0), .clock3out(word_clock_raw180),
-			.clock4out(), .clock5out()
-		);
-		BUFG clock100raw    (.I(clock100_raw0),   .O(clock100_0));
-		BUFG clock100raw180 (.I(clock100_raw180), .O(clock100_180));
-		BUFG wordraw    (.I(word_clock_raw0),   .O(word_clock_0));
-		BUFG wordraw180 (.I(word_clock_raw180), .O(word_clock_180));
-		clock_ODDR_out clock100_ODDR   (.clock_in_p(clock100_0),   .clock_in_n(clock100_180),   .reset(reset), .clock_out(clock100_for_output));
-		clock_ODDR_out word_clock_ODDR (.clock_in_p(word_clock_0), .clock_in_n(word_clock_180), .reset(reset), .clock_out(word_clock_for_output));
-	end
+	wire [3:0] status_resets = { ~pll_oserdes_locked_copy_on_word_clock, reset, reset100, reset_word };
+	wire [3:0] status_any = { anyA, anyB, anyC, anyD };
+	wire [3:0] status_trigger = { inR[3], inR[2], trigger_active, monitor };
+	assign toupee_diff[11:9] = status_resets;
+	assign toupee_diff[8:5] = status_any;
+	assign toupee_diff[3:0] = status_trigger;
+//	assign toupee_diff[11] = ~pll_oserdes_locked_copy_on_word_clock;
+//	assign toupee_diff[10] = reset;
+//	assign toupee_diff[9]  = reset100;
+//	assign toupee_diff[8]  = reset_word;
+//	assign toupee_diff[7]  = anyA;
+//	assign toupee_diff[6]  = anyB;
+//	assign toupee_diff[5]  = anyC;
+//	assign toupee_diff[4]  = anyD;
+//	assign toupee_diff[3] = inR[3];
+//	assign toupee_diff[2] = inR[2];
+//	assign toupee_diff[1] = trigger_active;
+//	assign toupee_diff[0] = monitor;
 	wire [31:0] start_sample = 0;
 	wire [31:0] end_sample = 5120;
 	wire sync_read_address; // assert this when you feel like (re)synchronizing

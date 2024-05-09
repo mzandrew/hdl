@@ -2,7 +2,7 @@
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // based on mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2024-05-08 by mza
+// last updated 2024-05-09 by mza
 
 `define althea_revBLM
 `include "lib/duneLBLS.v"
@@ -129,12 +129,14 @@ module LBLS12 #(
 	wire [12:1] inversion_mask                  = bank0[1][11:0];
 	wire [31:0] desired_trigger_quantity        = bank0[2][31:0];
 	wire [31:0] trigger_duration_in_word_clocks = bank0[3][31:0];
-	wire [3:0]  monitor_channel                 = bank0[4];
 	wire        clear_gate_counter              = bank0[5][0];
 	wire        clear_trigger_count             = bank0[5][1];
 	wire        clear_hit_counter               = bank0[5][2];
 	wire        clear_channel_counters          = bank0[5][3];
 	wire        clear_channel_ones_counters     = bank0[5][4];
+	// assign      ampen                           = bank0[6][0];
+	// wire [1:0]  monitor_bank                    = bank0[7][1:0];
+	wire [3:0]  monitor_channel                 = bank0[8][3:0];
 	wire [31:0] bank1 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
@@ -345,7 +347,12 @@ module LBLS12 #(
 		.any(any)
 	);
 	// ----------------------------------------------------------------------
-	for (i=0; i<=5; i=i+1) begin : dummy_coax
+	wire monitor = signal[monitor_channel];
+	assign coax[2] = trigger_active;
+	assign coax[1] = any;
+	assign coax[0] = monitor;
+	assign coax_led = status4;
+	for (i=3; i<=5; i=i+1) begin : dummy_coax
 		assign coax[i] = 0;
 	end
 	for (i=1; i<=12; i=i+1) begin : dummy_indicator
@@ -353,6 +360,23 @@ module LBLS12 #(
 	end
 	assign other = 0;
 	assign reset = 0;
+	// ----------------------------------------------------------------------
+	if (1) begin
+		assign status4[3] = ~pll_oserdes_locked_copy_on_word_clock;
+		assign status4[2] = trigger_active;
+		assign status4[1] = any;
+		assign status4[0] = monitor;
+		// -------------------------------------
+		assign status8[7] = 0;
+		assign status8[6] = 0;
+		assign status8[5] = 0;
+		assign status8[4] = 0;
+		// -------------------------------------
+		assign status8[3] = ~pll_oserdes_locked_copy_on_word_clock;
+		assign status8[2] = trigger_active;
+		assign status8[1] = 0;
+		assign status8[0] = any;
+	end
 /*
 	for (i=0; i<4; i=i+1) begin : coax_mux_mapping
 		always @(posedge word_clock) begin
@@ -382,24 +406,6 @@ module LBLS12 #(
 		assign bank3[i] = { 24'b0, tota[i] }; // time-over-threshold
 		assign bank4[i] = ca[i]; // counters
 	end
-	// ----------------------------------------------------------------------
-	if (1) begin
-		assign status4[3] = ~pll_oserdes_locked_copy_on_word_clock;
-		assign status4[2] = trigger_active;
-		assign status4[1] = 0;
-		assign status4[0] = any;
-		// -------------------------------------
-		assign status8[7] = 0;
-		assign status8[6] = 0;
-		assign status8[5] = 0;
-		assign status8[4] = 0;
-		// -------------------------------------
-		assign status8[3] = ~pll_oserdes_locked_copy_on_word_clock;
-		assign status8[2] = trigger_active;
-		assign status8[1] = 0;
-		assign status8[0] = any;
-	end
-	assign coax_led = status4;
 	initial begin
 		#100;
 		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, BANK_ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH);
