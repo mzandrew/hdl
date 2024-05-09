@@ -19,6 +19,16 @@
 module LBLS48 #(
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
+	// PLL_ADV VCO range is 400 MHz to 1080 MHz
+	parameter PERIOD = 10.0, // 100 MHz
+	parameter MULTIPLY = 10, // 1000 MHz
+	parameter DIVIDE = 1, // 1000 MHz
+	//parameter EXTRA_DIVIDE = 1, // 1000 MHz bit clock; 125 MHz word clock (fails timing by 52 ps)
+	parameter EXTRA_DIVIDE = 2, // 500 MHz bit clock; 62.5 MHz word clock
+	parameter OSCILLATOR_FREQUENCY_HZ = 100_000_000,
+	parameter WORD_CLOCK_FREQUENCY_HZ = $int(OSCILLATOR_FREQUENCY_HZ * MULTIPLY / DIVIDE / EXTRA_DIVIDE),
+	parameter GUI_UPDATE_PERIOD = 0.2,
+	parameter CLOCK_PERIODS_TO_ACCUMULATE = $int(WORD_CLOCK_FREQUENCY_HZ * GUI_UPDATE_PERIOD), // should be roughly same duration as gui update period (0.2s)
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
@@ -54,12 +64,6 @@ module LBLS48 #(
 	output ldac, ampen
 );
 	genvar i;
-	// PLL_ADV VCO range is 400 MHz to 1080 MHz
-	localparam PERIOD = 10.0; // 100 MHz
-	localparam MULTIPLY = 10; // 1000 MHz
-	localparam DIVIDE = 1; // 1000 MHz
-	//localparam EXTRA_DIVIDE = 1; // 1000 MHz bit clock; 125 MHz word clock (fails timing by 52 ps)
-	localparam EXTRA_DIVIDE = 2; // 500 MHz bit clock; 62.5 MHz word clock
 	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [7:0] status8;
@@ -291,7 +295,9 @@ module LBLS48 #(
 	assign tF[3] = 1; // 0=input; 1=output
 	assign inoutM[1] = trigger_active;
 	assign inoutM[2] = laser1_or_laser2;
-	assign toupee_diff[11] = ~pll_oserdes_locked;
+	wire pll_oserdes_locked_copy_on_word_clock;
+	ssynchronizer mysin (.clock1(clock100), .clock2(word_clock), .reset1(reset100), .reset2(reset_word), .in1(pll_oserdes_locked), .out2(pll_oserdes_locked_copy_on_word_clock));
+	assign toupee_diff[11] = ~pll_oserdes_locked_copy_on_word_clock;
 	assign toupee_diff[10] = reset;
 	assign toupee_diff[9]  = reset100;
 	assign toupee_diff[8]  = reset_word;
@@ -341,8 +347,6 @@ module LBLS48 #(
 	wire [7:0] wb [12:1]; // word_B output from iserdes for bankB
 	wire [7:0] wc [12:1]; // word_C output from iserdes for bankC
 	wire [7:0] wd [12:1]; // word_D output from iserdes for bankD
-	wire pll_oserdes_locked_copy_on_word_clock;
-	ssynchronizer #(.WIDTH(1)) mysin (.clock1(clock100), .clock2(word_clock), .reset1(reset100), .reset2(reset_word), .in1(pll_oserdes_locked), .out2(pll_oserdes_locked_copy_on_word_clock));
 	iserdes_tetracontaoctagon_input #(
 		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE), .SCOPE(SCOPE)
 	) bankABCD (
@@ -474,7 +478,7 @@ module LBLS48 #(
 	wire [7:0] totb [12:1]; // time-over-threshold for bankB
 	wire [7:0] totc [12:1]; // time-over-threshold for bankC
 	wire [7:0] totd [12:1]; // time-over-threshold for bankD
-	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) bankA (
+	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) bankA (
 		.clock(word_clock), .reset(reset_word),
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_counters(clear_channel_counters), .trigger_active(trigger_active),
 		.win1(wa[1]), .win2(wa[2]), .win3(wa[3]), .win4(wa[4]), .win5(wa[5]), .win6(wa[6]), .win7(wa[7]), .win8(wa[8]), .win9(wa[9]), .win10(wa[10]), .win11(wa[11]), .win12(wa[12]),
@@ -483,7 +487,7 @@ module LBLS48 #(
 		.tot1(tota[1]), .tot2(tota[2]), .tot3(tota[3]), .tot4(tota[4]), .tot5(tota[5]), .tot6(tota[6]), .tot7(tota[7]), .tot8(tota[8]), .tot9(tota[9]), .tot10(tota[10]), .tot11(tota[11]), .tot12(tota[12]),
 		.any(anyA)
 	);
-	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) bankB (
+	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) bankB (
 		.clock(word_clock), .reset(reset_word),
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_counters(clear_channel_counters), .trigger_active(trigger_active),
 		.win1(wb[1]), .win2(wb[2]), .win3(wb[3]), .win4(wb[4]), .win5(wb[5]), .win6(wb[6]), .win7(wb[7]), .win8(wb[8]), .win9(wb[9]), .win10(wb[10]), .win11(wb[11]), .win12(wb[12]),
@@ -492,7 +496,7 @@ module LBLS48 #(
 		.tot1(totb[1]), .tot2(totb[2]), .tot3(totb[3]), .tot4(totb[4]), .tot5(totb[5]), .tot6(totb[6]), .tot7(totb[7]), .tot8(totb[8]), .tot9(totb[9]), .tot10(totb[10]), .tot11(totb[11]), .tot12(totb[12]),
 		.any(anyB)
 	);
-	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) bankC (
+	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) bankC (
 		.clock(word_clock), .reset(reset_word),
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_counters(clear_channel_counters), .trigger_active(trigger_active),
 		.win1(wc[1]), .win2(wc[2]), .win3(wc[3]), .win4(wc[4]), .win5(wc[5]), .win6(wc[6]), .win7(wc[7]), .win8(wc[8]), .win9(wc[9]), .win10(wc[10]), .win11(wc[11]), .win12(wc[12]),
@@ -501,7 +505,7 @@ module LBLS48 #(
 		.tot1(totc[1]), .tot2(totc[2]), .tot3(totc[3]), .tot4(totc[4]), .tot5(totc[5]), .tot6(totc[6]), .tot7(totc[7]), .tot8(totc[8]), .tot9(totc[9]), .tot10(totc[10]), .tot11(totc[11]), .tot12(totc[12]),
 		.any(anyC)
 	);
-	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) bankD (
+	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) bankD (
 		.clock(word_clock), .reset(reset_word),
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_counters(clear_channel_counters), .trigger_active(trigger_active),
 		.win1(wd[1]), .win2(wd[2]), .win3(wd[3]), .win4(wd[4]), .win5(wd[5]), .win6(wd[6]), .win7(wd[7]), .win8(wd[8]), .win9(wd[9]), .win10(wd[10]), .win11(wd[11]), .win12(wd[12]),
