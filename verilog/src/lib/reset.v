@@ -37,6 +37,35 @@ module reset_wait4pll_synchronized #(
 	end
 endmodule
 
+//	reset_wait4pll #(.COUNTER_BIT_PICKOFF(CLOCK1_BIT_PICKOFF), .PLL_LOCKED_PIPELINE_PICKOFF(PLL_LOCKED_PIPELINE_CLOCK1_PICKOFF), .RESET_PIPELINE_PICKOFF(RESET_PIPELINE_PICKOFF)) reset1_wait4pll (.reset_input(reset_input), .pll_locked_input(pll_locked1_input), .clock_input(clock1_input), .reset_output(reset1_output));
+module reset_wait4pll #(
+	parameter COUNTER_BIT_PICKOFF = 20,
+	parameter PIPELINE_PICKOFF = 6
+) (
+	input reset_input,
+	input pll_locked_input,
+	input clock_input,
+	output reg reset_output = 1
+);
+	reg [COUNTER_BIT_PICKOFF:0] counter = 0;
+	wire should_be_in_reset_pre = ~pll_locked_input || reset_input;
+	wire should_be_in_reset_post;
+	//pipeline #(.WIDTH(1), .DEPTH(PIPELINE_PICKOFF)) z (.clock(clock_input), .in(should_be_in_reset_pre), .out(should_be_in_reset_post));
+	pipeline_synchronizer #(.WIDTH(1), .DEPTH(PIPELINE_PICKOFF)) myps (.clock1(clock_input), .clock2(clock_input), .reset1(reset_input), .reset2(reset_input), .in1(should_be_in_reset_pre), .out2(should_be_in_reset_post));
+	always @(posedge clock_input) begin
+		if (should_be_in_reset_post) begin
+			counter <= 0;
+			reset_output <= 1;
+		end else begin
+			if (counter[COUNTER_BIT_PICKOFF]) begin
+				reset_output <= 0;
+			end else begin
+				counter <= counter + 1'b1;
+			end
+		end
+	end
+endmodule
+
 //	reset3_wait4plls #(.CLOCK1_BIT_PICKOFF(20), .CLOCK2_BIT_PICKOFF(20), .CLOCK3_BIT_PICKOFF(20)) r3 (.reset_input(reset), .pll_locked1_input(1'b1), .pll_locked2_input(pll_is_locked),  .pll_locked3_input(pll_is_locked), .clock1_input(clock_in), .clock2_input(word_clock0123_out), .clock3_input(word_clock45_out), .reset1_output(), .reset2_output(reset_clock0123), .reset3_output(reset_clock45));
 module reset3_wait4plls #(
 	parameter CLOCK1_BIT_PICKOFF = 20,
