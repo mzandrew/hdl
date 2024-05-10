@@ -302,35 +302,53 @@ def draw_plot_border(i, j):
 def setup_zmq():
 	port = 9001
 	#cib_ip_address = [ "10.73.137.148", "10.73.137.148" ]
+	my_ip_address = "10.73.137.151"
 	context = zmq.Context()
 	global socket
 	socket = context.socket(zmq.REP)
-	url = "tcp://localhost:" + str(port)
-	#url = "tcp://" + cib_ip_address[0] + ":" + str(port)
+	#url = "tcp://*:" + str(port)
+	url = "tcp://" + my_ip_address + ":" + str(port)
 	print("binding to " + url)
 	socket.bind(url)
 
+number_of_packets_received_from_cib = [ 0 for i in range(2) ]
+number_of_packets_sent_to_cib = [ 0 for i in range(2) ]
+
 def receive_message_from_cib():
 	global timestamp_message
+	global number_of_packets_received_from_cib
 	try:
 		timestamp_message = socket.recv(flags=zmq.NOBLOCK)
-		message1 = struct.unpack("!Q", timestamp_message)[0]
-		message2 = time.gmtime(message1//1e9)
-		message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
-		print("received: " + str(message3))
+		try:
+			message1 = struct.unpack("!Q", timestamp_message)[0]
+			message2 = time.gmtime(message1//1e9)
+			message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
+		except:
+			message3 = "bogus_timestamp"
+		number_of_packets_received_from_cib[0] += 1
+		print("received: " + str(message3) + " [" + str(number_of_packets_received_from_cib[0]) + "]")
 		return True
 	except zmq.Again as e:
 		#print("no message received yet: " + str(e))
+		return False
+	except zmq.Error as e:
+		print("error: " + str(e))
+		print("received=" + str(number_of_packets_received_from_cib[0]) + " sent=" + str(number_of_packets_sent_to_cib[0]))
 		return False
 	except Exception as e:
 		print(str(type(e).__name__) + " " + str(e))
 
 def send_message_to_cib():
+	global number_of_packets_sent_to_cib
 	try:
-		message1 = struct.unpack("!Q", timestamp_message)[0]
-		message2 = time.gmtime(message1//1e9)
-		message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
-		print(" sending: " + str(message3))
+		try:
+			message1 = struct.unpack("!Q", timestamp_message)[0]
+			message2 = time.gmtime(message1//1e9)
+			message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
+		except:
+			message3 = "bogus_timestamp"
+		number_of_packets_sent_to_cib[0] += 1
+		print(" sending: " + str(message3) + " [" + str(number_of_packets_sent_to_cib[0]) + "]")
 		message = struct.unpack("!BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", hitmap_message)
 		for i in range(number_of_pin_diode_boxes):
 			string = "bank" + chr(i+ord('A')) + ": "
@@ -338,6 +356,10 @@ def send_message_to_cib():
 				string += generic.hex(message[i*12+j], 2)
 			print(string)
 		socket.send(timestamp_message + hitmap_message)
+	except zmq.Error as e:
+		print("error: " + str(e))
+		print("received=" + str(number_of_packets_received_from_cib[0]) + " sent=" + str(number_of_packets_sent_to_cib[0]))
+		return False
 	except Exception as e:
 		print(str(e))
 		raise
