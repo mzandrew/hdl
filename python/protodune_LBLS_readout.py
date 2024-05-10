@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-05-02 by mza
+# last updated 2024-05-10 by mza
 
 number_of_pin_diode_boxes = 4
 NUMBER_OF_CHANNELS_PER_BANK = 12 # this is probably fixed for protodune at least
@@ -136,6 +136,12 @@ import time
 import random
 import os
 import datetime
+import generic
+import zmq # pip3 install zmq
+import calendar
+import struct
+hitmap_message = bytearray(48)
+#print(str(hitmap_message))
 os.environ['SDL_AUDIODRIVER'] = 'dsp'
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 # from https://learn.adafruit.com/pi-video-output-using-pygame/pointing-pygame-to-the-framebuffer?view=all#pointing-pygame-to-the-framebuffer
@@ -293,6 +299,56 @@ def draw_plot_border(i, j):
 	#print("drawing plot border...")
 	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+photodiode_box_height+5+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
 
+def setup_zmq():
+	port = 9001
+	#cib_ip_address = [ "10.73.137.148", "10.73.137.148" ]
+	context = zmq.Context()
+	global socket
+	socket = context.socket(zmq.REP)
+	url = "tcp://localhost:" + str(port)
+	#url = "tcp://" + cib_ip_address[0] + ":" + str(port)
+	print("binding to " + url)
+	socket.bind(url)
+
+def receive_message_from_cib():
+	global timestamp
+	try:
+		message = socket.recv(flags=zmq.NOBLOCK)
+		message1 = struct.unpack("!Q", message)[0]
+		message2 = time.gmtime(message1//1e9)
+		message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
+		print("received: " + str(message3))
+		timestamp = message1
+		return True
+	except zmq.Again as e:
+		#print("no message received yet: " + str(e))
+		return False
+	except Exception as e:
+		print(str(type(e).__name__) + " " + str(e))
+
+def send_message_to_cib():
+	try:
+		#ns = int(calendar.timegm(time.gmtime()) * 1e9)
+		#message = struct.pack("!Q", ns)
+		#message2 = time.gmtime(ns//1e9)
+		#message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
+		#print("sending: " + str(hitmap_message))
+		print("sending:")
+		message = struct.unpack("!BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", hitmap_message)
+		for i in range(number_of_pin_diode_boxes):
+			string = "bank" + chr(i+ord('A')) + ": "
+			for j in range(NUMBER_OF_CHANNELS_PER_BANK):
+				string += generic.hex(message[i*12+j], 2)
+			print(string)
+		socket.send(hitmap_message)
+	except Exception as e:
+		print(str(e))
+		raise
+
+def receive_a_message_from_cib_and_then_send_a_message_back():
+	if receive_message_from_cib():
+		send_message_to_cib()
+
 def setup():
 	global extra_gap_x, extra_gap_y
 	extra_gap_x = 4
@@ -414,6 +470,7 @@ def setup():
 	#print("gui_update_period: " + str(gui_update_period))
 	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
 	enable_amplifiers()
+	setup_zmq()
 
 def loop():
 	#pygame.time.wait(10)
@@ -484,11 +541,14 @@ def loop():
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
+			should_respond_to_cib = receive_message_from_cib()
 			update_bank0_registers()
 			update_bank1_bank2_scalers()
 			update_other_bank1_registers()
 			update_counters()
 			update_ToT()
+			if should_respond_to_cib:
+				send_message_to_cib()
 		elif event.type == pygame.MOUSEBUTTONDOWN:
 			do_something()
 	for i in range(number_of_pin_diode_boxes):
@@ -552,6 +612,7 @@ def read_bank1_registers():
 
 def readout_ToT():
 	global ToT
+	global hitmap_message
 	bank = 3
 	values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, NUMBER_OF_CHANNELS_PER_BANK, False)
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
@@ -559,6 +620,12 @@ def readout_ToT():
 		ToT[1][k] = (values[k]>>8 ) & 0xff
 		ToT[2][k] = (values[k]>>16) & 0xff
 		ToT[3][k] = (values[k]>>24) & 0xff
+	#hitmap_message = struct.pack("", )
+	for j in range(number_of_pin_diode_boxes):
+		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+			index = j*NUMBER_OF_CHANNELS_PER_BANK+k
+			hitmap_message[index] = ToT[j][k]
+			#hitmap_message[index] = k
 
 bank0_register_object = [ 0 for i in range(len(bank0_register_names)) ]
 bank1_register_object = [ 0 for i in range(len(bank1_register_names)) ]
