@@ -311,14 +311,13 @@ def setup_zmq():
 	socket.bind(url)
 
 def receive_message_from_cib():
-	global timestamp
+	global timestamp_message
 	try:
-		message = socket.recv(flags=zmq.NOBLOCK)
-		message1 = struct.unpack("!Q", message)[0]
+		timestamp_message = socket.recv(flags=zmq.NOBLOCK)
+		message1 = struct.unpack("!Q", timestamp_message)[0]
 		message2 = time.gmtime(message1//1e9)
 		message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
 		print("received: " + str(message3))
-		timestamp = message1
 		return True
 	except zmq.Again as e:
 		#print("no message received yet: " + str(e))
@@ -328,19 +327,17 @@ def receive_message_from_cib():
 
 def send_message_to_cib():
 	try:
-		#ns = int(calendar.timegm(time.gmtime()) * 1e9)
-		#message = struct.pack("!Q", ns)
-		#message2 = time.gmtime(ns//1e9)
-		#message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
-		#print("sending: " + str(hitmap_message))
-		print("sending:")
+		message1 = struct.unpack("!Q", timestamp_message)[0]
+		message2 = time.gmtime(message1//1e9)
+		message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
+		print(" sending: " + str(message3))
 		message = struct.unpack("!BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", hitmap_message)
 		for i in range(number_of_pin_diode_boxes):
 			string = "bank" + chr(i+ord('A')) + ": "
 			for j in range(NUMBER_OF_CHANNELS_PER_BANK):
 				string += generic.hex(message[i*12+j], 2)
 			print(string)
-		socket.send(hitmap_message)
+		socket.send(timestamp_message + hitmap_message)
 	except Exception as e:
 		print(str(e))
 		raise
@@ -472,6 +469,7 @@ def setup():
 	enable_amplifiers()
 	setup_zmq()
 
+should_respond_to_cib = False
 def loop():
 	#pygame.time.wait(10)
 	game_clock.tick(100)
@@ -482,6 +480,7 @@ def loop():
 	#pygame.event.wait()
 	mouse = pygame.mouse.get_pos()
 	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_c, K_d, K_s, K_t, K_z, K_q, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
+	global should_respond_to_cib
 	for event in pygame.event.get():
 		if event.type == KEYDOWN:
 			if K_ESCAPE==event.key or K_q==event.key:
@@ -541,14 +540,14 @@ def loop():
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
-			should_respond_to_cib = receive_message_from_cib()
+			if should_respond_to_cib:
+				send_message_to_cib()
 			update_bank0_registers()
 			update_bank1_bank2_scalers()
 			update_other_bank1_registers()
 			update_counters()
 			update_ToT()
-			if should_respond_to_cib:
-				send_message_to_cib()
+			should_respond_to_cib = receive_message_from_cib()
 		elif event.type == pygame.MOUSEBUTTONDOWN:
 			do_something()
 	for i in range(number_of_pin_diode_boxes):
