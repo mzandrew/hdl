@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/irsx_register_interface_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="irsx_register_interface_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="19" />
+   <wvobject fp_name="/irsx_register_interface_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/regclr" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">regclr</obj_property>
+      <obj_property name="ObjectShortName">regclr</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/shout" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">shout</obj_property>
+      <obj_property name="ObjectShortName">shout</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/sin" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sin</obj_property>
+      <obj_property name="ObjectShortName">sin</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/sclk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sclk</obj_property>
+      <obj_property name="ObjectShortName">sclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/pclk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pclk</obj_property>
+      <obj_property name="ObjectShortName">pclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/address_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">address_word[7:0]</obj_property>
+      <obj_property name="ObjectShortName">address_word[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/write_data_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">write_data_word[11:0]</obj_property>
+      <obj_property name="ObjectShortName">write_data_word[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/read_data_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">read_data_word[11:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data_word[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/readback_data_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">readback_data_word[11:0]</obj_property>
+      <obj_property name="ObjectShortName">readback_data_word[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/write_strobe" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">write_strobe</obj_property>
+      <obj_property name="ObjectShortName">write_strobe</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/shift_register" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">shift_register[19:0]</obj_property>
+      <obj_property name="ObjectShortName">shift_register[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/number_of_register_transactions" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">number_of_register_transactions[31:0]</obj_property>
+      <obj_property name="ObjectShortName">number_of_register_transactions[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/shout_write" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">shout_write</obj_property>
+      <obj_property name="ObjectShortName">shout_write</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/mode" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">mode[1:0]</obj_property>
+      <obj_property name="ObjectShortName">mode[1:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/shout_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">shout_word[0:19]</obj_property>
+      <obj_property name="ObjectShortName">shout_word[0:19]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/data_from_shout" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_from_shout[11:0]</obj_property>
+      <obj_property name="ObjectShortName">data_from_shout[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/sin_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">sin_word[0:19]</obj_property>
+      <obj_property name="ObjectShortName">sin_word[0:19]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>
