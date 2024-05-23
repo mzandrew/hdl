@@ -77,7 +77,7 @@ module IRSXtest #(
 	wire reset127;
 	IBUFGDS mybuf0 (.I(clock127_p), .IB(clock127_n), .O(clock127));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait4pll (.reset1_input(reset), .pll_locked1_input(1'b1), .clock1_input(clock127), .clock2_input(clock127), .reset2_output(reset127));
-	wire word_clock;
+	wire word_clock_raw, word_clock;
 	// ----------------------------------------------------------------------
 	wire first_pll_locked, second_pll_locked, third_pll_locked, all_plls_locked;
 	assign all_plls_locked = first_pll_locked && second_pll_locked && third_pll_locked;
@@ -93,10 +93,11 @@ module IRSXtest #(
 		.PLL_PHASE0(0.0), .PLL_PHASE1(180.0), .PLL_PHASE2(0.0), .PLL_PHASE3(180.0), .PLL_PHASE4(0.0), .PLL_PHASE5(0.0),
 		.PLL_PHASE6(0.0), .PLL_PHASE7(180.0), .PLL_PHASE8(0.0), .PLL_PHASE9(180.0), .PLL_PHASE10(0.0), .PLL_PHASE11(0.0)
 	) my_dcm_pll (
-		.clockin(clock127), .reset(reset127), .clockintermediate(word_clock), .dcm_locked(first_pll_locked), .pll1_locked(second_pll_locked), .pll2_locked(third_pll_locked),
-		.clock0out(sstclk_raw), .clock1out(sstclk180_raw), .clock2out(wr_clk_raw), .clock3out(wr_clk180_raw), .clock4out(), .clock5out(),
+		.clockin(clock127), .reset(reset127), .clockintermediate(), .dcm_locked(first_pll_locked), .pll1_locked(second_pll_locked), .pll2_locked(third_pll_locked),
+		.clock0out(sstclk_raw), .clock1out(sstclk180_raw), .clock2out(wr_clk_raw), .clock3out(wr_clk180_raw), .clock4out(word_clock_raw), .clock5out(),
 		.clock6out(gcc_clk_raw), .clock7out(gcc_clk180_raw), .clock8out(hs_clk_raw), .clock9out(hs_clk180_raw), .clock10out(), .clock11out()
 	);
+	BUFG wordraw (.I(word_clock_raw), .O(word_clock));
 	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
 	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
 	BUFG wr_raw (.I(wr_clk_raw), .O(wr_clk));
@@ -170,8 +171,9 @@ module IRSXtest #(
 //	wire [31:0] omga_counter;
 	assign bank1[0] = { hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8_copy_on_word_clock_domain };
 	assign bank1[1] = number_of_register_transactions;
+	assign bank1[2] = number_of_readback_errors;
 //	assign bank1[1][7:0] = number_of_triggers_since_reset;
-	assign bank1[2][0] = fifo_empty;
+//	assign bank1[2][0] = fifo_empty;
 //	assign bank1[3][:] = fifo_pending;
 	assign bank1[4][23:0] = fifo_error_count;
 	assign bank1[5] = asic_output_strobe_counter;
@@ -258,6 +260,7 @@ module IRSXtest #(
 		.intended_data_in(write_data_word[11:0]), .intended_data_out(read_data_word[7][11:0]),
 		.readback_data_out(read_data_word[7][23:12]),
 		.number_of_transactions(number_of_register_transactions),
+		.number_of_readback_errors(number_of_readback_errors),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
 		.address(address_word_full[7:0]), .write_enable(write_strobe[7]),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
