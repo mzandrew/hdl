@@ -161,6 +161,7 @@ module IRSXtest #(
 		.data_in_b_c(bank1[12]), .data_in_b_d(bank1[13]), .data_in_b_e(bank1[14]), .data_in_b_f(bank1[15]),
 		.write_strobe_b(1'b1));
 	wire [31:0] number_of_register_transactions;
+	wire [31:0] number_of_readback_errors;
 //	reg [7:0] number_of_triggers_since_reset = 0;
 	wire fifo_empty;
 //	wire [:] fifo_pending;
