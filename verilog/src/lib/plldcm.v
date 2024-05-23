@@ -1,6 +1,6 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2021-10-27 by mza
+// last updated 2024-05-23 by mza
 
 `ifndef PLLDCM_LIB
 `define PLLDCM_LIB
@@ -100,13 +100,16 @@ endmodule
 module simplepll_ADV #(
 	parameter OVERALL_DIVIDE = 1,
 	parameter MULTIPLY = 4,
-	parameter DIVIDE = 1,
+	parameter DIVIDE0=1, DIVIDE1=1, DIVIDE2=1, DIVIDE3=1, DIVIDE4=1, DIVIDE5=1,
+	parameter PHASE0=0.0, PHASE1=0.0, PHASE2=0.0, PHASE3=0.0, PHASE4=0.0, PHASE5=0.0,
 	parameter PERIOD = 10.0,
 	parameter COMPENSATION = "INTERNAL"
 ) (
 	input clockin,
 	input reset,
-	output clockout,
+	output clock0out, output clock1out,
+	output clock2out, output clock3out,
+	output clock4out, output clock5out,
 	output locked
 );
 	wire fb;
@@ -118,18 +121,18 @@ module simplepll_ADV #(
 		.CLKIN2_PERIOD(PERIOD), // clock period (ns) of input clock on clkin2
 		.DIVCLK_DIVIDE(OVERALL_DIVIDE), // division factor for all clocks (1 to 52)
 		.CLKFBOUT_MULT(MULTIPLY), // multiplication factor for all output clocks
-		.CLKOUT0_DIVIDE(DIVIDE), // division factor for clkout0 (1 to 128)
-		.CLKOUT1_DIVIDE(1), // division factor for clkout1 (1 to 128)
-		.CLKOUT2_DIVIDE(1), // division factor for clkout2 (1 to 128)
-		.CLKOUT3_DIVIDE(1), // division factor for clkout3 (1 to 128)
-		.CLKOUT4_DIVIDE(1), // division factor for clkout4 (1 to 128)
-		.CLKOUT5_DIVIDE(1), // division factor for clkout5 (1 to 128)
-		.CLKOUT0_PHASE(0.0), // phase shift (degrees) for clkout0 (0.0 to 360.0)
-		.CLKOUT1_PHASE(0.0), // phase shift (degrees) for clkout1 (0.0 to 360.0)
-		.CLKOUT2_PHASE(0.0), // phase shift (degrees) for clkout2 (0.0 to 360.0)
-		.CLKOUT3_PHASE(0.0), // phase shift (degrees) for clkout3 (0.0 to 360.0)
-		.CLKOUT4_PHASE(0.0), // phase shift (degrees) for clkout4 (0.0 to 360.0)
-		.CLKOUT5_PHASE(0.0), // phase shift (degrees) for clkout5 (0.0 to 360.0)
+		.CLKOUT0_DIVIDE(DIVIDE0), // division factor for clkout0 (1 to 128)
+		.CLKOUT1_DIVIDE(DIVIDE1), // division factor for clkout1 (1 to 128)
+		.CLKOUT2_DIVIDE(DIVIDE2), // division factor for clkout2 (1 to 128)
+		.CLKOUT3_DIVIDE(DIVIDE3), // division factor for clkout3 (1 to 128)
+		.CLKOUT4_DIVIDE(DIVIDE4), // division factor for clkout4 (1 to 128)
+		.CLKOUT5_DIVIDE(DIVIDE5), // division factor for clkout5 (1 to 128)
+		.CLKOUT0_PHASE(PHASE0), // phase shift (degrees) for clkout0 (0.0 to 360.0)
+		.CLKOUT1_PHASE(PHASE1), // phase shift (degrees) for clkout1 (0.0 to 360.0)
+		.CLKOUT2_PHASE(PHASE2), // phase shift (degrees) for clkout2 (0.0 to 360.0)
+		.CLKOUT3_PHASE(PHASE3), // phase shift (degrees) for clkout3 (0.0 to 360.0)
+		.CLKOUT4_PHASE(PHASE4), // phase shift (degrees) for clkout4 (0.0 to 360.0)
+		.CLKOUT5_PHASE(PHASE5), // phase shift (degrees) for clkout5 (0.0 to 360.0)
 		.CLKOUT0_DUTY_CYCLE(0.5), // duty cycle for clkout0 (0.01 to 0.99)
 		.CLKOUT1_DUTY_CYCLE(0.5), // duty cycle for clkout1 (0.01 to 0.99)
 		.CLKOUT2_DUTY_CYCLE(0.5), // duty cycle for clkout2 (0.01 to 0.99)
@@ -144,12 +147,12 @@ module simplepll_ADV #(
 		.CLKFBIN(fb), // clock feedback input
 		.CLKFBOUT(fb), // general output feedback signal
 		.CLKIN1(clockin), // primary clock input
-		.CLKOUT0(clockout),
-		.CLKOUT1(), //
-		.CLKOUT2(), //
-		.CLKOUT3(), // one of six general clock output signals
-		.CLKOUT4(), // one of six general clock output signals
-		.CLKOUT5(), // one of six general clock output signals
+		.CLKOUT0(clock0out),
+		.CLKOUT1(clock1out), //
+		.CLKOUT2(clock2out), //
+		.CLKOUT3(clock3out), // one of six general clock output signals
+		.CLKOUT4(clock4out), // one of six general clock output signals
+		.CLKOUT5(clock5out), // one of six general clock output signals
 		.CLKFBDCM(), // output feedback signal used when pll feeds a dcm
 		.CLKOUTDCM0(), // one of six clock outputs to connect to the dcm
 		.CLKOUTDCM1(), // one of six clock outputs to connect to the dcm
@@ -188,12 +191,9 @@ module simplepll_BASE #(
 ) (
 	input clockin,
 	input reset,
-	output clock0out,
-	output clock1out,
-	output clock2out,
-	output clock3out,
-	output clock4out,
-	output clock5out,
+	output clock0out, output clock1out,
+	output clock2out, output clock3out,
+	output clock4out, output clock5out,
 	output locked
 );
 	wire fb;
