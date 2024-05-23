@@ -354,6 +354,53 @@ module simpledcm_SP #(
 	);
 endmodule
 
+//	dcm_pll #(
+//		.DCM_PERIOD(7.861), .DCM_MULTIPLY(4), .DCM_DIVIDE(4),
+//		.PLL_PERIOD(7.861), .PLL_MULTIPLY(4), .PLL_OVERALL_DIVIDE(1),
+//		.PLL_DIVIDE0(24), .PLL_DIVIDE1(24), .PLL_DIVIDE2(24), .PLL_DIVIDE3(24), .PLL_DIVIDE4(4), .PLL_DIVIDE5(4),
+//		.PLL_PHASE0(0.0), .PLL_PHASE1(180.0), .PLL_PHASE2(0.0), .PLL_PHASE3(180.0), .PLL_PHASE4(0.0), .PLL_PHASE5(0.0)
+//	) my_dcm_pll (
+//		.clockin(clock127), .reset(reset127), .clockintermediate(word_clock_raw), .dcm_locked(first_pll_locked), .pll_locked(second_pll_locked),
+//		.clock0out(sstclk_raw), .clock1out(sstclk180_raw), .clock2out(wr_clk_raw), .clock3out(wr_clk180_raw), .clock4out(), .clock5out()
+//	);
+module dcm_pll #(
+	parameter DCM_PERIOD = "10.0",
+	parameter DCM_MULTIPLY = 1,
+	parameter DCM_DIVIDE = 1,
+	parameter PLL_PERIOD = 10.0,
+	parameter PLL_MULTIPLY = 1,
+	parameter PLL_OVERALL_DIVIDE = 1,
+	parameter PLL_DIVIDE0 = 1, PLL_DIVIDE1 = 1, PLL_DIVIDE2 = 1, PLL_DIVIDE3 = 1, PLL_DIVIDE4 = 1, PLL_DIVIDE5 = 1, 
+	parameter PLL_PHASE0 = 0.0, PLL_PHASE1 = 0.0, PLL_PHASE2 = 0.0, PLL_PHASE3 = 0.0, PLL_PHASE4 = 0.0, PLL_PHASE5 = 0.0 
+) (
+	input clockin,
+	input reset,
+	output clockintermediate,
+	output clock0out, clock1out, clock2out, clock3out, clock4out, clock5out,
+	output dcm_locked, pll_locked
+);
+	wire clockintermediate;
+//	wire dcm_locked, pll_locked;
+	simpledcm_SP #(
+		.MULTIPLY(DCM_MULTIPLY), .DIVIDE(DCM_DIVIDE), .PERIOD(DCM_PERIOD)
+	) mydcm (
+		.clockin(clockin),
+		.reset(reset),
+		.clockout(clockintermediate),
+		.clockout180(),
+		.locked(dcm_locked));
+	simplepll_ADV #(
+		.OVERALL_DIVIDE(PLL_OVERALL_DIVIDE), .MULTIPLY(PLL_MULTIPLY), .PERIOD(PLL_PERIOD), .COMPENSATION("DCM2PLL"),
+		.DIVIDE0(PLL_DIVIDE0), .DIVIDE1(PLL_DIVIDE1), .DIVIDE2(PLL_DIVIDE2), .DIVIDE3(PLL_DIVIDE3), .DIVIDE4(PLL_DIVIDE4), .DIVIDE5(PLL_DIVIDE5),
+		.PHASE0(PLL_PHASE0), .PHASE1(PLL_PHASE1), .PHASE2(PLL_PHASE2), .PHASE3(PLL_PHASE3), .PHASE4(PLL_PHASE4), .PHASE5(PLL_PHASE5)
+	) mypll (
+		.clockin(clockintermediate),
+		.reset(reset),
+		.clock0out(clock0out), .clock1out(clock1out), .clock2out(clock2out), .clock3out(clock3out), .clock4out(clock4out), .clock5out(clock5out),
+		.locked(pll_locked));
+//	assign locked = dcm_locked && pll_locked;
+endmodule
+
 //plldcm #(.OVERALL_DIVIDE(1), .pllmultiply(10), .plldivide(1), .pllperiod(20.0), .dcmmultiply(2), .dcmdivide(8), .dcmperiod(2.0)) kronos (.clockin(clock50), .reset(reset), .clockout(clock), .clockout180(), .locked()); // 50->125
 module plldcm #(parameter OVERALL_DIVIDE=1, PLLMULTIPLY=1, PLLDIVIDE=1, PLLPERIOD=10.0, DCMMULTIPLY=1, DCMDIVIDE=1, DCMPERIOD="10.0") (
 	input clockin,
