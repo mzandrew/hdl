@@ -3,14 +3,14 @@
    <wave_state>
    </wave_state>
    <db_ref_list>
-      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/irsx_register_interface_tb_isim_beh.wdb" id="1" type="auto">
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/irsx_register_interface_tb_isim_beh1.wdb" id="1" type="auto">
          <top_modules>
             <top_module name="glbl" />
             <top_module name="irsx_register_interface_tb" />
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="30" />
+   <WVObjectSize size="33" />
    <wvobject fp_name="/irsx_register_interface_tb/clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock</obj_property>
       <obj_property name="ObjectShortName">clock</obj_property>
@@ -96,6 +96,11 @@
       <obj_property name="BkColor">128 128 255</obj_property>
       <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/bram_wait_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bram_wait_state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">bram_wait_state[1:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
    <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/sin_counter" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">sin_counter[5:0]</obj_property>
       <obj_property name="ObjectShortName">sin_counter[5:0]</obj_property>
@@ -126,9 +131,19 @@
       <obj_property name="ObjectShortName">data_intended[11:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/data_intended_copy" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_intended_copy[11:0]</obj_property>
+      <obj_property name="ObjectShortName">data_intended_copy[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
    <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/data_readback" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">data_readback[11:0]</obj_property>
       <obj_property name="ObjectShortName">data_readback[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/data_readback_copy" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_readback_copy[11:0]</obj_property>
+      <obj_property name="ObjectShortName">data_readback_copy[11:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="divider52" type="divider">
