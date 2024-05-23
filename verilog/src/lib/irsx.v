@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-05-21 by mza
+// last updated 2024-05-22 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -22,6 +22,7 @@ module irsx_register_interface #(
 	output [11:0] intended_data_out,
 	output [11:0] readback_data_out,
 	output reg [31:0] number_of_transactions = 0,
+	input [7:0] clock_divider_initial_value_for_register_transactions,
 	input write_enable,
 	output reg sin = 0,
 	output reg pclk = 0,
@@ -75,7 +76,7 @@ module irsx_register_interface #(
 					address_10 <= address_10 - 1'b1; // ??? is this because the shout data we get is for the previous transfer/address?
 					sin_counter <= 0;
 					pclk_counter <= 0;
-					clock_divisor_counter <= 0;
+					clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
 				end else begin
 					if (address_10<=MAX_REGISTER_ADDRESS) begin
 						address_10 <= address_10 + 1'b1;
@@ -85,6 +86,7 @@ module irsx_register_interface #(
 				end
 			end else if (mode==2'b01) begin // difference found, so write updated value
 				if (clock_divisor_counter==0) begin
+					clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
 					if (sin_counter<4*NUMBER_OF_SIN_WORD_BITS) begin
 						sin <= sin_word[sin_counter[6:2]];
 						sin_counter <= sin_counter + 1'b1;
@@ -105,16 +107,18 @@ module irsx_register_interface #(
 						pclk <= 1;
 						pclk_counter <= pclk_counter + 1'b1;
 					end else begin
+						mode <= 2'b10; // readback shout
 						pclk <= 0;
 						sin <= 0;
 						sin_counter <= 0;
-						mode <= 2'b10; // readback shout
 						number_of_transactions <= number_of_transactions + 1'b1;
 					end
+				end else begin
+					clock_divisor_counter <= clock_divisor_counter - 1'b1;
 				end
-				clock_divisor_counter <= clock_divisor_counter + 1'b1;
 			end else if (mode==2'b10) begin // readback shout
 				if (clock_divisor_counter==0) begin
+					clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
 					sin_counter <= sin_counter + 1'b1;
 					if (sin_counter<4*NUMBER_OF_SIN_WORD_BITS) begin
 						if (sin_counter[1]) begin
@@ -126,8 +130,9 @@ module irsx_register_interface #(
 					end else begin
 						mode <= 2'b00;
 					end
+				end else begin
+					clock_divisor_counter <= clock_divisor_counter - 1'b1;
 				end
-				clock_divisor_counter <= clock_divisor_counter + 1'b1;
 			end else begin
 				mode <= 2'b00;
 			end
