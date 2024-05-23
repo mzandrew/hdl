@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-05-22 by mza
+// last updated 2024-05-23 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -13,8 +13,9 @@ module irsx_register_interface #(
 	parameter MAX_REGISTER_ADDRESS = 2**NUMBER_OF_ASIC_ADDRESS_BITS - 1, // 255
 	parameter NUMBER_OF_ASIC_DATA_BITS = 12,
 	parameter NUMBER_OF_SIN_WORD_BITS = NUMBER_OF_ASIC_ADDRESS_BITS + NUMBER_OF_ASIC_DATA_BITS, // 20
-	parameter CLOCK_DIVISOR = TESTBENCH ? 4 : 128,
-	parameter CLOCK_DIVISOR_COUNTER_PICKOFF = $clog2(CLOCK_DIVISOR) // 7
+	parameter EXTRA_STATE_COUNTER_INITIAL_VALUE = 4,
+	parameter EXTRA_STATE_COUNTER_PICKOFF = $clog2(EXTRA_STATE_COUNTER_INITIAL_VALUE) + 1, // 6
+	parameter CLOCK_DIVISOR_COUNTER_PICKOFF = 7
 ) (
 	input clock, reset,
 	input [7:0] address,
@@ -22,24 +23,26 @@ module irsx_register_interface #(
 	output [11:0] intended_data_out,
 	output [11:0] readback_data_out,
 	output reg [31:0] number_of_transactions = 0,
-	input [7:0] clock_divider_initial_value_for_register_transactions,
+	input [CLOCK_DIVISOR_COUNTER_PICKOFF:0] clock_divider_initial_value_for_register_transactions,
 	input write_enable,
 	output reg sin = 0,
 	output reg pclk = 0,
 	output reg regclr = 1,
 	output sclk,
+	output reg [31:0] number_of_readback_errors = 0,
 	input shout
 );
 	reg [CLOCK_DIVISOR_COUNTER_PICKOFF:0] clock_divisor_counter = 0;
+	// both following addresses are 10 bits to easily address a whole single block ram
 	wire [9:0] upstream_address_10 = { 2'b00, address }; // the address from the hdrb interface that reads from and writes to the "intended_values" bram
 	reg [9:0] address_10 = 0; // the address that our state machine uses to look through the two brams to check for differences
-	wire [11:0] data_intended;
-	wire [11:0] data_readback;
+	wire [11:0] data_intended; // from "intended_values" block ram at address address_10
+	wire [11:0] data_readback; // from "actual_readback" block ram at address address_10
 	RAM_s6_1k_12bit_12bit intended_values (.reset(reset),
 		.clock_a(clock), .address_a(upstream_address_10), .data_in_a(intended_data_in), .write_enable_a(write_enable), .data_out_a(intended_data_out),
 		.clock_b(clock), .address_b(address_10), .data_out_b(data_intended));
-	wire [0:NUMBER_OF_SIN_WORD_BITS-1] sin_word = { address_10[7:0], data_intended };
-	reg [6:0] sin_counter = 0;
+	wire [0:NUMBER_OF_SIN_WORD_BITS-1] sin_word = { address_10[NUMBER_OF_ASIC_ADDRESS_BITS-1:0], data_intended };
+	reg [5:0] sin_counter = 0;
 	reg [3:0] pclk_counter = 0;
 	reg [0:NUMBER_OF_SIN_WORD_BITS-1] shout_word = 0;
 	wire [11:0] data_from_shout;
@@ -53,7 +56,9 @@ module irsx_register_interface #(
 		.clock_a(clock), .address_a(address_10), .data_in_a(data_from_shout), .write_enable_a(shout_write), .data_out_a(data_readback), // for comparisons
 		.clock_b(clock), .address_b(upstream_address_10), .data_out_b(readback_data_out)); // to readout to hdrb
 	reg [1:0] mode = 0;
-	assign sclk = sin_counter[1];
+	assign sclk = sin_counter[0];
+	reg [EXTRA_STATE_COUNTER_PICKOFF:0] extra_state_counter = EXTRA_STATE_COUNTER_INITIAL_VALUE;
+	reg bram_wait_state = 1;
 	always @(posedge clock) begin
 		regclr <= 0;
 		shout_write <= 0;
@@ -63,34 +68,46 @@ module irsx_register_interface #(
 			sin <= 0;
 			pclk <= 0;
 			address_10 <= 0;
+			bram_wait_state <= 1;
 			sin_counter <= 0;
 			pclk_counter <= 0;
 			clock_divisor_counter <= 0;
 			number_of_transactions <= 0;
+			number_of_readback_errors <= 0;
+			extra_state_counter <= EXTRA_STATE_COUNTER_INITIAL_VALUE;
 		end else begin
 			if (mode==2'b00) begin // scan for differences
-				if (data_intended!=data_readback) begin
-					mode <= 2'b01; // difference found, so write updated value to asic
-					sin <= 0;
-					pclk <= 0;
-					address_10 <= address_10 - 1'b1; // ??? is this because the shout data we get is for the previous transfer/address?
-					sin_counter <= 0;
-					pclk_counter <= 0;
-					clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
-				end else begin
-					if (address_10<=MAX_REGISTER_ADDRESS) begin
-						address_10 <= address_10 + 1'b1;
+				if (bram_wait_state==0) begin
+					if (data_intended!=data_readback) begin // checking two block rams against each other at address address_10
+						mode <= 2'b01; // difference found, so write updated value to asic
+						sin <= 0;
+						pclk <= 0;
+						sin_counter <= 0;
+						pclk_counter <= 0;
+						sin <= sin_word[0]; // must get this ready before the first sclk
+						clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
 					end else begin
-						address_10 <= 0;
+						if (address_10<=MAX_REGISTER_ADDRESS) begin
+							address_10 <= address_10 + 1'b1;
+						end else begin
+							address_10 <= 0;
+						end
+						bram_wait_state <= 1; // after every address_10 change
 					end
+				end else begin
+					bram_wait_state <= 0;
 				end
-			end else if (mode==2'b01) begin // difference found, so write updated value
+			end else if (mode==2'b01) begin // difference found, so write updated value to asic
 				if (clock_divisor_counter==0) begin
 					clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
-					if (sin_counter<4*NUMBER_OF_SIN_WORD_BITS) begin
-						sin <= sin_word[sin_counter[6:2]];
+					if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS-2) begin // stop "early" because we already got the first bit out
+						if (sclk) begin
+							sin <= sin_word[sin_counter[5:1]+1]; // we already prepared sin for the first sclk, so add 1 here for the rest
+						end
 						sin_counter <= sin_counter + 1'b1;
+					end else if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS) begin
 						pclk_counter <= 0;
+						sin_counter <= sin_counter + 1'b1; // the last sclk
 					end else if (pclk_counter==0) begin
 						sin <= 1;
 						pclk_counter <= pclk_counter + 1'b1;
@@ -111,6 +128,7 @@ module irsx_register_interface #(
 						pclk <= 0;
 						sin <= 0;
 						sin_counter <= 0;
+						pclk_counter <= 0;
 						number_of_transactions <= number_of_transactions + 1'b1;
 					end
 				end else begin
@@ -119,22 +137,39 @@ module irsx_register_interface #(
 			end else if (mode==2'b10) begin // readback shout
 				if (clock_divisor_counter==0) begin
 					clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
-					sin_counter <= sin_counter + 1'b1;
-					if (sin_counter<4*NUMBER_OF_SIN_WORD_BITS) begin
-						if (sin_counter[1]) begin
-							shout_word[sin_counter[6:2]+1] <= shout;
+					if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS) begin
+						if (sclk) begin
+							shout_word[sin_counter[5:1]] <= shout;
 						end
-					end else if (sin_counter<4*NUMBER_OF_SIN_WORD_BITS+1) begin
-						shout_write <= 1;
-					end else if (sin_counter<4*NUMBER_OF_SIN_WORD_BITS+2) begin
+						sin_counter <= sin_counter + 1'b1;
+						pclk_counter <= 0;
+					end else if (pclk_counter==0) begin
+						pclk_counter <= pclk_counter + 1'b1;
+						shout_write <= 1; // write it into the "actual_readback" block ram
+						if (sin_word!=shout_word) begin
+							number_of_readback_errors <= number_of_readback_errors + 1'b1;
+						end
+					end else if (pclk_counter==1) begin // wait an extra cycle for the bram data to be ready
+						pclk_counter <= pclk_counter + 1'b1;
+					end else if (pclk_counter==2) begin
+						pclk_counter <= pclk_counter + 1'b1;
+						if (data_intended!=data_readback) begin
+							number_of_readback_errors <= number_of_readback_errors + 1'b1;
+						end
 					end else begin
-						mode <= 2'b00;
+						extra_state_counter <= EXTRA_STATE_COUNTER_INITIAL_VALUE;
+						mode <= 2'b11; // extra state
 					end
 				end else begin
 					clock_divisor_counter <= clock_divisor_counter - 1'b1;
 				end
-			end else begin
-				mode <= 2'b00;
+			end else begin // extra state
+				extra_state_counter <= extra_state_counter - 1'b1;
+				sin_counter <= 0;
+				pclk_counter <= 0;
+				if (extra_state_counter==0) begin
+					mode <= 2'b00; // scan for differences
+				end
 			end
 		end
 	end
@@ -145,11 +180,11 @@ module irsx_register_interface_tb ();
 	localparam WHOLE_CLOCK_PERIOD = 2*HALF_CLOCK_PERIOD;
 	localparam SEVERAL_CLOCK_PERIODS = 2*WHOLE_CLOCK_PERIOD;
 	localparam MANY_CLOCK_PERIODS = 100*WHOLE_CLOCK_PERIOD;
-	localparam REALLY_A_LOT_OF_CLOCK_PERIODS = 4000*WHOLE_CLOCK_PERIOD;
+	localparam REALLY_A_LOT_OF_CLOCK_PERIODS = 2000*WHOLE_CLOCK_PERIOD;
 	reg clock = 0;
 	reg raw_reset = 1;
 	reg reset = 1;
-	wire shout;
+	reg shout = 0;
 	wire sin, sclk, pclk, regclr;
 	reg [11:0] raw_write_data_word = 0;
 	reg [11:0] write_data_word = 0;
@@ -161,11 +196,16 @@ module irsx_register_interface_tb ();
 	reg [19:0] shift_register = 0;
 	wire [11:0] readback_data_word;
 	wire [31:0] number_of_register_transactions;
+	reg [7:0] clock_divider_initial_value_for_register_transactions = 0;
+	wire [31:0] number_of_readback_errors;
 	irsx_register_interface #(.TESTBENCH(1)) irsx_reg (.clock(clock), .reset(reset),
 		.intended_data_in(write_data_word), .intended_data_out(read_data_word), .readback_data_out(readback_data_word),
 		.number_of_transactions(number_of_register_transactions),
+		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
+		.number_of_readback_errors(number_of_readback_errors),
 		.address(address_word), .write_enable(write_strobe),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
+	wire pre_shout = shift_register[19];
 	always @(posedge clock) begin
 		reset <= raw_reset;
 		address_word <= raw_address_word;
@@ -175,7 +215,9 @@ module irsx_register_interface_tb ();
 	always @(posedge sclk) begin
 		shift_register <= { shift_register[18:0], sin };
 	end
-	assign shout = shift_register[19];
+	always @(negedge sclk) begin
+		shout <= pre_shout;
+	end
 	always begin
 		clock <= 1;
 		#HALF_CLOCK_PERIOD;
@@ -187,6 +229,36 @@ module irsx_register_interface_tb ();
 			#WHOLE_CLOCK_PERIOD;
 		end
 		raw_reset <= 0;
+		#500; //  wait until after the internal comparison of address_10 with 0x43
+		// -----------------------
+		#MANY_CLOCK_PERIODS;
+		clock_divider_initial_value_for_register_transactions <= 0;
+		// -----------------------
+		#SEVERAL_CLOCK_PERIODS;
+		raw_write_data_word <= 12'h765;
+		#SEVERAL_CLOCK_PERIODS;
+		raw_address_word <= 8'h98;
+		#SEVERAL_CLOCK_PERIODS;
+		raw_write_strobe <= 1'b1;
+		#WHOLE_CLOCK_PERIOD;
+		raw_write_strobe <= 1'b0;
+		#SEVERAL_CLOCK_PERIODS;
+		raw_write_data_word <= 0;
+		raw_address_word <= 0;
+		// -----------------------
+		#SEVERAL_CLOCK_PERIODS;
+		raw_write_data_word <= 12'h210;
+		#SEVERAL_CLOCK_PERIODS;
+		raw_address_word <= 8'h43;
+		#SEVERAL_CLOCK_PERIODS;
+		raw_write_strobe <= 1'b1;
+		#WHOLE_CLOCK_PERIOD;
+		raw_write_strobe <= 1'b0;
+		raw_write_data_word <= 0;
+		raw_address_word <= 0;
+		// -----------------------
+		#2000; // gotta wait until the previous transactions with the asic have actually finished before changing clock_divider_initial_value_for_register_transactions
+		clock_divider_initial_value_for_register_transactions <= 1;
 		// -----------------------
 		#SEVERAL_CLOCK_PERIODS;
 		raw_write_data_word <= 12'h345;
@@ -228,6 +300,10 @@ module irsx_register_interface_tb ();
 		end
 		// -----------------------
 		#REALLY_A_LOT_OF_CLOCK_PERIODS;
+		raw_address_word <= 8'h98;
+		#MANY_CLOCK_PERIODS;
+		raw_address_word <= 8'h43;
+		#MANY_CLOCK_PERIODS;
 		raw_address_word <= 8'h0a;
 		#MANY_CLOCK_PERIODS;
 		raw_address_word <= 8'h13;
