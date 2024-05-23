@@ -77,59 +77,38 @@ module IRSXtest #(
 	wire reset127;
 	IBUFGDS mybuf0 (.I(clock127_p), .IB(clock127_n), .O(clock127));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait4pll (.reset1_input(reset), .pll_locked1_input(1'b1), .clock1_input(clock127), .clock2_input(clock127), .reset2_output(reset127));
-	wire word_clock_raw, word_clock;
+	wire word_clock;
 	// ----------------------------------------------------------------------
-	wire first_pll_locked, second_pll_locked, all_plls_locked;
-	assign all_plls_locked = first_pll_locked && second_pll_locked;
+	wire first_pll_locked, second_pll_locked, third_pll_locked, all_plls_locked;
+	assign all_plls_locked = first_pll_locked && second_pll_locked && third_pll_locked;
 	wire reset_word;
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(reset127), .pll_locked1_input(all_plls_locked), .clock1_input(clock127), .clock2_input(word_clock), .reset2_output(reset_word));
 	wire wr_clk_raw, wr_clk180_raw, sstclk_raw, sstclk180_raw, gcc_clk_raw, gcc_clk180_raw, hs_clk_raw, hs_clk180_raw;
 	wire wr_clk, wr_clk180, sstclk, sstclk180, gcc_clk, gcc_clk180, hs_clk, hs_clk180;
-	dcm_pll #(
+	dcm_pll_pll #(
 		.DCM_PERIOD(7.861), .DCM_MULTIPLY(4), .DCM_DIVIDE(4), // 127.221875 MHz
 		.PLL_PERIOD(7.861), .PLL_MULTIPLY(4), .PLL_OVERALL_DIVIDE(1), // 508.8875 MHz
 		.PLL_DIVIDE0(24), .PLL_DIVIDE1(24), .PLL_DIVIDE2(24), .PLL_DIVIDE3(24), .PLL_DIVIDE4(4), .PLL_DIVIDE5(4), // /24 -> 21.20 MHz; /4 -> 127.221875 MHz
-		.PLL_PHASE0(0.0), .PLL_PHASE1(180.0), .PLL_PHASE2(0.0), .PLL_PHASE3(180.0), .PLL_PHASE4(0.0), .PLL_PHASE5(0.0)
+		.PLL_DIVIDE6(24), .PLL_DIVIDE7(24), .PLL_DIVIDE8(24), .PLL_DIVIDE9(24), .PLL_DIVIDE10(4), .PLL_DIVIDE11(4), // /24 -> 21.20 MHz; /4 -> 127.221875 MHz
+		.PLL_PHASE0(0.0), .PLL_PHASE1(180.0), .PLL_PHASE2(0.0), .PLL_PHASE3(180.0), .PLL_PHASE4(0.0), .PLL_PHASE5(0.0),
+		.PLL_PHASE6(0.0), .PLL_PHASE7(180.0), .PLL_PHASE8(0.0), .PLL_PHASE9(180.0), .PLL_PHASE10(0.0), .PLL_PHASE11(0.0)
 	) my_dcm_pll (
-		.clockin(clock127), .reset(reset127), .clockintermediate(word_clock_raw), .dcm_locked(first_pll_locked), .pll_locked(second_pll_locked),
-		.clock0out(sstclk_raw), .clock1out(sstclk180_raw), .clock2out(wr_clk_raw), .clock3out(wr_clk180_raw), .clock4out(), .clock5out()
+		.clockin(clock127), .reset(reset127), .clockintermediate(word_clock), .dcm_locked(first_pll_locked), .pll1_locked(second_pll_locked), .pll2_locked(third_pll_locked),
+		.clock0out(sstclk_raw), .clock1out(sstclk180_raw), .clock2out(wr_clk_raw), .clock3out(wr_clk180_raw), .clock4out(), .clock5out(),
+		.clock6out(gcc_clk_raw), .clock7out(gcc_clk180_raw), .clock8out(hs_clk_raw), .clock9out(hs_clk180_raw), .clock10out(), .clock11out()
 	);
-//	assign second_pll_locked = 1'b1;
-/*
-	simplepll_ADV #(.PERIOD(7.861), .OVERALL_DIVIDE(1), .MULTIPLY(4), .COMPENSATION("SYSTEM_SYNCHRONOUS"),
-		.DIVIDE0(24), .DIVIDE1(24), .DIVIDE2(24), .DIVIDE3(24), .DIVIDE4(3), .DIVIDE5(4),
-		.PHASE0(0.0), .PHASE1(180.0), .PHASE2(0.0), .PHASE3(180.0), .PHASE4(0.0), .PHASE5(0.0)
-	) pll_sys_sst1 (.clockin(clock127), .reset(reset127), .locked(first_pll_locked),
-		.clock0out(sstclk_raw), .clock1out(sstclk180_raw),
-		.clock2out(wr_clk_raw), .clock3out(wr_clk180_raw),
-		.clock4out(word_clock_raw), .clock5out()
-	);
-	simplepll_ADV #(.PERIOD(7.861), .OVERALL_DIVIDE(1), .MULTIPLY(4), .COMPENSATION("SYSTEM_SYNCHRONOUS"),
-		.DIVIDE0(24), .DIVIDE1(24), .DIVIDE2(24), .DIVIDE3(24), .DIVIDE4(4), .DIVIDE5(4),
-		.PHASE0(0.0), .PHASE1(180.0), .PHASE2(0.0), .PHASE3(180.0), .PHASE4(0.0), .PHASE5(0.0)
-	) pll_sys_sst2 (.clockin(clock127), .reset(reset127), .locked(second_pll_locked),
-		//.clock0out(gcc_clk_raw), .clock1out(gcc_clk180_raw),
-		.clock0out(), .clock1out(),
-		//.clock2out(hs_clk_raw), .clock3out(hs_clk180_raw),
-		.clock2out(), .clock3out(),
-		.clock4out(), .clock5out()
-	);
-*/
-	BUFG wordraw (.I(word_clock_raw), .O(word_clock));
 	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
 	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
 	BUFG wr_raw (.I(wr_clk_raw), .O(wr_clk));
 	BUFG wr_180 (.I(wr_clk180_raw), .O(wr_clk180));
-//	BUFG gccraw (.I(gcc_clk_raw), .O(gcc_clk));
-//	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
-//	BUFG hsraw (.I(hs_clk_raw), .O(hs_clk));
-//	BUFG hs180 (.I(hs_clk180_raw), .O(hs_clk180));
+	BUFG gccraw (.I(gcc_clk_raw), .O(gcc_clk));
+	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
+	BUFG hsraw (.I(hs_clk_raw), .O(hs_clk));
+	BUFG hs180 (.I(hs_clk180_raw), .O(hs_clk180));
 	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
 	clock_ODDR_out_diff wr_clk_ODDR  (.clock_in_p(wr_clk),  .clock_in_n(wr_clk180),  .reset(reset), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
-//	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(reset), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
-//	clock_ODDR_out_diff hs_clk_ODDR  (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(reset), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
-	OBUFDS gcc_dummy (.I(1'b0), .O(gcc_clk_p), .OB(gcc_clk_n));
-	OBUFDS hs_dummy (.I(1'b0), .O(hs_clk_p), .OB(hs_clk_n));
+	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(reset), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
+	clock_ODDR_out_diff hs_clk_ODDR  (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(reset), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
 	// ----------------------------------------------------------------------
 	wire [7:0] status8_copy_on_word_clock_domain;
 	ssynchronizer #(.WIDTH(8)) status8_copy (.clock1(clock127), .clock2(word_clock), .reset1(reset127), .reset2(reset_word), .in1(status8), .out2(status8_copy_on_word_clock_domain));
@@ -300,10 +279,10 @@ module IRSXtest #(
 	// ----------------------------------------------------------------------
 	assign status8[7] = ~first_pll_locked;
 	assign status8[6] = ~second_pll_locked;
-	assign status8[5] = ~all_plls_locked;
-	assign status8[4] = reset127;
-	assign status8[3] = reset_word;
-	assign status8[2] = 1'b0;
+	assign status8[5] = ~third_pll_locked;
+	assign status8[4] = ~all_plls_locked;
+	assign status8[3] = reset127;
+	assign status8[2] = reset_word;
 	assign status8[1] = legacy_serial_sequence_has_occurred;
 	assign status8[0] = trigger_has_occurred;
 	// ----------------------------------------------------------------------
