@@ -267,12 +267,21 @@ module IRSXtest #(
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
 	assign read_data_word[7][31:24] = 0;
 	// ----------------------------------------------------------------------
-	assign coax[5] = 0;
-	assign coax[4] = 0;
-	assign coax[3] = sin;
-	assign coax[2] = sclk;
-	assign coax[1] = pclk;
-	assign coax[0] = shout;
+	assign coax[5] = shout;
+	assign coax[4] = sin;
+	if (0) begin
+		assign coax[0] = shout;
+		assign coax[1] = pclk;
+		assign coax[2] = sclk;
+		assign coax[3] = sin;
+	end else begin
+		wire oddr_sstclk;
+		clock_ODDR_out sstclk_second_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out(oddr_sstclk));
+		assign coax[0] = wr_syncmon;
+		assign coax[1] = oddr_sstclk;
+		assign coax[2] = montiming2;
+		assign coax[3] = montiming1;
+	end
 	// ----------------------------------------------------------------------
 	wire should_allow_legacy_serial_sequence = 1;
 	wire should_allow_trigger = 1;
