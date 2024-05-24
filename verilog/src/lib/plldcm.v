@@ -1,9 +1,22 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2024-05-23 by mza
+// last updated 2024-05-24 by mza
 
 `ifndef PLLDCM_LIB
 `define PLLDCM_LIB
+
+// from ug162:
+// spartan6 -3 PLL_in via BUFGMUX [19,400] MHz
+// spartan6 -3 PLL_in via BUFIO2 [19,540] MHz
+// spartan6 -3 PLL_vco [400,1080] MHz
+// spartan6 -3 PLL_out via BUFPLL [3.125,1080] MHz
+// spartan6 -3 PLL_PFD [19,500] MHz
+// spartan6 -3 DCM_dfs_in [0.5,280] MHz
+// spartan6 -3 DCM_dfs_out [5,375] MHz
+// spartan6 DCM_SP_multiply [2,32]
+// spartan6 DCM_SP_divide [1,32]
+// spartan6 DCM_CLKGEN_multiply [2,256]
+// spartan6 DCM_CLKGEN_divide [1,256]
 
 module dummy_dcm_diff_input #(
 	parameter MULT_DIV = 10,
