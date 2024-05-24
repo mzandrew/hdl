@@ -22,8 +22,8 @@ timespec "ts_clock127_p" = period "tnm_clock127_p" 7.861 ns high 50%; # 127 MHz
 # first column, closest to FPGA on left side of board
 net a_n loc=p116 | iostandard=lvds_25 | diff_term=true; # A- bank0 TR
 net a_p loc=p117 | iostandard=lvds_25 | diff_term=true; # A+ bank0 TR
-net c_n loc=p131 | iostandard=lvcmos25 | drive = 2 | slew = slow; # C- bank0 TL
-net c_p loc=p132 | iostandard=lvcmos25 | drive = 2 | slew = slow; # C+ bank0 TL
+net c_n loc=p131 | iostandard=lvcmos25 | drive = 16 | slew = fast; # C- bank0 TL
+net c_p loc=p132 | iostandard=lvcmos25 | drive = 16 | slew = fast; # C+ bank0 TL
 net d_n loc=p139 | iostandard=lvds_25; # D- bank0 TL
 net d_p loc=p140 | iostandard=lvds_25; # D+ bank0 TL
 net f_n loc=p141 | iostandard=lvds_25; # F- bank0 TL
@@ -37,7 +37,7 @@ net e_p loc=p134 | iostandard=lvds_25; # E+ bank0 TL
 
 # third column, on left side of board
 net z loc=p17  | iostandard=lvcmos25 | drive = 2 | slew = slow; # Z bank3 LT - conflicts with led<4> when using cascaded serdes
-net y loc=p15  | iostandard=lvcmos25 | drive = 2 | slew = slow; # Y bank3 LT - conflicts with led<5> when using cascaded serdes
+net y loc=p15  | iostandard=lvcmos25 | drive = 16 | slew = fast; # Y bank3 LT - conflicts with led<5> when using cascaded serdes
 net x loc=p12  | iostandard=lvcmos25 | drive = 2 | slew = slow; # X bank3 LT - conflicts with led<6> when using cascaded serdes
 net w loc=p10  | iostandard=lvcmos25 | drive = 2 | slew = slow; # W bank3 LT - conflicts with led<7> when using cascaded serdes
 net v loc=p8   | iostandard=lvcmos25 | drive = 2 | slew = slow; # V bank3 LT - conflicts with rot<1> when using cascaded serdes

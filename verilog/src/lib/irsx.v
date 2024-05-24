@@ -155,7 +155,7 @@ module irsx_register_interface #(
 					end else begin // extra state
 						sin_counter <= 0;
 						pclk_counter <= 0;
-							mode <= 2'b00; // scan for differences
+						mode <= 2'b00; // scan for differences
 					end
 				end else begin
 					clock_divisor_counter <= clock_divisor_counter - 1'b1;
