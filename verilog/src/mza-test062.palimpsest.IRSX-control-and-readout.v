@@ -154,6 +154,7 @@ module IRSXtest #(
 		.data_out_b_8(bank0[8]),  .data_out_b_9(bank0[9]),  .data_out_b_a(bank0[10]), .data_out_b_b(bank0[11]),
 		.data_out_b_c(bank0[12]), .data_out_b_d(bank0[13]), .data_out_b_e(bank0[14]), .data_out_b_f(bank0[15]));
 	wire [7:0] clock_divider_initial_value_for_register_transactions = bank0[0][7:0];
+	wire [7:0] max_retries = bank0[1][7:0];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -265,6 +266,7 @@ module IRSXtest #(
 		.readback_data_out(read_data_word[7][23:12]),
 		.number_of_transactions(number_of_register_transactions),
 		.number_of_readback_errors(number_of_readback_errors),
+		.max_retries(max_retries),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
 		.address(address_word_full[7:0]), .write_enable(write_strobe[7]),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));

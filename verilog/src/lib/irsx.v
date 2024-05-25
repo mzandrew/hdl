@@ -24,6 +24,7 @@ module irsx_register_interface #(
 	output [11:0] readback_data_out,
 	output reg [31:0] number_of_transactions = 0,
 	input [CLOCK_DIVISOR_COUNTER_PICKOFF:0] clock_divider_initial_value_for_register_transactions,
+	input [7:0] max_retries,
 	input write_enable,
 	output reg sin = 0,
 	output reg pclk = 0,
@@ -60,6 +61,7 @@ module irsx_register_interface #(
 	reg [1:0] mode = 0;
 	assign sclk = sin_counter[0];
 	reg [1:0] bram_wait_state = 2;
+	reg [7:0] retries_remaining = 1;
 	always @(posedge clock) begin
 		regclr <= 0;
 		shout_write <= 0;
@@ -77,18 +79,27 @@ module irsx_register_interface #(
 			number_of_readback_errors <= 0;
 			data_intended_copy <= 0;
 			data_readback_copy <= 0;
+			retries_remaining <= 1;
 		end else begin
 			if (mode==2'b00) begin // scan for differences
 				if (bram_wait_state==0) begin
 					if (data_intended_copy!=data_readback_copy) begin // checking two block rams against each other at address address_10
-						mode <= 2'b01; // difference found, so write updated value to asic
-						sin <= 0;
-						pclk <= 0;
-						sin_counter <= 2;
-						pclk_counter <= 0;
-						sin <= sin_word[0]; // must get this ready before the first sclk
-						clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
-						bram_wait_state <= 1; // just to force it to copy from the block ram again
+						if (0<retries_remaining) begin
+							mode <= 2'b01; // difference found, so write updated value to asic
+							sin <= 0;
+							pclk <= 0;
+							sin_counter <= 2;
+							pclk_counter <= 0;
+							sin <= sin_word[0]; // must get this ready before the first sclk
+							clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
+							bram_wait_state <= 2; // just to force it to copy from the block ram again
+							retries_remaining <= retries_remaining - 1'b1;
+						end else begin
+							shout_word <= data_intended_copy;
+							shout_write <= 1; // write it into the "actual_readback" block ram
+							bram_wait_state <= 2; // just to force it to copy from the block ram again
+							retries_remaining <= 1;
+						end
 					end else begin
 						if (address_10<=MAX_REGISTER_ADDRESS) begin
 							address_10 <= address_10 + 1'b1;
@@ -96,6 +107,7 @@ module irsx_register_interface #(
 							address_10 <= 0;
 						end
 						bram_wait_state <= 2; // after every address_10 change
+						retries_remaining <= max_retries + 1'b1;
 					end
 				end else if (bram_wait_state==1) begin
 					data_intended_copy <= data_intended;
@@ -188,11 +200,13 @@ module irsx_register_interface_tb ();
 	wire [31:0] number_of_register_transactions;
 	reg [7:0] clock_divider_initial_value_for_register_transactions = 0;
 	wire [31:0] number_of_readback_errors;
+	reg [7:0] max_retries = 6;
 	irsx_register_interface #(.TESTBENCH(1)) irsx_reg (.clock(clock), .reset(reset),
 		.intended_data_in(write_data_word), .intended_data_out(read_data_word), .readback_data_out(readback_data_word),
 		.number_of_transactions(number_of_register_transactions),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
 		.number_of_readback_errors(number_of_readback_errors),
+		.max_retries(max_retries),
 		.address(address_word), .write_enable(write_strobe),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
 	wire pre_shout = shift_register[19];
