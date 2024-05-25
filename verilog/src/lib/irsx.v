@@ -116,28 +116,28 @@ module irsx_register_interface #(
 						end else if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS+2) begin
 							pclk_counter <= 0;
 							sin_counter <= sin_counter + 1'b1; // the last sclk
-						end else if (pclk_counter==0) begin
-							sin <= 1;
-							pclk_counter <= pclk_counter + 1'b1;
-						end else if (pclk_counter==1) begin
-							pclk <= 1;
-							pclk_counter <= pclk_counter + 1'b1;
-						end else if (pclk_counter==2) begin
-							pclk <= 0;
-							pclk_counter <= pclk_counter + 1'b1;
-						end else if (pclk_counter==3) begin
-							sin <= 0;
-							pclk_counter <= pclk_counter + 1'b1;
-						end else if (pclk_counter==4) begin
-							pclk <= 1;
-							pclk_counter <= pclk_counter + 1'b1;
 						end else begin
-							mode <= 2'b10; // readback shout
-							pclk <= 0;
-							sin <= 0;
-							sin_counter <= 0;
-							pclk_counter <= 0;
-							number_of_transactions <= number_of_transactions + 1'b1;
+							if (pclk_counter==1) begin
+								sin <= 0;
+							end else if (pclk_counter==3) begin
+								pclk <= 1; // "latch"
+							end else if (pclk_counter==5) begin
+								pclk <= 0;
+							end else if (pclk_counter==7) begin
+								sin <= 1;
+							end else if (pclk_counter==9) begin
+								pclk <= 1; // "load" (should be longer than latch)
+							end else if (pclk_counter==11) begin
+								pclk <= 0;
+							end else if (pclk_counter==13) begin
+								sin <= 0;
+							end else if (pclk_counter==15) begin
+								mode <= 2'b10; // readback shout
+								number_of_transactions <= number_of_transactions + 1'b1;
+								sin_counter <= 0;
+								pclk_counter <= 0;
+							end
+							pclk_counter <= pclk_counter + 1'b1;
 						end
 					end else if (mode==2'b10) begin // readback shout
 						if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS) begin

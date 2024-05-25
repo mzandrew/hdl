@@ -85,17 +85,18 @@ module IRSXtest #(
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(reset127), .pll_locked1_input(all_plls_locked), .clock1_input(clock127), .clock2_input(word_clock), .reset2_output(reset_word));
 	wire wr_clk_raw, wr_clk180_raw, sstclk_raw, sstclk180_raw, gcc_clk_raw, gcc_clk180_raw, hs_clk_raw, hs_clk180_raw;
 	wire wr_clk, wr_clk180, sstclk, sstclk180, gcc_clk, gcc_clk180, hs_clk, hs_clk180;
+	wire double_period_clk_raw, double_period_clk180_raw, double_period_clk, double_period_clk180;
 	dcm_pll_pll #(
 		.DCM_PERIOD(7.861), .DCM_MULTIPLY(4), .DCM_DIVIDE(4), // 127.221875 MHz
 		.PLL_PERIOD(7.861), .PLL_MULTIPLY(8), .PLL_OVERALL_DIVIDE(1), // 1017.775 MHz
 		.PLL_DIVIDE0(48), .PLL_DIVIDE1(48), .PLL_DIVIDE2(48), .PLL_DIVIDE3(48), .PLL_DIVIDE4(8), .PLL_DIVIDE5(8), // /48 -> 21.20 MHz; /8 -> 127.221875 MHz
-		.PLL_DIVIDE6(48), .PLL_DIVIDE7(48), .PLL_DIVIDE8(48), .PLL_DIVIDE9(48), .PLL_DIVIDE10(8), .PLL_DIVIDE11(8), // /48 -> 21.20 MHz; /8 -> 127.221875 MHz
+		.PLL_DIVIDE6(48), .PLL_DIVIDE7(48), .PLL_DIVIDE8(48), .PLL_DIVIDE9(48), .PLL_DIVIDE10(96), .PLL_DIVIDE11(96), // /48 -> 21.20 MHz; /8 -> 127.221875 MHz
 		.PLL_PHASE0(0.0), .PLL_PHASE1(180.0), .PLL_PHASE2(0.0), .PLL_PHASE3(180.0), .PLL_PHASE4(0.0), .PLL_PHASE5(0.0),
-		.PLL_PHASE6(0.0), .PLL_PHASE7(180.0), .PLL_PHASE8(0.0), .PLL_PHASE9(180.0), .PLL_PHASE10(0.0), .PLL_PHASE11(0.0)
+		.PLL_PHASE6(0.0), .PLL_PHASE7(180.0), .PLL_PHASE8(0.0), .PLL_PHASE9(180.0), .PLL_PHASE10(0.0), .PLL_PHASE11(180.0)
 	) my_dcm_pll (
 		.clockin(clock127), .reset(reset127), .clockintermediate(), .dcm_locked(first_pll_locked), .pll1_locked(second_pll_locked), .pll2_locked(third_pll_locked),
 		.clock0out(sstclk_raw), .clock1out(sstclk180_raw), .clock2out(wr_clk_raw), .clock3out(wr_clk180_raw), .clock4out(word_clock_raw), .clock5out(),
-		.clock6out(gcc_clk_raw), .clock7out(gcc_clk180_raw), .clock8out(hs_clk_raw), .clock9out(hs_clk180_raw), .clock10out(), .clock11out()
+		.clock6out(gcc_clk_raw), .clock7out(gcc_clk180_raw), .clock8out(hs_clk_raw), .clock9out(hs_clk180_raw), .clock10out(double_period_clk_raw), .clock11out(double_period_clk180_raw)
 	);
 	BUFG wordraw (.I(word_clock_raw), .O(word_clock));
 	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
@@ -106,6 +107,8 @@ module IRSXtest #(
 	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
 	BUFG hsraw (.I(hs_clk_raw), .O(hs_clk));
 	BUFG hs180 (.I(hs_clk180_raw), .O(hs_clk180));
+	BUFG dpraw (.I(double_period_clk_raw), .O(double_period_clk));
+	BUFG dp180 (.I(double_period_clk180_raw), .O(double_period_clk180));
 	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
 	clock_ODDR_out_diff wr_clk_ODDR  (.clock_in_p(wr_clk),  .clock_in_n(wr_clk180),  .reset(reset), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
 	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(reset), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
@@ -275,10 +278,12 @@ module IRSXtest #(
 		assign coax[2] = sclk;
 		assign coax[3] = sin;
 	end else begin
-		wire oddr_sstclk;
-		clock_ODDR_out sstclk_second_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out(oddr_sstclk));
+		//wire oddr_sstclk;
+		//clock_ODDR_out sstclk_second_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out(oddr_sstclk));
+		wire oddr_double_period;
+		clock_ODDR_out double_period_ODDR  (.clock_in_p(double_period_clk),  .clock_in_n(double_period_clk180),  .reset(reset), .clock_out(oddr_double_period));
 		assign coax[0] = wr_syncmon;
-		assign coax[1] = oddr_sstclk;
+		assign coax[1] = oddr_double_period;
 		assign coax[2] = montiming2;
 		assign coax[3] = montiming1;
 	end
