@@ -49,6 +49,10 @@ module irsx_register_interface #(
 	reg [5:0] sin_counter = 0;
 	reg [3:0] pclk_counter = 0;
 	reg [0:NUMBER_OF_SIN_WORD_BITS-1] shout_word = 0;
+	localparam SHOUT_PIPELINE1_PICKOFF = 1;
+	localparam SHOUT_PIPELINE2_PICKOFF = NUMBER_OF_SIN_WORD_BITS;
+	reg [SHOUT_PIPELINE1_PICKOFF:0] shout_pipeline1 = 0; // runs at clock frequency; just to reduce metastability
+	reg [SHOUT_PIPELINE2_PICKOFF:0] shout_pipeline2 = 0; // runs at SCLK
 	wire [11:0] data_from_shout;
 	assign data_from_shout = shout_word[8:NUMBER_OF_SIN_WORD_BITS-1]; // OSH and SSHSH in misc_reg168 default to 0 on powerup and that's the right thing to get shout
 	reg shout_write = 0;
@@ -78,7 +82,11 @@ module irsx_register_interface #(
 			data_readback_copy <= 0;
 			retries_remaining <= 1;
 			last_erroneous_readback <= 0;
+			shout_word <= 0;
+			shout_pipeline1 <= 0;
+			shout_pipeline2 <= 0;
 		end else begin
+			shout_pipeline1 <= { shout_pipeline1[SHOUT_PIPELINE1_PICKOFF-1:0], shout };
 			if (mode==2'b00) begin // scan for differences
 				if (bram_wait_state==0) begin
 					if (data_intended_copy!=data_readback_copy) begin // checking two block rams against each other at address address_10
@@ -146,7 +154,6 @@ module irsx_register_interface #(
 								mode <= 2'b10; // readback shout
 								number_of_transactions <= number_of_transactions + 1'b1;
 								sin_counter <= 0;
-								pclk_counter <= 0;
 							end
 							pclk_counter <= pclk_counter + 1'b1;
 						end
@@ -155,26 +162,34 @@ module irsx_register_interface #(
 					end
 				end else if (mode==2'b10) begin // readback shout
 					if (clock_divisor_counter==0) begin
-						clock_divisor_counter <= clock_divider_initial_value_for_register_transactions + 1'b1;
+						clock_divisor_counter <= clock_divider_initial_value_for_register_transactions + 2'd2;
 						if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS) begin
 							if (sclk==0) begin
-								shout_word[sin_counter[5:1]] <= shout;
+								shout_pipeline2 <= { shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-1:0], shout_pipeline1[SHOUT_PIPELINE1_PICKOFF] };
 							end
 							sin_counter <= sin_counter + 1'b1;
-						end else begin
+							pclk_counter <= 0;
+						end else if (pclk_counter==0) begin
+							shout_pipeline2 <= { shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-1:0], shout_pipeline1[SHOUT_PIPELINE1_PICKOFF] };
+							pclk_counter <= pclk_counter + 1'b1;
+						end else if (pclk_counter==1) begin
+							shout_word <= shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-:NUMBER_OF_SIN_WORD_BITS];
 							shout_write <= 1; // write it into the "actual_readback" block ram
+							pclk_counter <= pclk_counter + 1'b1;
+						end else begin
 							if (sin_word!=shout_word) begin
 								number_of_readback_errors <= number_of_readback_errors + 1'b1;
 							end
-							mode <= 2'b11; // extra state
+							mode <= 2'b00; // scan for differences
+							bram_wait_state <= 2;
+							sin_counter <= 0;
+							pclk_counter <= 0;
 						end
 					end else begin
 						clock_divisor_counter <= clock_divisor_counter - 1'b1;
 					end
 				end else begin // extra state
-						sin_counter <= 0;
-						pclk_counter <= 0;
-						mode <= 2'b00; // scan for differences
+					mode <= 2'b00; // scan for differences
 				end
 			end
 		end
