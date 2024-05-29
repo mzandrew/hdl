@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-05-22 by mza
+// last updated 2024-05-28 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -166,6 +166,7 @@ module IRSXtest #(
 		.write_strobe_b(1'b1));
 	wire [31:0] number_of_register_transactions;
 	wire [31:0] number_of_readback_errors;
+	wire [19:0] last_erroneous_readback;
 //	reg [7:0] number_of_triggers_since_reset = 0;
 	wire fifo_empty;
 //	wire [:] fifo_pending;
@@ -177,6 +178,7 @@ module IRSXtest #(
 	assign bank1[0] = { hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8_copy_on_word_clock_domain };
 	assign bank1[1] = number_of_register_transactions;
 	assign bank1[2] = number_of_readback_errors;
+	assign bank1[3][19:0] = last_erroneous_readback;
 //	assign bank1[1][7:0] = number_of_triggers_since_reset;
 //	assign bank1[2][0] = fifo_empty;
 //	assign bank1[3][:] = fifo_pending;
@@ -266,7 +268,7 @@ module IRSXtest #(
 		.readback_data_out(read_data_word[7][23:12]),
 		.number_of_transactions(number_of_register_transactions),
 		.number_of_readback_errors(number_of_readback_errors),
-		.max_retries(max_retries),
+		.max_retries(max_retries), .last_erroneous_readback(last_erroneous_readback),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
 		.address(address_word_full[7:0]), .write_enable(write_strobe[7]),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));

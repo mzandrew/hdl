@@ -3,14 +3,14 @@
    <wave_state>
    </wave_state>
    <db_ref_list>
-      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/irsx_register_interface_tb_isim_beh1.wdb" id="1" type="auto">
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/irsx_register_interface_tb_isim_beh.wdb" id="1" type="auto">
          <top_modules>
             <top_module name="glbl" />
             <top_module name="irsx_register_interface_tb" />
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="33" />
+   <WVObjectSize size="34" />
    <wvobject fp_name="/irsx_register_interface_tb/clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock</obj_property>
       <obj_property name="ObjectShortName">clock</obj_property>
@@ -114,6 +114,11 @@
    <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/shout_write" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">shout_write</obj_property>
       <obj_property name="ObjectShortName">shout_write</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/retries_remaining" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">retries_remaining[7:0]</obj_property>
+      <obj_property name="ObjectShortName">retries_remaining[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="divider49" type="divider">
       <obj_property name="label">comparison</obj_property>

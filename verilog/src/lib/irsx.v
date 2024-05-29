@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-05-23 by mza
+// last updated 2024-05-28 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -18,10 +18,11 @@ module irsx_register_interface #(
 	parameter CLOCK_DIVISOR_COUNTER_PICKOFF = 7
 ) (
 	input clock, reset,
-	input [7:0] address,
-	input [11:0] intended_data_in,
-	output [11:0] intended_data_out,
-	output [11:0] readback_data_out,
+	input [NUMBER_OF_ASIC_ADDRESS_BITS-1:0] address,
+	input [NUMBER_OF_ASIC_DATA_BITS-1:0] intended_data_in,
+	output [NUMBER_OF_ASIC_DATA_BITS-1:0] intended_data_out,
+	output [NUMBER_OF_ASIC_DATA_BITS-1:0] readback_data_out,
+	output reg [NUMBER_OF_SIN_WORD_BITS-1:0] last_erroneous_readback,
 	output reg [31:0] number_of_transactions = 0,
 	input [CLOCK_DIVISOR_COUNTER_PICKOFF:0] clock_divider_initial_value_for_register_transactions,
 	input [7:0] max_retries,
@@ -80,6 +81,7 @@ module irsx_register_interface #(
 			data_intended_copy <= 0;
 			data_readback_copy <= 0;
 			retries_remaining <= 1;
+			last_erroneous_readback <= 0;
 		end else begin
 			if (mode==2'b00) begin // scan for differences
 				if (bram_wait_state==0) begin
@@ -95,7 +97,8 @@ module irsx_register_interface #(
 							bram_wait_state <= 2; // just to force it to copy from the block ram again
 							retries_remaining <= retries_remaining - 1'b1;
 						end else begin
-							shout_word <= data_intended_copy;
+							last_erroneous_readback <= shout_word;
+							shout_word <= data_intended_copy; // give up on this one
 							shout_write <= 1; // write it into the "actual_readback" block ram
 							bram_wait_state <= 2; // just to force it to copy from the block ram again
 							retries_remaining <= 1;
@@ -128,22 +131,23 @@ module irsx_register_interface #(
 						end else if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS+2) begin
 							pclk_counter <= 0;
 							sin_counter <= sin_counter + 1'b1; // the last sclk
+							shout_word[0] <= shout;
 						end else begin
-							if (pclk_counter==1) begin
+							if (pclk_counter==0) begin
 								sin <= 0;
+							end else if (pclk_counter==1) begin
+								pclk <= 1; // "latch" a.k.a. "load bus register"
+							end else if (pclk_counter==2) begin
+								pclk <= 0;
 							end else if (pclk_counter==3) begin
-								pclk <= 1; // "latch"
+								sin <= 1;
+							end else if (pclk_counter==4) begin
+								pclk <= 1; // "load" a.k.a. "load destination/address node"
 							end else if (pclk_counter==5) begin
 								pclk <= 0;
-							end else if (pclk_counter==7) begin
-								sin <= 1;
-							end else if (pclk_counter==9) begin
-								pclk <= 1; // "load" (should be longer than latch)
-							end else if (pclk_counter==11) begin
-								pclk <= 0;
-							end else if (pclk_counter==13) begin
+							end else if (pclk_counter==6) begin
 								sin <= 0;
-							end else if (pclk_counter==15) begin
+							end else if (pclk_counter==7) begin
 								mode <= 2'b10; // readback shout
 								number_of_transactions <= number_of_transactions + 1'b1;
 								sin_counter <= 0;
@@ -152,9 +156,9 @@ module irsx_register_interface #(
 							pclk_counter <= pclk_counter + 1'b1;
 						end
 					end else if (mode==2'b10) begin // readback shout
-						if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS) begin
+						if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS-2) begin
 							if (sclk) begin
-								shout_word[sin_counter[5:1]] <= shout;
+								shout_word[sin_counter[5:1]+1] <= shout;
 							end
 							sin_counter <= sin_counter + 1'b1;
 						end else begin
@@ -200,7 +204,7 @@ module irsx_register_interface_tb ();
 	wire [31:0] number_of_register_transactions;
 	reg [7:0] clock_divider_initial_value_for_register_transactions = 0;
 	wire [31:0] number_of_readback_errors;
-	reg [7:0] max_retries = 6;
+	reg [7:0] max_retries = 5;
 	irsx_register_interface #(.TESTBENCH(1)) irsx_reg (.clock(clock), .reset(reset),
 		.intended_data_in(write_data_word), .intended_data_out(read_data_word), .readback_data_out(readback_data_word),
 		.number_of_transactions(number_of_register_transactions),
@@ -209,7 +213,7 @@ module irsx_register_interface_tb ();
 		.max_retries(max_retries),
 		.address(address_word), .write_enable(write_strobe),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
-	wire pre_shout = shift_register[19];
+	wire pre_shout = shift_register[18];
 	always @(posedge clock) begin
 		reset <= raw_reset;
 		address_word <= raw_address_word;
