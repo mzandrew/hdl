@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-05-28 by mza
+// last updated 2024-05-29 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -26,6 +26,7 @@ module irsx_register_interface #(
 	output reg [31:0] number_of_transactions = 0,
 	input [CLOCK_DIVISOR_COUNTER_PICKOFF:0] clock_divider_initial_value_for_register_transactions,
 	input [7:0] max_retries,
+	input verify_with_shout,
 	input write_enable,
 	output reg sin = 0,
 	output reg pclk = 0,
@@ -151,7 +152,14 @@ module irsx_register_interface #(
 							end else if (pclk_counter==6) begin
 								sin <= 0;
 							end else if (pclk_counter==7) begin
-								mode <= 2'b10; // readback shout
+								if (verify_with_shout) begin
+									mode <= 2'b10; // readback shout
+								end else begin
+									shout_word <= data_intended_copy;
+									shout_write <= 1; // write it into the "actual_readback" block ram
+									bram_wait_state <= 2;
+									mode <= 2'b00; // scan for differences
+								end
 								number_of_transactions <= number_of_transactions + 1'b1;
 								sin_counter <= 0;
 							end
@@ -182,8 +190,6 @@ module irsx_register_interface #(
 							end
 							mode <= 2'b00; // scan for differences
 							bram_wait_state <= 2;
-							sin_counter <= 0;
-							pclk_counter <= 0;
 						end
 					end else begin
 						clock_divisor_counter <= clock_divisor_counter - 1'b1;
@@ -221,12 +227,13 @@ module irsx_register_interface_tb ();
 	reg [7:0] clock_divider_initial_value_for_register_transactions = 0;
 	wire [31:0] number_of_readback_errors;
 	reg [7:0] max_retries = 5;
+	reg verify_with_shout = 0;
 	irsx_register_interface #(.TESTBENCH(1)) irsx_reg (.clock(clock), .reset(reset),
 		.intended_data_in(write_data_word), .intended_data_out(read_data_word), .readback_data_out(readback_data_word),
 		.number_of_transactions(number_of_register_transactions),
+		.number_of_readback_errors(number_of_readback_errors), .last_erroneous_readback(last_erroneous_readback),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
-		.number_of_readback_errors(number_of_readback_errors),
-		.max_retries(max_retries),
+		.max_retries(max_retries), .verify_with_shout(verify_with_shout),
 		.address(address_word), .write_enable(write_strobe),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
 	wire pre_shout = shift_register[18];

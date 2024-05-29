@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-05-28 by mza
+// last updated 2024-05-29 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -155,6 +155,7 @@ module IRSXtest #(
 		.data_out_b_c(bank0[12]), .data_out_b_d(bank0[13]), .data_out_b_e(bank0[14]), .data_out_b_f(bank0[15]));
 	wire [7:0] clock_divider_initial_value_for_register_transactions = bank0[0][7:0];
 	wire [7:0] max_retries = bank0[1][7:0];
+	wire verify_with_shout = bank0[2][0];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -264,12 +265,11 @@ module IRSXtest #(
 //	assign pclk = 0;
 //	assign regclr = 0;
 	irsx_register_interface irsx_reg (.clock(word_clock), .reset(reset_word),
-		.intended_data_in(write_data_word[11:0]), .intended_data_out(read_data_word[7][11:0]),
-		.readback_data_out(read_data_word[7][23:12]),
+		.intended_data_in(write_data_word[11:0]), .intended_data_out(read_data_word[7][11:0]), .readback_data_out(read_data_word[7][23:12]),
 		.number_of_transactions(number_of_register_transactions),
-		.number_of_readback_errors(number_of_readback_errors),
-		.max_retries(max_retries), .last_erroneous_readback(last_erroneous_readback),
+		.number_of_readback_errors(number_of_readback_errors), .last_erroneous_readback(last_erroneous_readback),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
+		.max_retries(max_retries), .verify_with_shout(verify_with_shout),
 		.address(address_word_full[7:0]), .write_enable(write_strobe[7]),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
 	assign read_data_word[7][31:24] = 0;
