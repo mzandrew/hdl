@@ -398,8 +398,9 @@ def write_bootup_values():
 	#set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
 	#write_DAC_values()
 	#write_I2C_register_values()
-	write_value_to_clock_divider_for_register_transactions(5)
+	write_value_to_clock_divider_for_register_transactions(3)
 	set_max_retries_for_register_transactions(5)
+	set_whether_to_verify_with_shout(0)
 
 import subprocess
 def reprogram_fpga():
@@ -666,6 +667,10 @@ def write_value_to_clock_divider_for_register_transactions(value=127):
 def set_max_retries_for_register_transactions(quantity):
 	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 1, [quantity])
+
+def set_whether_to_verify_with_shout(whether_or_not):
+	bank = 0
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [whether_or_not])
 
 nominal_register_values = []
 # these values are cribbed from asic_configuration.c which has values borrowed from config1asic_trueROI.py; enabling the DLL requires more effort
