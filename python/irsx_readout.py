@@ -7,7 +7,7 @@
 # last updated 2024-05-22 by mza
 
 bank0_register_names = [ "null" ]
-bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors" ]
+bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
 #header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
@@ -392,17 +392,21 @@ def setup():
 	should_check_for_new_data = pygame.USEREVENT + 1
 	print("gui_update_period: " + str(gui_update_period))
 	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
+	write_bootup_values()
+
+def write_bootup_values():
 	#set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
 	#write_DAC_values()
 	#write_I2C_register_values()
-	write_value_to_clock_divider_for_register_transactions(1)
+	write_value_to_clock_divider_for_register_transactions(5)
 	set_max_retries_for_register_transactions(5)
 
 import subprocess
 def reprogram_fpga():
 	print("reprogramming fpga...")
 	subprocess.run(["/bin/bash", "-i", "-c", "fpga"])
-	time.sleep(0.1)
+	time.sleep(0.2)
+	write_bootup_values()
 
 timing_register_to_control = 1
 def loop():
@@ -660,7 +664,7 @@ def write_value_to_clock_divider_for_register_transactions(value=127):
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [value])
 
 def set_max_retries_for_register_transactions(quantity):
-	bank = 2
+	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 1, [quantity])
 
 nominal_register_values = []
@@ -748,7 +752,7 @@ def change_timing_register_LE_value(increment):
 	bank = 7
 	offset = 182
 	address = offset + 2*timing_register_to_control
-	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1)
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)
 	value = (readback[0]&0xfff) + increment
 	if 255<value:
 		value = 0
@@ -761,7 +765,7 @@ def change_timing_register_TE_value(increment):
 	bank = 7
 	offset = 183
 	address = offset + 2*timing_register_to_control
-	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1)
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)
 	value = (readback[0]&0xfff) + increment
 	if 255<value:
 		value = 0
