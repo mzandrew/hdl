@@ -6,7 +6,7 @@
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
 # last updated 2024-05-22 by mza
 
-bank0_register_names = [ "null" ]
+bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "clear_channel_counters", "trg_inversion_mask" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
@@ -35,10 +35,11 @@ lookback_windows = 0x80
 number_of_samples = 0x00 # 0 means 256 here
 previous_number_of_samples = 0x00 # 0 means 256 here
 
+number_of_pin_diode_boxes = 1
 MAX_SAMPLES_PER_WAVEFORM = 256
 timestep = 1
 
-NUMBER_OF_CHANNELS_PER_ASIC = 16
+NUMBER_OF_CHANNELS_PER_ASIC = 8
 gui_update_period = 0.2 # in seconds
 
 MAX_ADC = 4095
@@ -297,18 +298,18 @@ def setup():
 	plot_height = int(0.7 * usable_height / ROWS) + 2*extra_gap_y
 	print("plot_width: " + str(plot_width))
 	print("plot_height: " + str(plot_height))
-	#global Y_POSITION_OF_CHANNEL_NAMES
-	#global Y_POSITION_OF_COUNTERS
-	#global Y_POSITION_OF_SCALERS
+	global Y_POSITION_OF_CHANNEL_NAMES
+	global Y_POSITION_OF_COUNTERS
+	global Y_POSITION_OF_SCALERS
 	#global Y_POSITION_OF_TOT
 	global Y_POSITION_OF_BANK0_REGISTERS
 	global Y_POSITION_OF_BANK1_REGISTERS
 	global Y_POSITION_OF_BANK4_REGISTERS
 	global Y_POSITION_OF_BANK6_REGISTERS
 	gap = 20
-	#Y_POSITION_OF_CHANNEL_NAMES = plot_height + gap
-	#Y_POSITION_OF_COUNTERS = plot_height + gap + FONT_SIZE_BANKS
-	#Y_POSITION_OF_SCALERS = plot_height + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_CHANNEL_NAMES = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
+	Y_POSITION_OF_COUNTERS      = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
+	Y_POSITION_OF_SCALERS       = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
 	#Y_POSITION_OF_TOT = plot_height + gap + FONT_SIZE_BANKS
 	Y_POSITION_OF_BANK0_REGISTERS = ROWS * (plot_height + 2*gap)
 	Y_POSITION_OF_BANK1_REGISTERS = ROWS * (plot_height + 2*gap) + 25
@@ -401,6 +402,7 @@ def write_bootup_values():
 	write_value_to_clock_divider_for_register_transactions(3)
 	set_max_retries_for_register_transactions(5)
 	set_whether_to_verify_with_shout(0)
+	set_trg_inversion_mask(0b1100)
 
 import subprocess
 def reprogram_fpga():
@@ -444,9 +446,7 @@ def loop():
 			elif K_F1==event.key:
 				reprogram_fpga()
 			elif K_F2==event.key:
-				#write_pseudorandom_values_to_a_few_trimdacs_for_fun()
-				write_some_nominal_register_values("LE")
-				write_some_nominal_register_values("TE")
+				run_threshold_scan()
 			elif K_F3==event.key:
 				write_nominal_register_values()
 			elif K_F4==event.key:
@@ -474,6 +474,8 @@ def loop():
 			elif K_F12==event.key:
 				DAC_to_control = 3
 				print("now controlling DBbias")
+			elif K_c==event.key:
+				clear_channel_counters()
 			elif K_q==event.key:
 				change_timing_register_LE_value(-2)
 			elif K_w==event.key:
@@ -485,6 +487,9 @@ def loop():
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
+			readout_counters_and_scalers()
+			update_scalers()
+			update_counters()
 			update_bank0_registers()
 			update_bank1_registers()
 			update_bank4_registers()
@@ -672,48 +677,57 @@ def set_whether_to_verify_with_shout(whether_or_not):
 	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [whether_or_not])
 
+def clear_channel_counters():
+	bank = 0
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 3, [1])
+
+def set_trg_inversion_mask(mask):
+	bank = 0
+	mask &= 0xf
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 4, [mask])
+
 nominal_register_values = []
 # these values are cribbed from asic_configuration.c which has values borrowed from config1asic_trueROI.py; enabling the DLL requires more effort
-#nominal_register_values.append([128, "TRGthresh0", 0, "threshold voltage for trigger output for ch0"])
-#nominal_register_values.append([132, "TRGthresh1", 0, "threshold voltage for trigger output for ch1"])
-#nominal_register_values.append([136, "TRGthresh2", 0, "threshold voltage for trigger output for ch2"])
-#nominal_register_values.append([140, "TRGthresh3", 0, "threshold voltage for trigger output for ch3"])
-#nominal_register_values.append([144, "TRGthresh4", 0, "threshold voltage for trigger output for ch4"])
-#nominal_register_values.append([148, "TRGthresh5", 0, "threshold voltage for trigger output for ch5"])
-#nominal_register_values.append([152, "TRGthresh6", 0, "threshold voltage for trigger output for ch6"])
-#nominal_register_values.append([156, "TRGthresh7", 0, "threshold voltage for trigger output for ch7"])
-#nominal_register_values.append([129, "Trig4xVofs0", 1500, "voltage offset for x4 trigger path for ch0"])
-#nominal_register_values.append([133, "Trig4xVofs1", 1500, "voltage offset for x4 trigger path for ch1"])
-#nominal_register_values.append([137, "Trig4xVofs2", 1500, "voltage offset for x4 trigger path for ch2"])
-#nominal_register_values.append([141, "Trig4xVofs3", 1500, "voltage offset for x4 trigger path for ch3"])
-#nominal_register_values.append([145, "Trig4xVofs4", 1500, "voltage offset for x4 trigger path for ch4"])
-#nominal_register_values.append([149, "Trig4xVofs5", 1500, "voltage offset for x4 trigger path for ch5"])
-#nominal_register_values.append([153, "Trig4xVofs6", 1500, "voltage offset for x4 trigger path for ch6"])
-#nominal_register_values.append([157, "Trig4xVofs7", 1500, "voltage offset for x4 trigger path for ch7"])
-#nominal_register_values.append([130, "Trig16xVofs0", 2000, "voltage offset for x16 trigger path for ch0 (warning: affects x4 trigger path)"])
-#nominal_register_values.append([134, "Trig16xVofs1", 2000, "voltage offset for x16 trigger path for ch1 (warning: affects x4 trigger path)"])
-#nominal_register_values.append([138, "Trig16xVofs2", 2000, "voltage offset for x16 trigger path for ch2 (warning: affects x4 trigger path)"])
-#nominal_register_values.append([142, "Trig16xVofs3", 2000, "voltage offset for x16 trigger path for ch3 (warning: affects x4 trigger path)"])
-#nominal_register_values.append([146, "Trig16xVofs4", 2000, "voltage offset for x16 trigger path for ch4 (warning: affects x4 trigger path)"])
-#nominal_register_values.append([150, "Trig16xVofs5", 2000, "voltage offset for x16 trigger path for ch5 (warning: affects x4 trigger path)"])
-#nominal_register_values.append([154, "Trig16xVofs6", 2000, "voltage offset for x16 trigger path for ch6 (warning: affects x4 trigger path)"])
-#nominal_register_values.append([158, "Trig16xVofs7", 2000, "voltage offset for x16 trigger path for ch7 (warning: affects x4 trigger path)"])
-#nominal_register_values.append([131, "Wbias0", 1100, "width of trigger output for ch0"])
-#nominal_register_values.append([135, "Wbias1", 1100, "width of trigger output for ch1"])
-#nominal_register_values.append([139, "Wbias2", 1100, "width of trigger output for ch2"])
-#nominal_register_values.append([143, "Wbias3", 1100, "width of trigger output for ch3"])
-#nominal_register_values.append([147, "Wbias4", 1100, "width of trigger output for ch4"])
-#nominal_register_values.append([151, "Wbias5", 1100, "width of trigger output for ch5"])
-#nominal_register_values.append([155, "Wbias6", 1100, "width of trigger output for ch6"])
-#nominal_register_values.append([159, "Wbias7", 1100, "width of trigger output for ch7"])
+nominal_register_values.append([128, "TRGthresh0", 0, "threshold voltage for trigger output for ch0"])
+nominal_register_values.append([132, "TRGthresh1", 0, "threshold voltage for trigger output for ch1"])
+nominal_register_values.append([136, "TRGthresh2", 0, "threshold voltage for trigger output for ch2"])
+nominal_register_values.append([140, "TRGthresh3", 0, "threshold voltage for trigger output for ch3"])
+nominal_register_values.append([144, "TRGthresh4", 0, "threshold voltage for trigger output for ch4"])
+nominal_register_values.append([148, "TRGthresh5", 0, "threshold voltage for trigger output for ch5"])
+nominal_register_values.append([152, "TRGthresh6", 0, "threshold voltage for trigger output for ch6"])
+nominal_register_values.append([156, "TRGthresh7", 0, "threshold voltage for trigger output for ch7"])
+nominal_register_values.append([129, "Trig4xVofs0", 1500, "voltage offset for x4 trigger path for ch0"])
+nominal_register_values.append([133, "Trig4xVofs1", 1500, "voltage offset for x4 trigger path for ch1"])
+nominal_register_values.append([137, "Trig4xVofs2", 1500, "voltage offset for x4 trigger path for ch2"])
+nominal_register_values.append([141, "Trig4xVofs3", 1500, "voltage offset for x4 trigger path for ch3"])
+nominal_register_values.append([145, "Trig4xVofs4", 1500, "voltage offset for x4 trigger path for ch4"])
+nominal_register_values.append([149, "Trig4xVofs5", 1500, "voltage offset for x4 trigger path for ch5"])
+nominal_register_values.append([153, "Trig4xVofs6", 1500, "voltage offset for x4 trigger path for ch6"])
+nominal_register_values.append([157, "Trig4xVofs7", 1500, "voltage offset for x4 trigger path for ch7"])
+nominal_register_values.append([130, "Trig16xVofs0", 2000, "voltage offset for x16 trigger path for ch0 (warning: affects x4 trigger path)"])
+nominal_register_values.append([134, "Trig16xVofs1", 2000, "voltage offset for x16 trigger path for ch1 (warning: affects x4 trigger path)"])
+nominal_register_values.append([138, "Trig16xVofs2", 2000, "voltage offset for x16 trigger path for ch2 (warning: affects x4 trigger path)"])
+nominal_register_values.append([142, "Trig16xVofs3", 2000, "voltage offset for x16 trigger path for ch3 (warning: affects x4 trigger path)"])
+nominal_register_values.append([146, "Trig16xVofs4", 2000, "voltage offset for x16 trigger path for ch4 (warning: affects x4 trigger path)"])
+nominal_register_values.append([150, "Trig16xVofs5", 2000, "voltage offset for x16 trigger path for ch5 (warning: affects x4 trigger path)"])
+nominal_register_values.append([154, "Trig16xVofs6", 2000, "voltage offset for x16 trigger path for ch6 (warning: affects x4 trigger path)"])
+nominal_register_values.append([158, "Trig16xVofs7", 2000, "voltage offset for x16 trigger path for ch7 (warning: affects x4 trigger path)"])
+nominal_register_values.append([131, "Wbias0", 1100, "width of trigger output for ch0"])
+nominal_register_values.append([135, "Wbias1", 1100, "width of trigger output for ch1"])
+nominal_register_values.append([139, "Wbias2", 1100, "width of trigger output for ch2"])
+nominal_register_values.append([143, "Wbias3", 1100, "width of trigger output for ch3"])
+nominal_register_values.append([147, "Wbias4", 1100, "width of trigger output for ch4"])
+nominal_register_values.append([151, "Wbias5", 1100, "width of trigger output for ch5"])
+nominal_register_values.append([155, "Wbias6", 1100, "width of trigger output for ch6"])
+nominal_register_values.append([159, "Wbias7", 1100, "width of trigger output for ch7"])
 nominal_register_values.append([160, "TBbias", 1300]) # needs ITbias
 #nominal_register_values.append([161, "Vbias", 1100]) # needs ITbias
 #nominal_register_values.append([162, "Vbias2", 950]) # needs ITbias
 nominal_register_values.append([163, "ITbias", 1300])
-#nominal_register_values.append([164, "dualWbias01", 900]) # needs TBbias and ITbias
-#nominal_register_values.append([165, "dualWbias23", 900]) # needs TBbias and ITbias
-#nominal_register_values.append([166, "dualWbias45", 900]) # needs TBbias and ITbias
-#nominal_register_values.append([167, "dualWbias67", 900]) # needs TBbias and ITbias
+nominal_register_values.append([164, "dualWbias01", 900]) # needs TBbias and ITbias
+nominal_register_values.append([165, "dualWbias23", 900]) # needs TBbias and ITbias
+nominal_register_values.append([166, "dualWbias45", 900]) # needs TBbias and ITbias
+nominal_register_values.append([167, "dualWbias67", 900]) # needs TBbias and ITbias
 nominal_register_values.append([168, "reg168", 5, "trg_sgn, trig_path"])
 nominal_register_values.append([169, "CMPbias2", 737]) # needs SBbias and DBbias
 nominal_register_values.append([170, "PUbias", 3112]) # needs SBbias and DBbias
@@ -801,7 +815,7 @@ def write_nominal_register_values():
 		value = nominal_register_values[i][2]
 		print(str(address) + " " + nominal_register_values[i][1] + " " + str(value))
 		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value])
-		time.sleep(0.1)
+		time.sleep(0.01)
 
 def write_some_nominal_register_values(string):
 	bank = 7
@@ -840,6 +854,87 @@ def write_pseudorandom_values_to_a_few_trimdacs_for_fun():
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, quantity)
 	for i in range(quantity):
 		print(hex(readback[i], 6))
+
+scalers =  [ 0 for i in range(8) ]
+counters = [ 0 for i in range(8) ]
+def readout_counters_and_scalers():
+	bank = 6
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 16, False)
+	global scalers, counters
+	counters[0] = readback[0]
+	counters[1] = readback[1]
+	counters[2] = readback[2]
+	counters[3] = readback[3]
+	counters[4] = readback[4]
+	counters[5] = readback[5]
+	counters[6] = readback[6]
+	counters[7] = readback[7]
+	scalers[0] = readback[8]
+	scalers[1] = readback[9]
+	scalers[2] = readback[10]
+	scalers[3] = readback[11]
+	scalers[4] = readback[12]
+	scalers[5] = readback[13]
+	scalers[6] = readback[14]
+	scalers[7] = readback[15]
+
+def print_scalers():
+	string = ""
+	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		string += " " + hex(scalers[k], display_precision_of_hex_scaler_counts)
+	print(string)
+
+def update_scalers():
+	global bank_scalers_object
+	try:
+		bank_scalers_object[0].get_size()
+	except:
+		bank_scalers_object = [ 0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+	if should_show_scalers:
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			try:
+				temp_surface = pygame.Surface(bank_scalers_object[k].get_size())
+				temp_surface.fill(purple)
+				screen.blit(temp_surface, bank_scalers_object[k].get_rect(center=(X_POSITION_OF_SCALERS-bank_scalers_object[k].get_width()//2,Y_POSITION_OF_SCALERS+FONT_SIZE_BANKS*k)))
+			except Exception as e:
+				#print(str(e))
+				pass
+			bank_scalers_object[k] = banks_font.render(hex(scalers[k], display_precision_of_hex_scaler_counts, True), False, white)
+			screen.blit(bank_scalers_object[k], bank_scalers_object[k].get_rect(center=(X_POSITION_OF_SCALERS-bank_scalers_object[k].get_width()//2,Y_POSITION_OF_SCALERS+FONT_SIZE_BANKS*k)))
+
+def update_counters():
+	global bank_counters_object
+	try:
+		bank_counters_object[0].get_size()
+	except:
+		bank_counters_object = [ 0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+	if should_show_counters:
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			try:
+				temp_surface = pygame.Surface(bank_counters_object[k].get_size())
+				temp_surface.fill(red)
+				screen.blit(temp_surface, bank_counters_object[k].get_rect(center=(X_POSITION_OF_COUNTERS-bank_counters_object[k].get_width()//2,Y_POSITION_OF_COUNTERS+FONT_SIZE_BANKS*k)))
+			except Exception as e:
+				#print(str(e))
+				pass
+			bank_counters_object[k] = banks_font.render(hex(counters[k], display_precision_of_hex_counter_counts, True), False, white)
+			screen.blit(bank_counters_object[k], bank_counters_object[k].get_rect(center=(X_POSITION_OF_COUNTERS-bank_counters_object[k].get_width()//2,Y_POSITION_OF_COUNTERS+FONT_SIZE_BANKS*k)))
+
+def run_threshold_scan():
+	# 400mV sine wave gives a threshold scan from 0x200 to 0xaf0
+	start_value = 0x1c0
+	step_size = 1
+	end_value = 0x230
+	bank = 7
+	for value in range(start_value, end_value+1, step_size):
+		print(hex(value, 3), end="  ")
+		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			address = 128 + 4 * channel
+			#print(str(address) + " " + str(value))
+			althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value], False)
+		time.sleep(0.01)
+		readout_counters_and_scalers()
+		print_scalers()
 
 def initiate_legacy_serial_sequence():
 	set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
