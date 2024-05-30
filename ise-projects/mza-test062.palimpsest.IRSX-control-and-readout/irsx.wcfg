@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="34" />
+   <WVObjectSize size="31" />
    <wvobject fp_name="/irsx_register_interface_tb/clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock</obj_property>
       <obj_property name="ObjectShortName">clock</obj_property>
@@ -54,10 +54,6 @@
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="BkColor">128 128 255</obj_property>
       <obj_property name="TextColor">230 230 230</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_register_interface_tb/regclr" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">regclr</obj_property>
-      <obj_property name="ObjectShortName">regclr</obj_property>
    </wvobject>
    <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/sin_word" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">sin_word[0:19]</obj_property>
@@ -136,19 +132,9 @@
       <obj_property name="ObjectShortName">data_intended[11:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/data_intended_copy" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">data_intended_copy[11:0]</obj_property>
-      <obj_property name="ObjectShortName">data_intended_copy[11:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
    <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/data_readback" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">data_readback[11:0]</obj_property>
       <obj_property name="ObjectShortName">data_readback[11:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/data_readback_copy" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">data_readback_copy[11:0]</obj_property>
-      <obj_property name="ObjectShortName">data_readback_copy[11:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="divider52" type="divider">
@@ -162,6 +148,11 @@
       <obj_property name="ObjectShortName">mode[1:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/clock_divider_initial_value_for_register_transactions" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">clock_divider_initial_value_for_register_transactions[7:0]</obj_property>
+      <obj_property name="ObjectShortName">clock_divider_initial_value_for_register_transactions[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
    <wvobject fp_name="/irsx_register_interface_tb/number_of_register_transactions" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">number_of_register_transactions[31:0]</obj_property>
       <obj_property name="ObjectShortName">number_of_register_transactions[31:0]</obj_property>
@@ -170,11 +161,6 @@
    <wvobject fp_name="/irsx_register_interface_tb/number_of_readback_errors" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">number_of_readback_errors[31:0]</obj_property>
       <obj_property name="ObjectShortName">number_of_readback_errors[31:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_register_interface_tb/clock_divider_initial_value_for_register_transactions" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">clock_divider_initial_value_for_register_transactions[7:0]</obj_property>
-      <obj_property name="ObjectShortName">clock_divider_initial_value_for_register_transactions[7:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 </wave_config>

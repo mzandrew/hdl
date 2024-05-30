@@ -1,11 +1,97 @@
 // written 2023-10-09 by mza
-// last updated 2024-05-28 by mza
+// last updated 2024-05-29 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
 
 //`include "lib/RAM8.v"
 `include "RAM8.v"
+`include "frequency_counter.v"
+
+//irsx_scaler_counter_interface #(.COUNTER_WIDTH(8), .SCALER_WIDTH(4), .CLOCK_PERIODS_TO_ACCUMULATE(16)) irsx_scaler_counter (
+//	.clock(clock), .reset(reseT), .clear_channel_counters(clear_channel_counters),
+//	.iserdes_word_in0(in0), .iserdes_word_in1(in1), .iserdes_word_in2(in2), .iserdes_word_in3(in3),
+//	.iserdes_word_in4(in4), .iserdes_word_in5(in5), .iserdes_word_in6(in6), .iserdes_word_in7(in7),
+//	.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
+//	.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7));
+module irsx_scaler_counter_interface #(
+	parameter COUNTER_WIDTH = 32,
+	parameter SCALER_WIDTH = 16,
+	parameter CLOCK_PERIODS_TO_ACCUMULATE = 2**15
+) (
+	input clock, reset,
+	input clear_channel_counters,
+	input [7:0] iserdes_word_in0, iserdes_word_in1, iserdes_word_in2, iserdes_word_in3,
+	input [7:0] iserdes_word_in4, iserdes_word_in5, iserdes_word_in6, iserdes_word_in7,
+	output [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7,
+	output [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7
+);
+	iserdes_counter_array8 #(
+		.BIT_DEPTH(8), .REGISTER_WIDTH(COUNTER_WIDTH), .NUMBER_OF_CHANNELS(8)
+	) counters (
+		.clock(clock), .reset(reset || clear_channel_counters),
+		.in0(iserdes_word_in0), .in1(iserdes_word_in1), .in2(iserdes_word_in2), .in3(iserdes_word_in3),
+		.in4(iserdes_word_in4), .in5(iserdes_word_in5), .in6(iserdes_word_in6), .in7(iserdes_word_in7),
+		.out0(c0), .out1(c1), .out2(c2), .out3(c3), .out4(c4), .out5(c5), .out6(c6), .out7(c7)
+	);
+	iserdes_scaler_array8 #(
+		.BIT_DEPTH(8), .REGISTER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE), .NUMBER_OF_CHANNELS(8)
+	) scalers (
+		.clock(clock), .reset(reset),
+		.in0(iserdes_word_in0), .in1(iserdes_word_in1), .in2(iserdes_word_in2), .in3(iserdes_word_in3),
+		.in4(iserdes_word_in4), .in5(iserdes_word_in5), .in6(iserdes_word_in6), .in7(iserdes_word_in7),
+		.out0(sc0), .out1(sc1), .out2(sc2), .out3(sc3), .out4(sc4), .out5(sc5), .out6(sc6), .out7(sc7)
+	);
+endmodule
+
+module irsx_scaler_counter_interface_tb ();
+	localparam COUNTER_WIDTH = 8;
+	localparam SCALER_WIDTH = 4;
+	localparam CLOCK_PERIODS_TO_ACCUMULATE = 16;
+	localparam HALF_CLOCK_PERIOD = 7.861/2;
+	localparam WHOLE_CLOCK_PERIOD = 2*HALF_CLOCK_PERIOD;
+	localparam TIME_PASSES = 17*WHOLE_CLOCK_PERIOD;
+	reg clock = 0;
+	reg reset = 1;
+	reg [7:0] pre_in0 = 0; reg [7:0] pre_in1 = 0; reg [7:0] pre_in2 = 0; reg [7:0] pre_in3 = 0;
+	reg [7:0] pre_in4 = 0; reg [7:0] pre_in5 = 0; reg [7:0] pre_in6 = 0; reg [7:0] pre_in7 = 0;
+	reg [7:0] in0, in1, in2, in3, in4, in5, in6, in7;
+	reg clear_channel_counters = 0;
+	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
+	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
+	always begin
+		#HALF_CLOCK_PERIOD; clock <= ~clock;
+	end
+	always @(posedge clock) begin
+		in0 <= pre_in0; in1 <= pre_in1; in2 <= pre_in2; in3 <= pre_in3;
+		in4 <= pre_in4; in5 <= pre_in5; in6 <= pre_in6; in7 <= pre_in7;
+	end
+	initial begin
+		#TIME_PASSES;
+		reset <= 0;
+		pre_in0 <= 8'b01100110; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		pre_in0 <= 8'b00000100; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		pre_in0 <= 8'b00111100; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		pre_in0 <= 8'b10101010; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b01010101; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		pre_in0 <= 8'b01010101; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b10101010; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		$finish;
+	end
+	irsx_scaler_counter_interface #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
+		.clock(clock), .reset(reset), .clear_channel_counters(clear_channel_counters),
+		.iserdes_word_in0(in0), .iserdes_word_in1(in1), .iserdes_word_in2(in2), .iserdes_word_in3(in3),
+		.iserdes_word_in4(in4), .iserdes_word_in5(in5), .iserdes_word_in6(in6), .iserdes_word_in7(in7),
+		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
+		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7));
+endmodule
 
 module irsx_register_interface #(
 	parameter TESTBENCH = 0,
@@ -26,6 +112,7 @@ module irsx_register_interface #(
 	output reg [31:0] number_of_transactions = 0,
 	input [CLOCK_DIVISOR_COUNTER_PICKOFF:0] clock_divider_initial_value_for_register_transactions,
 	input [7:0] max_retries,
+	input verify_with_shout,
 	input write_enable,
 	output reg sin = 0,
 	output reg pclk = 0,
@@ -49,6 +136,10 @@ module irsx_register_interface #(
 	reg [5:0] sin_counter = 0;
 	reg [3:0] pclk_counter = 0;
 	reg [0:NUMBER_OF_SIN_WORD_BITS-1] shout_word = 0;
+	localparam SHOUT_PIPELINE1_PICKOFF = 1;
+	localparam SHOUT_PIPELINE2_PICKOFF = NUMBER_OF_SIN_WORD_BITS;
+	reg [SHOUT_PIPELINE1_PICKOFF:0] shout_pipeline1 = 0; // runs at clock frequency; just to reduce metastability
+	reg [SHOUT_PIPELINE2_PICKOFF:0] shout_pipeline2 = 0; // runs at SCLK
 	wire [11:0] data_from_shout;
 	assign data_from_shout = shout_word[8:NUMBER_OF_SIN_WORD_BITS-1]; // OSH and SSHSH in misc_reg168 default to 0 on powerup and that's the right thing to get shout
 	reg shout_write = 0;
@@ -78,7 +169,11 @@ module irsx_register_interface #(
 			data_readback_copy <= 0;
 			retries_remaining <= 1;
 			last_erroneous_readback <= 0;
+			shout_word <= 0;
+			shout_pipeline1 <= 0;
+			shout_pipeline2 <= 0;
 		end else begin
+			shout_pipeline1 <= { shout_pipeline1[SHOUT_PIPELINE1_PICKOFF-1:0], shout };
 			if (mode==2'b00) begin // scan for differences
 				if (bram_wait_state==0) begin
 					if (data_intended_copy!=data_readback_copy) begin // checking two block rams against each other at address address_10
@@ -143,10 +238,16 @@ module irsx_register_interface #(
 							end else if (pclk_counter==6) begin
 								sin <= 0;
 							end else if (pclk_counter==7) begin
-								mode <= 2'b10; // readback shout
+								if (verify_with_shout) begin
+									mode <= 2'b10; // readback shout
+								end else begin
+									shout_word <= data_intended_copy;
+									shout_write <= 1; // write it into the "actual_readback" block ram
+									bram_wait_state <= 2;
+									mode <= 2'b00; // scan for differences
+								end
 								number_of_transactions <= number_of_transactions + 1'b1;
 								sin_counter <= 0;
-								pclk_counter <= 0;
 							end
 							pclk_counter <= pclk_counter + 1'b1;
 						end
@@ -155,26 +256,32 @@ module irsx_register_interface #(
 					end
 				end else if (mode==2'b10) begin // readback shout
 					if (clock_divisor_counter==0) begin
-						clock_divisor_counter <= clock_divider_initial_value_for_register_transactions + 1'b1;
+						clock_divisor_counter <= clock_divider_initial_value_for_register_transactions + 2'd2;
 						if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS) begin
 							if (sclk==0) begin
-								shout_word[sin_counter[5:1]] <= shout;
+								shout_pipeline2 <= { shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-1:0], shout_pipeline1[SHOUT_PIPELINE1_PICKOFF] };
 							end
 							sin_counter <= sin_counter + 1'b1;
-						end else begin
+							pclk_counter <= 0;
+						end else if (pclk_counter==0) begin
+							shout_pipeline2 <= { shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-1:0], shout_pipeline1[SHOUT_PIPELINE1_PICKOFF] };
+							pclk_counter <= pclk_counter + 1'b1;
+						end else if (pclk_counter==1) begin
+							shout_word <= shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-:NUMBER_OF_SIN_WORD_BITS];
 							shout_write <= 1; // write it into the "actual_readback" block ram
+							pclk_counter <= pclk_counter + 1'b1;
+						end else begin
 							if (sin_word!=shout_word) begin
 								number_of_readback_errors <= number_of_readback_errors + 1'b1;
 							end
-							mode <= 2'b11; // extra state
+							mode <= 2'b00; // scan for differences
+							bram_wait_state <= 2;
 						end
 					end else begin
 						clock_divisor_counter <= clock_divisor_counter - 1'b1;
 					end
 				end else begin // extra state
-						sin_counter <= 0;
-						pclk_counter <= 0;
-						mode <= 2'b00; // scan for differences
+					mode <= 2'b00; // scan for differences
 				end
 			end
 		end
@@ -206,12 +313,13 @@ module irsx_register_interface_tb ();
 	reg [7:0] clock_divider_initial_value_for_register_transactions = 0;
 	wire [31:0] number_of_readback_errors;
 	reg [7:0] max_retries = 5;
+	reg verify_with_shout = 0;
 	irsx_register_interface #(.TESTBENCH(1)) irsx_reg (.clock(clock), .reset(reset),
 		.intended_data_in(write_data_word), .intended_data_out(read_data_word), .readback_data_out(readback_data_word),
 		.number_of_transactions(number_of_register_transactions),
+		.number_of_readback_errors(number_of_readback_errors), .last_erroneous_readback(last_erroneous_readback),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
-		.number_of_readback_errors(number_of_readback_errors),
-		.max_retries(max_retries),
+		.max_retries(max_retries), .verify_with_shout(verify_with_shout),
 		.address(address_word), .write_enable(write_strobe),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
 	wire pre_shout = shift_register[18];

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/irsx_scaler_counter_interface_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="irsx_scaler_counter_interface_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="7" />
+   <wvobject fp_name="/irsx_scaler_counter_interface_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_scaler_counter_interface_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_scaler_counter_interface_tb/clear_channel_counters" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clear_channel_counters</obj_property>
+      <obj_property name="ObjectShortName">clear_channel_counters</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_scaler_counter_interface_tb/sc0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">sc0[15:0]</obj_property>
+      <obj_property name="ObjectShortName">sc0[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_scaler_counter_interface_tb/c0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">c0[31:0]</obj_property>
+      <obj_property name="ObjectShortName">c0[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_scaler_counter_interface_tb/pre_in0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pre_in0[7:0]</obj_property>
+      <obj_property name="ObjectShortName">pre_in0[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_scaler_counter_interface_tb/in0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">in0[7:0]</obj_property>
+      <obj_property name="ObjectShortName">in0[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>
