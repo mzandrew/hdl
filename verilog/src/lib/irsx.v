@@ -6,6 +6,92 @@
 
 //`include "lib/RAM8.v"
 `include "RAM8.v"
+`include "frequency_counter.v"
+
+//irsx_scaler_counter_interface #(.COUNTER_WIDTH(8), .SCALER_WIDTH(4), .CLOCK_PERIODS_TO_ACCUMULATE(16)) irsx_scaler_counter (
+//	.clock(clock), .reset(reseT), .clear_channel_counters(clear_channel_counters),
+//	.iserdes_word_in0(in0), .iserdes_word_in1(in1), .iserdes_word_in2(in2), .iserdes_word_in3(in3),
+//	.iserdes_word_in4(in4), .iserdes_word_in5(in5), .iserdes_word_in6(in6), .iserdes_word_in7(in7),
+//	.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
+//	.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7));
+module irsx_scaler_counter_interface #(
+	parameter COUNTER_WIDTH = 32,
+	parameter SCALER_WIDTH = 16,
+	parameter CLOCK_PERIODS_TO_ACCUMULATE = 2**15
+) (
+	input clock, reset,
+	input clear_channel_counters,
+	input [7:0] iserdes_word_in0, iserdes_word_in1, iserdes_word_in2, iserdes_word_in3,
+	input [7:0] iserdes_word_in4, iserdes_word_in5, iserdes_word_in6, iserdes_word_in7,
+	output [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7,
+	output [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7
+);
+	iserdes_counter_array8 #(
+		.BIT_DEPTH(8), .REGISTER_WIDTH(COUNTER_WIDTH), .NUMBER_OF_CHANNELS(8)
+	) counters (
+		.clock(clock), .reset(reset || clear_channel_counters),
+		.in0(iserdes_word_in0), .in1(iserdes_word_in1), .in2(iserdes_word_in2), .in3(iserdes_word_in3),
+		.in4(iserdes_word_in4), .in5(iserdes_word_in5), .in6(iserdes_word_in6), .in7(iserdes_word_in7),
+		.out0(c0), .out1(c1), .out2(c2), .out3(c3), .out4(c4), .out5(c5), .out6(c6), .out7(c7)
+	);
+	iserdes_scaler_array8 #(
+		.BIT_DEPTH(8), .REGISTER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE), .NUMBER_OF_CHANNELS(8)
+	) scalers (
+		.clock(clock), .reset(reset),
+		.in0(iserdes_word_in0), .in1(iserdes_word_in1), .in2(iserdes_word_in2), .in3(iserdes_word_in3),
+		.in4(iserdes_word_in4), .in5(iserdes_word_in5), .in6(iserdes_word_in6), .in7(iserdes_word_in7),
+		.out0(sc0), .out1(sc1), .out2(sc2), .out3(sc3), .out4(sc4), .out5(sc5), .out6(sc6), .out7(sc7)
+	);
+endmodule
+
+module irsx_scaler_counter_interface_tb ();
+	localparam COUNTER_WIDTH = 8;
+	localparam SCALER_WIDTH = 4;
+	localparam CLOCK_PERIODS_TO_ACCUMULATE = 16;
+	localparam HALF_CLOCK_PERIOD = 7.861/2;
+	localparam WHOLE_CLOCK_PERIOD = 2*HALF_CLOCK_PERIOD;
+	localparam TIME_PASSES = 17*WHOLE_CLOCK_PERIOD;
+	reg clock = 0;
+	reg reset = 1;
+	reg [7:0] pre_in0 = 0; reg [7:0] pre_in1 = 0; reg [7:0] pre_in2 = 0; reg [7:0] pre_in3 = 0;
+	reg [7:0] pre_in4 = 0; reg [7:0] pre_in5 = 0; reg [7:0] pre_in6 = 0; reg [7:0] pre_in7 = 0;
+	reg [7:0] in0, in1, in2, in3, in4, in5, in6, in7;
+	reg clear_channel_counters = 0;
+	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
+	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
+	always begin
+		#HALF_CLOCK_PERIOD; clock <= ~clock;
+	end
+	always @(posedge clock) begin
+		in0 <= pre_in0; in1 <= pre_in1; in2 <= pre_in2; in3 <= pre_in3;
+		in4 <= pre_in4; in5 <= pre_in5; in6 <= pre_in6; in7 <= pre_in7;
+	end
+	initial begin
+		#TIME_PASSES;
+		reset <= 0;
+		pre_in0 <= 8'b01100110; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		pre_in0 <= 8'b00000100; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		pre_in0 <= 8'b00111100; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		pre_in0 <= 8'b10101010; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b01010101; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		pre_in0 <= 8'b01010101; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b10101010; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		$finish;
+	end
+	irsx_scaler_counter_interface #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
+		.clock(clock), .reset(reset), .clear_channel_counters(clear_channel_counters),
+		.iserdes_word_in0(in0), .iserdes_word_in1(in1), .iserdes_word_in2(in2), .iserdes_word_in3(in3),
+		.iserdes_word_in4(in4), .iserdes_word_in5(in5), .iserdes_word_in6(in6), .iserdes_word_in7(in7),
+		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
+		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7));
+endmodule
 
 module irsx_register_interface #(
 	parameter TESTBENCH = 0,

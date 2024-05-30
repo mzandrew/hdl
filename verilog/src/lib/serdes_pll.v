@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2024-03-14 by mza
+// last updated 2024-05-29 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -18,6 +18,8 @@
 //      OLOGIC   mytop/mylei/mylei0/osirus_secondary_D
 // means that you have an p/n (primary/secondary) output connected to a oserdes n/p (secondary/primary) primitive, so change it to an oserdes p/n (primary/secondary) primitive, like so:
 // either set .PINTYPE("n") or .PINTYPE("p") as appropriate
+
+// PLL_ADV symbol "..." has pin CLKOUT2 driving a BUFPLL. Only CLKOUT0 and CLKOUT1 pins can drive a BUFPLL. Please modify your design to avoid this unroutable situation.
 
 module iserdes_single4 #(
 	parameter WIDTH = 4
