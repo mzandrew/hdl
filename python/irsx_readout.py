@@ -6,6 +6,17 @@
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
 # last updated 2024-06-02 by mza
 
+cliff = "lower"
+number_of_steps_for_threshold_scan = 128
+number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = 32
+step_size_for_threshold_scan = 1
+thresholds_for_lower_null_scalers_filename = "irsx.thresholds-for-lower-null-scalers"
+thresholds_for_upper_null_scalers_filename = "irsx.thresholds-for-upper-null-scalers"
+#thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
+extra_for_threshold_scan = 2
+extra_for_setting_thresholds = 3
+bump_threshold_amount = 1
+
 bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "clear_channel_counters", "trg_inversion_mask" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
@@ -424,7 +435,7 @@ def loop():
 	#pressed_keys = pygame.key.get_pressed()
 	#pygame.event.wait()
 	mouse = pygame.mouse.get_pos()
-	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_F9, K_F10, K_F11, K_F12, K_c, K_d, K_p, K_s, K_z, K_q, K_w, K_1, K_2, K_3, K_4, K_5, K_6, K_RIGHTBRACKET, K_LEFTBRACKET, K_COMMA, K_PERIOD
+	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_F9, K_F10, K_F11, K_F12, K_c, K_d, K_g, K_p, K_s, K_z, K_q, K_w, K_1, K_2, K_3, K_4, K_5, K_6, K_RIGHTBRACKET, K_LEFTBRACKET, K_COMMA, K_PERIOD
 	for event in pygame.event.get():
 		if event.type == KEYDOWN:
 			if K_ESCAPE==event.key:
@@ -492,6 +503,10 @@ def loop():
 				bump_thresholds(-bump_threshold_amount)
 			elif K_PERIOD==event.key:
 				bump_thresholds(+bump_threshold_amount)
+			elif K_s==event.key:
+				toggle_trigger_sign_bit()
+			elif K_g==event.key:
+				cycle_through_x1_x4_x16_trigger_gains()
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -736,7 +751,7 @@ nominal_register_values.append([164, "dualWbias01", 900]) # needs TBbias and ITb
 nominal_register_values.append([165, "dualWbias23", 900]) # needs TBbias and ITbias
 nominal_register_values.append([166, "dualWbias45", 900]) # needs TBbias and ITbias
 nominal_register_values.append([167, "dualWbias67", 900]) # needs TBbias and ITbias
-nominal_register_values.append([168, "reg168", 5, "trg_sgn, trig_path"])
+nominal_register_values.append([168, "reg168", 0b000000000101, "spy_s2, spy_s1, spy_s0, -, OSH, spy_vs_spy, SSHSH, WR_SSEL, done_mask, trg_x1/x4, trg_x4/x16, trg_sgn"])
 nominal_register_values.append([169, "CMPbias2", 737]) # needs SBbias and DBbias
 nominal_register_values.append([170, "PUbias", 3112]) # needs SBbias and DBbias
 nominal_register_values.append([171, "CMPbias", 1000]) # needs SBbias and DBbias
@@ -774,6 +789,35 @@ nominal_register_values.append([201, "LOAD_SS", 0, "sample select (9bit) + chann
 nominal_register_values.append([202, "Jam_SS", 1, "set Nib ADDR"])
 nominal_register_values.append([252, "CLR_Sync", 1, "WR_ADDR addr mode (no data)"])
 nominal_register_values.append([253, "CatchSpy", 1, "WR_ADDR addr mode (no data)"])
+
+def toggle_trigger_sign_bit():
+	bank = 7
+	address = 168
+	reg168_value = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)[0]
+	reg168_value ^= 1
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [reg168_value])
+	print("toggled trigger sign bit: " + str(reg168_value & 1))
+
+def cycle_through_x1_x4_x16_trigger_gains():
+	bank = 7
+	address = 168
+	mask = 0b110
+	reg168_value = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)[0]
+	reg168_value &= 0xfff
+	print("reg168 before: " + hex(reg168_value, 3))
+	new_trig_gain = (reg168_value & mask)>>1
+	print("trig_gain before: " + hex(new_trig_gain, 1))
+	if 0b10==new_trig_gain: # was x4
+		new_trig_gain = 0b11 # x16
+	elif 0b11==new_trig_gain: # was x16
+		new_trig_gain = 0b00 # x1
+	else:
+		new_trig_gain = 0b10 # x4
+	print("trig_gain after: " + hex(new_trig_gain, 1))
+	reg168_value = reg168_value & ~mask
+	reg168_value |= new_trig_gain<<1
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [reg168_value])
+	print("reg168 after: " + hex(reg168_value, 3))
 
 def change_timing_register_LE_value(increment):
 	bank = 7
@@ -931,17 +975,6 @@ def update_counters():
 threshold_for_peak_scaler       = [    0 for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 threshold_for_upper_null_scaler = [ 4095 for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 threshold_for_lower_null_scaler = [    0 for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
-
-cliff = "upper"
-number_of_steps_for_threshold_scan = 128
-number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = 32
-step_size_for_threshold_scan = 1
-thresholds_for_lower_null_scalers_filename = "irsx.thresholds-for-lower-null-scalers"
-thresholds_for_upper_null_scalers_filename = "irsx.thresholds-for-upper-null-scalers"
-#thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
-extra_for_threshold_scan = 2
-extra_for_setting_thresholds = 3
-bump_threshold_amount = 1
 
 def run_threshold_scan():
 	# 400mV sine wave gives a threshold scan from 0x200 to 0xaf0
