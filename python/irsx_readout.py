@@ -4,7 +4,7 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-05-22 by mza
+# last updated 2024-06-02 by mza
 
 bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "clear_channel_counters", "trg_inversion_mask" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback" ]
@@ -403,6 +403,10 @@ def write_bootup_values():
 	set_max_retries_for_register_transactions(5)
 	set_whether_to_verify_with_shout(0)
 	set_trg_inversion_mask(0b1100)
+	if "upper"==cliff:
+		load_thresholds_corresponding_to_upper_null_scaler()
+	else:
+		load_thresholds_corresponding_to_lower_null_scaler()
 
 import subprocess
 def reprogram_fpga():
@@ -677,14 +681,14 @@ def set_whether_to_verify_with_shout(whether_or_not):
 	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [whether_or_not])
 
-def clear_channel_counters():
-	bank = 0
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 3, [1])
-
 def set_trg_inversion_mask(mask):
 	bank = 0
 	mask &= 0xf
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 4, [mask])
+
+def clear_channel_counters():
+	bank = 2
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [1])
 
 nominal_register_values = []
 # these values are cribbed from asic_configuration.c which has values borrowed from config1asic_trueROI.py; enabling the DLL requires more effort
@@ -878,8 +882,8 @@ def readout_counters_and_scalers():
 	scalers[6] = readback[14]
 	scalers[7] = readback[15]
 
-def print_scalers():
-	string = ""
+def print_scalers(prefix=""):
+	string = prefix
 	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		string += " " + hex(scalers[k], display_precision_of_hex_scaler_counts)
 	print(string)
@@ -920,21 +924,167 @@ def update_counters():
 			bank_counters_object[k] = banks_font.render(hex(counters[k], display_precision_of_hex_counter_counts, True), False, white)
 			screen.blit(bank_counters_object[k], bank_counters_object[k].get_rect(center=(X_POSITION_OF_COUNTERS-bank_counters_object[k].get_width()//2,Y_POSITION_OF_COUNTERS+FONT_SIZE_BANKS*k)))
 
+threshold_for_peak_scaler       = [    0 for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+threshold_for_upper_null_scaler = [ 4095 for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+threshold_for_lower_null_scaler = [    0 for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+
+cliff = "upper"
+number_of_steps_for_threshold_scan = 128
+number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = 32
+step_size_for_threshold_scan = 1
+thresholds_for_lower_null_scalers_filename = "irsx.thresholds-for-lower-null-scalers"
+thresholds_for_upper_null_scalers_filename = "irsx.thresholds-for-upper-null-scalers"
+#thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
+extra_for_threshold_scan = 2
+extra_for_setting_thresholds = 3
+
 def run_threshold_scan():
 	# 400mV sine wave gives a threshold scan from 0x200 to 0xaf0
-	start_value = 0x1c0
-	step_size = 1
-	end_value = 0x230
+	global number_of_steps_for_threshold_scan
+	number_of_steps_for_threshold_scan /= step_size_for_threshold_scan
+	if "upper"==cliff:
+		threshold = load_thresholds_corresponding_to_upper_null_scaler()
+		threshold = [ threshold[channel] + extra_for_threshold_scan for channel in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+		step_size = -step_size_for_threshold_scan
+	else:
+		threshold = load_thresholds_corresponding_to_lower_null_scaler()
+		threshold = [ threshold[channel] - extra_for_threshold_scan for channel in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+		step_size = +step_size_for_threshold_scan
 	bank = 7
-	for value in range(start_value, end_value+1, step_size):
-		print(hex(value, 3), end="  ")
+	global threshold_for_upper_null_scaler, threshold_for_lower_null_scaler
+	anything_seen_yet = [ False for channel in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+	still_running = True
+	step_number = 0
+	while still_running:
+		#print(hex(threshold[channel], 3), end="  ")
 		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			address = 128 + 4 * channel
-			#print(str(address) + " " + str(value))
-			althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value], False)
+			#print(str(address) + " " + str(threshold[channel]))
+			althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [threshold[channel]], False)
 		time.sleep(0.01)
 		readout_counters_and_scalers()
-		print_scalers()
+		print_scalers(dec(step_number, 3))
+		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			if threshold_for_peak_scaler[channel]<scalers[channel]:
+				threshold_for_peak_scaler[channel] = threshold[channel]
+			if scalers[channel]:
+				anything_seen_yet[channel] = True
+			if not anything_seen_yet[channel]:
+				if "upper"==cliff:
+					threshold_for_upper_null_scaler[channel] = threshold[channel]
+				else:
+					threshold_for_lower_null_scaler[channel] = threshold[channel]
+			elif scalers[channel]:
+				if "upper"==cliff:
+					threshold_for_lower_null_scaler[channel] = threshold[channel]
+				else:
+					threshold_for_upper_null_scaler[channel] = threshold[channel]
+		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			threshold[channel] += step_size
+			if threshold[channel]<0:
+				threshold[channel] = 0
+			elif 4095<threshold[channel]:
+				threshold[channel] = 4095
+		step_number += 1
+		if number_of_steps_for_threshold_scan<=step_number:
+			still_running = False
+	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		#threshold_for_lower_null_scaler[channel] -= 1
+		threshold_for_upper_null_scaler[channel] += 1
+	with open(thresholds_for_lower_null_scalers_filename, "w") as thresholds_for_lower_null_scalers_file:
+		string = ""
+		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			string += " " + hex(threshold_for_lower_null_scaler[channel], 3)
+		thresholds_for_lower_null_scalers_file.write(string + "\n")
+	with open(thresholds_for_upper_null_scalers_filename, "w") as thresholds_for_upper_null_scalers_file:
+		string = ""
+		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			string += " " + hex(threshold_for_upper_null_scaler[channel], 3)
+		thresholds_for_upper_null_scalers_file.write(string + "\n")
+	print("ch#  low peak   up")
+	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		print("ch" + str(channel) + " " + hex(threshold_for_lower_null_scaler[channel], display_precision_of_hex_scaler_counts) + " " + hex(threshold_for_peak_scaler[channel], display_precision_of_hex_scaler_counts) + " " + hex(threshold_for_upper_null_scaler[channel], display_precision_of_hex_scaler_counts))
+	if "upper"==cliff:
+		load_thresholds_corresponding_to_upper_null_scaler()
+	else:
+		load_thresholds_corresponding_to_lower_null_scaler()
+
+def read_file_containing_thresholds_corresponding_to_lower_null_scaler():
+	global number_of_steps_for_threshold_scan
+	if "upper"==cliff:
+		start_value = 0x230
+	else:
+		start_value = 0x1b0
+	default_threshold_at_lower_null_scaler = [ start_value for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+	if not os.path.exists(thresholds_for_lower_null_scalers_filename):
+		print("thresholds for null scalers file not found")
+		return default_threshold_at_lower_null_scaler
+	try:
+		with open(thresholds_for_lower_null_scalers_filename, "r") as thresholds_for_lower_null_scalers_file:
+			string = thresholds_for_lower_null_scalers_file.read(256)
+			threshold_at_lower_null_scaler = string.split(" ")
+			threshold_at_lower_null_scaler = [ i for i in threshold_at_lower_null_scaler if i!='' ]
+			#threshold_at_lower_null_scaler.remove('\n')
+			threshold_at_lower_null_scaler = [ int(threshold_at_lower_null_scaler[k], 16) for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+			#print(prepare_string_with_thresholds(threshold_at_lower_null_scaler))
+			#print("null: " + str(threshold_at_lower_null_scaler))
+			number_of_steps_for_threshold_scan = number_of_steps_for_threshold_scan_when_valid_threshold_file_exists / step_size_for_threshold_scan
+			return threshold_at_lower_null_scaler
+	except:
+		print("threshold for null scalers file exists but is corrupted")
+		# maybe delete the file here?
+		return default_threshold_at_lower_null_scaler
+
+def read_file_containing_thresholds_corresponding_to_upper_null_scaler():
+	global number_of_steps_for_threshold_scan
+	if "upper"==cliff:
+		start_value = 0x230
+	else:
+		start_value = 0x1b0
+	default_threshold_at_upper_null_scaler = [ start_value for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+	if not os.path.exists(thresholds_for_upper_null_scalers_filename):
+		print("thresholds for null scalers file not found")
+		return default_threshold_at_upper_null_scaler
+	try:
+		with open(thresholds_for_upper_null_scalers_filename, "r") as thresholds_for_upper_null_scalers_file:
+			string = thresholds_for_upper_null_scalers_file.read(256)
+			threshold_at_upper_null_scaler = string.split(" ")
+			threshold_at_upper_null_scaler = [ i for i in threshold_at_upper_null_scaler if i!='' ]
+			#threshold_at_upper_null_scaler.remove('\n')
+			threshold_at_upper_null_scaler = [ int(threshold_at_upper_null_scaler[k], 16) for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+			#print(prepare_string_with_thresholds(threshold_at_upper_null_scaler))
+			#print("null: " + str(threshold_at_upper_null_scaler))
+			number_of_steps_for_threshold_scan = number_of_steps_for_threshold_scan_when_valid_threshold_file_exists / step_size_for_threshold_scan
+			return threshold_at_upper_null_scaler
+	except:
+		raise
+		print("threshold for null scalers file exists but is corrupted")
+		# maybe delete the file here?
+		return default_threshold_at_upper_null_scaler
+
+def load_thresholds_corresponding_to_lower_null_scaler():
+	threshold_for_lower_null_scaler = read_file_containing_thresholds_corresponding_to_lower_null_scaler()
+	bank = 7
+	string = ""
+	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		address = 128 + 4 * channel
+		string += "  " + hex(threshold_for_lower_null_scaler[channel], 3)
+		threshold = threshold_for_lower_null_scaler[channel] - extra_for_setting_thresholds
+		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [threshold], False)
+	print(string)
+	return threshold_for_lower_null_scaler
+
+def load_thresholds_corresponding_to_upper_null_scaler():
+	threshold_for_upper_null_scaler = read_file_containing_thresholds_corresponding_to_upper_null_scaler()
+	bank = 7
+	string = ""
+	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		address = 128 + 4 * channel
+		string += "  " + hex(threshold_for_upper_null_scaler[channel], 3)
+		threshold = threshold_for_upper_null_scaler[channel] + extra_for_setting_thresholds
+		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [threshold], False)
+	print(string)
+	return threshold_for_upper_null_scaler
 
 def initiate_legacy_serial_sequence():
 	set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
