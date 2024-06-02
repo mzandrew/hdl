@@ -424,7 +424,7 @@ def loop():
 	#pressed_keys = pygame.key.get_pressed()
 	#pygame.event.wait()
 	mouse = pygame.mouse.get_pos()
-	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_F9, K_F10, K_F11, K_F12, K_c, K_d, K_p, K_s, K_z, K_q, K_w, K_1, K_2, K_3, K_4, K_5, K_6, K_RIGHTBRACKET, K_LEFTBRACKET
+	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_F9, K_F10, K_F11, K_F12, K_c, K_d, K_p, K_s, K_z, K_q, K_w, K_1, K_2, K_3, K_4, K_5, K_6, K_RIGHTBRACKET, K_LEFTBRACKET, K_COMMA, K_PERIOD
 	for event in pygame.event.get():
 		if event.type == KEYDOWN:
 			if K_ESCAPE==event.key:
@@ -488,6 +488,10 @@ def loop():
 				change_timing_register_TE_value(-2)
 			elif K_RIGHTBRACKET==event.key:
 				change_timing_register_TE_value(+2)
+			elif K_COMMA==event.key:
+				bump_thresholds(-bump_threshold_amount)
+			elif K_PERIOD==event.key:
+				bump_thresholds(+bump_threshold_amount)
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -937,6 +941,7 @@ thresholds_for_upper_null_scalers_filename = "irsx.thresholds-for-upper-null-sca
 #thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
 extra_for_threshold_scan = 2
 extra_for_setting_thresholds = 3
+bump_threshold_amount = 1
 
 def run_threshold_scan():
 	# 400mV sine wave gives a threshold scan from 0x200 to 0xaf0
@@ -1068,8 +1073,8 @@ def load_thresholds_corresponding_to_lower_null_scaler():
 	string = ""
 	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		address = 128 + 4 * channel
-		string += "  " + hex(threshold_for_lower_null_scaler[channel], 3)
 		threshold = threshold_for_lower_null_scaler[channel] - extra_for_setting_thresholds
+		string += "  " + hex(threshold, 3)
 		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [threshold], False)
 	print(string)
 	return threshold_for_lower_null_scaler
@@ -1080,11 +1085,27 @@ def load_thresholds_corresponding_to_upper_null_scaler():
 	string = ""
 	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		address = 128 + 4 * channel
-		string += "  " + hex(threshold_for_upper_null_scaler[channel], 3)
 		threshold = threshold_for_upper_null_scaler[channel] + extra_for_setting_thresholds
+		string += "  " + hex(threshold, 3)
 		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [threshold], False)
 	print(string)
 	return threshold_for_upper_null_scaler
+
+def bump_thresholds(amount):
+	bank = 7
+	string = ""
+	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		address = 128 + 4 * channel
+		threshold = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)[0]
+		threshold &= 0xfff
+		threshold += amount
+		if threshold<0:
+			threshold = 0
+		elif 4095<threshold:
+			threshold = 4095
+		string += "  " + hex(threshold, 3)
+		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [threshold], False)
+	print(string)
 
 def initiate_legacy_serial_sequence():
 	set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
