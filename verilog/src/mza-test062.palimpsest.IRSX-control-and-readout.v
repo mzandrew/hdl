@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-05-29 by mza
+// last updated 2024-06-02 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -205,7 +205,6 @@ module IRSXtest #(
 	wire [7:0] clock_divider_initial_value_for_register_transactions = bank0[0][7:0];
 	wire [7:0] max_retries = bank0[1][7:0];
 	wire verify_with_shout = bank0[2][0];
-	wire clear_channel_counters = bank0[3][0];
 	assign trg_inversion_mask = bank0[4][3:0];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
@@ -243,10 +242,11 @@ module IRSXtest #(
 	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(word_clock),
 		.address(address_word_full[3:0]), .strobe(write_strobe[2]), .pulse_out(bank2));
+	wire clear_channel_counters = bank2[0];
 //	wire should_initiate_dreset_sequence        = bank2[0];
-	wire should_initiate_legacy_serial_sequence = bank2[1];
+//	wire should_initiate_legacy_serial_sequence = bank2[1];
 //	wire should_initiate_i2c_transfer           = bank2[2];
-	wire should_trigger                         = bank2[3];
+//	wire should_trigger                         = bank2[3];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank3 [15:0]; // i2c registers
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank3 (.clock(word_clock), .reset(reset_word),
@@ -293,14 +293,14 @@ module IRSXtest #(
 		.write_strobe_b(1'b1));
 	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
 	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
-	assign bank6[0] = c0;
-	assign bank6[1] = c1;
-	assign bank6[2] = c2;
-	assign bank6[3] = c3;
-	assign bank6[4] = c4;
-	assign bank6[5] = c5;
-	assign bank6[6] = c6;
-	assign bank6[7] = c7;
+	assign bank6[0][COUNTER_WIDTH-1:0] = c0;
+	assign bank6[1][COUNTER_WIDTH-1:0] = c1;
+	assign bank6[2][COUNTER_WIDTH-1:0] = c2;
+	assign bank6[3][COUNTER_WIDTH-1:0] = c3;
+	assign bank6[4][COUNTER_WIDTH-1:0] = c4;
+	assign bank6[5][COUNTER_WIDTH-1:0] = c5;
+	assign bank6[6][COUNTER_WIDTH-1:0] = c6;
+	assign bank6[7][COUNTER_WIDTH-1:0] = c7;
 	assign bank6[8][SCALER_WIDTH-1:0]  = sc0;
 	assign bank6[9][SCALER_WIDTH-1:0]  = sc1;
 	assign bank6[10][SCALER_WIDTH-1:0] = sc2;
