@@ -6,10 +6,11 @@
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
 # last updated 2024-06-02 by mza
 
-cliff = "lower"
-number_of_steps_for_threshold_scan = 128
-number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = 32
-step_size_for_threshold_scan = 1
+cliff = "upper"
+default_number_of_steps_for_threshold_scan = 128
+default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = 32
+number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan
+step_size_for_threshold_scan = 4
 thresholds_for_lower_null_scalers_filename = "irsx.thresholds-for-lower-null-scalers"
 thresholds_for_upper_null_scalers_filename = "irsx.thresholds-for-upper-null-scalers"
 #thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
@@ -142,6 +143,8 @@ NUMBER_OF_WORDS_PER_FOOTER = 2
 NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT = NUMBER_OF_WORDS_PER_HEADER + NUMBER_OF_WORDS_PER_FOOTER
 starting_sample = 0
 pedestals_have_been_taken = False
+
+trigger_gain = "x4" # can also be "x1" and "x16"
 
 # when run as a systemd service, it gets sent a SIGHUP upon pygame.init(), hence this dummy signal handler
 # see https://stackoverflow.com/questions/39198961/pygame-init-fails-when-run-with-systemd
@@ -418,6 +421,7 @@ def write_bootup_values():
 		load_thresholds_corresponding_to_upper_null_scaler()
 	else:
 		load_thresholds_corresponding_to_lower_null_scaler()
+	set_trigger_gain(trigger_gain)
 
 import subprocess
 def reprogram_fpga():
@@ -507,6 +511,8 @@ def loop():
 				toggle_trigger_sign_bit()
 			elif K_g==event.key:
 				cycle_through_x1_x4_x16_trigger_gains()
+			elif K_z==event.key:
+				load_thresholds_corresponding_to_null_scaler()
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -709,6 +715,12 @@ def clear_channel_counters():
 	bank = 2
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [1])
 
+#pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
+#print(hex(pedestal_dac_12bit_2v5,3))
+#Trig4xVofs = pedestal_dac_12bit_2v5
+#Trig16xVofs = pedestal_dac_12bit_2v5
+Trig4xVofs = 1500
+Trig16xVofs = 2000
 nominal_register_values = []
 # these values are cribbed from asic_configuration.c which has values borrowed from config1asic_trueROI.py; enabling the DLL requires more effort
 nominal_register_values.append([128, "TRGthresh0", 0, "threshold voltage for trigger output for ch0"])
@@ -719,22 +731,22 @@ nominal_register_values.append([144, "TRGthresh4", 0, "threshold voltage for tri
 nominal_register_values.append([148, "TRGthresh5", 0, "threshold voltage for trigger output for ch5"])
 nominal_register_values.append([152, "TRGthresh6", 0, "threshold voltage for trigger output for ch6"])
 nominal_register_values.append([156, "TRGthresh7", 0, "threshold voltage for trigger output for ch7"])
-nominal_register_values.append([129, "Trig4xVofs0", 1500, "voltage offset for x4 trigger path for ch0"])
-nominal_register_values.append([133, "Trig4xVofs1", 1500, "voltage offset for x4 trigger path for ch1"])
-nominal_register_values.append([137, "Trig4xVofs2", 1500, "voltage offset for x4 trigger path for ch2"])
-nominal_register_values.append([141, "Trig4xVofs3", 1500, "voltage offset for x4 trigger path for ch3"])
-nominal_register_values.append([145, "Trig4xVofs4", 1500, "voltage offset for x4 trigger path for ch4"])
-nominal_register_values.append([149, "Trig4xVofs5", 1500, "voltage offset for x4 trigger path for ch5"])
-nominal_register_values.append([153, "Trig4xVofs6", 1500, "voltage offset for x4 trigger path for ch6"])
-nominal_register_values.append([157, "Trig4xVofs7", 1500, "voltage offset for x4 trigger path for ch7"])
-nominal_register_values.append([130, "Trig16xVofs0", 2000, "voltage offset for x16 trigger path for ch0 (warning: affects x4 trigger path)"])
-nominal_register_values.append([134, "Trig16xVofs1", 2000, "voltage offset for x16 trigger path for ch1 (warning: affects x4 trigger path)"])
-nominal_register_values.append([138, "Trig16xVofs2", 2000, "voltage offset for x16 trigger path for ch2 (warning: affects x4 trigger path)"])
-nominal_register_values.append([142, "Trig16xVofs3", 2000, "voltage offset for x16 trigger path for ch3 (warning: affects x4 trigger path)"])
-nominal_register_values.append([146, "Trig16xVofs4", 2000, "voltage offset for x16 trigger path for ch4 (warning: affects x4 trigger path)"])
-nominal_register_values.append([150, "Trig16xVofs5", 2000, "voltage offset for x16 trigger path for ch5 (warning: affects x4 trigger path)"])
-nominal_register_values.append([154, "Trig16xVofs6", 2000, "voltage offset for x16 trigger path for ch6 (warning: affects x4 trigger path)"])
-nominal_register_values.append([158, "Trig16xVofs7", 2000, "voltage offset for x16 trigger path for ch7 (warning: affects x4 trigger path)"])
+nominal_register_values.append([129, "Trig4xVofs0", Trig4xVofs, "voltage offset for x4 trigger path for ch0"])
+nominal_register_values.append([133, "Trig4xVofs1", Trig4xVofs, "voltage offset for x4 trigger path for ch1"])
+nominal_register_values.append([137, "Trig4xVofs2", Trig4xVofs, "voltage offset for x4 trigger path for ch2"])
+nominal_register_values.append([141, "Trig4xVofs3", Trig4xVofs, "voltage offset for x4 trigger path for ch3"])
+nominal_register_values.append([145, "Trig4xVofs4", Trig4xVofs, "voltage offset for x4 trigger path for ch4"])
+nominal_register_values.append([149, "Trig4xVofs5", Trig4xVofs, "voltage offset for x4 trigger path for ch5"])
+nominal_register_values.append([153, "Trig4xVofs6", Trig4xVofs, "voltage offset for x4 trigger path for ch6"])
+nominal_register_values.append([157, "Trig4xVofs7", Trig4xVofs, "voltage offset for x4 trigger path for ch7"])
+nominal_register_values.append([130, "Trig16xVofs0", Trig16xVofs, "voltage offset for x16 trigger path for ch0 (warning: affects x4 trigger path)"])
+nominal_register_values.append([134, "Trig16xVofs1", Trig16xVofs, "voltage offset for x16 trigger path for ch1 (warning: affects x4 trigger path)"])
+nominal_register_values.append([138, "Trig16xVofs2", Trig16xVofs, "voltage offset for x16 trigger path for ch2 (warning: affects x4 trigger path)"])
+nominal_register_values.append([142, "Trig16xVofs3", Trig16xVofs, "voltage offset for x16 trigger path for ch3 (warning: affects x4 trigger path)"])
+nominal_register_values.append([146, "Trig16xVofs4", Trig16xVofs, "voltage offset for x16 trigger path for ch4 (warning: affects x4 trigger path)"])
+nominal_register_values.append([150, "Trig16xVofs5", Trig16xVofs, "voltage offset for x16 trigger path for ch5 (warning: affects x4 trigger path)"])
+nominal_register_values.append([154, "Trig16xVofs6", Trig16xVofs, "voltage offset for x16 trigger path for ch6 (warning: affects x4 trigger path)"])
+nominal_register_values.append([158, "Trig16xVofs7", Trig16xVofs, "voltage offset for x16 trigger path for ch7 (warning: affects x4 trigger path)"])
 nominal_register_values.append([131, "Wbias0", 1100, "width of trigger output for ch0"])
 nominal_register_values.append([135, "Wbias1", 1100, "width of trigger output for ch1"])
 nominal_register_values.append([139, "Wbias2", 1100, "width of trigger output for ch2"])
@@ -789,35 +801,6 @@ nominal_register_values.append([201, "LOAD_SS", 0, "sample select (9bit) + chann
 nominal_register_values.append([202, "Jam_SS", 1, "set Nib ADDR"])
 nominal_register_values.append([252, "CLR_Sync", 1, "WR_ADDR addr mode (no data)"])
 nominal_register_values.append([253, "CatchSpy", 1, "WR_ADDR addr mode (no data)"])
-
-def toggle_trigger_sign_bit():
-	bank = 7
-	address = 168
-	reg168_value = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)[0]
-	reg168_value ^= 1
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [reg168_value])
-	print("toggled trigger sign bit: " + str(reg168_value & 1))
-
-def cycle_through_x1_x4_x16_trigger_gains():
-	bank = 7
-	address = 168
-	mask = 0b110
-	reg168_value = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)[0]
-	reg168_value &= 0xfff
-	print("reg168 before: " + hex(reg168_value, 3))
-	new_trig_gain = (reg168_value & mask)>>1
-	print("trig_gain before: " + hex(new_trig_gain, 1))
-	if 0b10==new_trig_gain: # was x4
-		new_trig_gain = 0b11 # x16
-	elif 0b11==new_trig_gain: # was x16
-		new_trig_gain = 0b00 # x1
-	else:
-		new_trig_gain = 0b10 # x4
-	print("trig_gain after: " + hex(new_trig_gain, 1))
-	reg168_value = reg168_value & ~mask
-	reg168_value |= new_trig_gain<<1
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [reg168_value])
-	print("reg168 after: " + hex(reg168_value, 3))
 
 def change_timing_register_LE_value(increment):
 	bank = 7
@@ -972,14 +955,14 @@ def update_counters():
 			bank_counters_object[k] = banks_font.render(hex(counters[k], display_precision_of_hex_counter_counts, True), False, white)
 			screen.blit(bank_counters_object[k], bank_counters_object[k].get_rect(center=(X_POSITION_OF_COUNTERS-bank_counters_object[k].get_width()//2,Y_POSITION_OF_COUNTERS+FONT_SIZE_BANKS*k)))
 
-threshold_for_peak_scaler       = [    0 for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
-threshold_for_upper_null_scaler = [ 4095 for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
-threshold_for_lower_null_scaler = [    0 for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+MIN_DAC_VALUE =    1
+MAX_DAC_VALUE = 4094
+threshold_for_peak_scaler       = [ MIN_DAC_VALUE for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+threshold_for_upper_null_scaler = [ MAX_DAC_VALUE for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+threshold_for_lower_null_scaler = [ MIN_DAC_VALUE for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 
 def run_threshold_scan():
 	# 400mV sine wave gives a threshold scan from 0x200 to 0xaf0
-	global number_of_steps_for_threshold_scan
-	number_of_steps_for_threshold_scan /= step_size_for_threshold_scan
 	if "upper"==cliff:
 		threshold = load_thresholds_corresponding_to_upper_null_scaler()
 		threshold = [ threshold[channel] + extra_for_threshold_scan for channel in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
@@ -988,6 +971,12 @@ def run_threshold_scan():
 		threshold = load_thresholds_corresponding_to_lower_null_scaler()
 		threshold = [ threshold[channel] - extra_for_threshold_scan for channel in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 		step_size = +step_size_for_threshold_scan
+	number_of_steps = number_of_steps_for_threshold_scan // step_size_for_threshold_scan
+	print("number_of_steps: " + str(number_of_steps))
+	string = ""
+	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		string += "  " + hex(threshold[channel], 3)
+	print(string)
 	bank = 7
 	global threshold_for_upper_null_scaler, threshold_for_lower_null_scaler
 	anything_seen_yet = [ False for channel in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
@@ -1019,16 +1008,20 @@ def run_threshold_scan():
 					threshold_for_upper_null_scaler[channel] = threshold[channel]
 		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			threshold[channel] += step_size
-			if threshold[channel]<0:
-				threshold[channel] = 0
-			elif 4095<threshold[channel]:
-				threshold[channel] = 4095
+			if threshold[channel]<MIN_DAC_VALUE:
+				threshold[channel] = MIN_DAC_VALUE
+			elif MAX_DAC_VALUE<threshold[channel]:
+				threshold[channel] = MAX_DAC_VALUE
 		step_number += 1
-		if number_of_steps_for_threshold_scan<=step_number:
+		if number_of_steps<=step_number:
 			still_running = False
 	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		#threshold_for_lower_null_scaler[channel] -= 1
 		threshold_for_upper_null_scaler[channel] += 1
+		if MAX_DAC_VALUE<threshold_for_upper_null_scaler[channel]:
+			threshold_for_upper_null_scaler[channel] = MAX_DAC_VALUE
+		if threshold_for_lower_null_scaler[channel]<MIN_DAC_VALUE:
+			threshold_for_lower_null_scaler[channel] = MIN_DAC_VALUE
 	with open(thresholds_for_lower_null_scalers_filename, "w") as thresholds_for_lower_null_scalers_file:
 		string = ""
 		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
@@ -1041,7 +1034,7 @@ def run_threshold_scan():
 		thresholds_for_upper_null_scalers_file.write(string + "\n")
 	print("ch#  low peak   up")
 	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
-		print("ch" + str(channel) + " " + hex(threshold_for_lower_null_scaler[channel], display_precision_of_hex_scaler_counts) + " " + hex(threshold_for_peak_scaler[channel], display_precision_of_hex_scaler_counts) + " " + hex(threshold_for_upper_null_scaler[channel], display_precision_of_hex_scaler_counts))
+		print("ch" + str(channel) + "  " + hex(threshold_for_lower_null_scaler[channel], 3) + "  " + hex(threshold_for_peak_scaler[channel], 3) + "  " + hex(threshold_for_upper_null_scaler[channel], 3))
 	if "upper"==cliff:
 		load_thresholds_corresponding_to_upper_null_scaler()
 	else:
@@ -1049,10 +1042,8 @@ def run_threshold_scan():
 
 def read_file_containing_thresholds_corresponding_to_lower_null_scaler():
 	global number_of_steps_for_threshold_scan
-	if "upper"==cliff:
-		start_value = 0x230
-	else:
-		start_value = 0x1b0
+	number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan
+	start_value = 0x1b0
 	default_threshold_at_lower_null_scaler = [ start_value for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 	if not os.path.exists(thresholds_for_lower_null_scalers_filename):
 		print("thresholds for null scalers file not found")
@@ -1066,7 +1057,7 @@ def read_file_containing_thresholds_corresponding_to_lower_null_scaler():
 			threshold_at_lower_null_scaler = [ int(threshold_at_lower_null_scaler[k], 16) for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 			#print(prepare_string_with_thresholds(threshold_at_lower_null_scaler))
 			#print("null: " + str(threshold_at_lower_null_scaler))
-			number_of_steps_for_threshold_scan = number_of_steps_for_threshold_scan_when_valid_threshold_file_exists / step_size_for_threshold_scan
+			number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists
 			return threshold_at_lower_null_scaler
 	except:
 		print("threshold for null scalers file exists but is corrupted")
@@ -1075,10 +1066,13 @@ def read_file_containing_thresholds_corresponding_to_lower_null_scaler():
 
 def read_file_containing_thresholds_corresponding_to_upper_null_scaler():
 	global number_of_steps_for_threshold_scan
-	if "upper"==cliff:
+	number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan
+	if "x4"==trigger_gain:
 		start_value = 0x230
+	elif "x16"==trigger_gain:
+		start_value = MAX_DAC_VALUE
 	else:
-		start_value = 0x1b0
+		start_value = MAX_DAC_VALUE
 	default_threshold_at_upper_null_scaler = [ start_value for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 	if not os.path.exists(thresholds_for_upper_null_scalers_filename):
 		print("thresholds for null scalers file not found")
@@ -1092,7 +1086,7 @@ def read_file_containing_thresholds_corresponding_to_upper_null_scaler():
 			threshold_at_upper_null_scaler = [ int(threshold_at_upper_null_scaler[k], 16) for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 			#print(prepare_string_with_thresholds(threshold_at_upper_null_scaler))
 			#print("null: " + str(threshold_at_upper_null_scaler))
-			number_of_steps_for_threshold_scan = number_of_steps_for_threshold_scan_when_valid_threshold_file_exists / step_size_for_threshold_scan
+			number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists
 			return threshold_at_upper_null_scaler
 	except:
 		raise
@@ -1124,6 +1118,12 @@ def load_thresholds_corresponding_to_upper_null_scaler():
 	print(string)
 	return threshold_for_upper_null_scaler
 
+def load_thresholds_corresponding_to_null_scaler():
+	if "upper"==cliff:
+		load_thresholds_corresponding_to_upper_null_scaler()
+	else:
+		load_thresholds_corresponding_to_lower_null_scaler()
+
 def bump_thresholds(amount):
 	bank = 7
 	string = ""
@@ -1139,6 +1139,60 @@ def bump_thresholds(amount):
 		string += "  " + hex(threshold, 3)
 		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [threshold], False)
 	print(string)
+
+def toggle_trigger_sign_bit():
+	bank = 7
+	address = 168
+	reg168_value = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)[0]
+	reg168_value ^= 1
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [reg168_value])
+	print("toggled trigger sign bit: " + str(reg168_value & 1))
+
+def set_trigger_gain(string):
+	global trigger_gain
+	bank = 7
+	address = 168
+	mask = 0b110
+	reg168_value = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)[0]
+	reg168_value &= 0xfff
+	reg168_value = reg168_value & ~mask
+	if "x1"==string:
+		new_trig_gain = 0b00 # x1
+		trigger_gain = "x1"
+	elif "x4"==string:
+		new_trig_gain = 0b10 # x4
+		trigger_gain = "x4"
+	else:
+		new_trig_gain = 0b11 # x16
+		trigger_gain = "x16"
+	reg168_value |= new_trig_gain<<1
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [reg168_value])
+
+def cycle_through_x1_x4_x16_trigger_gains():
+	global trigger_gain
+	bank = 7
+	address = 168
+	mask = 0b110
+	reg168_value = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)[0]
+	reg168_value &= 0xfff
+	#print("reg168 before: " + hex(reg168_value, 3))
+	new_trig_gain = (reg168_value & mask)>>1
+	#print("trig_gain before: " + hex(new_trig_gain, 1))
+	if 0b10==new_trig_gain: # was x4
+		new_trig_gain = 0b11 # x16
+		trigger_gain = "x16"
+	elif 0b11==new_trig_gain: # was x16
+		new_trig_gain = 0b00 # x1
+		trigger_gain = "x1"
+	else:
+		new_trig_gain = 0b10 # x4
+		trigger_gain = "x4"
+	print("trig gain = " + trigger_gain)
+	#print("trig_gain after: " + hex(new_trig_gain, 1))
+	reg168_value = reg168_value & ~mask
+	reg168_value |= new_trig_gain<<1
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [reg168_value])
+	#print("reg168 after: " + hex(reg168_value, 3))
 
 def initiate_legacy_serial_sequence():
 	set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
