@@ -85,74 +85,74 @@ module irsx_scaler_counter_dual_trigger_interface #(
 			if (reset) begin
 				trigger_stream[i] <= 0;
 			end else begin
-				if (trigger_stream[i][3:0]==4'b1100) begin
-					if (trigger_stream_offset2[i][odd_channel_trigger_width+:2]) begin
+				if (trigger_stream[i][1:0]==2'b10) begin
+					if (trigger_stream_offset2[i][odd_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset2[i][even_channel_trigger_width+:2]) begin
-						odd_channel_hit[i] <= 1'b1;
-					end else begin
-						even_channel_hit[i] <= 1'b1;
-					end
-				end else if (trigger_stream[i][4:1]==4'b1100) begin
-					if (trigger_stream_offset3[i][odd_channel_trigger_width+:2]) begin
-						odd_channel_hit[i] <= 1'b1;
-						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset3[i][even_channel_trigger_width+:2]) begin
+					end else if (trigger_stream_offset2[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 					end else begin
 						even_channel_hit[i] <= 1'b1;
 					end
-				end else if (trigger_stream[i][5:2]==4'b1100) begin
-					if (trigger_stream_offset4[i][odd_channel_trigger_width+:2]) begin
+				end else if (trigger_stream[i][2:1]==2'b10) begin
+					if (trigger_stream_offset3[i][odd_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset4[i][even_channel_trigger_width+:2]) begin
-						odd_channel_hit[i] <= 1'b1;
-					end else begin
-						even_channel_hit[i] <= 1'b1;
-					end
-				end else if (trigger_stream[i][6:3]==4'b1100) begin
-					if (trigger_stream_offset5[i][odd_channel_trigger_width+:2]) begin
-						odd_channel_hit[i] <= 1'b1;
-						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset5[i][even_channel_trigger_width+:2]) begin
+					end else if (trigger_stream_offset3[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 					end else begin
 						even_channel_hit[i] <= 1'b1;
 					end
-				end else if (trigger_stream[i][7:4]==4'b1100) begin
-					if (trigger_stream_offset6[i][odd_channel_trigger_width+:2]) begin
+				end else if (trigger_stream[i][3:2]==2'b10) begin
+					if (trigger_stream_offset4[i][odd_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset6[i][even_channel_trigger_width+:2]) begin
-						odd_channel_hit[i] <= 1'b1;
-					end else begin
-						even_channel_hit[i] <= 1'b1;
-					end
-				end else if (trigger_stream[i][8:5]==4'b1100) begin
-					if (trigger_stream_offset7[i][odd_channel_trigger_width+:2]) begin
-						odd_channel_hit[i] <= 1'b1;
-						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset7[i][even_channel_trigger_width+:2]) begin
+					end else if (trigger_stream_offset4[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 					end else begin
 						even_channel_hit[i] <= 1'b1;
 					end
-				end else if (trigger_stream[i][9:6]==4'b1100) begin
-					if (trigger_stream_offset8[i][odd_channel_trigger_width+:2]) begin
+				end else if (trigger_stream[i][4:3]==2'b10) begin
+					if (trigger_stream_offset5[i][odd_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset8[i][even_channel_trigger_width+:2]) begin
+					end else if (trigger_stream_offset5[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 					end else begin
 						even_channel_hit[i] <= 1'b1;
 					end
-				end else if (trigger_stream[i][10:7]==4'b1100) begin
-					if (trigger_stream_offset9[i][odd_channel_trigger_width+:2]) begin
+				end else if (trigger_stream[i][5:4]==2'b10) begin
+					if (trigger_stream_offset6[i][odd_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset9[i][even_channel_trigger_width+:2]) begin
+					end else if (trigger_stream_offset6[i][even_channel_trigger_width]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
+				end else if (trigger_stream[i][6:5]==2'b10) begin
+					if (trigger_stream_offset7[i][odd_channel_trigger_width]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset7[i][even_channel_trigger_width]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
+				end else if (trigger_stream[i][7:6]==2'b10) begin
+					if (trigger_stream_offset8[i][odd_channel_trigger_width]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset8[i][even_channel_trigger_width]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
+				end else if (trigger_stream[i][8:7]==2'b10) begin
+					if (trigger_stream_offset9[i][odd_channel_trigger_width]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset9[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 					end else begin
 						even_channel_hit[i] <= 1'b1;
