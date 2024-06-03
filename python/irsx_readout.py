@@ -11,28 +11,25 @@ import althea
 BANK_ADDRESS_DEPTH = 13
 
 cliff = "upper"
-default_number_of_steps_for_threshold_scan = 128*4
-default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = 32
-default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = default_number_of_steps_for_threshold_scan
-number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan
 step_size_for_threshold_scan = 4
-thresholds_for_lower_null_scalers_filename = "irsx.thresholds-for-lower-null-scalers"
-thresholds_for_upper_null_scalers_filename = "irsx.thresholds-for-upper-null-scalers"
-#thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
-extra_for_threshold_scan = 2
-extra_for_setting_thresholds = 3
-bump_threshold_amount = 1
-trigger_gain_x1_upper = 0x7ff
-trigger_gain_x1_lower = trigger_gain_x1_upper - 64
-#trigger_gain_x4_peak = 0x856
-trigger_gain_x4_upper = 0x900
-trigger_gain_x4_lower = trigger_gain_x4_upper - 256
-trigger_gain_x16_upper = 0x9a0
-trigger_gain_x16_lower = trigger_gain_x16_upper - 512
 pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
-print(hex(pedestal_dac_12bit_2v5,3))
+#print(hex(pedestal_dac_12bit_2v5,3))
 Trig4xVofs = pedestal_dac_12bit_2v5
 Trig16xVofs = pedestal_dac_12bit_2v5
+
+# the following lists of values are for the trigger_gain x1, x4 and x16 settings:
+default_number_of_steps_for_threshold_scan = [ 64, 128, 512 ]
+default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = [ 32, 64, 256 ]
+basename = "irsx.thresholds-for-lower-null-scalers"
+thresholds_for_lower_null_scalers_filename = [ basename + ".x1", basename + ".x4", basename + ".x16" ]
+basename = "irsx.thresholds-for-upper-null-scalers"
+thresholds_for_upper_null_scalers_filename = [ basename + ".x1", basename + ".x4", basename + ".x16" ]
+#thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
+extra_for_threshold_scan = [ 1, 4, 4 ]
+extra_for_setting_thresholds = [ 3, 15, 99 ]
+bump_threshold_amount = [ 1, 4, 16 ]
+trigger_gain_x1_upper = [ 0x7e0, 0x880, 0x9a0 ]
+trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
 
 bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "clear_channel_counters", "trg_inversion_mask" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback" ]
@@ -159,8 +156,6 @@ NUMBER_OF_WORDS_PER_FOOTER = 2
 NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT = NUMBER_OF_WORDS_PER_HEADER + NUMBER_OF_WORDS_PER_FOOTER
 starting_sample = 0
 pedestals_have_been_taken = False
-
-trigger_gain = "x4" # can also be "x1" and "x16"
 
 # when run as a systemd service, it gets sent a SIGHUP upon pygame.init(), hence this dummy signal handler
 # see https://stackoverflow.com/questions/39198961/pygame-init-fails-when-run-with-systemd
@@ -429,11 +424,11 @@ def write_bootup_values():
 	set_max_retries_for_register_transactions(5)
 	set_whether_to_verify_with_shout(0)
 	set_trg_inversion_mask(0b1100)
+	set_trigger_gain(1) # 0="x1", 1="x4", 2="x16"
 	if "upper"==cliff:
 		load_thresholds_corresponding_to_upper_null_scaler()
 	else:
 		load_thresholds_corresponding_to_lower_null_scaler()
-	set_trigger_gain(trigger_gain)
 	#read_modify_write_speed_test()
 
 import subprocess
@@ -518,9 +513,9 @@ def loop():
 			elif K_RIGHTBRACKET==event.key:
 				change_timing_register_TE_value(+2)
 			elif K_COMMA==event.key:
-				bump_thresholds(-bump_threshold_amount)
+				bump_thresholds(-bump_threshold_amount[trigger_gain])
 			elif K_PERIOD==event.key:
-				bump_thresholds(+bump_threshold_amount)
+				bump_thresholds(+bump_threshold_amount[trigger_gain])
 			elif K_s==event.key:
 				toggle_trigger_sign_bit()
 			elif K_g==event.key:
@@ -1017,11 +1012,11 @@ def run_threshold_scan():
 	# 400mV sine wave gives a threshold scan from 0x200 to 0xaf0
 	if "upper"==cliff:
 		threshold = load_thresholds_corresponding_to_upper_null_scaler()
-		threshold = [ threshold[channel] + extra_for_threshold_scan for channel in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+		threshold = [ threshold[channel] + extra_for_threshold_scan[trigger_gain] for channel in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 		step_size = -step_size_for_threshold_scan
 	else:
 		threshold = load_thresholds_corresponding_to_lower_null_scaler()
-		threshold = [ threshold[channel] - extra_for_threshold_scan for channel in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+		threshold = [ threshold[channel] - extra_for_threshold_scan[trigger_gain] for channel in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 		step_size = +step_size_for_threshold_scan
 	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		if threshold[channel]<MIN_DAC_VALUE:
@@ -1076,12 +1071,12 @@ def run_threshold_scan():
 			threshold_for_upper_null_scaler[channel] = MAX_DAC_VALUE
 		if threshold_for_lower_null_scaler[channel]<MIN_DAC_VALUE:
 			threshold_for_lower_null_scaler[channel] = MIN_DAC_VALUE
-	with open(thresholds_for_lower_null_scalers_filename, "w") as thresholds_for_lower_null_scalers_file:
+	with open(thresholds_for_lower_null_scalers_filename[trigger_gain], "w") as thresholds_for_lower_null_scalers_file:
 		string = ""
 		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			string += " " + hex(threshold_for_lower_null_scaler[channel], 3)
 		thresholds_for_lower_null_scalers_file.write(string + "\n")
-	with open(thresholds_for_upper_null_scalers_filename, "w") as thresholds_for_upper_null_scalers_file:
+	with open(thresholds_for_upper_null_scalers_filename[trigger_gain], "w") as thresholds_for_upper_null_scalers_file:
 		string = ""
 		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			string += " " + hex(threshold_for_upper_null_scaler[channel], 3)
@@ -1096,19 +1091,14 @@ def run_threshold_scan():
 
 def read_file_containing_thresholds_corresponding_to_lower_null_scaler():
 	global number_of_steps_for_threshold_scan
-	number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan
-	if "x1"==trigger_gain:
-		start_value = trigger_gain_x1_lower
-	elif "x4"==trigger_gain:
-		start_value = trigger_gain_x4_lower
-	else:
-		start_value = trigger_gain_x16_lower
+	number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan[trigger_gain]
+	start_value = trigger_gain_x1_lower[trigger_gain]
 	default_threshold_for_lower_null_scaler = [ start_value for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
-	if not os.path.exists(thresholds_for_lower_null_scalers_filename):
+	if not os.path.exists(thresholds_for_lower_null_scalers_filename[trigger_gain]):
 		print("thresholds for null scalers file not found")
 		return default_threshold_for_lower_null_scaler
 	try:
-		with open(thresholds_for_lower_null_scalers_filename, "r") as thresholds_for_lower_null_scalers_file:
+		with open(thresholds_for_lower_null_scalers_filename[trigger_gain], "r") as thresholds_for_lower_null_scalers_file:
 			string = thresholds_for_lower_null_scalers_file.read(256)
 			threshold_for_lower_null_scaler = string.split(" ")
 			threshold_for_lower_null_scaler = [ i for i in threshold_for_lower_null_scaler if i!='' ]
@@ -1119,7 +1109,7 @@ def read_file_containing_thresholds_corresponding_to_lower_null_scaler():
 					threshold_for_lower_null_scaler[channel] = MIN_DAC_VALUE
 			#print(prepare_string_with_thresholds(threshold_for_lower_null_scaler))
 			#print("null: " + str(threshold_for_lower_null_scaler))
-			number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists
+			number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists[trigger_gain]
 			return threshold_for_lower_null_scaler
 	except:
 		print("threshold for null scalers file exists but is corrupted")
@@ -1128,19 +1118,14 @@ def read_file_containing_thresholds_corresponding_to_lower_null_scaler():
 
 def read_file_containing_thresholds_corresponding_to_upper_null_scaler():
 	global number_of_steps_for_threshold_scan
-	number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan
-	if "x1"==trigger_gain:
-		start_value = trigger_gain_x1_upper
-	elif "x4"==trigger_gain:
-		start_value = trigger_gain_x4_upper
-	else:
-		start_value = trigger_gain_x16_upper
+	number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan[trigger_gain]
+	start_value = trigger_gain_x1_upper[trigger_gain]
 	default_threshold_for_upper_null_scaler = [ start_value for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
-	if not os.path.exists(thresholds_for_upper_null_scalers_filename):
+	if not os.path.exists(thresholds_for_upper_null_scalers_filename[trigger_gain]):
 		print("thresholds for null scalers file not found")
 		return default_threshold_for_upper_null_scaler
 	try:
-		with open(thresholds_for_upper_null_scalers_filename, "r") as thresholds_for_upper_null_scalers_file:
+		with open(thresholds_for_upper_null_scalers_filename[trigger_gain], "r") as thresholds_for_upper_null_scalers_file:
 			string = thresholds_for_upper_null_scalers_file.read(256)
 			threshold_for_upper_null_scaler = string.split(" ")
 			threshold_for_upper_null_scaler = [ i for i in threshold_for_upper_null_scaler if i!='' ]
@@ -1151,7 +1136,7 @@ def read_file_containing_thresholds_corresponding_to_upper_null_scaler():
 					threshold_for_upper_null_scaler[channel] = MAX_DAC_VALUE
 			#print(prepare_string_with_thresholds(threshold_for_upper_null_scaler))
 			#print("null: " + str(threshold_for_upper_null_scaler))
-			number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists
+			number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists[trigger_gain]
 			return threshold_for_upper_null_scaler
 	except:
 		raise
@@ -1165,7 +1150,7 @@ def load_thresholds_corresponding_to_lower_null_scaler():
 	string = ""
 	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		address = 128 + 4 * channel
-		threshold = threshold_for_lower_null_scaler[channel] - extra_for_setting_thresholds
+		threshold = threshold_for_lower_null_scaler[channel] - extra_for_setting_thresholds[trigger_gain]
 		if threshold<MIN_DAC_VALUE:
 			threshold = MIN_DAC_VALUE
 		string += "  " + hex(threshold, 3)
@@ -1179,7 +1164,7 @@ def load_thresholds_corresponding_to_upper_null_scaler():
 	string = ""
 	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		address = 128 + 4 * channel
-		threshold = threshold_for_upper_null_scaler[channel] + extra_for_setting_thresholds
+		threshold = threshold_for_upper_null_scaler[channel] + extra_for_setting_thresholds[trigger_gain]
 		if MAX_DAC_VALUE<threshold:
 			threshold = MAX_DAC_VALUE
 		string += "  " + hex(threshold, 3)
@@ -1217,23 +1202,24 @@ def toggle_trigger_sign_bit():
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [reg168_value])
 	print("toggled trigger sign bit: " + str(reg168_value & 1))
 
-def set_trigger_gain(string):
+def set_trigger_gain(value):
 	global trigger_gain
+	trigger_gain = value # 0="x1", 1="x4", 2="x16"
 	bank = 7
 	address = 168
 	mask = 0b110
 	reg168_value = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + address, 1, False)[0]
 	reg168_value &= 0xfff
 	reg168_value = reg168_value & ~mask
-	if "x1"==string:
+	if 0==trigger_gain:
 		new_trig_gain = 0b00 # x1
-		trigger_gain = "x1"
-	elif "x4"==string:
+		trigger_gain = 0
+	elif 1==trigger_gain:
 		new_trig_gain = 0b10 # x4
-		trigger_gain = "x4"
+		trigger_gain = 1
 	else:
 		new_trig_gain = 0b11 # x16
-		trigger_gain = "x16"
+		trigger_gain = 2
 	reg168_value |= new_trig_gain<<1
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [reg168_value])
 
@@ -1249,19 +1235,23 @@ def cycle_through_x1_x4_x16_trigger_gains():
 	#print("trig_gain before: " + hex(new_trig_gain, 1))
 	if 0b10==new_trig_gain: # was x4
 		new_trig_gain = 0b11 # x16
-		trigger_gain = "x16"
+		trigger_gain = 2
 	elif 0b11==new_trig_gain: # was x16
 		new_trig_gain = 0b00 # x1
-		trigger_gain = "x1"
+		trigger_gain = 0
 	else:
 		new_trig_gain = 0b10 # x4
-		trigger_gain = "x4"
-	print("trig gain = " + trigger_gain)
+		trigger_gain = 1
+	print("trig gain = " + str(trigger_gain))
 	#print("trig_gain after: " + hex(new_trig_gain, 1))
 	reg168_value = reg168_value & ~mask
 	reg168_value |= new_trig_gain<<1
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [reg168_value])
 	#print("reg168 after: " + hex(reg168_value, 3))
+	if "upper"==cliff:
+		load_thresholds_corresponding_to_upper_null_scaler()
+	else:
+		load_thresholds_corresponding_to_lower_null_scaler()
 
 def initiate_legacy_serial_sequence():
 	set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
