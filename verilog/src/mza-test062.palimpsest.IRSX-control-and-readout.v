@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-05-29 by mza
+// last updated 2024-06-02 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -17,6 +17,9 @@
 `include "lib/irsx.v"
 
 module IRSXtest #(
+	parameter ACCUMULATOR_WIDTH = 4,
+	parameter RUNNING_TOTAL_WIDTH = ACCUMULATOR_WIDTH + 2,
+//	parameter DUAL_TRIGGER_WIDTH = 4,
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
 	parameter BIT_DEPTH = 8,
@@ -205,7 +208,6 @@ module IRSXtest #(
 	wire [7:0] clock_divider_initial_value_for_register_transactions = bank0[0][7:0];
 	wire [7:0] max_retries = bank0[1][7:0];
 	wire verify_with_shout = bank0[2][0];
-	wire clear_channel_counters = bank0[3][0];
 	assign trg_inversion_mask = bank0[4][3:0];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
@@ -243,10 +245,11 @@ module IRSXtest #(
 	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(word_clock),
 		.address(address_word_full[3:0]), .strobe(write_strobe[2]), .pulse_out(bank2));
+	wire clear_channel_counters = bank2[0];
 //	wire should_initiate_dreset_sequence        = bank2[0];
-	wire should_initiate_legacy_serial_sequence = bank2[1];
+//	wire should_initiate_legacy_serial_sequence = bank2[1];
 //	wire should_initiate_i2c_transfer           = bank2[2];
-	wire should_trigger                         = bank2[3];
+//	wire should_trigger                         = bank2[3];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank3 [15:0]; // i2c registers
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank3 (.clock(word_clock), .reset(reset_word),
@@ -278,12 +281,30 @@ module IRSXtest #(
 //	wire [11:0] SBbias  = bank4[2][11:0]; // 1300
 //	wire [11:0] DBbias  = bank4[3][11:0]; // 1300
 	// ----------------------------------------------------------------------
-	// bank5 asic fifo data
-	wire [15:0] asic_data_from_fifo;
-	assign read_data_word[5] = { 16'd0, asic_data_from_fifo };
-	wire fifo_read_strobe = read_strobe[5];
+//	// bank5 asic fifo data
+//	wire [15:0] asic_data_from_fifo;
+//	assign read_data_word[5] = { 16'd0, asic_data_from_fifo };
+//	wire fifo_read_strobe = read_strobe[5];
 	// ----------------------------------------------------------------------
-	wire [31:0] bank6 [15:0]; // status
+	wire [RUNNING_TOTAL_WIDTH-1:0] t0, t1, t2, t3, t4, t5, t6, t7;
+	wire [31:0] bank5 [15:0]; // dual trigger
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank5 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[5]),
+		.data_in_b_0(bank5[0]),  .data_in_b_1(bank5[1]),  .data_in_b_2(bank5[2]),  .data_in_b_3(bank5[3]),
+		.data_in_b_4(bank5[4]),  .data_in_b_5(bank5[5]),  .data_in_b_6(bank5[6]),  .data_in_b_7(bank5[7]),
+		.data_in_b_8(bank5[8]),  .data_in_b_9(bank5[9]),  .data_in_b_a(bank5[10]), .data_in_b_b(bank5[11]),
+		.data_in_b_c(bank5[12]), .data_in_b_d(bank5[13]), .data_in_b_e(bank5[14]), .data_in_b_f(bank5[15]),
+		.write_strobe_b(1'b1));
+	assign bank5[0][RUNNING_TOTAL_WIDTH-1:0] = t0;
+	assign bank5[1][RUNNING_TOTAL_WIDTH-1:0] = t1;
+	assign bank5[2][RUNNING_TOTAL_WIDTH-1:0] = t2;
+	assign bank5[3][RUNNING_TOTAL_WIDTH-1:0] = t3;
+	assign bank5[4][RUNNING_TOTAL_WIDTH-1:0] = t4;
+	assign bank5[5][RUNNING_TOTAL_WIDTH-1:0] = t5;
+	assign bank5[6][RUNNING_TOTAL_WIDTH-1:0] = t6;
+	assign bank5[7][RUNNING_TOTAL_WIDTH-1:0] = t7;
+	// ----------------------------------------------------------------------
+	wire [31:0] bank6 [15:0]; // counter and scalers
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
 		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
@@ -293,14 +314,14 @@ module IRSXtest #(
 		.write_strobe_b(1'b1));
 	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
 	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
-	assign bank6[0] = c0;
-	assign bank6[1] = c1;
-	assign bank6[2] = c2;
-	assign bank6[3] = c3;
-	assign bank6[4] = c4;
-	assign bank6[5] = c5;
-	assign bank6[6] = c6;
-	assign bank6[7] = c7;
+	assign bank6[0][COUNTER_WIDTH-1:0] = c0;
+	assign bank6[1][COUNTER_WIDTH-1:0] = c1;
+	assign bank6[2][COUNTER_WIDTH-1:0] = c2;
+	assign bank6[3][COUNTER_WIDTH-1:0] = c3;
+	assign bank6[4][COUNTER_WIDTH-1:0] = c4;
+	assign bank6[5][COUNTER_WIDTH-1:0] = c5;
+	assign bank6[6][COUNTER_WIDTH-1:0] = c6;
+	assign bank6[7][COUNTER_WIDTH-1:0] = c7;
 	assign bank6[8][SCALER_WIDTH-1:0]  = sc0;
 	assign bank6[9][SCALER_WIDTH-1:0]  = sc1;
 	assign bank6[10][SCALER_WIDTH-1:0] = sc2;
@@ -310,12 +331,13 @@ module IRSXtest #(
 	assign bank6[14][SCALER_WIDTH-1:0] = sc6;
 	assign bank6[15][SCALER_WIDTH-1:0] = sc7;
 	localparam CLOCK_PERIODS_TO_ACCUMULATE = 25000;
-	irsx_scaler_counter_interface #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
+	irsx_scaler_counter_dual_trigger_interface #(.RUNNING_TOTAL_WIDTH(RUNNING_TOTAL_WIDTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
 		.clock(word_clock), .reset(reset_word), .clear_channel_counters(clear_channel_counters),
 		.iserdes_word_in0(trg01_word), .iserdes_word_in1(trg01_word), .iserdes_word_in2(trg23_word), .iserdes_word_in3(trg23_word),
 		.iserdes_word_in4(trg45_word), .iserdes_word_in5(trg45_word), .iserdes_word_in6(trg67_word), .iserdes_word_in7(trg67_word),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
-		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7));
+		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
+		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
 	// ----------------------------------------------------------------------
 	assign convert = 0;
 	assign ss_incr = 0;
