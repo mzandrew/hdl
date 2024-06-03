@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-05-29 by mza
+// last updated 2024-06-02 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -14,7 +14,11 @@
 //	.iserdes_word_in4(in4), .iserdes_word_in5(in5), .iserdes_word_in6(in6), .iserdes_word_in7(in7),
 //	.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
 //	.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7));
-module irsx_scaler_counter_interface #(
+module irsx_scaler_counter_dual_trigger_interface #(
+	parameter NUMBER_OF_CHANNELS = 8,
+//	parameter DUAL_TRIGGER_WIDTH = 2,
+	parameter ACCUMULATOR_WIDTH = 4,
+	parameter RUNNING_TOTAL_WIDTH = ACCUMULATOR_WIDTH + 2,
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
 	parameter CLOCK_PERIODS_TO_ACCUMULATE = 2**15
@@ -24,7 +28,8 @@ module irsx_scaler_counter_interface #(
 	input [7:0] iserdes_word_in0, iserdes_word_in1, iserdes_word_in2, iserdes_word_in3,
 	input [7:0] iserdes_word_in4, iserdes_word_in5, iserdes_word_in6, iserdes_word_in7,
 	output [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7,
-	output [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7
+	output [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7,
+	output [RUNNING_TOTAL_WIDTH-1:0] t0, t1, t2, t3, t4, t5, t6, t7
 );
 	iserdes_counter_array8 #(
 		.BIT_DEPTH(8), .REGISTER_WIDTH(COUNTER_WIDTH), .NUMBER_OF_CHANNELS(8)
@@ -42,6 +47,58 @@ module irsx_scaler_counter_interface #(
 		.in4(iserdes_word_in4), .in5(iserdes_word_in5), .in6(iserdes_word_in6), .in7(iserdes_word_in7),
 		.out0(sc0), .out1(sc1), .out2(sc2), .out3(sc3), .out4(sc4), .out5(sc5), .out6(sc6), .out7(sc7)
 	);
+	wire [ACCUMULATOR_WIDTH-1:0] oc0, oc1, oc2, oc3, oc4, oc5, oc6, oc7;
+	ones_counter_array8 #(
+		.BIT_DEPTH(8), .REGISTER_WIDTH(ACCUMULATOR_WIDTH)
+	) ones_counters (
+		.clock(clock),
+		.in0(iserdes_word_in0), .in1(iserdes_word_in1), .in2(iserdes_word_in2), .in3(iserdes_word_in3),
+		.in4(iserdes_word_in4), .in5(iserdes_word_in5), .in6(iserdes_word_in6), .in7(iserdes_word_in7),
+		.out0(oc0), .out1(oc1), .out2(oc2), .out3(oc3), .out4(oc4), .out5(oc5), .out6(oc6), .out7(oc7)
+	);
+	wire [ACCUMULATOR_WIDTH-1:0] oc [NUMBER_OF_CHANNELS-1:0];
+	assign oc[0] = oc0;
+	assign oc[1] = oc1;
+	assign oc[2] = oc2;
+	assign oc[3] = oc3;
+	assign oc[4] = oc4;
+	assign oc[5] = oc5;
+	assign oc[6] = oc6;
+	assign oc[7] = oc7;
+	reg [ACCUMULATOR_WIDTH-1:0] accumulator_pipeline0 [NUMBER_OF_CHANNELS-1:0];
+	reg [ACCUMULATOR_WIDTH-1:0] accumulator_pipeline1 [NUMBER_OF_CHANNELS-1:0];
+	reg [ACCUMULATOR_WIDTH-1:0] accumulator_pipeline2 [NUMBER_OF_CHANNELS-1:0];
+	reg [ACCUMULATOR_WIDTH-1:0] accumulator_pipeline3 [NUMBER_OF_CHANNELS-1:0];
+	reg [ACCUMULATOR_WIDTH-1:0] accumulator_pipeline4 [NUMBER_OF_CHANNELS-1:0];
+	reg [RUNNING_TOTAL_WIDTH-1:0] running_total [NUMBER_OF_CHANNELS-1:0];
+	reg [RUNNING_TOTAL_WIDTH-1:0] previous_nonzero_total [NUMBER_OF_CHANNELS-1:0];
+	genvar i;
+	for (i=0; i<NUMBER_OF_CHANNELS; i=i+1) begin : accumulator_mapping
+		always @(posedge clock) begin
+			if (reset) begin
+				running_total[i] <= 0;
+				previous_nonzero_total[i] <= 0;
+			end else begin
+				if (running_total[i]) begin
+					previous_nonzero_total[i] <= running_total[i];
+				end
+				running_total[i] <= accumulator_pipeline4[i] + accumulator_pipeline3[i] + accumulator_pipeline2[i] + accumulator_pipeline1[i] + accumulator_pipeline0[i];
+				accumulator_pipeline4[i] <= accumulator_pipeline3[i];
+				accumulator_pipeline3[i] <= accumulator_pipeline2[i];
+				accumulator_pipeline2[i] <= accumulator_pipeline1[i];
+				accumulator_pipeline1[i] <= accumulator_pipeline0[i];
+				accumulator_pipeline0[i] <= oc[i];
+			end
+		end
+	end
+	assign t0 = previous_nonzero_total[0];
+	assign t1 = previous_nonzero_total[1];
+	assign t2 = previous_nonzero_total[2];
+	assign t3 = previous_nonzero_total[3];
+	assign t4 = previous_nonzero_total[4];
+	assign t5 = previous_nonzero_total[5];
+	assign t6 = previous_nonzero_total[6];
+	assign t7 = previous_nonzero_total[7];
 endmodule
 
 module irsx_scaler_counter_interface_tb ();

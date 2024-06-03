@@ -2,11 +2,13 @@
 // based on mza-test014.duration-timer.uart.v
 // and mza-test022.frequency-counter.uart.v
 // updated 2020-05-30 by mza
-// last updated 2024-03-12 by mza
+// last updated 2024-06-02 by mza
 
 `ifndef FREQUENCY_COUNTER_LIB
 `define FREQUENCY_COUNTER_LIB
 `timescale 1ns / 1ps
+
+`include "generic.v"
 
 module frequency_counter #(
 	parameter FREQUENCY_OF_REFERENCE_CLOCK = 10000000,
@@ -95,6 +97,24 @@ module frequency_counter_tb ();
 	end
 endmodule
 `endif
+
+module ones_counter_array8 #(
+	parameter BIT_DEPTH = 8,
+	parameter REGISTER_WIDTH = $clog2(BIT_DEPTH)
+) (
+	input clock,
+	input [BIT_DEPTH-1:0] in0, in1, in2, in3, in4, in5, in6, in7,
+	output [REGISTER_WIDTH-1:0] out0, out1, out2, out3, out4, out5, out6, out7
+);
+	count_ones #(.WIDTH(BIT_DEPTH)) c0 (.clock(clock), .data_in(in0), .count_out(out0));
+	count_ones #(.WIDTH(BIT_DEPTH)) c1 (.clock(clock), .data_in(in1), .count_out(out1));
+	count_ones #(.WIDTH(BIT_DEPTH)) c2 (.clock(clock), .data_in(in2), .count_out(out2));
+	count_ones #(.WIDTH(BIT_DEPTH)) c3 (.clock(clock), .data_in(in3), .count_out(out3));
+	count_ones #(.WIDTH(BIT_DEPTH)) c4 (.clock(clock), .data_in(in4), .count_out(out4));
+	count_ones #(.WIDTH(BIT_DEPTH)) c5 (.clock(clock), .data_in(in5), .count_out(out5));
+	count_ones #(.WIDTH(BIT_DEPTH)) c6 (.clock(clock), .data_in(in6), .count_out(out6));
+	count_ones #(.WIDTH(BIT_DEPTH)) c7 (.clock(clock), .data_in(in7), .count_out(out7));
+endmodule
 
 module iserdes_counter #(
 	parameter REGISTER_WIDTH = 8,
