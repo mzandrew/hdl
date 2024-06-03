@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-06-02 by mza
+// last updated 2024-06-03 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -78,6 +78,11 @@ module irsx_scaler_counter_dual_trigger_interface #(
 			if (reset) begin
 				running_total[i] <= 0;
 				previous_nonzero_total[i] <= 0;
+				accumulator_pipeline4[i] <= 0;
+				accumulator_pipeline3[i] <= 0;
+				accumulator_pipeline2[i] <= 0;
+				accumulator_pipeline1[i] <= 0;
+				accumulator_pipeline0[i] <= 0;
 			end else begin
 				if (running_total[i]) begin
 					previous_nonzero_total[i] <= running_total[i];
@@ -101,19 +106,22 @@ module irsx_scaler_counter_dual_trigger_interface #(
 	assign t7 = previous_nonzero_total[7];
 endmodule
 
-module irsx_scaler_counter_interface_tb ();
+module irsx_scaler_counter_dual_trigger_interface_tb ();
+	localparam ACCUMULATOR_WIDTH = 4;
+	localparam RUNNING_TOTAL_WIDTH = ACCUMULATOR_WIDTH + 2;
 	localparam COUNTER_WIDTH = 8;
 	localparam SCALER_WIDTH = 4;
 	localparam CLOCK_PERIODS_TO_ACCUMULATE = 16;
 	localparam HALF_CLOCK_PERIOD = 7.861/2;
 	localparam WHOLE_CLOCK_PERIOD = 2*HALF_CLOCK_PERIOD;
-	localparam TIME_PASSES = 17*WHOLE_CLOCK_PERIOD;
+	localparam TIME_PASSES = 7*WHOLE_CLOCK_PERIOD;
 	reg clock = 0;
 	reg reset = 1;
 	reg [7:0] pre_in0 = 0; reg [7:0] pre_in1 = 0; reg [7:0] pre_in2 = 0; reg [7:0] pre_in3 = 0;
 	reg [7:0] pre_in4 = 0; reg [7:0] pre_in5 = 0; reg [7:0] pre_in6 = 0; reg [7:0] pre_in7 = 0;
 	reg [7:0] in0, in1, in2, in3, in4, in5, in6, in7;
 	reg clear_channel_counters = 0;
+	wire [RUNNING_TOTAL_WIDTH-1:0] t0, t1, t2, t3, t4, t5, t6, t7;
 	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
 	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
 	always begin
@@ -140,14 +148,48 @@ module irsx_scaler_counter_interface_tb ();
 		#TIME_PASSES;
 		#TIME_PASSES;
 		#TIME_PASSES;
+		pre_in0 <= 8'b00001111; #WHOLE_CLOCK_PERIOD; pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD; #WHOLE_CLOCK_PERIOD; pre_in0 <= 8'b11110000; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		// even trigger only:
+		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b00011111; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b11111000; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		// odd trigger only:
+		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b00111111; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b11111100; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		// dual trigger:
+		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b00111111; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b11111100; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b00011111; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b11111000; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		#TIME_PASSES;
 		$finish;
 	end
-	irsx_scaler_counter_interface #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
+	irsx_scaler_counter_dual_trigger_interface #(.RUNNING_TOTAL_WIDTH(RUNNING_TOTAL_WIDTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
 		.clock(clock), .reset(reset), .clear_channel_counters(clear_channel_counters),
 		.iserdes_word_in0(in0), .iserdes_word_in1(in1), .iserdes_word_in2(in2), .iserdes_word_in3(in3),
 		.iserdes_word_in4(in4), .iserdes_word_in5(in5), .iserdes_word_in6(in6), .iserdes_word_in7(in7),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
-		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7));
+		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
+		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
 endmodule
 
 module irsx_register_interface #(
