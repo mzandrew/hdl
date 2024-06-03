@@ -4,7 +4,7 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-06-02 by mza
+# last updated 2024-06-03 by mza
 
 from generic import * # hex, eng
 import althea
@@ -16,10 +16,12 @@ pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
 #print(hex(pedestal_dac_12bit_2v5,3))
 Trig4xVofs = pedestal_dac_12bit_2v5
 Trig16xVofs = pedestal_dac_12bit_2v5
-wbias_even = 1120 # 11 ns
-wbias_odd  =  910 # 22 ns
-wbias_dual =  840 # 33 ns
+wbias_even = 1270 #  7.8 ns
+wbias_odd  = 1090 # 11.8 ns
+wbias_dual = 1040 # 15.6 to 23.6 ns (depending on timing of stimuli); but depends on above...
 wbias_bump_amount = 10
+default_expected_even_channel_trigger_width = 8
+default_expected_odd_channel_trigger_width = 12
 
 # the following lists of values are for the trigger_gain x1, x4 and x16 settings:
 default_number_of_steps_for_threshold_scan = [ 64, 128, 512 ]
@@ -149,7 +151,7 @@ should_show_scalers = True
 should_show_bank0_registers = False
 should_show_bank1_registers = True
 should_show_bank4_registers = False
-should_show_bank5_registers = True
+should_show_bank5_registers = False
 should_show_bank6_registers = False
 scaler_values_seen = set()
 pedestal_mode = False
@@ -430,6 +432,7 @@ def setup():
 	write_bootup_values()
 
 def write_bootup_values():
+	print("writing bootup values...")
 	#set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
 	#write_DAC_values()
 	#write_I2C_register_values()
@@ -443,6 +446,7 @@ def write_bootup_values():
 	else:
 		load_thresholds_corresponding_to_lower_null_scaler()
 	#read_modify_write_speed_test()
+	set_expected_trigger_widths(default_expected_even_channel_trigger_width, default_expected_odd_channel_trigger_width)
 
 import subprocess
 def reprogram_fpga():
@@ -465,6 +469,8 @@ def loop():
 		if event.type == pygame.KEYDOWN:
 			if pygame.K_ESCAPE==event.key:
 				running = False
+			elif pygame.K_b==event.key:
+				write_bootup_values()
 			elif pygame.K_1==event.key:
 				timing_register_to_control = 1
 				print("now controlling WR_SYNC")
@@ -543,20 +549,30 @@ def loop():
 				load_thresholds_corresponding_to_null_scaler()
 			elif pygame.K_e==event.key:
 				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
-					bump_wbias_even(+wbias_bump_amount)
-				else:
 					bump_wbias_even(-wbias_bump_amount)
+				else:
+					bump_wbias_even(+wbias_bump_amount)
 			elif pygame.K_o==event.key:
 				pygame.key.get_mods()
 				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
-					bump_wbias_odd(+wbias_bump_amount)
-				else:
 					bump_wbias_odd(-wbias_bump_amount)
+				else:
+					bump_wbias_odd(+wbias_bump_amount)
 			elif pygame.K_d==event.key:
 				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
-					bump_wbias_dual(+wbias_bump_amount)
-				else:
 					bump_wbias_dual(-wbias_bump_amount)
+				else:
+					bump_wbias_dual(+wbias_bump_amount)
+			elif pygame.K_t==event.key:
+				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+					bump_expected_trigger_width(+1, 0)
+				else:
+					bump_expected_trigger_width(-1, 0)
+			elif pygame.K_y==event.key:
+				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+					bump_expected_trigger_width(0, +1)
+				else:
+					bump_expected_trigger_width(0, -1)
 		elif event.type == pygame.QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -777,6 +793,28 @@ def set_trg_inversion_mask(mask):
 	mask &= 0xf
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 4, [mask])
 
+def set_expected_trigger_widths(even, odd):
+	bank = 0
+	print("expected trigger widths: " + str(even) + ", " + str(odd))
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [even, odd])
+
+MAX_TRIGGER_WIDTH_TO_EXPECT = 40
+def bump_expected_trigger_width(even, odd):
+	bank = 0
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 5, 2, False)
+	readback[0] += even
+	readback[1] += odd
+	if readback[0]<0:
+		readback[0] = 0
+	elif MAX_TRIGGER_WIDTH_TO_EXPECT<readback[0]:
+		readback[0] = MAX_TRIGGER_WIDTH_TO_EXPECT
+	if readback[1]<0:
+		readback[1] = 0
+	elif MAX_TRIGGER_WIDTH_TO_EXPECT<readback[1]:
+		readback[1] = MAX_TRIGGER_WIDTH_TO_EXPECT
+	print("expected trigger widths: " + str(readback[0]) + ", " + str(readback[1]))
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, readback)
+
 def clear_channel_counters():
 	bank = 2
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [1])
@@ -828,15 +866,15 @@ nominal_register_values.append([146, "Trig16xVofs4", Trig16xVofs, "voltage offse
 nominal_register_values.append([150, "Trig16xVofs5", Trig16xVofs, "voltage offset for x16 trigger path for ch5 (warning: affects x4 trigger path)"])
 nominal_register_values.append([154, "Trig16xVofs6", Trig16xVofs, "voltage offset for x16 trigger path for ch6 (warning: affects x4 trigger path)"])
 nominal_register_values.append([158, "Trig16xVofs7", Trig16xVofs, "voltage offset for x16 trigger path for ch7 (warning: affects x4 trigger path)"])
-nominal_register_values.append([131, "Wbias0", wbias_even, "width of trigger output for ch0"])
-nominal_register_values.append([135, "Wbias1", wbias_odd, "width of trigger output for ch1"])
-nominal_register_values.append([139, "Wbias2", wbias_even, "width of trigger output for ch2"])
-nominal_register_values.append([143, "Wbias3", wbias_odd, "width of trigger output for ch3"])
-nominal_register_values.append([147, "Wbias4", wbias_even, "width of trigger output for ch4"])
-nominal_register_values.append([151, "Wbias5", wbias_odd, "width of trigger output for ch5"])
-nominal_register_values.append([155, "Wbias6", wbias_even, "width of trigger output for ch6"])
-nominal_register_values.append([159, "Wbias7", wbias_odd, "width of trigger output for ch7"])
-nominal_register_values.append([160, "TBbias", 1300]) # needs ITbias
+nominal_register_values.append([131, "Wbias0", wbias_even, "width of trigger output for ch0; needs TBbias"])
+nominal_register_values.append([135, "Wbias1", wbias_odd,  "width of trigger output for ch1; needs TBbias"])
+nominal_register_values.append([139, "Wbias2", wbias_even, "width of trigger output for ch2; needs TBbias"])
+nominal_register_values.append([143, "Wbias3", wbias_odd,  "width of trigger output for ch3; needs TBbias"])
+nominal_register_values.append([147, "Wbias4", wbias_even, "width of trigger output for ch4; needs TBbias"])
+nominal_register_values.append([151, "Wbias5", wbias_odd,  "width of trigger output for ch5; needs TBbias"])
+nominal_register_values.append([155, "Wbias6", wbias_even, "width of trigger output for ch6; needs TBbias"])
+nominal_register_values.append([159, "Wbias7", wbias_odd,  "width of trigger output for ch7; needs TBbias"])
+nominal_register_values.append([160, "TBbias", 1000]) # needs ITbias - above 1100 doesn't allow for short (7.8ns)) trigger pulses
 #nominal_register_values.append([161, "Vbias", 1100]) # needs ITbias
 #nominal_register_values.append([162, "Vbias2", 950]) # needs ITbias
 nominal_register_values.append([163, "ITbias", 1300])
@@ -1274,6 +1312,8 @@ def load_thresholds_corresponding_to_upper_null_scaler():
 	bank = 7
 	string = ""
 	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		if 1<channel:
+			break # fix this later
 		address = 128 + 4 * channel
 		threshold = threshold_for_upper_null_scaler[channel] + extra_for_setting_thresholds[trigger_gain]
 		if MAX_DAC_VALUE<threshold:
