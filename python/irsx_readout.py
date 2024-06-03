@@ -16,12 +16,12 @@ pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
 #print(hex(pedestal_dac_12bit_2v5,3))
 Trig4xVofs = pedestal_dac_12bit_2v5
 Trig16xVofs = pedestal_dac_12bit_2v5
-wbias_even = 1270 #  7.8 ns
-wbias_odd  = 1090 # 11.8 ns
-wbias_dual = 1040 # 15.6 to 23.6 ns (depending on timing of stimuli); but depends on above...
+wbias_even = 1250 #  7.8 ns
+wbias_odd  = 1590 #  3.9 ns
+wbias_dual = 1130 # 12.4 to 15.4 ns (depending on timing of stimuli); but depends on above...
 wbias_bump_amount = 10
 default_expected_even_channel_trigger_width = 8
-default_expected_odd_channel_trigger_width = 12
+default_expected_odd_channel_trigger_width  = 5
 
 # the following lists of values are for the trigger_gain x1, x4 and x16 settings:
 default_number_of_steps_for_threshold_scan = [ 64, 128, 512 ]
@@ -877,7 +877,7 @@ nominal_register_values.append([159, "Wbias7", wbias_odd,  "width of trigger out
 nominal_register_values.append([160, "TBbias", 1000]) # needs ITbias - above 1100 doesn't allow for short (7.8ns)) trigger pulses
 #nominal_register_values.append([161, "Vbias", 1100]) # needs ITbias
 #nominal_register_values.append([162, "Vbias2", 950]) # needs ITbias
-nominal_register_values.append([163, "ITbias", 1300])
+nominal_register_values.append([163, "ITbias", 1000])
 nominal_register_values.append([164, "dualWbias01", wbias_dual]) # needs TBbias and ITbias
 nominal_register_values.append([165, "dualWbias23", wbias_dual]) # needs TBbias and ITbias
 nominal_register_values.append([166, "dualWbias45", wbias_dual]) # needs TBbias and ITbias
