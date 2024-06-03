@@ -16,6 +16,10 @@ pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
 #print(hex(pedestal_dac_12bit_2v5,3))
 Trig4xVofs = pedestal_dac_12bit_2v5
 Trig16xVofs = pedestal_dac_12bit_2v5
+wbias_even = 1120 # 11 ns
+wbias_odd  =  910 # 22 ns
+wbias_dual =  840 # 33 ns
+wbias_bump_amount = 10
 
 # the following lists of values are for the trigger_gain x1, x4 and x16 settings:
 default_number_of_steps_for_threshold_scan = [ 64, 128, 512 ]
@@ -34,6 +38,7 @@ trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
 bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "clear_channel_counters", "trg_inversion_mask" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
+bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
 #header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
 #header_decode_descriptions = [ "ASICID", "bank", "fine time", "coarse time", "trigger#", "samples after trigger", "lookback samples", "samples to read", "starting sample", "missed triggers", "status" ]
@@ -95,6 +100,7 @@ X_POSITION_OF_SCALERS = 190
 X_POSITION_OF_BANK0_REGISTERS = 100
 X_POSITION_OF_BANK1_REGISTERS = 100
 X_POSITION_OF_BANK4_REGISTERS = 100
+X_POSITION_OF_BANK5_REGISTERS = 300
 X_POSITION_OF_BANK6_REGISTERS = 400
 
 box_dimension_x_in = 3.0
@@ -143,6 +149,7 @@ should_show_scalers = True
 should_show_bank0_registers = False
 should_show_bank1_registers = True
 should_show_bank4_registers = False
+should_show_bank5_registers = True
 should_show_bank6_registers = False
 scaler_values_seen = set()
 pedestal_mode = False
@@ -326,6 +333,7 @@ def setup():
 	global Y_POSITION_OF_BANK0_REGISTERS
 	global Y_POSITION_OF_BANK1_REGISTERS
 	global Y_POSITION_OF_BANK4_REGISTERS
+	global Y_POSITION_OF_BANK5_REGISTERS
 	global Y_POSITION_OF_BANK6_REGISTERS
 	gap = 20
 	Y_POSITION_OF_CHANNEL_NAMES = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
@@ -335,6 +343,7 @@ def setup():
 	Y_POSITION_OF_BANK0_REGISTERS = ROWS * (plot_height + 2*gap)
 	Y_POSITION_OF_BANK1_REGISTERS = ROWS * (plot_height + 2*gap) + 25
 	Y_POSITION_OF_BANK4_REGISTERS = ROWS * (plot_height + 2*gap) + 170
+	Y_POSITION_OF_BANK5_REGISTERS = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
 	Y_POSITION_OF_BANK6_REGISTERS = ROWS * (plot_height + 2*gap)
 	setup_pygame_sdl()
 	#pygame.mixer.quit()
@@ -376,6 +385,10 @@ def setup():
 		for i in range(len(bank4_register_names)):
 			register_name = banks_font.render(bank4_register_names[i], 1, white)
 			screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK4_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK4_REGISTERS+FONT_SIZE_BANKS*i)))
+#	if should_show_bank5_registers:
+#		for i in range(len(bank5_register_names)):
+#			register_name = banks_font.render(bank5_register_names[i], 1, white)
+#			screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK5_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK5_REGISTERS+FONT_SIZE_BANKS*i)))
 	if should_show_bank6_registers:
 		for i in range(len(bank6_register_names)):
 			register_name = banks_font.render(bank6_register_names[i], 1, white)
@@ -446,83 +459,105 @@ def loop():
 	something_was_updated = True
 	#pressed_keys = pygame.key.get_pressed()
 	#pygame.event.wait()
+	import pygame.locals
 	mouse = pygame.mouse.get_pos()
-	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_F9, K_F10, K_F11, K_F12, K_c, K_d, K_g, K_p, K_s, K_z, K_q, K_w, K_1, K_2, K_3, K_4, K_5, K_6, K_RIGHTBRACKET, K_LEFTBRACKET, K_COMMA, K_PERIOD
 	for event in pygame.event.get():
-		if event.type == KEYDOWN:
-			if K_ESCAPE==event.key:
+		if event.type == pygame.KEYDOWN:
+			if pygame.K_ESCAPE==event.key:
 				running = False
-			elif K_1==event.key:
+			elif pygame.K_1==event.key:
 				timing_register_to_control = 1
 				print("now controlling WR_SYNC")
-			elif K_2==event.key:
+			elif pygame.K_2==event.key:
 				timing_register_to_control = 2
 				print("now controlling SSP_in")
-			elif K_3==event.key:
+			elif pygame.K_3==event.key:
 				timing_register_to_control = 3
 				print("now controlling S1")
-			elif K_4==event.key:
+			elif pygame.K_4==event.key:
 				timing_register_to_control = 4
 				print("now controlling S2")
-			elif K_5==event.key:
+			elif pygame.K_5==event.key:
 				timing_register_to_control = 5
 				print("now controlling PHASE")
-			elif K_6==event.key:
+			elif pygame.K_6==event.key:
 				timing_register_to_control = 6
 				print("now controlling WR_STRB")
-			elif K_F1==event.key:
+			elif pygame.K_F1==event.key:
 				reprogram_fpga()
-			elif K_F2==event.key:
+			elif pygame.K_F2==event.key:
 				run_threshold_scan()
-			elif K_F3==event.key:
+			elif pygame.K_F3==event.key:
 				#write_nominal_register_values()
 				write_nominal_register_values_using_read_modify_write()
-			elif K_F4==event.key:
+			elif pygame.K_F4==event.key:
 				clear_all_registers_quickly()
 				#clear_all_registers_slowly()
-			elif K_p==event.key:
+			elif pygame.K_p==event.key:
 #				initiate_trigger()
-				gather_pedestals(1)
-			elif K_F5==event.key:
+				#gather_pedestals(1)
+				pass
+			elif pygame.K_F5==event.key:
 				#readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 				cycle_reg179()
-			elif K_F6==event.key:
-				initiate_trigger()
-				readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
+			elif pygame.K_F6==event.key:
+				#initiate_trigger()
+				#readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 				#drain_fifo()
-			elif K_F9==event.key:
-				DAC_to_control = 0
-				print("now controlling CMPbias")
-			elif K_F10==event.key:
-				DAC_to_control = 1
-				print("now controlling ISEL")
-			elif K_F11==event.key:
-				DAC_to_control = 2
-				print("now controlling SBbias")
-			elif K_F12==event.key:
-				DAC_to_control = 3
-				print("now controlling DBbias")
-			elif K_c==event.key:
+				pass
+			elif pygame.K_F9==event.key:
+				pass
+				#DAC_to_control = 0
+				#print("now controlling CMPbias")
+			elif pygame.K_F10==event.key:
+				pass
+				#DAC_to_control = 1
+				#print("now controlling ISEL")
+			elif pygame.K_F11==event.key:
+				pass
+				#DAC_to_control = 2
+				#print("now controlling SBbias")
+			elif pygame.K_F12==event.key:
+				pass
+				#DAC_to_control = 3
+				#print("now controlling DBbias")
+			elif pygame.K_c==event.key:
 				clear_channel_counters()
-			elif K_q==event.key:
+			elif pygame.K_q==event.key:
 				change_timing_register_LE_value(-2)
-			elif K_w==event.key:
+			elif pygame.K_w==event.key:
 				change_timing_register_LE_value(+2)
-			elif K_LEFTBRACKET==event.key:
+			elif pygame.K_LEFTBRACKET==event.key:
 				change_timing_register_TE_value(-2)
-			elif K_RIGHTBRACKET==event.key:
+			elif pygame.K_RIGHTBRACKET==event.key:
 				change_timing_register_TE_value(+2)
-			elif K_COMMA==event.key:
+			elif pygame.K_COMMA==event.key:
 				bump_thresholds(-bump_threshold_amount[trigger_gain])
-			elif K_PERIOD==event.key:
+			elif pygame.K_PERIOD==event.key:
 				bump_thresholds(+bump_threshold_amount[trigger_gain])
-			elif K_s==event.key:
+			elif pygame.K_s==event.key:
 				toggle_trigger_sign_bit()
-			elif K_g==event.key:
+			elif pygame.K_g==event.key:
 				cycle_through_x1_x4_x16_trigger_gains()
-			elif K_z==event.key:
+			elif pygame.K_z==event.key:
 				load_thresholds_corresponding_to_null_scaler()
-		elif event.type == QUIT:
+			elif pygame.K_e==event.key:
+				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+					bump_wbias_even(+wbias_bump_amount)
+				else:
+					bump_wbias_even(-wbias_bump_amount)
+			elif pygame.K_o==event.key:
+				pygame.key.get_mods()
+				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+					bump_wbias_odd(+wbias_bump_amount)
+				else:
+					bump_wbias_odd(-wbias_bump_amount)
+			elif pygame.K_d==event.key:
+				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+					bump_wbias_dual(+wbias_bump_amount)
+				else:
+					bump_wbias_dual(-wbias_bump_amount)
+		elif event.type == pygame.QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
 			readout_counters_and_scalers()
@@ -531,6 +566,7 @@ def loop():
 			update_bank0_registers()
 			update_bank1_registers()
 			update_bank4_registers()
+			update_bank5_registers()
 			update_bank6_registers()
 #			update_bank1_bank2_scalers()
 #			update_counters()
@@ -590,6 +626,11 @@ def read_bank4_registers():
 	bank = 4
 	bank4_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank4_register_names), False)
 
+def read_bank5_registers():
+	global bank5_register_values
+	bank = 5
+	bank5_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank5_register_names), False)
+
 def read_bank6_registers():
 	global bank6_register_values
 	bank = 6
@@ -598,6 +639,7 @@ def read_bank6_registers():
 bank0_register_object = [ 0 for i in range(len(bank0_register_names)) ]
 bank1_register_object = [ 0 for i in range(len(bank1_register_names)) ]
 bank4_register_object = [ 0 for i in range(len(bank1_register_names)) ]
+bank5_register_object = [ 0 for i in range(len(bank5_register_names)) ]
 bank6_register_object = [ 0 for i in range(len(bank6_register_names)) ]
 
 def update_bank0_registers():
@@ -644,6 +686,21 @@ def update_bank4_registers():
 				pass
 			bank4_register_object[i] = banks_font.render(hex(bank4_register_values[i], 8, True), False, white)
 			screen.blit(bank4_register_object[i], bank4_register_object[i].get_rect(center=(X_POSITION_OF_BANK4_REGISTERS-bank4_register_object[i].get_width()//2,Y_POSITION_OF_BANK4_REGISTERS+FONT_SIZE_BANKS*i)))
+
+def update_bank5_registers():
+	global bank5_register_object
+	read_bank5_registers()
+	if should_show_bank5_registers:
+		for i in range(len(bank5_register_names)):
+			try:
+				temp_surface = pygame.Surface(bank5_register_object[i].get_size())
+				temp_surface.fill(brown)
+				screen.blit(temp_surface, bank5_register_object[i].get_rect(center=(X_POSITION_OF_BANK5_REGISTERS-bank5_register_object[i].get_width()//2,Y_POSITION_OF_BANK5_REGISTERS+FONT_SIZE_BANKS*i)))
+			except Exception as e:
+				#print(str(e))
+				pass
+			bank5_register_object[i] = banks_font.render(hex(bank5_register_values[i], 6, True), False, white)
+			screen.blit(bank5_register_object[i], bank5_register_object[i].get_rect(center=(X_POSITION_OF_BANK5_REGISTERS-bank5_register_object[i].get_width()//2,Y_POSITION_OF_BANK5_REGISTERS+FONT_SIZE_BANKS*i)))
 
 def update_bank6_registers():
 	global bank6_register_object
@@ -771,22 +828,22 @@ nominal_register_values.append([146, "Trig16xVofs4", Trig16xVofs, "voltage offse
 nominal_register_values.append([150, "Trig16xVofs5", Trig16xVofs, "voltage offset for x16 trigger path for ch5 (warning: affects x4 trigger path)"])
 nominal_register_values.append([154, "Trig16xVofs6", Trig16xVofs, "voltage offset for x16 trigger path for ch6 (warning: affects x4 trigger path)"])
 nominal_register_values.append([158, "Trig16xVofs7", Trig16xVofs, "voltage offset for x16 trigger path for ch7 (warning: affects x4 trigger path)"])
-nominal_register_values.append([131, "Wbias0", 1100, "width of trigger output for ch0"])
-nominal_register_values.append([135, "Wbias1", 1100, "width of trigger output for ch1"])
-nominal_register_values.append([139, "Wbias2", 1100, "width of trigger output for ch2"])
-nominal_register_values.append([143, "Wbias3", 1100, "width of trigger output for ch3"])
-nominal_register_values.append([147, "Wbias4", 1100, "width of trigger output for ch4"])
-nominal_register_values.append([151, "Wbias5", 1100, "width of trigger output for ch5"])
-nominal_register_values.append([155, "Wbias6", 1100, "width of trigger output for ch6"])
-nominal_register_values.append([159, "Wbias7", 1100, "width of trigger output for ch7"])
+nominal_register_values.append([131, "Wbias0", wbias_even, "width of trigger output for ch0"])
+nominal_register_values.append([135, "Wbias1", wbias_odd, "width of trigger output for ch1"])
+nominal_register_values.append([139, "Wbias2", wbias_even, "width of trigger output for ch2"])
+nominal_register_values.append([143, "Wbias3", wbias_odd, "width of trigger output for ch3"])
+nominal_register_values.append([147, "Wbias4", wbias_even, "width of trigger output for ch4"])
+nominal_register_values.append([151, "Wbias5", wbias_odd, "width of trigger output for ch5"])
+nominal_register_values.append([155, "Wbias6", wbias_even, "width of trigger output for ch6"])
+nominal_register_values.append([159, "Wbias7", wbias_odd, "width of trigger output for ch7"])
 nominal_register_values.append([160, "TBbias", 1300]) # needs ITbias
 #nominal_register_values.append([161, "Vbias", 1100]) # needs ITbias
 #nominal_register_values.append([162, "Vbias2", 950]) # needs ITbias
 nominal_register_values.append([163, "ITbias", 1300])
-nominal_register_values.append([164, "dualWbias01", 900]) # needs TBbias and ITbias
-nominal_register_values.append([165, "dualWbias23", 900]) # needs TBbias and ITbias
-nominal_register_values.append([166, "dualWbias45", 900]) # needs TBbias and ITbias
-nominal_register_values.append([167, "dualWbias67", 900]) # needs TBbias and ITbias
+nominal_register_values.append([164, "dualWbias01", wbias_dual]) # needs TBbias and ITbias
+nominal_register_values.append([165, "dualWbias23", wbias_dual]) # needs TBbias and ITbias
+nominal_register_values.append([166, "dualWbias45", wbias_dual]) # needs TBbias and ITbias
+nominal_register_values.append([167, "dualWbias67", wbias_dual]) # needs TBbias and ITbias
 nominal_register_values.append([168, "reg168", 0b000000000101, "spy_s2, spy_s1, spy_s0, -, OSH, spy_vs_spy, SSHSH, WR_SSEL, done_mask, trg_x1/x4, trg_x4/x16, trg_sgn"])
 nominal_register_values.append([169, "CMPbias2", 737]) # needs SBbias and DBbias
 nominal_register_values.append([170, "PUbias", 3112]) # needs SBbias and DBbias
@@ -867,6 +924,58 @@ def clear_all_registers_slowly():
 		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [values[address]])
 		time.sleep(0.1)
 
+def bump_wbias_even(amount):
+	global wbias_even
+	wbias_even += amount
+	if wbias_even<MIN_DAC_VALUE:
+		wbias_even = MIN_DAC_VALUE
+	elif MAX_DAC_VALUE<wbias_even:
+		wbias_even = MAX_DAC_VALUE
+	write_wbias_block_using_read_modify_write()
+
+def bump_wbias_odd(amount):
+	global wbias_odd
+	wbias_odd += amount
+	if wbias_odd<MIN_DAC_VALUE:
+		wbias_odd = MIN_DAC_VALUE
+	elif MAX_DAC_VALUE<wbias_odd:
+		wbias_odd = MAX_DAC_VALUE
+	write_wbias_block_using_read_modify_write()
+
+def bump_wbias_dual(amount):
+	global wbias_dual
+	wbias_dual += amount
+	if wbias_dual<MIN_DAC_VALUE:
+		wbias_dual = MIN_DAC_VALUE
+	elif MAX_DAC_VALUE<wbias_dual:
+		wbias_dual = MAX_DAC_VALUE
+	write_wbias_block_using_read_modify_write()
+
+def write_wbias_block_using_read_modify_write():
+	bank = 7
+	starting_address = 131
+	ending_address = 167
+	block_length = ending_address - starting_address + 1
+	#print("starting_address: " + str(starting_address))
+	#print("ending_address: " + str(ending_address))
+	#print("block_length: " + str(block_length))
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + starting_address, block_length, False)
+	for i in range(len(readback)):
+		readback[i] &= 0xfff
+	#print(str(readback))
+	for i in range(4):
+		additional_address = 8 * i
+		value = wbias_even
+		readback[additional_address] = value
+		additional_address = 8 * i + 4
+		value = wbias_odd
+		readback[additional_address] = value
+		additional_address = 164 - 131 + i
+		value = wbias_dual
+		readback[additional_address] = value
+	print(str(readback))
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + starting_address, readback)
+
 def write_nominal_register_values_using_read_modify_write():
 	bank = 7
 	starting_address = 0
@@ -877,17 +986,19 @@ def write_nominal_register_values_using_read_modify_write():
 #		if nominal_register_values[i][0]<ending_address:
 #			ending_address = nominal_register_values[i][0]
 	block_length = ending_address - starting_address + 1
-	print("starting_address: " + str(starting_address))
-	print("ending_address: " + str(ending_address))
-	print("block_length: " + str(block_length))
+	#print("starting_address: " + str(starting_address))
+	#print("ending_address: " + str(ending_address))
+	#print("block_length: " + str(block_length))
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + starting_address, block_length, False)
+	for i in range(len(readback)):
+		readback[i] &= 0xfff
 	for i in range(len(nominal_register_values)):
 		address = nominal_register_values[i][0]
 		value = nominal_register_values[i][2]
 		string = nominal_register_values[i][1]
 		print(str(address) + " " + string + " " + str(value))
 		readback[address] = value
-	print(str(readback))
+	#print(str(readback))
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + starting_address, readback)
 
 def write_nominal_register_values():
