@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-06-02 by mza
+// last updated 2024-06-03 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -17,9 +17,9 @@
 `include "lib/irsx.v"
 
 module IRSXtest #(
-	parameter ACCUMULATOR_WIDTH = 4,
-	parameter RUNNING_TOTAL_WIDTH = ACCUMULATOR_WIDTH + 2,
-//	parameter DUAL_TRIGGER_WIDTH = 4,
+	parameter NUMBER_OF_CHANNELS = 8,
+	parameter TRIGSTREAM_LENGTH = 50,
+	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH),
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
 	parameter BIT_DEPTH = 8,
@@ -120,6 +120,10 @@ module IRSXtest #(
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
+	wire [NUMBER_OF_CHANNELS-1:0] even_channel_hit;
+	wire [NUMBER_OF_CHANNELS-1:0] odd_channel_hit;
+	wire even_channels_hit = |even_channel_hit;
+	wire odd_channels_hit  = |odd_channel_hit;
 	// ----------------------------------------------------------------------
 	OBUFDS wr_dat_dummy (.I(1'b0), .O(wr_dat_p), .OB(wr_dat_n));
 	// ----------------------------------------------------------------------
@@ -209,6 +213,8 @@ module IRSXtest #(
 	wire [7:0] max_retries = bank0[1][7:0];
 	wire verify_with_shout = bank0[2][0];
 	assign trg_inversion_mask = bank0[4][3:0];
+	wire [LOG2_OF_TRIGSTREAM_LENGTH:0] even_channel_trigger_width = bank0[5][LOG2_OF_TRIGSTREAM_LENGTH:0];
+	wire [LOG2_OF_TRIGSTREAM_LENGTH:0] odd_channel_trigger_width  = bank0[6][LOG2_OF_TRIGSTREAM_LENGTH:0];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -286,8 +292,7 @@ module IRSXtest #(
 //	assign read_data_word[5] = { 16'd0, asic_data_from_fifo };
 //	wire fifo_read_strobe = read_strobe[5];
 	// ----------------------------------------------------------------------
-	wire [RUNNING_TOTAL_WIDTH-1:0] t0, t1, t2, t3, t4, t5, t6, t7;
-	wire [31:0] bank5 [15:0]; // dual trigger
+	wire [31:0] bank5 [15:0]; // 
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank5 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[5]),
 		.data_in_b_0(bank5[0]),  .data_in_b_1(bank5[1]),  .data_in_b_2(bank5[2]),  .data_in_b_3(bank5[3]),
@@ -295,14 +300,6 @@ module IRSXtest #(
 		.data_in_b_8(bank5[8]),  .data_in_b_9(bank5[9]),  .data_in_b_a(bank5[10]), .data_in_b_b(bank5[11]),
 		.data_in_b_c(bank5[12]), .data_in_b_d(bank5[13]), .data_in_b_e(bank5[14]), .data_in_b_f(bank5[15]),
 		.write_strobe_b(1'b1));
-	assign bank5[0][RUNNING_TOTAL_WIDTH-1:0] = t0;
-	assign bank5[1][RUNNING_TOTAL_WIDTH-1:0] = t1;
-	assign bank5[2][RUNNING_TOTAL_WIDTH-1:0] = t2;
-	assign bank5[3][RUNNING_TOTAL_WIDTH-1:0] = t3;
-	assign bank5[4][RUNNING_TOTAL_WIDTH-1:0] = t4;
-	assign bank5[5][RUNNING_TOTAL_WIDTH-1:0] = t5;
-	assign bank5[6][RUNNING_TOTAL_WIDTH-1:0] = t6;
-	assign bank5[7][RUNNING_TOTAL_WIDTH-1:0] = t7;
 	// ----------------------------------------------------------------------
 	wire [31:0] bank6 [15:0]; // counter and scalers
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
@@ -331,13 +328,14 @@ module IRSXtest #(
 	assign bank6[14][SCALER_WIDTH-1:0] = sc6;
 	assign bank6[15][SCALER_WIDTH-1:0] = sc7;
 	localparam CLOCK_PERIODS_TO_ACCUMULATE = 25000;
-	irsx_scaler_counter_dual_trigger_interface #(.RUNNING_TOTAL_WIDTH(RUNNING_TOTAL_WIDTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
+	irsx_scaler_counter_dual_trigger_interface #(.TRIGSTREAM_LENGTH (TRIGSTREAM_LENGTH ), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
 		.clock(word_clock), .reset(reset_word), .clear_channel_counters(clear_channel_counters),
 		.iserdes_word_in0(trg01_word), .iserdes_word_in1(trg01_word), .iserdes_word_in2(trg23_word), .iserdes_word_in3(trg23_word),
 		.iserdes_word_in4(trg45_word), .iserdes_word_in5(trg45_word), .iserdes_word_in6(trg67_word), .iserdes_word_in7(trg67_word),
+		.odd_channel_trigger_width(odd_channel_trigger_width), .even_channel_trigger_width(even_channel_trigger_width),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
 		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
-		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
+		.even_channel_hit(even_channel_hit), .odd_channel_hit(odd_channel_hit));
 	// ----------------------------------------------------------------------
 	assign convert = 0;
 	assign ss_incr = 0;
@@ -368,10 +366,12 @@ module IRSXtest #(
 		//clock_ODDR_out sstclk_second_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out(oddr_sstclk));
 		wire oddr_double_period;
 		clock_ODDR_out double_period_ODDR  (.clock_in_p(double_period_clk),  .clock_in_n(double_period_clk180),  .reset(reset), .clock_out(oddr_double_period));
-		assign coax[0] = wr_syncmon;
-		assign coax[1] = oddr_double_period;
+		//assign coax[0] = wr_syncmon;
+		//assign coax[1] = oddr_double_period;
 		//assign coax[2] = montiming2;
 		//assign coax[3] = montiming1;
+		assign coax[0] = even_channels_hit;
+		assign coax[1] = odd_channels_hit;
 		assign coax[2] = trg0123;
 		assign coax[3] = trg4567;
 	end

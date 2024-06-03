@@ -15,10 +15,9 @@
 //	.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
 //	.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7));
 module irsx_scaler_counter_dual_trigger_interface #(
+	parameter TRIGSTREAM_LENGTH = 50,
+	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH),
 	parameter NUMBER_OF_CHANNELS = 8,
-//	parameter DUAL_TRIGGER_WIDTH = 2,
-	parameter ACCUMULATOR_WIDTH = 4,
-	parameter RUNNING_TOTAL_WIDTH = ACCUMULATOR_WIDTH + 2,
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
 	parameter CLOCK_PERIODS_TO_ACCUMULATE = 2**15
@@ -27,9 +26,12 @@ module irsx_scaler_counter_dual_trigger_interface #(
 	input clear_channel_counters,
 	input [7:0] iserdes_word_in0, iserdes_word_in1, iserdes_word_in2, iserdes_word_in3,
 	input [7:0] iserdes_word_in4, iserdes_word_in5, iserdes_word_in6, iserdes_word_in7,
+	input [LOG2_OF_TRIGSTREAM_LENGTH:0] even_channel_trigger_width,
+	input [LOG2_OF_TRIGSTREAM_LENGTH:0] odd_channel_trigger_width,
 	output [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7,
 	output [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7,
-	output [RUNNING_TOTAL_WIDTH-1:0] t0, t1, t2, t3, t4, t5, t6, t7
+	output reg [NUMBER_OF_CHANNELS-1:0] even_channel_hit = 0,
+	output reg [NUMBER_OF_CHANNELS-1:0] odd_channel_hit = 0
 );
 	iserdes_counter_array8 #(
 		.BIT_DEPTH(8), .REGISTER_WIDTH(COUNTER_WIDTH), .NUMBER_OF_CHANNELS(8)
@@ -47,74 +49,134 @@ module irsx_scaler_counter_dual_trigger_interface #(
 		.in4(iserdes_word_in4), .in5(iserdes_word_in5), .in6(iserdes_word_in6), .in7(iserdes_word_in7),
 		.out0(sc0), .out1(sc1), .out2(sc2), .out3(sc3), .out4(sc4), .out5(sc5), .out6(sc6), .out7(sc7)
 	);
-	wire [ACCUMULATOR_WIDTH-1:0] oc0, oc1, oc2, oc3, oc4, oc5, oc6, oc7;
-	ones_counter_array8 #(
-		.BIT_DEPTH(8), .REGISTER_WIDTH(ACCUMULATOR_WIDTH)
-	) ones_counters (
-		.clock(clock),
-		.in0(iserdes_word_in0), .in1(iserdes_word_in1), .in2(iserdes_word_in2), .in3(iserdes_word_in3),
-		.in4(iserdes_word_in4), .in5(iserdes_word_in5), .in6(iserdes_word_in6), .in7(iserdes_word_in7),
-		.out0(oc0), .out1(oc1), .out2(oc2), .out3(oc3), .out4(oc4), .out5(oc5), .out6(oc6), .out7(oc7)
-	);
-	wire [ACCUMULATOR_WIDTH-1:0] oc [NUMBER_OF_CHANNELS-1:0];
-	assign oc[0] = oc0;
-	assign oc[1] = oc1;
-	assign oc[2] = oc2;
-	assign oc[3] = oc3;
-	assign oc[4] = oc4;
-	assign oc[5] = oc5;
-	assign oc[6] = oc6;
-	assign oc[7] = oc7;
-	reg [ACCUMULATOR_WIDTH-1:0] accumulator_pipeline0 [NUMBER_OF_CHANNELS-1:0];
-	reg [ACCUMULATOR_WIDTH-1:0] accumulator_pipeline1 [NUMBER_OF_CHANNELS-1:0];
-	reg [ACCUMULATOR_WIDTH-1:0] accumulator_pipeline2 [NUMBER_OF_CHANNELS-1:0];
-	reg [ACCUMULATOR_WIDTH-1:0] accumulator_pipeline3 [NUMBER_OF_CHANNELS-1:0];
-	reg [ACCUMULATOR_WIDTH-1:0] accumulator_pipeline4 [NUMBER_OF_CHANNELS-1:0];
-	reg [RUNNING_TOTAL_WIDTH-1:0] running_total [NUMBER_OF_CHANNELS-1:0];
-	reg [RUNNING_TOTAL_WIDTH-1:0] previous_nonzero_total [NUMBER_OF_CHANNELS-1:0];
+	wire [8-1:0] iserdes_word_in [NUMBER_OF_CHANNELS-1:0];
+	assign iserdes_word_in[0] = iserdes_word_in0;
+	assign iserdes_word_in[1] = iserdes_word_in1;
+	assign iserdes_word_in[2] = iserdes_word_in2;
+	assign iserdes_word_in[3] = iserdes_word_in3;
+	assign iserdes_word_in[4] = iserdes_word_in4;
+	assign iserdes_word_in[5] = iserdes_word_in5;
+	assign iserdes_word_in[6] = iserdes_word_in6;
+	assign iserdes_word_in[7] = iserdes_word_in7;
+	reg [TRIGSTREAM_LENGTH-1:0] trigger_stream [NUMBER_OF_CHANNELS-1:0];
+	wire [TRIGSTREAM_LENGTH-1-2:0] trigger_stream_offset2 [NUMBER_OF_CHANNELS-1:0];
+	wire [TRIGSTREAM_LENGTH-1-3:0] trigger_stream_offset3 [NUMBER_OF_CHANNELS-1:0];
+	wire [TRIGSTREAM_LENGTH-1-4:0] trigger_stream_offset4 [NUMBER_OF_CHANNELS-1:0];
+	wire [TRIGSTREAM_LENGTH-1-5:0] trigger_stream_offset5 [NUMBER_OF_CHANNELS-1:0];
+	wire [TRIGSTREAM_LENGTH-1-6:0] trigger_stream_offset6 [NUMBER_OF_CHANNELS-1:0];
+	wire [TRIGSTREAM_LENGTH-1-7:0] trigger_stream_offset7 [NUMBER_OF_CHANNELS-1:0];
+	wire [TRIGSTREAM_LENGTH-1-8:0] trigger_stream_offset8 [NUMBER_OF_CHANNELS-1:0];
+	wire [TRIGSTREAM_LENGTH-1-9:0] trigger_stream_offset9 [NUMBER_OF_CHANNELS-1:0];
 	genvar i;
-	for (i=0; i<NUMBER_OF_CHANNELS; i=i+1) begin : accumulator_mapping
+	for (i=0; i<NUMBER_OF_CHANNELS; i=i+1) begin : trigger_stream_offset_mapping
+		assign trigger_stream_offset2[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:2];
+		assign trigger_stream_offset3[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:3];
+		assign trigger_stream_offset4[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:4];
+		assign trigger_stream_offset5[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:5];
+		assign trigger_stream_offset6[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:6];
+		assign trigger_stream_offset7[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:7];
+		assign trigger_stream_offset8[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:8];
+		assign trigger_stream_offset9[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:9];
+	end
+	for (i=0; i<NUMBER_OF_CHANNELS; i=i+1) begin : trigger_stream_mapping
 		always @(posedge clock) begin
+			even_channel_hit[i] <= 0;
+			odd_channel_hit[i] <= 0;
 			if (reset) begin
-				running_total[i] <= 0;
-				previous_nonzero_total[i] <= 0;
-				accumulator_pipeline4[i] <= 0;
-				accumulator_pipeline3[i] <= 0;
-				accumulator_pipeline2[i] <= 0;
-				accumulator_pipeline1[i] <= 0;
-				accumulator_pipeline0[i] <= 0;
+				trigger_stream[i] <= 0;
 			end else begin
-				if (running_total[i]) begin
-					previous_nonzero_total[i] <= running_total[i];
+				if (trigger_stream[i][3:0]==4'b1100) begin
+					if (trigger_stream_offset2[i][odd_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset2[i][even_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
+				end else if (trigger_stream[i][4:1]==4'b1100) begin
+					if (trigger_stream_offset3[i][odd_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset3[i][even_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
+				end else if (trigger_stream[i][5:2]==4'b1100) begin
+					if (trigger_stream_offset4[i][odd_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset4[i][even_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
+				end else if (trigger_stream[i][6:3]==4'b1100) begin
+					if (trigger_stream_offset5[i][odd_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset5[i][even_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
+				end else if (trigger_stream[i][7:4]==4'b1100) begin
+					if (trigger_stream_offset6[i][odd_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset6[i][even_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
+				end else if (trigger_stream[i][8:5]==4'b1100) begin
+					if (trigger_stream_offset7[i][odd_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset7[i][even_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
+				end else if (trigger_stream[i][9:6]==4'b1100) begin
+					if (trigger_stream_offset8[i][odd_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset8[i][even_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
+				end else if (trigger_stream[i][10:7]==4'b1100) begin
+					if (trigger_stream_offset9[i][odd_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+						even_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset9[i][even_channel_trigger_width+:2]) begin
+						odd_channel_hit[i] <= 1'b1;
+					end else begin
+						even_channel_hit[i] <= 1'b1;
+					end
 				end
-				running_total[i] <= accumulator_pipeline4[i] + accumulator_pipeline3[i] + accumulator_pipeline2[i] + accumulator_pipeline1[i] + accumulator_pipeline0[i];
-				accumulator_pipeline4[i] <= accumulator_pipeline3[i];
-				accumulator_pipeline3[i] <= accumulator_pipeline2[i];
-				accumulator_pipeline2[i] <= accumulator_pipeline1[i];
-				accumulator_pipeline1[i] <= accumulator_pipeline0[i];
-				accumulator_pipeline0[i] <= oc[i];
+				trigger_stream[i] <= { trigger_stream[i][TRIGSTREAM_LENGTH-1-8:0], iserdes_word_in[i] };
 			end
 		end
 	end
-	assign t0 = previous_nonzero_total[0];
-	assign t1 = previous_nonzero_total[1];
-	assign t2 = previous_nonzero_total[2];
-	assign t3 = previous_nonzero_total[3];
-	assign t4 = previous_nonzero_total[4];
-	assign t5 = previous_nonzero_total[5];
-	assign t6 = previous_nonzero_total[6];
-	assign t7 = previous_nonzero_total[7];
 endmodule
 
-module irsx_scaler_counter_dual_trigger_interface_tb ();
-	localparam ACCUMULATOR_WIDTH = 4;
-	localparam RUNNING_TOTAL_WIDTH = ACCUMULATOR_WIDTH + 2;
-	localparam COUNTER_WIDTH = 8;
-	localparam SCALER_WIDTH = 4;
-	localparam CLOCK_PERIODS_TO_ACCUMULATE = 16;
-	localparam HALF_CLOCK_PERIOD = 7.861/2;
-	localparam WHOLE_CLOCK_PERIOD = 2*HALF_CLOCK_PERIOD;
-	localparam TIME_PASSES = 7*WHOLE_CLOCK_PERIOD;
+module irsx_scaler_counter_dual_trigger_interface_tb #(
+	parameter NUMBER_OF_CHANNELS = 8,
+	parameter TRIGSTREAM_LENGTH = 40,
+	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH),
+	parameter ACCUMULATOR_WIDTH = 4,
+	parameter RUNNING_TOTAL_WIDTH = ACCUMULATOR_WIDTH + 2,
+	parameter COUNTER_WIDTH = 8,
+	parameter SCALER_WIDTH = 4,
+	parameter CLOCK_PERIODS_TO_ACCUMULATE = 16,
+	parameter HALF_CLOCK_PERIOD = 7.861/2,
+	parameter WHOLE_CLOCK_PERIOD = 2*HALF_CLOCK_PERIOD,
+	parameter TIME_PASSES = 7*WHOLE_CLOCK_PERIOD
+) ();
 	reg clock = 0;
 	reg reset = 1;
 	reg [7:0] pre_in0 = 0; reg [7:0] pre_in1 = 0; reg [7:0] pre_in2 = 0; reg [7:0] pre_in3 = 0;
@@ -124,6 +186,10 @@ module irsx_scaler_counter_dual_trigger_interface_tb ();
 	wire [RUNNING_TOTAL_WIDTH-1:0] t0, t1, t2, t3, t4, t5, t6, t7;
 	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
 	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
+	reg [LOG2_OF_TRIGSTREAM_LENGTH:0] even_channel_trigger_width = 10;
+	reg [LOG2_OF_TRIGSTREAM_LENGTH:0] odd_channel_trigger_width = 20;
+	wire [NUMBER_OF_CHANNELS-1:0] even_channel_hit;
+	wire [NUMBER_OF_CHANNELS-1:0] odd_channel_hit;
 	always begin
 		#HALF_CLOCK_PERIOD; clock <= ~clock;
 	end
@@ -148,16 +214,11 @@ module irsx_scaler_counter_dual_trigger_interface_tb ();
 		#TIME_PASSES;
 		#TIME_PASSES;
 		#TIME_PASSES;
-		pre_in0 <= 8'b00001111; #WHOLE_CLOCK_PERIOD; pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD; #WHOLE_CLOCK_PERIOD; pre_in0 <= 8'b11110000; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
-		#TIME_PASSES;
-		#TIME_PASSES;
-		#TIME_PASSES;
 		// even trigger only:
 		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
 		pre_in0 <= 8'b00011111; #WHOLE_CLOCK_PERIOD;
 		pre_in0 <= 8'b11111000; #WHOLE_CLOCK_PERIOD;
 		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
-		#TIME_PASSES;
 		#TIME_PASSES;
 		#TIME_PASSES;
 		// odd trigger only:
@@ -168,8 +229,7 @@ module irsx_scaler_counter_dual_trigger_interface_tb ();
 		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
 		#TIME_PASSES;
 		#TIME_PASSES;
-		#TIME_PASSES;
-		// dual trigger:
+		// almost dual trigger:
 		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
 		pre_in0 <= 8'b00111111; #WHOLE_CLOCK_PERIOD;
 		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
@@ -181,15 +241,27 @@ module irsx_scaler_counter_dual_trigger_interface_tb ();
 		#TIME_PASSES;
 		#TIME_PASSES;
 		#TIME_PASSES;
+		// dual trigger:
+		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b00111111; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
+		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		#TIME_PASSES;
+		#TIME_PASSES;
 		$finish;
 	end
-	irsx_scaler_counter_dual_trigger_interface #(.RUNNING_TOTAL_WIDTH(RUNNING_TOTAL_WIDTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
+	irsx_scaler_counter_dual_trigger_interface #(.TRIGSTREAM_LENGTH(TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
 		.clock(clock), .reset(reset), .clear_channel_counters(clear_channel_counters),
 		.iserdes_word_in0(in0), .iserdes_word_in1(in1), .iserdes_word_in2(in2), .iserdes_word_in3(in3),
 		.iserdes_word_in4(in4), .iserdes_word_in5(in5), .iserdes_word_in6(in6), .iserdes_word_in7(in7),
+		.odd_channel_trigger_width(odd_channel_trigger_width), .even_channel_trigger_width(even_channel_trigger_width),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
 		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
-		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
+		.even_channel_hit(even_channel_hit), .odd_channel_hit(odd_channel_hit));
 endmodule
 
 module irsx_register_interface #(
