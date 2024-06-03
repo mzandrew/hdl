@@ -86,76 +86,76 @@ module irsx_scaler_counter_dual_trigger_interface #(
 				trigger_stream[i] <= 0;
 			end else begin
 				if (trigger_stream[i][1:0]==2'b10) begin
-					if (trigger_stream_offset2[i][odd_channel_trigger_width]) begin
+					if (trigger_stream_offset2[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset2[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset2[i][odd_channel_trigger_width]) begin
+						even_channel_hit[i] <= 1'b1;
 					end else begin
-						even_channel_hit[i] <= 1'b1;
+						odd_channel_hit[i] <= 1'b1;
 					end
 				end else if (trigger_stream[i][2:1]==2'b10) begin
-					if (trigger_stream_offset3[i][odd_channel_trigger_width]) begin
+					if (trigger_stream_offset3[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset3[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset3[i][odd_channel_trigger_width]) begin
+						even_channel_hit[i] <= 1'b1;
 					end else begin
-						even_channel_hit[i] <= 1'b1;
+						odd_channel_hit[i] <= 1'b1;
 					end
 				end else if (trigger_stream[i][3:2]==2'b10) begin
-					if (trigger_stream_offset4[i][odd_channel_trigger_width]) begin
+					if (trigger_stream_offset4[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset4[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset4[i][odd_channel_trigger_width]) begin
+						even_channel_hit[i] <= 1'b1;
 					end else begin
-						even_channel_hit[i] <= 1'b1;
+						odd_channel_hit[i] <= 1'b1;
 					end
 				end else if (trigger_stream[i][4:3]==2'b10) begin
-					if (trigger_stream_offset5[i][odd_channel_trigger_width]) begin
+					if (trigger_stream_offset5[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset5[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset5[i][odd_channel_trigger_width]) begin
+						even_channel_hit[i] <= 1'b1;
 					end else begin
-						even_channel_hit[i] <= 1'b1;
+						odd_channel_hit[i] <= 1'b1;
 					end
 				end else if (trigger_stream[i][5:4]==2'b10) begin
-					if (trigger_stream_offset6[i][odd_channel_trigger_width]) begin
+					if (trigger_stream_offset6[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset6[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset6[i][odd_channel_trigger_width]) begin
+						even_channel_hit[i] <= 1'b1;
 					end else begin
-						even_channel_hit[i] <= 1'b1;
+						odd_channel_hit[i] <= 1'b1;
 					end
 				end else if (trigger_stream[i][6:5]==2'b10) begin
-					if (trigger_stream_offset7[i][odd_channel_trigger_width]) begin
+					if (trigger_stream_offset7[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset7[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset7[i][odd_channel_trigger_width]) begin
+						even_channel_hit[i] <= 1'b1;
 					end else begin
-						even_channel_hit[i] <= 1'b1;
+						odd_channel_hit[i] <= 1'b1;
 					end
 				end else if (trigger_stream[i][7:6]==2'b10) begin
-					if (trigger_stream_offset8[i][odd_channel_trigger_width]) begin
+					if (trigger_stream_offset8[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset8[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset8[i][odd_channel_trigger_width]) begin
+						even_channel_hit[i] <= 1'b1;
 					end else begin
-						even_channel_hit[i] <= 1'b1;
+						odd_channel_hit[i] <= 1'b1;
 					end
 				end else if (trigger_stream[i][8:7]==2'b10) begin
-					if (trigger_stream_offset9[i][odd_channel_trigger_width]) begin
+					if (trigger_stream_offset9[i][even_channel_trigger_width]) begin
 						odd_channel_hit[i] <= 1'b1;
 						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset9[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
+					end else if (trigger_stream_offset9[i][odd_channel_trigger_width]) begin
+						even_channel_hit[i] <= 1'b1;
 					end else begin
-						even_channel_hit[i] <= 1'b1;
+						odd_channel_hit[i] <= 1'b1;
 					end
 				end
 				trigger_stream[i] <= { trigger_stream[i][TRIGSTREAM_LENGTH-1-8:0], iserdes_word_in[i] };
@@ -186,8 +186,8 @@ module irsx_scaler_counter_dual_trigger_interface_tb #(
 	wire [RUNNING_TOTAL_WIDTH-1:0] t0, t1, t2, t3, t4, t5, t6, t7;
 	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
 	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
-	reg [LOG2_OF_TRIGSTREAM_LENGTH:0] even_channel_trigger_width = 10;
-	reg [LOG2_OF_TRIGSTREAM_LENGTH:0] odd_channel_trigger_width = 20;
+	reg [LOG2_OF_TRIGSTREAM_LENGTH:0] even_channel_trigger_width = 20;
+	reg [LOG2_OF_TRIGSTREAM_LENGTH:0] odd_channel_trigger_width = 10;
 	wire [NUMBER_OF_CHANNELS-1:0] even_channel_hit;
 	wire [NUMBER_OF_CHANNELS-1:0] odd_channel_hit;
 	always begin
