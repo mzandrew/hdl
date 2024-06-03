@@ -23,17 +23,16 @@ extra_for_threshold_scan = 2
 extra_for_setting_thresholds = 3
 bump_threshold_amount = 1
 trigger_gain_x1_upper = 0x7ff
-trigger_gain_x1_lower = 0x5ff
-trigger_gain_x4_upper = 0x230
-trigger_gain_x4_lower = 0x1b0
-trigger_gain_x16_upper = 0xffc
-trigger_gain_x16_lower = 0xdfc
+trigger_gain_x1_lower = trigger_gain_x1_upper - 64
+#trigger_gain_x4_peak = 0x856
+trigger_gain_x4_upper = 0x900
+trigger_gain_x4_lower = trigger_gain_x4_upper - 256
+trigger_gain_x16_upper = 0x9a0
+trigger_gain_x16_lower = trigger_gain_x16_upper - 512
 pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
 print(hex(pedestal_dac_12bit_2v5,3))
-#Trig4xVofs = pedestal_dac_12bit_2v5
-#Trig16xVofs = pedestal_dac_12bit_2v5
-Trig4xVofs = 1500
-Trig16xVofs = 2000
+Trig4xVofs = pedestal_dac_12bit_2v5
+Trig16xVofs = pedestal_dac_12bit_2v5
 
 bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "clear_channel_counters", "trg_inversion_mask" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback" ]
