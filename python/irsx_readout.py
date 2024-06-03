@@ -7,8 +7,9 @@
 # last updated 2024-06-02 by mza
 
 cliff = "upper"
-default_number_of_steps_for_threshold_scan = 128
+default_number_of_steps_for_threshold_scan = 128*4
 default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = 32
+default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = default_number_of_steps_for_threshold_scan
 number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan
 step_size_for_threshold_scan = 4
 thresholds_for_lower_null_scalers_filename = "irsx.thresholds-for-lower-null-scalers"
@@ -17,6 +18,12 @@ thresholds_for_upper_null_scalers_filename = "irsx.thresholds-for-upper-null-sca
 extra_for_threshold_scan = 2
 extra_for_setting_thresholds = 3
 bump_threshold_amount = 1
+trigger_gain_x1_upper = 0x7ff
+trigger_gain_x1_lower = 0x5ff
+trigger_gain_x4_upper = 0x230
+trigger_gain_x4_lower = 0x1b0
+trigger_gain_x16_upper = 0xfff
+trigger_gain_x16_lower = 0xdff
 
 bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "clear_channel_counters", "trg_inversion_mask" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback" ]
@@ -422,6 +429,7 @@ def write_bootup_values():
 	else:
 		load_thresholds_corresponding_to_lower_null_scaler()
 	set_trigger_gain(trigger_gain)
+	#read_modify_write_speed_test()
 
 import subprocess
 def reprogram_fpga():
@@ -715,6 +723,27 @@ def clear_channel_counters():
 	bank = 2
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [1])
 
+def read_modify_write_speed_test():
+	print("starting speed test...")
+	bank = 7
+	starting_address = 0
+	block_length = 128
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + starting_address, block_length, False)
+	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		readback[channel*4] += 6
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + starting_address, readback)
+	print("finished speed test")
+
+def write_trigger_thresholds_read_modify_write_style(threshold):
+	bank = 7
+	starting_address = 128
+	spacing = 4
+	block_length = spacing * NUMBER_OF_CHANNELS_PER_ASIC
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + starting_address, block_length, False)
+	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		readback[channel*spacing] = threshold[channel]
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + starting_address, readback)
+
 #pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
 #print(hex(pedestal_dac_12bit_2v5,3))
 #Trig4xVofs = pedestal_dac_12bit_2v5
@@ -984,10 +1013,7 @@ def run_threshold_scan():
 	step_number = 0
 	while still_running:
 		#print(hex(threshold[channel], 3), end="  ")
-		for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			address = 128 + 4 * channel
-			#print(str(address) + " " + str(threshold[channel]))
-			althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [threshold[channel]], False)
+		write_trigger_thresholds_read_modify_write_style(threshold)
 		time.sleep(0.01)
 		readout_counters_and_scalers()
 		print_scalers(dec(step_number, 3))
@@ -1043,7 +1069,12 @@ def run_threshold_scan():
 def read_file_containing_thresholds_corresponding_to_lower_null_scaler():
 	global number_of_steps_for_threshold_scan
 	number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan
-	start_value = 0x1b0
+	if "x1"==trigger_gain:
+		start_value = trigger_gain_x1_upper
+	elif "x4"==trigger_gain:
+		start_value = trigger_gain_x4_upper
+	else:
+		start_value = trigger_gain_x16_upper
 	default_threshold_at_lower_null_scaler = [ start_value for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 	if not os.path.exists(thresholds_for_lower_null_scalers_filename):
 		print("thresholds for null scalers file not found")
@@ -1067,12 +1098,12 @@ def read_file_containing_thresholds_corresponding_to_lower_null_scaler():
 def read_file_containing_thresholds_corresponding_to_upper_null_scaler():
 	global number_of_steps_for_threshold_scan
 	number_of_steps_for_threshold_scan = default_number_of_steps_for_threshold_scan
-	if "x4"==trigger_gain:
-		start_value = 0x230
-	elif "x16"==trigger_gain:
-		start_value = MAX_DAC_VALUE
+	if "x1"==trigger_gain:
+		start_value = trigger_gain_x1_upper
+	elif "x4"==trigger_gain:
+		start_value = trigger_gain_x4_upper
 	else:
-		start_value = MAX_DAC_VALUE
+		start_value = trigger_gain_x16_upper
 	default_threshold_at_upper_null_scaler = [ start_value for i in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 	if not os.path.exists(thresholds_for_upper_null_scalers_filename):
 		print("thresholds for null scalers file not found")
