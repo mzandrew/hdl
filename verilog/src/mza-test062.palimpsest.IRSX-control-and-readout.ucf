@@ -3,7 +3,7 @@
 # and mza-test068.alphav2-palimpsest.althea.revBLM.ucf
 # for an althea revBLM
 # see ug385 page 24 for spartan6 tqg133 package pins to bank mapping
-# last updated 2024-05-21 by mza
+# last updated 2024-06-03 by mza
 
 # 127 MHz local oscillator:
 net clock127_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK127+
@@ -21,51 +21,51 @@ timespec "ts_clock127_p" = period "tnm_clock127_p" 7.861 ns high 50%; # 127 MHz
 
 # first column, closest to FPGA on left side of board
 net a_n loc=p116 | iostandard=lvds_25 | diff_term=true; # A- bank0 TR
-net a_p loc=p117 | iostandard=lvds_25 | diff_term=true; # A+ bank0 TR
-net c_n loc=p131 | iostandard=lvcmos25 | drive = 16 | slew = fast; # C- bank0 TL
-net c_p loc=p132 | iostandard=lvcmos25 | drive = 16 | slew = fast; # C+ bank0 TL
+net a_p loc=p117 | iostandard=lvds_25 | diff_term=true; # A+ bank0 TR - trg45
+net c_n loc=p131 | iostandard=lvcmos25 | drive = 16 | slew = fast; # C- bank0 TL - sin
+net c_p loc=p132 | iostandard=lvcmos25 | drive = 16 | slew = fast; # C+ bank0 TL - pclk
 net d_n loc=p139 | iostandard=lvds_25; # D- bank0 TL
-net d_p loc=p140 | iostandard=lvds_25; # D+ bank0 TL
+net d_p loc=p140 | iostandard=lvds_25; # D+ bank0 TL - wr_clk
 net f_n loc=p141 | iostandard=lvds_25; # F- bank0 TL
-net f_p loc=p142 | iostandard=lvds_25; # F+ bank0 TL
+net f_p loc=p142 | iostandard=lvds_25; # F+ bank0 TL - gcc_clk
 
 # middle column, on left side of board
 net b_n loc=p123 | iostandard=lvds_25 | diff_term=true; # B- bank0 TR
-net b_p loc=p124 | iostandard=lvds_25 | diff_term=true; # B+ bank0 TR
+net b_p loc=p124 | iostandard=lvds_25 | diff_term=true; # B+ bank0 TR - trg67
 net e_n loc=p133 | iostandard=lvds_25; # E- bank0 TL
-net e_p loc=p134 | iostandard=lvds_25; # E+ bank0 TL
+net e_p loc=p134 | iostandard=lvds_25; # E+ bank0 TL - wr_dat
 
 # third column, on left side of board
 net z loc=p17  | iostandard=lvcmos25 | drive = 2 | slew = slow; # Z bank3 LT - conflicts with led<4> when using cascaded serdes
-net y loc=p15  | iostandard=lvcmos25 | drive = 16 | slew = fast; # Y bank3 LT - conflicts with led<5> when using cascaded serdes
+net y loc=p15  | iostandard=lvcmos25 | drive = 16 | slew = fast; # Y bank3 LT - conflicts with led<5> when using cascaded serdes - sclk
 net x loc=p12  | iostandard=lvcmos25 | drive = 2 | slew = slow; # X bank3 LT - conflicts with led<6> when using cascaded serdes
-net w loc=p10  | iostandard=lvcmos25 | drive = 2 | slew = slow; # W bank3 LT - conflicts with led<7> when using cascaded serdes
-net v loc=p8   | iostandard=lvcmos25 | drive = 2 | slew = slow; # V bank3 LT - conflicts with rot<1> when using cascaded serdes
+net w loc=p10  | iostandard=lvcmos25 | drive = 2 | slew = slow; # W bank3 LT - conflicts with led<7> when using cascaded serdes - regclr
+net v loc=p8   | iostandard=lvcmos25 | drive = 2 | slew = slow; # V bank3 LT - conflicts with rot<1> when using cascaded serdes - shout
 net u loc=p2   | iostandard=lvcmos25 | drive = 2 | slew = slow; # U bank3 LT - conflicts with button when using cascaded serdes
 
 # first column, closest to FPGA on right side of board
-net m_p loc=p58  | iostandard=lvds_25 | diff_term=true; # M+ bank2 BR
+net m_p loc=p58  | iostandard=lvds_25 | diff_term=true; # M+ bank2 BR - trg01
 net m_n loc=p57  | iostandard=lvds_25 | diff_term=true; # M- bank2 BR
-net l_p loc=p48  | iostandard=lvds_25; # L+ bank2 BL
+net l_p loc=p48  | iostandard=lvds_25; # L+ bank2 BL - sst
 net l_n loc=p47  | iostandard=lvds_25; # L- bank2 BL
-net j_p loc=p46  | iostandard=lvds_25 | diff_term=true; # J+ bank2 BL
+net j_p loc=p46  | iostandard=lvds_25 | diff_term=true; # J+ bank2 BL - montiming1
 net j_n loc=p45  | iostandard=lvds_25 | diff_term=true; # J- bank2 BL
-net g_p loc=p41  | iostandard=lvds_25 | diff_term=true; # G+ bank2 BL
+net g_p loc=p41  | iostandard=lvds_25 | diff_term=true; # G+ bank2 BL - hs_data
 net g_n loc=p40  | iostandard=lvds_25 | diff_term=true; # G- bank2 BL
 
 # middle column, on right side of board
-net k_p loc=p56  | iostandard=lvds_25 | diff_term=true; # K+ bank2 BR
+net k_p loc=p56  | iostandard=lvds_25 | diff_term=true; # K+ bank2 BR - trg23
 net k_n loc=p55  | iostandard=lvds_25 | diff_term=true; # K- bank2 BR
-net h_p loc=p44  | iostandard=lvds_25; # H+ bank2 BL
+net h_p loc=p44  | iostandard=lvds_25; # H+ bank2 BL - hs_clk
 net h_n loc=p43  | iostandard=lvds_25; # H- bank2 BL
 
 # third column, on right side of board
-net n loc=p30  | iostandard=lvcmos25 | drive = 2 | slew = slow; # N bank3 LB
-net p loc=p35  | iostandard=lvcmos25 | drive = 2 | slew = slow; # P bank3 LB - conflicts with rot<4> when using cascaded serdes
-net q loc=p22  | iostandard=lvcmos25 | drive = 2 | slew = slow; # Q bank3 LB - differs from althea revB
-net r loc=p27  | iostandard=lvcmos25 | drive = 2 | slew = slow; # R bank3 LB
-net s loc=p24  | iostandard=lvcmos25 | drive = 2 | slew = slow; # S bank3 LB
-net t loc=p51  | iostandard=lvcmos25 | drive = 2 | slew = slow; # T bank2 BL - differs from althea revB and revBL - conflicts with rot<2> when using cascaded serdes
+net n loc=p30  | iostandard=lvcmos25 | drive = 2 | slew = slow; # N bank3 LB - montiming2
+net p loc=p35  | iostandard=lvcmos25 | drive = 2 | slew = slow; # P bank3 LB - conflicts with rot<4> when using cascaded serdes - done_out
+net q loc=p22  | iostandard=lvcmos25 | drive = 2 | slew = slow; # Q bank3 LB - differs from althea revB - wr_syncmon
+net r loc=p27  | iostandard=lvcmos25 | drive = 2 | slew = slow; # R bank3 LB - spgin
+net s loc=p24  | iostandard=lvcmos25 | drive = 2 | slew = slow; # S bank3 LB - ss_incr
+net t loc=p51  | iostandard=lvcmos25 | drive = 2 | slew = slow; # T bank2 BL - differs from althea revB and revBL - conflicts with rot<2> when using cascaded serdes - convert
 
 # raspberry pi 40pin headers, general purpose IO:
 #net sda loc=p138 | iostandard=lvcmos25 | pullup; # bank0 TL broadcom i2c peripheral rpi_gpio2_i2c1_sda

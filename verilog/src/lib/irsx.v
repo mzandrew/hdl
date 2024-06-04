@@ -8,6 +8,12 @@
 `include "RAM8.v"
 `include "frequency_counter.v"
 
+//module irsx_hs_data_out #(
+//) (
+//);
+//				data_stream[i] <= { data_stream[i][DATASTREAM_LENGTH-1-8:0], iserdes_word_in[i] };
+//endmodule
+
 //irsx_scaler_counter_interface #(.COUNTER_WIDTH(8), .SCALER_WIDTH(4), .CLOCK_PERIODS_TO_ACCUMULATE(16)) irsx_scaler_counter (
 //	.clock(clock), .reset(reseT), .clear_channel_counters(clear_channel_counters),
 //	.iserdes_word_in0(in0), .iserdes_word_in1(in1), .iserdes_word_in2(in2), .iserdes_word_in3(in3),
