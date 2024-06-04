@@ -22,6 +22,8 @@ wbias_dual = 1130 # 12.4 to 15.4 ns (depending on timing of stimuli); but depend
 wbias_bump_amount = 10
 default_expected_even_channel_trigger_width = 8
 default_expected_odd_channel_trigger_width  = 5
+default_hs_data_ss_incr = 7
+default_hs_data_capture = default_hs_data_ss_incr + 9 + 8
 
 # the following lists of values are for the trigger_gain x1, x4 and x16 settings:
 default_number_of_steps_for_threshold_scan = [ 64, 128, 512 ]
@@ -37,8 +39,8 @@ bump_threshold_amount = [ 1, 4, 16 ]
 trigger_gain_x1_upper = [ 0x7e0, 0x880, 0x9a0 ]
 trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
 
-bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "clear_channel_counters", "trg_inversion_mask" ]
-bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback" ]
+bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "clear_channel_counters", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture" ]
+bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_H", "buffered_hs_data_stream_L" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
@@ -338,9 +340,9 @@ def setup():
 	global Y_POSITION_OF_BANK5_REGISTERS
 	global Y_POSITION_OF_BANK6_REGISTERS
 	gap = 20
-	Y_POSITION_OF_CHANNEL_NAMES = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
-	Y_POSITION_OF_COUNTERS      = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
-	Y_POSITION_OF_SCALERS       = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
+	Y_POSITION_OF_CHANNEL_NAMES = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 105
+	Y_POSITION_OF_COUNTERS      = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 105
+	Y_POSITION_OF_SCALERS       = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 105
 	#Y_POSITION_OF_TOT = plot_height + gap + FONT_SIZE_BANKS
 	Y_POSITION_OF_BANK0_REGISTERS = ROWS * (plot_height + 2*gap)
 	Y_POSITION_OF_BANK1_REGISTERS = ROWS * (plot_height + 2*gap) + 25
@@ -447,6 +449,7 @@ def write_bootup_values():
 		load_thresholds_corresponding_to_lower_null_scaler()
 	#read_modify_write_speed_test()
 	set_expected_trigger_widths(default_expected_even_channel_trigger_width, default_expected_odd_channel_trigger_width)
+	set_hs_data_values(default_hs_data_ss_incr, default_hs_data_capture)
 
 import subprocess
 def reprogram_fpga():
@@ -798,6 +801,19 @@ def set_expected_trigger_widths(even, odd):
 	print("expected trigger widths: " + str(even) + ", " + str(odd))
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [even, odd])
 
+HS_MAX = 31
+def set_hs_data_values(ss_incr, capture):
+	bank = 0
+	if ss_incr<0:
+		ss_incr = 0
+	elif HS_MAX<ss_incr:
+		ss_incr = HS_MAX
+	if capture<0:
+		capture = 0
+	elif HS_MAX<capture:
+		capture = HS_MAX
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 7, [ss_incr, capture])
+
 MAX_TRIGGER_WIDTH_TO_EXPECT = 40
 def bump_expected_trigger_width(even, odd):
 	bank = 0
@@ -894,7 +910,7 @@ nominal_register_values.append([176, "VtrimT", 4090]) # needs VQbuff
 #nominal_register_values.append([177, "Qbias", 1300, "set to 0 until DLL set"]) # needs VQbuff
 nominal_register_values.append([177, "Qbias", 0, "set to 0 until DLL set"]) # needs VQbuff
 nominal_register_values.append([178, "VQbuff", 1300])
-nominal_register_values.append([179, "reg179", 0, "montiming select (3bit): A1, B1, A2, B2, PHASE, PHAB, SSPin, WR_STRB"])
+nominal_register_values.append([179, "reg179", 0, "nCLR_PHASE, nTime1Time2 (for viewing SST on montiming1 and realmont on montiming2), SSTSEL, -, -, montiming select (3bit): A1, B1, A2, B2, PHASE, PHAB, SSPin, WR_STRB"])
 nominal_register_values.append([180, "VadjP", 2700]) # needs VAPbuff
 nominal_register_values.append([181, "VAPbuff", 3500, "set to 0 for DLL mode"])
 nominal_register_values.append([182, "VadjN", 1530]) # needs VANbuff
@@ -914,10 +930,11 @@ nominal_register_values.append([195, "WR_STRB_TE", 17, "trailing edge"])
 nominal_register_values.append([196, "SSToutFB", 110, ""])
 #nominal_register_values.append([197, "spare1", ])
 #nominal_register_values.append([198, "spart2", ])
-nominal_register_values.append([199, "TPG", 1026, "test pattern generator (12bit)"])
-nominal_register_values.append([200, "LD_RD_ADDR", 2048, "read address (10bit)"])
-nominal_register_values.append([201, "LOAD_SS", 0, "sample select (9bit) + channel (3bit)"])
-nominal_register_values.append([202, "Jam_SS", 1, "set Nib ADDR"])
+#nominal_register_values.append([199, "TPG", 0x402, "test pattern generator (12bit)"])
+nominal_register_values.append([199, "TPG", 0xaaa, "test pattern generator (12bit)"])
+nominal_register_values.append([200, "LD_RD_ADDR", 0x800, "rd_ena, read address (9bit)"]) # not sure what bit11 is doing here in the suggested value...
+nominal_register_values.append([201, "LOAD_SS", 0, "ss_dir, -, -, channel (3bit), sample select (9bit); ss_dir=0 to load from here; then set to 1 to have it increment from there"])
+nominal_register_values.append([202, "Jam_SS", 1, "Nib ADDR (3bit), SS_ENA; page 46 of schematics"])
 nominal_register_values.append([252, "CLR_Sync", 1, "WR_ADDR addr mode (no data)"])
 nominal_register_values.append([253, "CatchSpy", 1, "WR_ADDR addr mode (no data)"])
 
