@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2024-05-29 by mza
+// last updated 2024-06-05 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -20,6 +20,9 @@
 // either set .PINTYPE("n") or .PINTYPE("p") as appropriate
 
 // PLL_ADV symbol "..." has pin CLKOUT2 driving a BUFPLL. Only CLKOUT0 and CLKOUT1 pins can drive a BUFPLL. Please modify your design to avoid this unroutable situation.
+
+`ifndef SERDES_PLL_LIB
+`define SERDES_PLL_LIB
 
 module iserdes_single4 #(
 	parameter WIDTH = 4
@@ -2105,4 +2108,137 @@ module idelay #(
 		.DATAOUT2() // 1-bit output: Delayed data output to general FPGA fabric
 	);
 endmodule
+
+// for the trivial case of RATIO=1, the start and finish signals may not work
+module oserdes_gearbox #(
+	parameter RATIO = 2,
+	parameter LOG2_OF_RATIO = $clog2(RATIO),
+	parameter BIT_DEPTH = 8
+) (
+	input word_clock, reset,
+	output reg start = 0,
+	output reg finish = 0,
+	input [BIT_DEPTH*RATIO-1:0] input_longword,
+	output [BIT_DEPTH-1:0] output_shortword
+);
+	reg [LOG2_OF_RATIO-1:0] select = 0;
+	always @(posedge word_clock) begin
+		start <= 0;
+		finish <= 0;
+		if (reset) begin
+			select <= 0;
+		end else begin
+			select <= select - 1'b1;
+			if (select==1) begin
+				finish <= 1'b1;
+			end else if (select==0) begin
+				select <= RATIO - 1'b1;
+				start <= 1'b1;
+			end
+		end
+	end
+	assign output_shortword = input_longword[BIT_DEPTH*select+BIT_DEPTH-1-:BIT_DEPTH];
+endmodule
+
+module oserdes_gearbox_tb ();
+	localparam HALF_PERIOD_OF_CLOCK = 3.9;
+	localparam WAIT_A_WHILE = 14 * HALF_PERIOD_OF_CLOCK;
+	reg word_clock = 0;
+	reg reset = 1;
+	reg [23:0] longword = 0;
+	wire [7:0] shortword;
+	wire start, finish;
+	always begin
+		#HALF_PERIOD_OF_CLOCK;
+		word_clock <= ~word_clock;
+	end
+	initial begin
+		longword <= 24'b000111000111000111000111;
+		#WAIT_A_WHILE;
+		reset <= 0;
+	end
+	oserdes_gearbox #(.RATIO(3)) osgb (.word_clock(word_clock), .reset(reset), .input_longword(longword), .output_shortword(shortword), .start(start), .finish(finish));
+endmodule
+
+module iserdes_gearbox #(
+	parameter RATIO = 2,
+	parameter LOG2_OF_RATIO = $clog2(RATIO),
+	parameter BIT_DEPTH = 8
+) (
+	input word_clock, reset,
+	input sync,
+	output reg valid = 0,
+	input [BIT_DEPTH-1:0] input_shortword,
+	output reg [BIT_DEPTH*RATIO-1:0] output_longword = 0
+);
+	reg [LOG2_OF_RATIO-1:0] select = 0;
+	reg [BIT_DEPTH*RATIO-1:0] longword = 0;
+	reg valid_on_next_cycle = 0;
+	always @(posedge word_clock) begin
+		valid_on_next_cycle <= 0;
+		valid <= 0;
+		if (reset) begin
+			select <= 0;
+			longword <= 0;
+			output_longword <= 0;
+		end else begin
+			select <= select - 1'b1;
+			if (sync) begin
+				select <= RATIO - 1'b1;
+			end else if (select==0) begin
+				select <= RATIO - 1'b1;
+				valid_on_next_cycle <= 1'b1;
+			end
+			if (valid_on_next_cycle) begin
+				valid <= 1'b1;
+				output_longword <= longword;
+			end
+			longword[BIT_DEPTH*select+BIT_DEPTH-1-:BIT_DEPTH] <= input_shortword;
+		end
+	end
+endmodule
+
+module iserdes_gearbox_tb ();
+	localparam HALF_PERIOD_OF_CLOCK = 3.9;
+	localparam WHOLE_PERIOD_OF_CLOCK = 2 * HALF_PERIOD_OF_CLOCK;
+	localparam WAIT_A_WHILE = 7 * WHOLE_PERIOD_OF_CLOCK;
+	reg word_clock = 0;
+	reg reset = 1;
+	wire valid;
+	wire [23:0] longword;
+	reg [23:0] saved_longword = 0;
+	reg [7:0] shortword = 0;
+	reg sync = 0;
+	always begin
+		#HALF_PERIOD_OF_CLOCK;
+		word_clock <= ~word_clock;
+	end
+	always @(posedge word_clock) begin
+		if (reset) begin
+			saved_longword <= 0;
+		end else begin
+			if (valid) begin
+				saved_longword <= longword;
+			end
+		end
+	end
+	initial begin
+		#WAIT_A_WHILE;
+		reset <= 0;
+		#HALF_PERIOD_OF_CLOCK;
+		#WAIT_A_WHILE;
+		shortword <= 8'b00011100; #WHOLE_PERIOD_OF_CLOCK;
+		shortword <= 8'b01110001; #WHOLE_PERIOD_OF_CLOCK;
+		shortword <= 8'b11000111; #WHOLE_PERIOD_OF_CLOCK;
+		shortword <= 0; #WHOLE_PERIOD_OF_CLOCK;
+		#WAIT_A_WHILE;
+		shortword <= 0; #WHOLE_PERIOD_OF_CLOCK;
+		shortword <= 8'b00011100; sync <= 1'b1; #WHOLE_PERIOD_OF_CLOCK; sync <= 0;
+		shortword <= 8'b01110001; #WHOLE_PERIOD_OF_CLOCK;
+		shortword <= 8'b11000111; #WHOLE_PERIOD_OF_CLOCK;
+	end
+	iserdes_gearbox #(.RATIO(3)) isgb (.word_clock(word_clock), .reset(reset), .input_shortword(shortword), .output_longword(longword), .sync(sync), .valid(valid));
+endmodule
+
+`endif
 
