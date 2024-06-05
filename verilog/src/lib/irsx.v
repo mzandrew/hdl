@@ -22,7 +22,7 @@
 //	.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7));
 module irsx_scaler_counter_dual_trigger_interface #(
 	parameter TRIGSTREAM_LENGTH = 50,
-	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH),
+	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH) - 1,
 	parameter NUMBER_OF_CHANNELS = 8,
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
@@ -173,7 +173,7 @@ endmodule
 module irsx_scaler_counter_dual_trigger_interface_tb #(
 	parameter NUMBER_OF_CHANNELS = 8,
 	parameter TRIGSTREAM_LENGTH = 40,
-	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH),
+	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH) - 1,
 	parameter ACCUMULATOR_WIDTH = 4,
 	parameter RUNNING_TOTAL_WIDTH = ACCUMULATOR_WIDTH + 2,
 	parameter COUNTER_WIDTH = 8,
