@@ -4,12 +4,14 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-06-03 by mza
+# last updated 2024-06-05 by mza
 
 from generic import * # hex, eng
 import althea
 BANK_ADDRESS_DEPTH = 13
 
+NUMBER_OF_CHANNELS_PER_ASIC = 8
+gui_update_period = 0.2 # in seconds
 cliff = "upper"
 step_size_for_threshold_scan = 4
 pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
@@ -24,6 +26,7 @@ default_expected_even_channel_trigger_width = 8
 default_expected_odd_channel_trigger_width  = 5
 default_hs_data_ss_incr = 7
 default_hs_data_capture = default_hs_data_ss_incr + 9 + 8
+default_scaler_timeout = 127.22e6 * gui_update_period
 
 # the following lists of values are for the trigger_gain x1, x4 and x16 settings:
 default_number_of_steps_for_threshold_scan = [ 64, 128, 512 ]
@@ -39,7 +42,7 @@ bump_threshold_amount = [ 1, 4, 16 ]
 trigger_gain_x1_upper = [ 0x7e0, 0x880, 0x9a0 ]
 trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
 
-bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "clear_channel_counters", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture" ]
+bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture", "scaler timeout" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_H", "buffered_hs_data_stream_L" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
@@ -73,11 +76,8 @@ number_of_pin_diode_boxes = 1
 MAX_SAMPLES_PER_WAVEFORM = 256
 timestep = 1
 
-NUMBER_OF_CHANNELS_PER_ASIC = 8
-gui_update_period = 0.2 # in seconds
-
 MAX_ADC = 4095
-display_precision_of_hex_counter_counts = 6
+display_precision_of_hex_counter_counts = 8
 display_precision_of_hex_scaler_counts = 4
 
 GAP_X_BETWEEN_PLOTS = 20
@@ -97,15 +97,15 @@ NUMBER_OF_HOURS_TO_PLOT = 48
 should_use_touchscreen = False
 FONT_SIZE_BANKS = 15
 BANKS_X_GAP = 10
-X_POSITION_OF_CHANNEL_NAMES = 15
-X_POSITION_OF_COUNTERS = 140
-X_POSITION_OF_SCALERS = 190
 #X_POSITION_OF_TOT = 450
 X_POSITION_OF_BANK0_REGISTERS = 100
-X_POSITION_OF_BANK1_REGISTERS = 100
-X_POSITION_OF_BANK4_REGISTERS = 100
-X_POSITION_OF_BANK5_REGISTERS = 300
-X_POSITION_OF_BANK6_REGISTERS = 400
+X_POSITION_OF_BANK1_REGISTERS = 425
+X_POSITION_OF_CHANNEL_NAMES = 665
+X_POSITION_OF_COUNTERS = 780
+X_POSITION_OF_SCALERS = 830
+#X_POSITION_OF_BANK4_REGISTERS = 100
+#X_POSITION_OF_BANK5_REGISTERS = 300
+#X_POSITION_OF_BANK6_REGISTERS = 400
 
 box_dimension_x_in = 3.0
 box_dimension_y_in = 2.0
@@ -113,8 +113,8 @@ scale_pixels_per_in = 80
 
 #channel_range = range(1, NUMBER_OF_CHANNELS_PER_ASIC+1)
 
-channel_names = [ "" ]
-channel_names.extend(["ch" + str(i+1) for i in range(NUMBER_OF_CHANNELS_PER_ASIC)])
+channel_names = []
+channel_names.extend(["ch" + str(i) for i in range(NUMBER_OF_CHANNELS_PER_ASIC)])
 #channel_names.extend([ "trigger_count", "suggested_inversion_map", "hit_counter" ])
 #print(str(channel_names))
 bank1_register_values = [ i for i in range(len(channel_names)) ]
@@ -148,10 +148,11 @@ color = [ black, white, yellow, red, dark_red, pink, maroon, purple, orange, dar
 selection = 0
 coax_mux = [ 0 for i in range(4) ]
 
+should_show_bank0_registers = True
+should_show_bank1_registers = True
+should_show_channel_names = True
 should_show_counters = True
 should_show_scalers = True
-should_show_bank0_registers = False
-should_show_bank1_registers = True
 should_show_bank4_registers = False
 should_show_bank5_registers = False
 should_show_bank6_registers = False
@@ -340,15 +341,15 @@ def setup():
 	global Y_POSITION_OF_BANK5_REGISTERS
 	global Y_POSITION_OF_BANK6_REGISTERS
 	gap = 20
-	Y_POSITION_OF_CHANNEL_NAMES = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 105
-	Y_POSITION_OF_COUNTERS      = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 105
-	Y_POSITION_OF_SCALERS       = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 105
+	Y_POSITION_OF_CHANNEL_NAMES = ROWS * (plot_height + 2*gap)
+	Y_POSITION_OF_COUNTERS      = ROWS * (plot_height + 2*gap)
+	Y_POSITION_OF_SCALERS       = ROWS * (plot_height + 2*gap)
 	#Y_POSITION_OF_TOT = plot_height + gap + FONT_SIZE_BANKS
 	Y_POSITION_OF_BANK0_REGISTERS = ROWS * (plot_height + 2*gap)
-	Y_POSITION_OF_BANK1_REGISTERS = ROWS * (plot_height + 2*gap) + 25
-	Y_POSITION_OF_BANK4_REGISTERS = ROWS * (plot_height + 2*gap) + 170
-	Y_POSITION_OF_BANK5_REGISTERS = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
-	Y_POSITION_OF_BANK6_REGISTERS = ROWS * (plot_height + 2*gap)
+	Y_POSITION_OF_BANK1_REGISTERS = ROWS * (plot_height + 2*gap)
+	#Y_POSITION_OF_BANK4_REGISTERS = ROWS * (plot_height + 2*gap) + 170
+	#Y_POSITION_OF_BANK5_REGISTERS = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
+	#Y_POSITION_OF_BANK6_REGISTERS = ROWS * (plot_height + 2*gap)
 	setup_pygame_sdl()
 	#pygame.mixer.quit()
 	global game_clock
@@ -398,9 +399,10 @@ def setup():
 			register_name = banks_font.render(bank6_register_names[i], 1, white)
 			screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK6_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK6_REGISTERS+FONT_SIZE_BANKS*i)))
 	#for i in range(NUMBER_OF_CHANNELS_PER_ASIC):
-#	for i in range(len(channel_names)):
-#		register_name = banks_font.render(channel_names[i], 1, white)
-#		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_CHANNEL_NAMES+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_CHANNEL_NAMES+FONT_SIZE_BANKS*i)))
+	if should_show_channel_names:
+		for i in range(len(channel_names)):
+			register_name = banks_font.render(channel_names[i], 1, white)
+			screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_CHANNEL_NAMES+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_CHANNEL_NAMES+FONT_SIZE_BANKS*i)))
 	#for i in range(NUMBER_OF_CHANNELS_PER_ASIC):
 	#	channel_name = banks_font.render(channel_names[i], 1, white)
 	#	screen.blit(channel_name, channel_name.get_rect(center=(X_POSITION_OF_BANK6_COUNTERS+BANKS_X_GAP+channel_name.get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
@@ -450,6 +452,8 @@ def write_bootup_values():
 	#read_modify_write_speed_test()
 	set_expected_trigger_widths(default_expected_even_channel_trigger_width, default_expected_odd_channel_trigger_width)
 	set_hs_data_values(default_hs_data_ss_incr, default_hs_data_capture)
+	set_spgin(1)
+	set_scaler_timeout(default_scaler_timeout)
 
 import subprocess
 def reprogram_fpga():
@@ -791,6 +795,11 @@ def set_whether_to_verify_with_shout(whether_or_not):
 	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [whether_or_not])
 
+def set_spgin(spgin):
+	bank = 0
+	spgin &= 1
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 3, [spgin])
+
 def set_trg_inversion_mask(mask):
 	bank = 0
 	mask &= 0xf
@@ -813,6 +822,11 @@ def set_hs_data_values(ss_incr, capture):
 	elif HS_MAX<capture:
 		capture = HS_MAX
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 7, [ss_incr, capture])
+
+def set_scaler_timeout(timeout):
+	bank = 0
+	timeout = int(timeout)
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 9, [timeout])
 
 MAX_TRIGGER_WIDTH_TO_EXPECT = 40
 def bump_expected_trigger_width(even, odd):
@@ -931,10 +945,10 @@ nominal_register_values.append([196, "SSToutFB", 110, ""])
 #nominal_register_values.append([197, "spare1", ])
 #nominal_register_values.append([198, "spart2", ])
 #nominal_register_values.append([199, "TPG", 0x402, "test pattern generator (12bit)"])
-nominal_register_values.append([199, "TPG", 0xaaa, "test pattern generator (12bit)"])
+nominal_register_values.append([199, "TPG", 0xaf5, "test pattern generator (12bit)"])
 nominal_register_values.append([200, "LD_RD_ADDR", 0x800, "rd_ena, read address (9bit)"]) # not sure what bit11 is doing here in the suggested value...
 nominal_register_values.append([201, "LOAD_SS", 0, "ss_dir, -, -, channel (3bit), sample select (9bit); ss_dir=0 to load from here; then set to 1 to have it increment from there"])
-nominal_register_values.append([202, "Jam_SS", 1, "Nib ADDR (3bit), SS_ENA; page 46 of schematics"])
+nominal_register_values.append([202, "Jam_SS", 0, "Nib ADDR (3bit), SS_ENA; page 46 of schematics"])
 nominal_register_values.append([252, "CLR_Sync", 1, "WR_ADDR addr mode (no data)"])
 nominal_register_values.append([253, "CatchSpy", 1, "WR_ADDR addr mode (no data)"])
 
