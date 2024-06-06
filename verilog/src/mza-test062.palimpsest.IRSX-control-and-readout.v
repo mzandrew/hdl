@@ -320,10 +320,7 @@ module IRSXtest #(
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(word_clock),
 		.address(address_word_full[3:0]), .strobe(write_strobe[2]), .pulse_out(bank2));
 	wire clear_channel_counters = bank2[0];
-//	wire should_initiate_dreset_sequence        = bank2[0];
-//	wire should_initiate_legacy_serial_sequence = bank2[1];
-//	wire should_initiate_i2c_transfer           = bank2[2];
-//	wire should_trigger                         = bank2[3];
+	wire force_write_registers_again = bank2[1];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank3 [15:0]; // i2c registers
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank3 (.clock(word_clock), .reset(reset_word),
@@ -409,7 +406,7 @@ module IRSXtest #(
 	// ----------------------------------------------------------------------
 	irsx_register_interface irsx_reg (.clock(word_clock), .reset(reset_word),
 		.intended_data_in(write_data_word[11:0]), .intended_data_out(read_data_word[7][11:0]), .readback_data_out(read_data_word[7][23:12]),
-		.number_of_transactions(number_of_register_transactions),
+		.number_of_transactions(number_of_register_transactions), .force_write_registers_again(force_write_registers_again),
 		.number_of_readback_errors(number_of_readback_errors), .last_erroneous_readback(last_erroneous_readback),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
 		.max_retries(max_retries), .verify_with_shout(verify_with_shout),

@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="31" />
+   <WVObjectSize size="32" />
    <wvobject fp_name="/irsx_register_interface_tb/clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock</obj_property>
       <obj_property name="ObjectShortName">clock</obj_property>
@@ -18,6 +18,10 @@
    <wvobject fp_name="/irsx_register_interface_tb/reset" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">reset</obj_property>
       <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/force_write_registers_again" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">force_write_registers_again</obj_property>
+      <obj_property name="ObjectShortName">force_write_registers_again</obj_property>
    </wvobject>
    <wvobject fp_name="divider50" type="divider">
       <obj_property name="label">hdrb interface</obj_property>

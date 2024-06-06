@@ -298,7 +298,8 @@ endmodule
 module irsx_register_interface #(
 	parameter TESTBENCH = 0,
 	parameter NUMBER_OF_ASIC_ADDRESS_BITS = 8,
-	parameter MAX_REGISTER_ADDRESS = 2**NUMBER_OF_ASIC_ADDRESS_BITS - 1, // 255
+	parameter NUMBER_OF_ASIC_REGISTERS = 2**NUMBER_OF_ASIC_ADDRESS_BITS, // 256
+	parameter MAX_REGISTER_ADDRESS = NUMBER_OF_ASIC_REGISTERS - 1, // 255
 	parameter NUMBER_OF_ASIC_DATA_BITS = 12,
 	parameter NUMBER_OF_SIN_WORD_BITS = NUMBER_OF_ASIC_ADDRESS_BITS + NUMBER_OF_ASIC_DATA_BITS, // 20
 	parameter EXTRA_STATE_COUNTER_INITIAL_VALUE = 4,
@@ -312,6 +313,7 @@ module irsx_register_interface #(
 	output [NUMBER_OF_ASIC_DATA_BITS-1:0] readback_data_out,
 	output reg [NUMBER_OF_SIN_WORD_BITS-1:0] last_erroneous_readback,
 	output reg [31:0] number_of_transactions = 0,
+	input force_write_registers_again,
 	input [CLOCK_DIVISOR_COUNTER_PICKOFF:0] clock_divider_initial_value_for_register_transactions,
 	input [7:0] max_retries,
 	input verify_with_shout,
@@ -352,6 +354,7 @@ module irsx_register_interface #(
 	assign sclk = sin_counter[0];
 	reg [1:0] bram_wait_state = 2;
 	reg [7:0] retries_remaining = 1;
+	reg [MAX_REGISTER_ADDRESS:0] forced_rewrite = 0;
 	always @(posedge clock) begin
 		regclr <= 0;
 		shout_write <= 0;
@@ -374,11 +377,15 @@ module irsx_register_interface #(
 			shout_word <= 0;
 			shout_pipeline1 <= 0;
 			shout_pipeline2 <= 0;
+			forced_rewrite <= 0;
 		end else begin
+			if (force_write_registers_again) begin
+				forced_rewrite <= {NUMBER_OF_ASIC_REGISTERS{1'b1}};
+			end
 			shout_pipeline1 <= { shout_pipeline1[SHOUT_PIPELINE1_PICKOFF-1:0], shout };
 			if (mode==2'b00) begin // scan for differences
 				if (bram_wait_state==0) begin
-					if (data_intended_copy!=data_readback_copy) begin // checking two block rams against each other at address address_10
+					if (data_intended_copy!=data_readback_copy || forced_rewrite[address_10[7:0]]) begin // checking two block rams against each other at address address_10
 						if (0<retries_remaining) begin
 							mode <= 2'b01; // difference found, so write updated value to asic
 							sin <= 0;
@@ -440,6 +447,7 @@ module irsx_register_interface #(
 							end else if (pclk_counter==6) begin
 								sin <= 0;
 							end else if (pclk_counter==7) begin
+								forced_rewrite[address_10[7:0]] <= 0;
 								if (verify_with_shout) begin
 									mode <= 2'b10; // readback shout
 								end else begin
@@ -496,6 +504,7 @@ module irsx_register_interface_tb ();
 	localparam SEVERAL_CLOCK_PERIODS = 2*WHOLE_CLOCK_PERIOD;
 	localparam MANY_CLOCK_PERIODS = 100*WHOLE_CLOCK_PERIOD;
 	localparam REALLY_A_LOT_OF_CLOCK_PERIODS = 1400*WHOLE_CLOCK_PERIOD;
+	localparam SO_MANY_CLOCK_PERIODS = 55000*WHOLE_CLOCK_PERIOD;
 	localparam DELAY_BETWEEN_SCLK_IN_AND_SHOUT_OUT = 16; // 10 ns, measured (scope_45.png)
 	reg clock = 0;
 	reg raw_reset = 1;
@@ -516,9 +525,11 @@ module irsx_register_interface_tb ();
 	wire [31:0] number_of_readback_errors;
 	reg [7:0] max_retries = 5;
 	reg verify_with_shout = 0;
+	reg force_write_registers_again = 0;
+	wire [19:0] last_erroneous_readback;
 	irsx_register_interface #(.TESTBENCH(1)) irsx_reg (.clock(clock), .reset(reset),
 		.intended_data_in(write_data_word), .intended_data_out(read_data_word), .readback_data_out(readback_data_word),
-		.number_of_transactions(number_of_register_transactions),
+		.number_of_transactions(number_of_register_transactions), .force_write_registers_again(force_write_registers_again),
 		.number_of_readback_errors(number_of_readback_errors), .last_erroneous_readback(last_erroneous_readback),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
 		.max_retries(max_retries), .verify_with_shout(verify_with_shout),
@@ -660,6 +671,10 @@ module irsx_register_interface_tb ();
 		#MANY_CLOCK_PERIODS;
 		raw_address_word <= 8'h33;
 		#MANY_CLOCK_PERIODS;
+		// -----------------------
+		#REALLY_A_LOT_OF_CLOCK_PERIODS;
+		force_write_registers_again <= 1'b1; #WHOLE_CLOCK_PERIOD; force_write_registers_again <= 0;
+		#SO_MANY_CLOCK_PERIODS;
 		$finish;
 	end
 endmodule
