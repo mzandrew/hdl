@@ -24,9 +24,13 @@ wbias_dual = 1130 # 12.4 to 15.4 ns (depending on timing of stimuli); but depend
 wbias_bump_amount = 10
 default_expected_even_channel_trigger_width = 8
 default_expected_odd_channel_trigger_width  = 5
-default_hs_data_ss_incr = 7
-default_hs_data_capture = default_hs_data_ss_incr + 9 + 8
+default_hs_data_ss_incr = 4
+default_hs_data_capture = default_hs_data_ss_incr + 9 + 8 + 1
+default_spgin = 0
 default_scaler_timeout = 127.22e6 * gui_update_period
+default_hs_data_offset = 6
+default_hs_data_ratio = 4
+default_tpg = 0xb05 # only accepts the lsb=1 after having written a 1 in that position already
 
 # the following lists of values are for the trigger_gain x1, x4 and x16 settings:
 default_number_of_steps_for_threshold_scan = [ 64, 128, 512 ]
@@ -42,8 +46,8 @@ bump_threshold_amount = [ 1, 4, 16 ]
 trigger_gain_x1_upper = [ 0x7e0, 0x880, 0x9a0 ]
 trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
 
-bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture", "scaler timeout" ]
-bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_H", "buffered_hs_data_stream_L" ]
+bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture", "scaler timeout", "hs_data_offset", "hs_data_ratio" ]
+bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_high", "buffered_hs_data_stream_middle1", "buffered_hs_data_stream_middle0", "buffered_hs_data_stream_low", "hs_data_word_decimated" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
@@ -98,11 +102,11 @@ should_use_touchscreen = False
 FONT_SIZE_BANKS = 15
 BANKS_X_GAP = 10
 #X_POSITION_OF_TOT = 450
-X_POSITION_OF_BANK0_REGISTERS = 100
-X_POSITION_OF_BANK1_REGISTERS = 425
-X_POSITION_OF_CHANNEL_NAMES = 665
-X_POSITION_OF_COUNTERS = 780
-X_POSITION_OF_SCALERS = 830
+X_POSITION_OF_BANK0_REGISTERS = 85
+X_POSITION_OF_BANK1_REGISTERS = 410
+X_POSITION_OF_CHANNEL_NAMES = 688
+X_POSITION_OF_COUNTERS = 805
+X_POSITION_OF_SCALERS = 845
 #X_POSITION_OF_BANK4_REGISTERS = 100
 #X_POSITION_OF_BANK5_REGISTERS = 300
 #X_POSITION_OF_BANK6_REGISTERS = 400
@@ -452,8 +456,9 @@ def write_bootup_values():
 	#read_modify_write_speed_test()
 	set_expected_trigger_widths(default_expected_even_channel_trigger_width, default_expected_odd_channel_trigger_width)
 	set_hs_data_values(default_hs_data_ss_incr, default_hs_data_capture)
-	set_spgin(1)
+	set_spgin(default_spgin)
 	set_scaler_timeout(default_scaler_timeout)
+	set_hs_data_offset_and_ratio(default_hs_data_offset, default_hs_data_ratio)
 
 import subprocess
 def reprogram_fpga():
@@ -536,6 +541,8 @@ def loop():
 				#print("now controlling DBbias")
 			elif pygame.K_c==event.key:
 				clear_channel_counters()
+			elif pygame.K_f==event.key:
+				force_register_rewrite()
 			elif pygame.K_q==event.key:
 				change_timing_register_LE_value(-2)
 			elif pygame.K_w==event.key:
@@ -580,6 +587,11 @@ def loop():
 					bump_expected_trigger_width(0, +1)
 				else:
 					bump_expected_trigger_width(0, -1)
+			elif pygame.K_r==event.key:
+				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+					bump_hs_data_offset(+1)
+				else:
+					bump_hs_data_offset(-1)
 		elif event.type == pygame.QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -810,6 +822,23 @@ def set_expected_trigger_widths(even, odd):
 	print("expected trigger widths: " + str(even) + ", " + str(odd))
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [even, odd])
 
+MAX_TRIGGER_WIDTH_TO_EXPECT = 40
+def bump_expected_trigger_width(even, odd):
+	bank = 0
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 5, 2, False)
+	readback[0] += even
+	readback[1] += odd
+	if readback[0]<0:
+		readback[0] = 0
+	elif MAX_TRIGGER_WIDTH_TO_EXPECT<readback[0]:
+		readback[0] = MAX_TRIGGER_WIDTH_TO_EXPECT
+	if readback[1]<0:
+		readback[1] = 0
+	elif MAX_TRIGGER_WIDTH_TO_EXPECT<readback[1]:
+		readback[1] = MAX_TRIGGER_WIDTH_TO_EXPECT
+	print("expected trigger widths: " + str(readback[0]) + ", " + str(readback[1]))
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, readback)
+
 HS_MAX = 31
 def set_hs_data_values(ss_incr, capture):
 	bank = 0
@@ -828,26 +857,27 @@ def set_scaler_timeout(timeout):
 	timeout = int(timeout)
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 9, [timeout])
 
-MAX_TRIGGER_WIDTH_TO_EXPECT = 40
-def bump_expected_trigger_width(even, odd):
+def set_hs_data_offset_and_ratio(offset, ratio):
 	bank = 0
-	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 5, 2, False)
-	readback[0] += even
-	readback[1] += odd
-	if readback[0]<0:
-		readback[0] = 0
-	elif MAX_TRIGGER_WIDTH_TO_EXPECT<readback[0]:
-		readback[0] = MAX_TRIGGER_WIDTH_TO_EXPECT
-	if readback[1]<0:
-		readback[1] = 0
-	elif MAX_TRIGGER_WIDTH_TO_EXPECT<readback[1]:
-		readback[1] = MAX_TRIGGER_WIDTH_TO_EXPECT
-	print("expected trigger widths: " + str(readback[0]) + ", " + str(readback[1]))
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, readback)
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 10, [offset, ratio])
+
+def bump_hs_data_offset(amount):
+	bank = 0
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 10, 1, False)
+	offset = readback[0] + amount
+	if offset<0:
+		offset = 0
+	if 127<offset:
+		offset = 127
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 10, [offset])
 
 def clear_channel_counters():
 	bank = 2
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [1])
+
+def force_register_rewrite():
+	bank = 2
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 1, [1])
 
 def read_modify_write_speed_test():
 	print("starting speed test...")
@@ -945,7 +975,7 @@ nominal_register_values.append([196, "SSToutFB", 110, ""])
 #nominal_register_values.append([197, "spare1", ])
 #nominal_register_values.append([198, "spart2", ])
 #nominal_register_values.append([199, "TPG", 0x402, "test pattern generator (12bit)"])
-nominal_register_values.append([199, "TPG", 0xaf5, "test pattern generator (12bit)"])
+nominal_register_values.append([199, "TPG", default_tpg, "test pattern generator (12bit)"])
 nominal_register_values.append([200, "LD_RD_ADDR", 0x800, "rd_ena, read address (9bit)"]) # not sure what bit11 is doing here in the suggested value...
 nominal_register_values.append([201, "LOAD_SS", 0, "ss_dir, -, -, channel (3bit), sample select (9bit); ss_dir=0 to load from here; then set to 1 to have it increment from there"])
 nominal_register_values.append([202, "Jam_SS", 0, "Nib ADDR (3bit), SS_ENA; page 46 of schematics"])
