@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/oserdes_gearbox_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="oserdes_gearbox_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="7" />
+   <wvobject fp_name="/oserdes_gearbox_tb/shortword" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">shortword[7:0]</obj_property>
+      <obj_property name="ObjectShortName">shortword[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/oserdes_gearbox_tb/word_clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">word_clock</obj_property>
+      <obj_property name="ObjectShortName">word_clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/oserdes_gearbox_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/oserdes_gearbox_tb/longword" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">longword[23:0]</obj_property>
+      <obj_property name="ObjectShortName">longword[23:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/oserdes_gearbox_tb/osgb/select" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">select[1:0]</obj_property>
+      <obj_property name="ObjectShortName">select[1:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/oserdes_gearbox_tb/start" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">start</obj_property>
+      <obj_property name="ObjectShortName">start</obj_property>
+   </wvobject>
+   <wvobject fp_name="/oserdes_gearbox_tb/finish" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">finish</obj_property>
+      <obj_property name="ObjectShortName">finish</obj_property>
+   </wvobject>
+</wave_config>

@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="29" />
+   <WVObjectSize size="14" />
    <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock</obj_property>
       <obj_property name="ObjectShortName">clock</obj_property>
@@ -19,57 +19,29 @@
       <obj_property name="ElementShortName">reset</obj_property>
       <obj_property name="ObjectShortName">reset</obj_property>
    </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/even_channel_hit" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">even_channel_hit[7:0]</obj_property>
-      <obj_property name="ObjectShortName">even_channel_hit[7:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/odd_channel_hit" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">odd_channel_hit[7:0]</obj_property>
-      <obj_property name="ObjectShortName">odd_channel_hit[7:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/trigger_stream" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">trigger_stream[7:0,39:0]</obj_property>
-      <obj_property name="ObjectShortName">trigger_stream[7:0,39:0]</obj_property>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/clear_channel_counters" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clear_channel_counters</obj_property>
+      <obj_property name="ObjectShortName">clear_channel_counters</obj_property>
    </wvobject>
    <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/in0" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">in0[7:0]</obj_property>
       <obj_property name="ObjectShortName">in0[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/in1" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">in1[7:0]</obj_property>
-      <obj_property name="ObjectShortName">in1[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/trigger_stream" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">trigger_stream[3:0,39:0]</obj_property>
+      <obj_property name="ObjectShortName">trigger_stream[3:0,39:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/in2" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">in2[7:0]</obj_property>
-      <obj_property name="ObjectShortName">in2[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/even_channel_hit" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">even_channel_hit[3:0]</obj_property>
+      <obj_property name="ObjectShortName">even_channel_hit[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/in3" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">in3[7:0]</obj_property>
-      <obj_property name="ObjectShortName">in3[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/odd_channel_hit" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">odd_channel_hit[3:0]</obj_property>
+      <obj_property name="ObjectShortName">odd_channel_hit[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/in4" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">in4[7:0]</obj_property>
-      <obj_property name="ObjectShortName">in4[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/in5" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">in5[7:0]</obj_property>
-      <obj_property name="ObjectShortName">in5[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/in6" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">in6[7:0]</obj_property>
-      <obj_property name="ObjectShortName">in6[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/in7" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">in7[7:0]</obj_property>
-      <obj_property name="ObjectShortName">in7[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/t" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">t[7:0]</obj_property>
+      <obj_property name="ObjectShortName">t[7:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/c0" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">c0[7:0]</obj_property>
@@ -79,36 +51,6 @@
    <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/c1" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">c1[7:0]</obj_property>
       <obj_property name="ObjectShortName">c1[7:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/c2" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">c2[7:0]</obj_property>
-      <obj_property name="ObjectShortName">c2[7:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/c3" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">c3[7:0]</obj_property>
-      <obj_property name="ObjectShortName">c3[7:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/c4" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">c4[7:0]</obj_property>
-      <obj_property name="ObjectShortName">c4[7:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/c5" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">c5[7:0]</obj_property>
-      <obj_property name="ObjectShortName">c5[7:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/c6" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">c6[7:0]</obj_property>
-      <obj_property name="ObjectShortName">c6[7:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/c7" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">c7[7:0]</obj_property>
-      <obj_property name="ObjectShortName">c7[7:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/sc0" type="array" db_ref_id="1">
@@ -121,34 +63,13 @@
       <obj_property name="ObjectShortName">sc1[3:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/sc2" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">sc2[3:0]</obj_property>
-      <obj_property name="ObjectShortName">sc2[3:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/scaler_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">scaler_valid</obj_property>
+      <obj_property name="ObjectShortName">scaler_valid</obj_property>
    </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/sc3" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">sc3[3:0]</obj_property>
-      <obj_property name="ObjectShortName">sc3[3:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/sc4" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">sc4[3:0]</obj_property>
-      <obj_property name="ObjectShortName">sc4[3:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/sc5" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">sc5[3:0]</obj_property>
-      <obj_property name="ObjectShortName">sc5[3:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/sc6" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">sc6[3:0]</obj_property>
-      <obj_property name="ObjectShortName">sc6[3:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/sc7" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">sc7[3:0]</obj_property>
-      <obj_property name="ObjectShortName">sc7[3:0]</obj_property>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/timer" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">timer[31:0]</obj_property>
+      <obj_property name="ObjectShortName">timer[31:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 </wave_config>

@@ -72,7 +72,7 @@ module IRSXtest #(
 	wire first_pll_locked, second_pll_locked, third_pll_locked, all_plls_locked;
 	assign all_plls_locked = first_pll_locked && second_pll_locked && third_pll_locked;
 	// ----------------------------------------------------------------------
-	wire hs_reset = reset_word;
+	wire hs_reset;
 	wire hs_word_clock, hs_bit_clk_raw, hs_bit_clk, hs_bit_strobe, hs_pll_is_locked_and_strobe_is_aligned;
 	BUFPLL #(
 		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
@@ -86,9 +86,9 @@ module IRSXtest #(
 		.SERDESSTROBE(hs_bit_strobe) // Output SERDES strobe
 	);
 	wire hs_clk_raw, hs_clk180_raw, hs_clk, hs_clk180;
-	if (0) begin
-		wire hs_clk;
-		//wire [23:0] longword = 24'b000111000111000111000111; // 169.667 MHz (fine, but SS_INCR is not phased up to *this* clock, so the data comes out with a variable phase...)
+	if (1) begin
+		assign hs_reset = reset_word;
+		//wire [23:0] longword = 24'b000111000111000111000111; // 169.667 MHz (this is fine, but SS_INCR is not phased up to *this* clock, so the data comes out with a variable phase...)
 		wire [7:0] hs_clk_word;
 		//oserdes_gearbox #(.RATIO(3)) osgb (.word_clock(hs_word_clock), .reset(hs_reset), .input_longword(longword), .output_shortword(hs_clk_word), .start(), .finish());
 		//assign hs_clk_word = 8'b10101010; // 508.8875 MHz
@@ -97,6 +97,7 @@ module IRSXtest #(
 		ocyrus_single8_inner #(.BIT_RATIO(8)) hs_clk_oserdes (.word_clock(hs_word_clock), .bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .reset(hs_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
 		OBUFDS hs_clk_buf (.I(hs_clk), .O(hs_clk_p), .OB(hs_clk_n));
 	end else begin
+		reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(1'b0), .pll_locked1_input(1'b0), .clock1_input(hs_clk), .clock2_input(hs_clk), .reset2_output(hs_reset));
 		BUFG hsraw (.I(hs_clk_raw), .O(hs_clk));
 		BUFG hs180 (.I(hs_clk180_raw), .O(hs_clk180));
 		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(hs_reset), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
@@ -175,10 +176,6 @@ module IRSXtest #(
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
-	wire [NUMBER_OF_CHANNELS-1:0] even_channel_hit;
-	wire [NUMBER_OF_CHANNELS-1:0] odd_channel_hit;
-	wire even_channels_hit = |even_channel_hit;
-	wire odd_channels_hit  = |odd_channel_hit;
 	// ----------------------------------------------------------------------
 	OBUFDS wr_dat_dummy (.I(1'b0), .O(wr_dat_p), .OB(wr_dat_n));
 	// ----------------------------------------------------------------------
@@ -285,6 +282,7 @@ module IRSXtest #(
 	wire [LOG2_OF_TRIGSTREAM_LENGTH:0] odd_channel_trigger_width  = bank0[6][LOG2_OF_TRIGSTREAM_LENGTH:0];
 	wire [4:0] hs_data_ss_incr = bank0[7][4:0];
 	wire [4:0] hs_data_capture = bank0[8][4:0];
+	wire [31:0] timeout = bank0[9];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -383,15 +381,15 @@ module IRSXtest #(
 	assign bank6[13][SCALER_WIDTH-1:0] = sc5;
 	assign bank6[14][SCALER_WIDTH-1:0] = sc6;
 	assign bank6[15][SCALER_WIDTH-1:0] = sc7;
-	localparam CLOCK_PERIODS_TO_ACCUMULATE = 25000;
-	irsx_scaler_counter_dual_trigger_interface #(.TRIGSTREAM_LENGTH (TRIGSTREAM_LENGTH ), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
-		.clock(word_clock), .reset(reset_word), .clear_channel_counters(clear_channel_counters),
-		.iserdes_word_in0(trg01_word), .iserdes_word_in1(trg01_word), .iserdes_word_in2(trg23_word), .iserdes_word_in3(trg23_word),
-		.iserdes_word_in4(trg45_word), .iserdes_word_in5(trg45_word), .iserdes_word_in6(trg67_word), .iserdes_word_in7(trg67_word),
+	wire scaler_valid;
+	wire t0, t1, t2, t3, t4, t5, t6, t7;
+	irsx_scaler_counter_dual_trigger_interface #(.TRIGSTREAM_LENGTH(TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) irsx_scaler_counter (
+		.clock(word_clock), .reset(reset_word), .clear_channel_counters(clear_channel_counters), .timeout(timeout), .scaler_valid(scaler_valid),
+		.iserdes_word_in0(trg01_word), .iserdes_word_in1(trg23_word), .iserdes_word_in2(trg45_word), .iserdes_word_in3(trg67_word),
 		.odd_channel_trigger_width(odd_channel_trigger_width), .even_channel_trigger_width(even_channel_trigger_width),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
 		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
-		.even_channel_hit(even_channel_hit), .odd_channel_hit(odd_channel_hit));
+		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
 	// ----------------------------------------------------------------------
 	assign convert = 0;
 	// ----------------------------------------------------------------------
@@ -422,8 +420,8 @@ module IRSXtest #(
 		assign coax[2] = montiming2;
 		assign coax[3] = montiming1;
 	end else if (0) begin
-		assign coax[0] = even_channels_hit;
-		assign coax[1] = odd_channels_hit;
+		assign coax[0] = t0;
+		assign coax[1] = t1;
 		assign coax[2] = trg0123;
 		assign coax[3] = trg4567;
 	end else begin
