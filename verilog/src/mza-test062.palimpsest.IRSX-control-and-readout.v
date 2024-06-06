@@ -86,7 +86,7 @@ module IRSXtest #(
 		.SERDESSTROBE(hs_bit_strobe) // Output SERDES strobe
 	);
 	wire hs_clk_raw, hs_clk180_raw, hs_clk, hs_clk180;
-	if (1) begin
+	if (0) begin
 		assign hs_reset = reset_word;
 		//wire [23:0] longword = 24'b000111000111000111000111; // 169.667 MHz (this is fine, but SS_INCR is not phased up to *this* clock, so the data comes out with a variable phase...)
 		wire [7:0] hs_clk_word;
@@ -97,7 +97,7 @@ module IRSXtest #(
 		ocyrus_single8_inner #(.BIT_RATIO(8)) hs_clk_oserdes (.word_clock(hs_word_clock), .bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .reset(hs_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
 		OBUFDS hs_clk_buf (.I(hs_clk), .O(hs_clk_p), .OB(hs_clk_n));
 	end else begin
-		reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(1'b0), .pll_locked1_input(1'b0), .clock1_input(hs_clk), .clock2_input(hs_clk), .reset2_output(hs_reset));
+		reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(1'b0), .pll_locked1_input(1'b1), .clock1_input(hs_clk), .clock2_input(hs_clk), .reset2_output(hs_reset));
 		BUFG hsraw (.I(hs_clk_raw), .O(hs_clk));
 		BUFG hs180 (.I(hs_clk180_raw), .O(hs_clk180));
 		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(hs_reset), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
@@ -425,8 +425,8 @@ module IRSXtest #(
 		assign coax[2] = trg0123;
 		assign coax[3] = trg4567;
 	end else begin
-		assign coax[0] = 0;
-		assign coax[1] = 0;
+		assign coax[0] = t0;
+		assign coax[1] = t1;
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;
 	end
