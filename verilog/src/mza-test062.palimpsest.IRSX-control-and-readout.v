@@ -92,7 +92,9 @@ module IRSXtest #(
 		wire [7:0] hs_clk_word;
 		//oserdes_gearbox #(.RATIO(3)) osgb (.word_clock(hs_word_clock), .reset(hs_reset), .input_longword(longword), .output_shortword(hs_clk_word), .start(), .finish());
 		//assign hs_clk_word = 8'b10101010; // 508.8875 MHz
-		assign hs_clk_word = 8'b11001100; // 254.     MHz
+		//assign hs_clk_word = 8'b11001100; // 254.     MHz - 01100110 and 00110011 are both noticably worse
+		//assign hs_clk_word = 8'b10001000; // get two phases out this that each look clean, just difficult to know which one is happening
+		//assign hs_clk_word = 8'b11101110; // this looks better than 11001100
 		//assign hs_clk_word = 8'b11110000; // 127.     MHz
 		ocyrus_single8_inner #(.BIT_RATIO(8)) hs_clk_oserdes (.word_clock(hs_word_clock), .bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .reset(hs_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
 		OBUFDS hs_clk_buf (.I(hs_clk), .O(hs_clk_p), .OB(hs_clk_n));
@@ -107,7 +109,9 @@ module IRSXtest #(
 	wire [7:0] hs_data_word;
 	IBUFDS hs_data_buf (.I(data_p), .IB(data_n), .O(hs_data));
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
-	localparam HS_DATA_PICKOFF = 63;
+	localparam HS_DATA_INTENDED_NUMBER_OF_BITS = 25;
+	localparam HS_DATA_EXTRA_BITS_TO_CAPTURE = 28;
+	localparam HS_DATA_PICKOFF = HS_DATA_INTENDED_NUMBER_OF_BITS*4+HS_DATA_EXTRA_BITS_TO_CAPTURE; // sampling at 1018 MHz; hs_clk is 254 MHz
 	reg [HS_DATA_PICKOFF:0] hs_data_stream = 0;
 	reg [HS_DATA_PICKOFF:0] buffered_hs_data_stream = 0;
 	reg [4:0] hs_data_counter = 0;
@@ -126,6 +130,11 @@ module IRSXtest #(
 			hs_data_stream <= { hs_data_stream[HS_DATA_PICKOFF-8:0], hs_data_word };
 			hs_data_counter <= hs_data_counter + 1'b1;
 		end
+	end
+	localparam hs_data_ratio = 4;
+	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated;
+	for (i=0; i<HS_DATA_INTENDED_NUMBER_OF_BITS; i=i+1) begin : hs_data_decimation
+		assign hs_data_word_decimated[i] = buffered_hs_data_stream[hs_data_ratio*i+hs_data_offset];
 	end
 	// ----------------------------------------------------------------------
 	wire montiming1;
@@ -283,6 +292,8 @@ module IRSXtest #(
 	wire [4:0] hs_data_ss_incr = bank0[7][4:0];
 	wire [4:0] hs_data_capture = bank0[8][4:0];
 	wire [31:0] timeout = bank0[9];
+	wire [6:0] hs_data_offset = bank0[10][6:0]; // 6
+//	wire [2:0] hs_data_ratio  = bank0[11][2:0]; // 4 (localparam is much more efficient on resources...)
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -299,8 +310,11 @@ module IRSXtest #(
 	assign bank1[1] = number_of_register_transactions;
 	assign bank1[2] = number_of_readback_errors;
 	assign bank1[3][19:0] = last_erroneous_readback;
-	assign bank1[4] = buffered_hs_data_stream[HS_DATA_PICKOFF-:32];
-	assign bank1[5] = buffered_hs_data_stream[31:0];
+	assign bank1[4] = buffered_hs_data_stream[127-:32];
+	assign bank1[5] = buffered_hs_data_stream[95-:32];
+	assign bank1[6] = buffered_hs_data_stream[63-:32];
+	assign bank1[7] = buffered_hs_data_stream[31-:32];
+	assign bank1[8][HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1:0];
 	// ----------------------------------------------------------------------
 	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(word_clock),
