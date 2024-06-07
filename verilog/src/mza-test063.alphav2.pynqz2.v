@@ -406,7 +406,6 @@ module testALPHA #(
 	// RPI --------------------------------------
 	wire tok_a_b2f = rpio_sd_r; // rpio_00_r input to fpga
 	wire tok_b_m2f = rpio_sc_r; // rpio_01_r
-//	assign rpio_02_r = sysclk; // single-ended sysclk
 	assign rpio_03_r = actual_pclk_m; // output to middle alpha
 	assign rpio_04_r = actual_pclk_t;
 	assign rpio_05_r = tok_a_f2t;
@@ -562,6 +561,7 @@ module testALPHA #(
 		BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_h (.I0(cg), .I1(c8), .S(select_buffered[7]), .O(ch));
 		BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel   (.I0(ch), .I1(c9), .S(select_buffered[8]), .O(sysclk));
 	end else if (0) begin // useful for pcb1 that can only do single-ended sysclk (up to ~30 MHz)
+		assign rpio_02_r = sysclk; // single-ended sysclk
 		MMCM_advanced #(
 			.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.0),
 			.CLKOUT0_DIVIDE(24.0), // 41.667 MHz
