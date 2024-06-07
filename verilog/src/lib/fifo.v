@@ -210,7 +210,8 @@ endmodule
 module fifo_single_clock #(
 	parameter DATA_WIDTH = 8,
 	parameter LOG2_OF_DEPTH = 4,
-	parameter PRIMITIVE_ADDRESS_DEPTH = 14, // each s6 BRAM is 16kbits (18kbits)
+	parameter SERIES = "spartan6", // "spartan6" or "7series"
+	parameter PRIMITIVE_ADDRESS_DEPTH = SERIES=="spartan6" ? 14 : 15, // each s6 BRAM is 16kbits (18kbits); each 7series BRAM is 32kbits (36kbits) [where is the extra bit going?!?]
 	parameter DEPTH = 1<<LOG2_OF_DEPTH
 ) (
 	input clock, reset,
@@ -233,7 +234,7 @@ module fifo_single_clock #(
 	assign error_count = { write_error_count, read_error_count, other_error_count };
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};
 	wire ram_write_enable = write_enable && ((~full) || (read_enable && full));
-	RAM_s6_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH)) myuni ( .reset(reset),
+	RAM_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH), .SERIES(SERIES)) myuni ( .reset(reset),
 		.clock_a(clock), .address_a(write_address), .data_in_a(data_in), .write_enable_a(ram_write_enable),
 		.clock_b(clock), .address_b(read_address), .data_out_b(data_out));
 	always @(posedge clock) begin

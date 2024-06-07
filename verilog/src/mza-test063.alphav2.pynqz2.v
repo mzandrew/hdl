@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2024-04-26 by mza and makiko
+// last updated 2024-06-07 by mza and makiko
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -10,6 +10,7 @@
 `include "lib/reset.v"
 `include "lib/debounce.v"
 `include "lib/alpha.v"
+`include "lib/fifo.v"
 
 module icyrus7series10bit (
 	input half_bit_clock_p, half_bit_clock_n,
@@ -314,7 +315,9 @@ module testALPHA #(
 ) (
 //	input sysclk, // unreliable 125 MHz, comes from RTL8211 (ethernet) via 50 MHz osc
 //	input [5:4] jb, // pmod_osc pmod_port_B
-	output [7:0] jb, // PMODB
+	//output [7:0] jb, // PMODB
+	input acknowledge,
+	output [4:0] pmod,
 	input [5:4] ja, // 100.0 MHz, comes from PMODA
 //	output [3:2] jc, // ja[3] is the clock output, renamed jc here for verilog in/out reasons
 //	input [7:6] ja,
@@ -403,7 +406,7 @@ module testALPHA #(
 	// RPI --------------------------------------
 	wire tok_a_b2f = rpio_sd_r; // rpio_00_r input to fpga
 	wire tok_b_m2f = rpio_sc_r; // rpio_01_r
-	assign rpio_02_r = sysclk; // single-ended sysclk
+//	assign rpio_02_r = sysclk; // single-ended sysclk
 	assign rpio_03_r = actual_pclk_m; // output to middle alpha
 	assign rpio_04_r = actual_pclk_t;
 	assign rpio_05_r = tok_a_f2t;
@@ -461,11 +464,12 @@ module testALPHA #(
 	wire clock;
 	IBUFGDS clock_in_diff (.I(ja[4]), .IB(ja[5]), .O(clock));
 	// ------------------------------------------
-	wire reset;
+	wire reset, reset_sysclk, sysclk_pll_locked;
 	localparam RESET_COUNTER_PICKOFF = 9;
 	wire debounced_reset_button;
 	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) reset_button_debounce (.clock(clock), .raw_button_input(1'b0), .polarity(1'b1), .button_activated_pulse(debounced_reset_button), .button_deactivated_pulse(), .button_active());
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(RESET_COUNTER_PICKOFF)) reset_btn_wait4pll (.reset_input(debounced_reset_button), .pll_locked_input(1'b1), .clock_input(clock), .reset_output(reset));
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(RESET_COUNTER_PICKOFF)) reset_btn_wait4pll (.reset1_input(debounced_reset_button), .pll_locked1_input(1'b1), .clock1_input(clock), .clock2_input(clock), .reset2_output(reset));
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(RESET_COUNTER_PICKOFF)) sysclk_wait4pll (.reset1_input(reset), .pll_locked1_input(sysclk_pll_locked), .clock1_input(clock), .clock2_input(sysclk), .reset2_output(reset_sysclk));
 	// ------------------------------------------
 	//IBUFG clock_in_se (.I(ja[7]), .O(clock));
 //	OBUFDS (.I(clock), .O(hdmi_tx_clk_p), .OB(hdmi_tx_clk_n));
@@ -508,7 +512,7 @@ module testALPHA #(
 //	assign ce = 0;
 //	assign cf = 0;
 	if (0) begin
-		wire mmcm_locked0, mmcm_locked1;
+		wire mmcm_locked1;
 		MMCM_advanced #(
 			.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.24),
 			.CLKOUT0_DIVIDE(12), //  85 MHz
@@ -519,7 +523,7 @@ module testALPHA #(
 			.CLKOUT5_DIVIDE(1), // 1024
 			.CLKOUT6_DIVIDE(1)  // 1024
 				) mymmcm0 (
-			.clock1_in(clock), .reset(reset), .locked(mmcm_locked0),
+			.clock1_in(clock), .reset(reset), .locked(sysclk_pll_locked),
 			.clock0_out_p(c0), .clock0_out_n(), .clock1_out_p(c1), .clock1_out_n(),
 			.clock2_out_p(c2), .clock2_out_n(), .clock3_out_p(c3), .clock3_out_n(),
 			.clock4_out(c4), .clock5_out(), .clock6_out());
@@ -557,8 +561,7 @@ module testALPHA #(
 		BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_g (.I0(cf), .I1(c7), .S(select_buffered[6]), .O(cg));
 		BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_h (.I0(cg), .I1(c8), .S(select_buffered[7]), .O(ch));
 		BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel   (.I0(ch), .I1(c9), .S(select_buffered[8]), .O(sysclk));
-	end else if (1) begin // useful for pcb1 that can only do single-ended sysclk (up to ~30 MHz)
-		wire mmcm_locked0;
+	end else if (0) begin // useful for pcb1 that can only do single-ended sysclk (up to ~30 MHz)
 		MMCM_advanced #(
 			.CLOCK1_PERIOD_NS(10.0), .D(1), .M(10.0),
 			.CLKOUT0_DIVIDE(24.0), // 41.667 MHz
@@ -569,21 +572,22 @@ module testALPHA #(
 			.CLKOUT5_DIVIDE(1), // 1024
 			.CLKOUT6_DIVIDE(1)  // 1024
 				) mymmcm0 (
-			.clock1_in(clock), .reset(reset), .locked(mmcm_locked0),
+			.clock1_in(clock), .reset(reset), .locked(sysclk_pll_locked),
 			.clock0_out_p(c0), .clock0_out_n(), .clock1_out_p(c1), .clock1_out_n(),
 			.clock2_out_p(c2), .clock2_out_n(), .clock3_out_p(c3), .clock3_out_n(),
 			.clock4_out(c4), .clock5_out(), .clock6_out());
 		assign sysclk = c0;
 		assign sstclk = c2;
-		assign led4_g = mmcm_locked0;
+		assign led4_g = sysclk_pll_locked;
 		assign nclk = c1;
 	end else begin
 		assign sysclk = clock;
+		assign sysclk_pll_locked = 1'b1;
 	end
 	reg [3:0] rot_buffered_a = 0;
 	reg [3:0] rot_buffered_b = 0;
 	always @(posedge sysclk) begin
-		if (reset) begin
+		if (reset_sysclk) begin
 			rot_buffered_a <= 0;
 			rot_buffered_b <= 0;
 		end else begin
@@ -606,12 +610,26 @@ module testALPHA #(
 	wire [1:0] nybble_counter;
 	wire [15:0] data_word;
 	wire msn; // most significant nybble
-	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(dat_a_t2f), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
-	assign jb[3:0] = nybble;
-	assign jb[4] = msn;
-	assign jb[5] = 0;
-	assign jb[6] = header;
-	assign jb[7] = 0;
+	alpha_readout alpha_readout (.clock(sysclk), .reset(reset_sysclk), .data_a(dat_a_t2f), .header(header),
+		.meat(), .footer(), .alfa_counter(), .omga_counter(), .strobe(),
+		.msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
+	if (1) begin
+		assign pmod[3:0] = nybble;
+		assign pmod[4] = msn;
+		//assign pmod[] = header;
+	end else begin
+		localparam LOG2_OF_DEPTH = 13 + 2; // $clog2(4200) + 2;
+		wire [3:0] fifo_out_word;
+		wire fifo_read_strobe;
+		wire pmod_strobe;
+		wire fifo_empty;
+		fifo_single_clock #(.DATA_WIDTH(4), .LOG2_OF_DEPTH(LOG2_OF_DEPTH), .SERIES("7SERIES")) fsc (.clock(sysclk), .reset(reset_sysclk), .error_count(),
+			.data_in(nybble), .write_enable(fifo_write_strobe), .full(), .almost_full(), .full_or_almost_full(),
+			.data_out(fifo_out_word), .read_enable(fifo_read_strobe), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
+		handshake_fifo pmod_fifo (.clock(sysclk), .reset(reset_sysclk), .fifo_read_strobe(fifo_read_strobe), .fifo_empty(fifo_empty), .acknowledge(acknowledge), .output_strobe(pmod_strobe));
+		assign pmod[4] = pmod_strobe;
+		assign pmod[3:0] = fifo_out_word;
+	end
 	wire [11:0] CMPbias = 12'h1e8; // in IRSX PS7 code, CMPbias2 is 737 and CMPbias is 1000
 	wire [11:0] ISEL    = 12'ha80; // 12'hb44=79us ramp on 3*alpha board; 12'ha80=41us on 1*alpha toupee
 	wire [11:0] SBbias  = 12'hdff; // in IRSX PS7 code, SBbias is 1300
@@ -631,10 +649,11 @@ module testALPHA #(
 	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_0_debounce (.clock(sysclk), .raw_button_input(btn[0]), .polarity(1'b1), .button_activated_pulse(initiate_trigger), .button_deactivated_pulse(), .button_active());
 	wire trig;
 	wire sda_in, sda_out, sda_dir;
-	assign sda = sda_dir ? sda_out : 1'bz;
+//	assign sda = ( (sda_dir==1) && (sda_out==0) ) ? 1'b0 : 1'bz;
+	OBUFT staypuft (.I(sda_out), .T(sda_dir==0||sda_out==1), .O(sda));
 	assign sda_in = sda;
-	//alpha_control alpha_control (.clock(sysclk), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .initiate_dreset_sequence(initiate_dreset_sequence), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_dir(sda_dir), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
-	alpha_control alpha_control (.clock(sysclk), .reset(reset), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in),
+	//alpha_control alpha_control (.clock(sysclk), .reset(reset_sysclk), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .initiate_dreset_sequence(initiate_dreset_sequence), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_dir(sda_dir), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	alpha_control alpha_control (.clock(sysclk), .reset(reset_sysclk), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in),
 		.initiate_trigger(initiate_trigger), .trig_top(trig), .initiate_dreset_sequence(initiate_dreset_sequence),
 		.scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .initiate_i2c_transfer(initiate_i2c_transfer),
 		.sin(sin), .pclk(pclk), .sclk(sclk), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence),

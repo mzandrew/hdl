@@ -1,6 +1,6 @@
 // written 2018-08-06 by mza
 // based on mza-test013.i2c.v
-// last updated 2024-03-29 by mza
+// last updated 2024-04-26 by mza
 
 `ifndef I2C_LIB
 `define I2C_LIB
@@ -14,8 +14,8 @@ module i2c_write_value_to_address #(
 	input clock,
 	input [6:0] address,
 	input [7:0] value,
-	output reg scl = 0,
-	output reg sda_out = 0,
+	output reg scl = 1,
+	output reg sda_out = 1,
 	output reg sda_dir = 0,
 	input sda_in,
 	input start_transfer,
