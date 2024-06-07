@@ -1,13 +1,14 @@
 // written 2024-03-11 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
 // based on mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
-// last updated 2024-03-12 by mza
+// last updated 2024-05-08 by mza
 
 `ifndef duneLBLS_LIB
 `define duneLBLS_LIB
 `timescale 1ns / 1ps
 
 module LBLS_bank #(
+	parameter CLOCK_PERIODS_TO_ACCUMULATE = $int(62500000*0.2), // should roughly match gui update period (roughly 0.2 s)
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16
 ) (
@@ -53,7 +54,7 @@ module LBLS_bank #(
 	assign c1 = channel_counter[1]; assign c2  = channel_counter[2];  assign c3  = channel_counter[3];  assign c4  = channel_counter[4];
 	assign c5 = channel_counter[5]; assign c6  = channel_counter[6];  assign c7  = channel_counter[7];  assign c8  = channel_counter[8];
 	assign c9 = channel_counter[9]; assign c10 = channel_counter[10]; assign c11 = channel_counter[11]; assign c12 = channel_counter[12];
-	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(2500000), .NUMBER_OF_CHANNELS(12)) channel_scaler_a_array12 (.clock(clock), .reset(1'b0),
+	iserdes_scaler_array12 #(.BIT_DEPTH(8), .REGISTER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE), .NUMBER_OF_CHANNELS(12)) channel_scaler_a_array12 (.clock(clock), .reset(1'b0),
 		.in01(word_maybe_inverted[1]), .in02(word_maybe_inverted[2]), .in03(word_maybe_inverted[3]), .in04(word_maybe_inverted[4]),
 		.in05(word_maybe_inverted[5]), .in06(word_maybe_inverted[6]), .in07(word_maybe_inverted[7]), .in08(word_maybe_inverted[8]),
 		.in09(word_maybe_inverted[9]), .in10(word_maybe_inverted[10]), .in11(word_maybe_inverted[11]), .in12(word_maybe_inverted[12]),
@@ -135,22 +136,25 @@ module LBLS_bank #(
 //		count_ones c1s_before (.clock(clock), .data_in(word[i]), .count_out(word_ones_counter_before[i]));
 		count_ones c1s_after (.clock(clock), .data_in(word_buffered_and_maybe_inverted_a[i]), .count_out(word_ones_counter_after[i]));
 	end
+	reg old_trigger_active = 0;
 	for (i=1; i<=12; i=i+1) begin : time_over_threshold_mapping
 		always @(posedge clock) begin
 //			fifo_write_enable[i] <= 0;
 			if (reset) begin
 				previous_time_over_threshold[i] <= 0;
 				time_over_threshold[i] <= 0;
+				old_trigger_active <= 0;
 			end else begin
 				if (trigger_active) begin
 					time_over_threshold[i] <= time_over_threshold[i] + word_ones_counter_after[i];
-				end else begin
+				end else if (old_trigger_active) begin
 					previous_time_over_threshold[i] <= time_over_threshold[i];
 					if (time_over_threshold[i]) begin
 //						fifo_write_enable[i] <= 1;
 						time_over_threshold[i] <= 0;
 					end
 				end
+				old_trigger_active <= trigger_active;
 			end
 		end
 	end

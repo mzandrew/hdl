@@ -1,6 +1,6 @@
 // written 2021-12-14 by mza
 // based on mza-test054.palimpsest.cylon.althea.revB.v
-// last updated 2022-10-03 by mza
+// last updated 2024-05-01 by mza
 
 `define althea_revA
 `include "lib/generic.v"
@@ -31,7 +31,7 @@ module top #(
 	output [3:0] coax_led
 );
 	// PLL_ADV VCO range is 400 MHz to 1080 MHz
-	localparam PERIOD = 10.0;
+	localparam PERIOD = 10.0; // 100 MHz
 	//localparam MULTIPLY = 9; // 900 MHz
 	//localparam DIVIDE = 1; // 900 MHz
 	//localparam EXTRA_DIVIDE = 3; // 300 MHz
@@ -41,14 +41,14 @@ module top #(
 	localparam MULTIPLY = 8; // 800 MHz bit_clock
 	localparam DIVIDE = 2; // 400 MHz bit_clock; 50 MHz word_clock
 	//localparam EXTRA_DIVIDE = 7; // 142.857143 MHz (7ns bit time); 
-	//localparam EXTRA_DIVIDE = 16; // 25 MHz bit_clock (40ns bit time); 3.125 MHz word_clock
-	localparam EXTRA_DIVIDE = 3; // 133.33 MHz bit_clock (7.5ns bit time); 16.67 MHz word_clock
+	localparam EXTRA_DIVIDE = 16; // 25 MHz bit_clock (40ns bit time); 3.125 MHz word_clock
+	//localparam EXTRA_DIVIDE = 3; // 133.33 MHz bit_clock (7.5ns bit time); 16.67 MHz word_clock
 	//localparam EXTRA_DIVIDE = 2; // 200 MHz bit_clock (5ns bit time); 25 MHz word_clock
 	localparam SCOPE = "BUFPLL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	reg [7:0] pattern [12:1];
 	wire [7:0] null = 0;
-	//wire [7:0] pat [COUNTER_SIZE-COUNTER_PICKOFF-1:0] = { 8'b11111111, 8'b11111110, 8'b11111100, 8'b11111000, 8'b11110000, 8'b11100000, 8'b11000000, 8'b10000000 };
-	wire [7:0] pat [COUNTER_SIZE-COUNTER_PICKOFF-1:0] = { 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111 };
+	wire [7:0] pat [COUNTER_SIZE-COUNTER_PICKOFF-1:0] = { 8'b11111111, 8'b11111110, 8'b11111100, 8'b11111000, 8'b11110000, 8'b11100000, 8'b11000000, 8'b10000000 };
+	//wire [7:0] pat [COUNTER_SIZE-COUNTER_PICKOFF-1:0] = { 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111, 8'b11111111 };
 	wire [3:0] status4;
 	wire [7:0] status8;
 	wire reset;
@@ -65,6 +65,7 @@ module top #(
 			counter <= counter + 1'b1;
 		end
 	end
+	localparam DELAY = 20;
 	always @(posedge word_clock) begin
 //		for (i=1; i<13; i=i+1) begin : clear_pattern
 		pattern[1] <= null;
@@ -83,30 +84,31 @@ module top #(
 //		end
 		if (reset_word) begin
 		end else begin
-			if (counter[COUNTER_PICKOFF:0]==1) begin
-				sync_out_word_alternate <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
+			if (counter[COUNTER_PICKOFF:0]==0) begin
+				sync_out_word_alternate <= 8'b11111111;
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+1) begin
 				pattern[1] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==2) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+2) begin
 				pattern[2] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==3) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+3) begin
 				pattern[3] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==4) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+4) begin
 				pattern[4] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==5) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+5) begin
 				pattern[5] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==6) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+6) begin
 				pattern[6] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==7) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+7) begin
 				pattern[7] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==8) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+8) begin
 				pattern[8] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==9) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+9) begin
 				pattern[9] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==10) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+10) begin
 				pattern[10] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==11) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+11) begin
 				pattern[11] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
-			end else if (counter[COUNTER_PICKOFF:0]==12) begin
+			end else if (counter[COUNTER_PICKOFF:0]==DELAY+12) begin
 				pattern[12] <= pat[counter[COUNTER_SIZE:COUNTER_PICKOFF+1]];
 			end
 		end

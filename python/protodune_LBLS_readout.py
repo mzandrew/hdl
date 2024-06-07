@@ -3,26 +3,29 @@
 # written 2023-08-23 by mza
 # based on https://github.com/mzandrew/bin/blob/master/embedded/mondrian.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-04-04 by mza
+# last updated 2024-05-10 by mza
 
 number_of_pin_diode_boxes = 4
 NUMBER_OF_CHANNELS_PER_BANK = 12 # this is probably fixed for protodune at least
 gui_update_period = 0.2 # in seconds
 cliff = "upper" # you want this for positive-going pulses
 #cliff = "lower" # you want this for negative-going pulses
+ToT_threshold = 0
+exaggerate_sensitive_dimension = True
 
 #raw_threshold_scan_filename = "ampoliros.raw_threshold_scan"
 threshold_scan_accumulation_time = 0.1
 LTC1631A_PEDESTAL_VOLTAGE = 1.21 # from LTC1963A-adj datasheet
 DAC_EPSILON = 2.5 / 2**16
-MAX_COUNTER = 650000 # actual counter is 24 bit, but we only see up to about this much for when diff_term=false
-incidentals_for_null_scalers = 10
-incidentals_for_display = 10
+MAX_COUNTER = 2**24-1 # actual counter is 24 bit
+incidentals_for_null_scalers = 3
+incidentals_for_display = 3
 display_precision_of_hex_counter_counts = 6
 display_precision_of_hex_scaler_counts = 4
 display_precision_of_DAC_voltages = 6
 bump_amount = 0.000250 # for the [,] keys during running to bump the dac settings up or down
 extra_voltage = 0.001 # a bit of padding on each side of the threshold scan
+EXTRA_EXTRA_BUMP = 0.010
 
 # typical threshold scan has peak scalers at these voltages:
 # 1.215078 1.214924 1.217697 1.211535 1.212697 1.213695 1.216734 1.218696 1.214115 1.212620 1.218383 1.215811
@@ -33,21 +36,26 @@ extra_voltage = 0.001 # a bit of padding on each side of the threshold scan
 GAP_X_BETWEEN_PLOTS = 20
 GAP_Y_BETWEEN_PLOTS = 44
 GAP_X_LEFT = 14
-GAP_X_RIGHT = 205
+GAP_X_RIGHT = 14
 GAP_Y_TOP = 24
 GAP_Y_BOTTOM = 24
 
 # geometry of protodune LBLS PIN photodiode array:
-#a_in = 0.5 # lattice spacing, in in
-photodiode_can_diameter_in = 0.325
-photodiode_positions_x_in = [ -1.375 + 0.5 * i for i in range(6) ] + [ -1.125 + 0.5 * i for i in range(6) ]
-photodiode_positions_y_in = [ 0.25 for i in range(6)] + [ -0.25 for i in range(6) ]
 #for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 #	print("PD" + str(i+1) + " " + str(photodiode_positions_x_in[i]) + "," + str(photodiode_positions_y_in[i]))
-box_dimension_x_in = 5.0
-box_dimension_y_in = 2.0
+box_dimension_x_in = 4.5
+box_dimension_y_in = 1.4
 scale_pixels_per_in = 80
-active_square_size_in = 0.125
+if exaggerate_sensitive_dimension:
+	a_in = 0.7 # lattice spacing, in in
+	photodiode_can_diameter_in = 0.6
+	active_square_size_in = 0.45
+else:
+	a_in = 0.5 # lattice spacing, in in
+	photodiode_can_diameter_in = 0.325
+	active_square_size_in = 0.125
+photodiode_positions_x_in = [ +2.75*a_in - a_in*i for i in range(6) ] + [ +2.25*a_in - a_in*i for i in range(6) ]
+photodiode_positions_y_in = [ -a_in/2 for i in range(6)] + [ +a_in/2 for i in range(6) ]
 active_square_size = active_square_size_in * scale_pixels_per_in
 
 FONT_SIZE_PLOT_CAPTION = 18
@@ -63,8 +71,10 @@ BANKS_X_GAP = 10
 X_POSITION_OF_CHANNEL_NAMES = 15
 X_POSITION_OF_COUNTERS = 140
 X_POSITION_OF_SCALERS = 190
-#X_POSITION_OF_TOT = 450
+X_POSITION_OF_TOT = 230
 X_POSITION_OF_BANK0_REGISTERS = 100
+X_POSITION_OF_BANK1_REGISTERS = 100
+X_POSITION_OF_COLUMN_HEADERS = 100
 
 #channel_range = range(1, NUMBER_OF_CHANNELS_PER_BANK+1)
 
@@ -75,6 +85,7 @@ channel_names.extend(["ch" + str(i+1) for i in range(NUMBER_OF_CHANNELS_PER_BANK
 bank1_register_values = [ i for i in range(len(channel_names)) ]
 
 bank0_register_names = [ "hit_mask", "inversion_mask", "desired_trigger_quantity", "trigger_duration_in_word_clocks", "monitor_channel", "reg5", "reg6", "coax_mux[0]", "coax_mux[1]", "coax_mux[2]", "coax_mux[3]" ]
+bank1_register_names = [ "trigger_count", "raw_trigger_count" ]
 
 black = (0, 0, 0)
 white = (255, 255, 255)
@@ -101,7 +112,8 @@ coax_mux = [ 0 for i in range(4) ]
 
 should_show_counters = True
 should_show_scalers = True
-should_show_bank0_registers = False
+should_show_bank0_registers = True
+should_show_bank1_registers = True
 scaler_values_seen = set()
 
 # when run as a systemd service, it gets sent a SIGHUP upon pygame.init(), hence this dummy signal handler
@@ -124,6 +136,12 @@ import time
 import random
 import os
 import datetime
+import generic
+import zmq # pip3 install zmq
+import calendar
+import struct
+hitmap_message = bytearray(48)
+#print(str(hitmap_message))
 os.environ['SDL_AUDIODRIVER'] = 'dsp'
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 # from https://learn.adafruit.com/pi-video-output-using-pygame/pointing-pygame-to-the-framebuffer?view=all#pointing-pygame-to-the-framebuffer
@@ -152,11 +170,19 @@ if should_use_touchscreen:
 import pygame # sudo apt install -y python3-pygame # gets 1.9.6 as of early 2023
 # pip3 install pygame # gets 2.1.2 as of early 2023
 # sudo apt install -y libmad0 libmikmod3 libportmidi0 libsdl-image1.2 libsdl-mixer1.2 libsdl-ttf2.0 libsdl1.2debian
-from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_c, K_d, K_s, K_z, K_q, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
 from generic import * # hex, eng
 import althea
 BANK_ADDRESS_DEPTH = 13
 import ltc2657
+
+def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
+	setup_hit_mask(0b111111111111)
+	#setup_hit_mask(0b000000000001)
+	setup_inversion_mask(0b000000000000)
+	#setup_inversion_mask(0b111111111111)
+	setup_desired_trigger_quantity(1e9)
+	setup_trigger_duration(40000)
+#	select(0)
 
 def update_plot(i, j):
 	global plots_were_updated
@@ -204,45 +230,148 @@ def update_plot(i, j):
 				#	print(str(voltage) + "," + str(scaler) + ":" + str(x) + ":" + str(formatted_data[k][x]))
 	pygame.event.pump()
 	print("plotting data...")
-	# fill with colors for now:
-	#plot[i][j].fill((random.randrange(0, 255), random.randrange(0, 255), random.randrange(0, 255)))
 	print("[" + str(i) + "][" + str(j) + "]")
-	for x in range(plot_width):
+	plot[i][j].fill(black)
+	how_many_times_we_did_not_plot = 0
+	offscale_count = 0
+	first_y = extra_gap_y
+	last_y = plot_height - extra_gap_y
+	scale_y = last_y - first_y
+	for x in range(extra_gap_x, plot_width-extra_gap_x):
 		pygame.event.pump()
-		for y in range(plot_height):
-			plot[i][j].set_at((x, y), black)
-			for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-				yn = int(plot_height - plot_height * formatted_data[k][x])
+		how_many_things_were_plotted_at_this_x_value = 0
+		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+			yn = int(last_y - scale_y*formatted_data[k][x-extra_gap_x] + 0.5)
+			#if 15==k:
+			#	print("yn: " + str(yn) + " " + str(formatted_data[k][x-extra_gap_x] ))
+			for y in range(first_y, last_y+1):
 				doit = False
-				if y==yn:
+				if first_y==y:
+					if yn<=first_y:
+						doit = True
+						offscale_count += 1
+						#if 15==k:
+						#	print("first case")
+				elif last_y==y:
+					if last_y<=yn:
+						doit = True
+						offscale_count += 1
+						#if 15==k:
+						#	print("second case")
+				elif yn==y:
 					doit = True
-				elif 0==y and yn<0:
-					doit = True
-				elif plot_height-1==y and plot_height<yn:
-					doit = True
+					#if 15==k:
+					#	print("exact")
 				if doit:
+					how_many_things_were_plotted_at_this_x_value += 1
 					plot[i][j].set_at((x, y), color[k+2]) # first two indices are black and white
+		if how_many_things_were_plotted_at_this_x_value<NUMBER_OF_CHANNELS_PER_BANK:
+			#print(str(x) + ":" + str(how_many_things_were_plotted_at_this_x_value) + "/" + str(NUMBER_OF_CHANNELS_PER_BANK))
+			how_many_times_we_did_not_plot += NUMBER_OF_CHANNELS_PER_BANK - how_many_things_were_plotted_at_this_x_value
+		if 0:
+			if extra_gap_x==x:
+				string = ""
+				for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+					string += str(formatted_data[k][x-extra_gap_x]) + " " + str(int(plot_height-extra_gap_y-1 - (plot_height-2*extra_gap_y)*formatted_data[k][x-extra_gap_x] + 0.5)) + ", "
+				print(string)
+	#print("how_many_times_we_did_not_plot: " + str(how_many_times_we_did_not_plot))
+	print("offscale_count: " + str(offscale_count))
 	plots_were_updated[i][j] = True
+	print("done")
 
 def draw_photodiode_box(i, j):
-	width = int(box_dimension_x_in * scale_pixels_per_in)
-	height = int(box_dimension_y_in * scale_pixels_per_in)
-	offset_x = 0 # GAP_X_LEFT+i*(width+GAP_X_BETWEEN_PLOTS)
-	offset_y = 0 # GAP_Y_TOP+j*(height+GAP_Y_BETWEEN_PLOTS)
+	offset_x = 0 # GAP_X_LEFT+i*(photodiode_box_width+GAP_X_BETWEEN_PLOTS)
+	offset_y = 0 # GAP_Y_TOP+j*(photodiode_box_height+GAP_Y_BETWEEN_PLOTS)
 	radius = int(photodiode_can_diameter_in * scale_pixels_per_in / 2.0)
-	box = pygame.draw.rect(flarb[i][j], grey, pygame.Rect(offset_x, offset_y, width, height), 0)
+	box = pygame.draw.rect(photodiode_box[i][j], grey, pygame.Rect(offset_x, offset_y, photodiode_box_width, photodiode_box_height), 0)
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-		x = int(offset_x + width/2 + photodiode_positions_x_in[k] * scale_pixels_per_in)
-		y = int(offset_y + height/2 - photodiode_positions_y_in[k] * scale_pixels_per_in)
-		pygame.draw.circle(flarb[i][j], white, (x, y), radius, 0)
-		pygame.draw.rect(flarb[i][j], black, pygame.Rect(x-active_square_size//2, y-active_square_size//2, active_square_size, active_square_size), 0)
-	screen.blit(flarb[i][j], (GAP_X_LEFT+i*(width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(height+GAP_Y_BETWEEN_PLOTS)))
+		x = int(offset_x + photodiode_box_width/2 + photodiode_positions_x_in[k] * scale_pixels_per_in)
+		y = int(offset_y + photodiode_box_height/2 - photodiode_positions_y_in[k] * scale_pixels_per_in)
+		pygame.draw.circle(photodiode_box[i][j], white, (x, y), radius, 0)
+		if ToT_threshold<ToT[i][k]:
+			color = blue
+		else:
+			color = black
+		pygame.draw.rect(photodiode_box[i][j], color, pygame.Rect(x-active_square_size//2, y-active_square_size//2, active_square_size, active_square_size), 0)
+	screen.blit(photodiode_box[i][j], (GAP_X_LEFT+i*(photodiode_box_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(photodiode_box_height+GAP_Y_BETWEEN_PLOTS)))
 
 def draw_plot_border(i, j):
 	#print("drawing plot border...")
-	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
+	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+photodiode_box_height+5+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
+
+def setup_zmq():
+	port = 9001
+	#cib_ip_address = [ "10.73.137.148", "10.73.137.148" ]
+	my_ip_address = "10.73.137.151"
+	context = zmq.Context()
+	global socket
+	socket = context.socket(zmq.REP)
+	#url = "tcp://*:" + str(port)
+	url = "tcp://" + my_ip_address + ":" + str(port)
+	print("binding to " + url)
+	socket.bind(url)
+
+number_of_packets_received_from_cib = [ 0 for i in range(2) ]
+number_of_packets_sent_to_cib = [ 0 for i in range(2) ]
+
+def receive_message_from_cib():
+	global timestamp_message
+	global number_of_packets_received_from_cib
+	try:
+		timestamp_message = socket.recv(flags=zmq.NOBLOCK)
+		try:
+			message1 = struct.unpack("!Q", timestamp_message)[0]
+			message2 = time.gmtime(message1//1e9)
+			message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
+		except:
+			message3 = "bogus_timestamp"
+		number_of_packets_received_from_cib[0] += 1
+		print("received: " + str(message3) + " [" + str(number_of_packets_received_from_cib[0]) + "]")
+		return True
+	except zmq.Again as e:
+		#print("no message received yet: " + str(e))
+		return False
+	except zmq.Error as e:
+		print("error: " + str(e))
+		print("received=" + str(number_of_packets_received_from_cib[0]) + " sent=" + str(number_of_packets_sent_to_cib[0]))
+		return False
+	except Exception as e:
+		print(str(type(e).__name__) + " " + str(e))
+
+def send_message_to_cib():
+	global number_of_packets_sent_to_cib
+	try:
+		try:
+			message1 = struct.unpack("!Q", timestamp_message)[0]
+			message2 = time.gmtime(message1//1e9)
+			message3 = time.strftime("%Y-%m-%d %H:%M:%S", message2)
+		except:
+			message3 = "bogus_timestamp"
+		number_of_packets_sent_to_cib[0] += 1
+		print(" sending: " + str(message3) + " [" + str(number_of_packets_sent_to_cib[0]) + "]")
+		message = struct.unpack("!BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", hitmap_message)
+		for i in range(number_of_pin_diode_boxes):
+			string = "bank" + chr(i+ord('A')) + ": "
+			for j in range(NUMBER_OF_CHANNELS_PER_BANK):
+				string += generic.hex(message[i*12+j], 2)
+			print(string)
+		socket.send(timestamp_message + hitmap_message)
+	except zmq.Error as e:
+		print("error: " + str(e))
+		print("received=" + str(number_of_packets_received_from_cib[0]) + " sent=" + str(number_of_packets_sent_to_cib[0]))
+		return False
+	except Exception as e:
+		print(str(e))
+		raise
+
+def receive_a_message_from_cib_and_then_send_a_message_back():
+	if receive_message_from_cib():
+		send_message_to_cib()
 
 def setup():
+	global extra_gap_x, extra_gap_y
+	extra_gap_x = 4
+	extra_gap_y = 4
 	global plot_width
 	global plot_height
 	global screen
@@ -258,17 +387,24 @@ def setup():
 	plot_height = int(usable_height / ROWS / 4)
 	#print("plot_width: " + str(plot_width))
 	print("plot_height: " + str(plot_height))
+	global photodiode_box_width, photodiode_box_height
+	photodiode_box_width = int(box_dimension_x_in * scale_pixels_per_in)
+	photodiode_box_height = int(box_dimension_y_in * scale_pixels_per_in)
 	global Y_POSITION_OF_CHANNEL_NAMES
 	global Y_POSITION_OF_COUNTERS
 	global Y_POSITION_OF_SCALERS
-	#global Y_POSITION_OF_TOT
+	global Y_POSITION_OF_TOT
 	global Y_POSITION_OF_BANK0_REGISTERS
-	gap = 20
-	Y_POSITION_OF_CHANNEL_NAMES = plot_height + gap
-	Y_POSITION_OF_COUNTERS = plot_height + gap + FONT_SIZE_BANKS
-	Y_POSITION_OF_SCALERS = plot_height + gap + FONT_SIZE_BANKS
-	#Y_POSITION_OF_TOT = plot_height + gap + FONT_SIZE_BANKS
-	Y_POSITION_OF_BANK0_REGISTERS = plot_height + gap + 200
+	global Y_POSITION_OF_BANK1_REGISTERS
+	global Y_POSITION_OF_COLUMN_HEADERS
+	gap = 25
+	Y_POSITION_OF_CHANNEL_NAMES   = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap
+	Y_POSITION_OF_COUNTERS        = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_SCALERS         = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_TOT             = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_BANK0_REGISTERS = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap + 200
+	Y_POSITION_OF_BANK1_REGISTERS = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap + 375
+	Y_POSITION_OF_COLUMN_HEADERS  = photodiode_box_height + plot_height + FONT_SIZE_BANKS + gap
 	global number_of_threshold_steps
 	number_of_threshold_steps = plot_width
 	number_of_steps_we_might_have_to_take = 2*(GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL+extra_voltage)/DAC_EPSILON
@@ -298,24 +434,27 @@ def setup():
 	screen.fill(black)
 	pygame.event.pump()
 	plot = [ [ pygame.Surface((plot_width, plot_height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
-	width = int(box_dimension_x_in * scale_pixels_per_in)
-	height = int(box_dimension_y_in * scale_pixels_per_in)
-	global flarb
-	flarb = [ [ pygame.Surface((width, height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
+	global photodiode_box
+	photodiode_box = [ [ pygame.Surface((photodiode_box_width, photodiode_box_height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#plot_rect = [ [ plot[i][j].get_rect() for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#clear_plots()
 	global banks_font
 	banks_font = pygame.font.SysFont("monospace", FONT_SIZE_BANKS)
-#	for i in range(len(bank0_register_names)):
-#		register_name = banks_font.render(bank0_register_names[i], 1, white)
-#		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK0_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
+	column_headers = [ "count", "scal", "ToT" ]
+	x_positions_of_column_headers = [ X_POSITION_OF_COUNTERS-4, X_POSITION_OF_SCALERS, X_POSITION_OF_TOT+4 ]
+	for i in range(len(column_headers)):
+		register_name = banks_font.render(column_headers[i], 1, white)
+		screen.blit(register_name, register_name.get_rect(center=(x_positions_of_column_headers[i]-register_name.get_width()//2,Y_POSITION_OF_COLUMN_HEADERS)))
+	for i in range(len(bank0_register_names)):
+		register_name = banks_font.render(bank0_register_names[i], 1, white)
+		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK0_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
+	for i in range(len(bank1_register_names)):
+		register_name = banks_font.render(bank1_register_names[i], 1, white)
+		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK1_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
 	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
 	for i in range(len(channel_names)):
 		register_name = banks_font.render(channel_names[i], 1, white)
 		screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_CHANNEL_NAMES+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_CHANNEL_NAMES+FONT_SIZE_BANKS*i)))
-	#for i in range(NUMBER_OF_CHANNELS_PER_BANK):
-	#	channel_name = banks_font.render(channel_names[i], 1, white)
-	#	screen.blit(channel_name, channel_name.get_rect(center=(X_POSITION_OF_BANK6_COUNTERS+BANKS_X_GAP+channel_name.get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
 	for i in range(COLUMNS):
 		for j in range(ROWS):
 			pygame.event.pump()
@@ -335,7 +474,7 @@ def setup():
 			draw_plot_border(i, j)
 #			update_plot(i, j)
 #			blit(i, j)
-			#draw_photodiode_box(i, j)
+			draw_photodiode_box(i, j)
 			flip()
 			sys.stdout.flush()
 	althea.setup_half_duplex_bus("test058")
@@ -343,13 +482,16 @@ def setup():
 	import board
 	i2c = board.I2C()
 	ltc2657.setup(i2c)
-	set_threshold_voltages(0.456789)
+	#set_threshold_voltages(0.456789)
+	set_thresholds_for_upper_null_scaler(i, 0)
 	global should_check_for_new_data
 	should_check_for_new_data = pygame.USEREVENT + 1
 	#print("gui_update_period: " + str(gui_update_period))
 	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
 	enable_amplifiers()
+	setup_zmq()
 
+should_respond_to_cib = False
 def loop():
 	#pygame.time.wait(10)
 	game_clock.tick(100)
@@ -359,18 +501,24 @@ def loop():
 	#pressed_keys = pygame.key.get_pressed()
 	#pygame.event.wait()
 	mouse = pygame.mouse.get_pos()
+	from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_ESCAPE, KEYDOWN, QUIT, K_BREAK, K_SPACE, K_F1, K_F2, K_F3, K_F4, K_F5, K_F6, K_F7, K_F8, K_c, K_d, K_s, K_t, K_z, K_q, K_0, K_1, K_2, K_3, K_RIGHTBRACKET, K_LEFTBRACKET
+	global should_respond_to_cib
 	for event in pygame.event.get():
 		if event.type == KEYDOWN:
 			if K_ESCAPE==event.key or K_q==event.key:
 				running = False
 			elif K_F1==event.key:
 				sophisticated_threshold_scan(0, 0)
+				after_running_sophisticated_threshold_scan(0, 0)
 			elif K_F2==event.key:
 				sophisticated_threshold_scan(1, 0)
+				after_running_sophisticated_threshold_scan(1, 0)
 			elif K_F3==event.key:
 				sophisticated_threshold_scan(2, 0)
+				after_running_sophisticated_threshold_scan(2, 0)
 			elif K_F4==event.key:
 				sophisticated_threshold_scan(3, 0)
+				after_running_sophisticated_threshold_scan(3, 0)
 			elif K_F5==event.key:
 				set_thresholds_for_this_scaler_rate_during_this_accumulation_time(0, 0, 10, 0.5)
 			elif K_F6==event.key:
@@ -389,6 +537,8 @@ def loop():
 			elif K_s==event.key:
 				global should_show_scalers
 				should_show_scalers = not should_show_scalers
+			elif K_t==event.key:
+				clear_trigger_count()
 			elif K_z==event.key:
 				for i in range(number_of_pin_diode_boxes):
 					if "lower"==cliff:
@@ -412,12 +562,21 @@ def loop():
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
+			if should_respond_to_cib:
+				send_message_to_cib()
 			update_bank0_registers()
 			update_bank1_bank2_scalers()
+			update_other_bank1_registers()
 			update_counters()
-			#update_ToT()
+			update_ToT()
+			should_respond_to_cib = receive_message_from_cib()
 		elif event.type == pygame.MOUSEBUTTONDOWN:
 			do_something()
+	for i in range(number_of_pin_diode_boxes):
+		draw_photodiode_box(i, 0)
+	flip()
+
+def after_running_sophisticated_threshold_scan(i, j):
 	global have_just_run_threshold_scan
 	for i in range(COLUMNS):
 		for j in range(ROWS):
@@ -428,14 +587,13 @@ def loop():
 	for i in range(COLUMNS):
 		for j in range(ROWS):
 			blit(i, j)
-#	draw_photodiode_box(i, j)
-	flip()
 
 def blit(i, j):
 	global something_was_updated
 	if plots_were_updated[i][j]:
 		#print("blitting...")
-		screen.blit(plot[i][j], (GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)))
+		screen.blit(plot[i][j], (GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+photodiode_box_height+5+j*(plot_height+GAP_Y_BETWEEN_PLOTS)))
+		#pygame.image.save(plot[i][j], "protodune." + str(i) + ".png")
 		pygame.event.pump()
 		plots_were_updated[i][j] = False
 		something_was_updated = True
@@ -468,7 +626,30 @@ def read_bank0_registers():
 	global coax_mux
 	coax_mux = bank0_register_values[7:7+4]
 
+def read_bank1_registers():
+	global bank1_register_values
+	bank = 1
+	bank1_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 13, len(bank1_register_names), False)
+
+def readout_ToT():
+	global ToT
+	global hitmap_message
+	bank = 3
+	values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, NUMBER_OF_CHANNELS_PER_BANK, False)
+	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+		ToT[0][k] = (values[k]    ) & 0xff
+		ToT[1][k] = (values[k]>>8 ) & 0xff
+		ToT[2][k] = (values[k]>>16) & 0xff
+		ToT[3][k] = (values[k]>>24) & 0xff
+	#hitmap_message = struct.pack("", )
+	for j in range(number_of_pin_diode_boxes):
+		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
+			index = j*NUMBER_OF_CHANNELS_PER_BANK+k
+			hitmap_message[index] = ToT[j][k]
+			#hitmap_message[index] = k
+
 bank0_register_object = [ 0 for i in range(len(bank0_register_names)) ]
+bank1_register_object = [ 0 for i in range(len(bank1_register_names)) ]
 
 def update_bank0_registers():
 	global bank0_register_object
@@ -477,7 +658,7 @@ def update_bank0_registers():
 		for i in range(len(bank0_register_names)):
 			try:
 				temp_surface = pygame.Surface(bank0_register_object[i].get_size())
-				temp_surface.fill(green)
+				temp_surface.fill(dark_green)
 				screen.blit(temp_surface, bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
 			except Exception as e:
 				#print(str(e))
@@ -485,20 +666,36 @@ def update_bank0_registers():
 			bank0_register_object[i] = banks_font.render(hex(bank0_register_values[i], 8, True), False, white)
 			screen.blit(bank0_register_object[i], bank0_register_object[i].get_rect(center=(X_POSITION_OF_BANK0_REGISTERS-bank0_register_object[i].get_width()//2,Y_POSITION_OF_BANK0_REGISTERS+FONT_SIZE_BANKS*i)))
 
+def update_other_bank1_registers():
+	#trigger_count = get_trigger_count()
+	global bank1_register_object
+	read_bank1_registers()
+	if should_show_bank1_registers:
+		for i in range(len(bank1_register_names)):
+			try:
+				temp_surface = pygame.Surface(bank1_register_object[i].get_size())
+				temp_surface.fill(dark_green)
+				screen.blit(temp_surface, bank1_register_object[i].get_rect(center=(X_POSITION_OF_BANK1_REGISTERS-bank1_register_object[i].get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
+			except Exception as e:
+				#print(str(e))
+				pass
+			bank1_register_object[i] = banks_font.render(hex(bank1_register_values[i], 8, True), False, white)
+			screen.blit(bank1_register_object[i], bank1_register_object[i].get_rect(center=(X_POSITION_OF_BANK1_REGISTERS-bank1_register_object[i].get_width()//2,Y_POSITION_OF_BANK1_REGISTERS+FONT_SIZE_BANKS*i)))
+
 #def read_status_register():
 #	bank = 1
 #	global status_register
-#	status_register, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 1, False)
+#	status_register, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 0, False)
 #	return status_register
 
 #def show_status_register():
 #	read_status_register()
 #	print("status register: " + str(hex(status_register, 8)))
 
-#def show_other_registers():
-#	bank = 1
-#	trigger_count, suggested_inversion_map, hit_counter_buffered = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 13, 3, False)
-#	print("trigger_count: " + str(trigger_count))
+def show_other_registers():
+	bank = 1
+	trigger_count = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 13, 1, False)[0]
+	print("trigger_count: " + str(trigger_count))
 #	print("suggested_inversion_map: " + hex(suggested_inversion_map, 3))
 #	print("hit_counter_buffered: " + str(hit_counter_buffered))
 
@@ -512,6 +709,7 @@ def setup_inversion_mask(inversion_mask):
 
 def setup_desired_trigger_quantity(quantity):
 	bank = 0
+	quantity = int(quantity)
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [quantity], False)
 
 def setup_trigger_duration(number_of_word_clocks):
@@ -541,6 +739,7 @@ def clear_gate_counter():
 	clear_something_on_bank0_reg5(0)
 
 def clear_trigger_count():
+	print("trigger count cleared")
 	clear_something_on_bank0_reg5(1)
 
 def clear_hit_counter():
@@ -565,13 +764,14 @@ def disable_amplifiers():
 	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 6, [0], False)
 
-#def get_trigger_count():
-#	bank = 1
-#	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 13, 1, False)
+def get_trigger_count():
+	bank = 1
+	return althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 13, 1, False)[0]
 
-#def show_trigger_count():
-#	trigger_count, = get_trigger_count()
-#	print("  trigger count: " + str(hex(trigger_count, display_precision_of_hex_counter_counts)))
+def show_trigger_count():
+	trigger_count = get_trigger_count()
+	#print("trigger count: " + str(hex(trigger_count, display_precision_of_hex_counter_counts)))
+	print("trigger count: " + str(trigger_count))
 
 def readout_raw_values():
 	bank = 1
@@ -587,56 +787,19 @@ def return_raw_values_string():
 def show_raw_values():
 	print(return_raw_values_string())
 
-def readout_fifo_multiple(depth):
-	print("fifo" + ":")
-	readback_4321 = althea.read_data_from_pollable_memory_on_half_duplex_bus(3 * 2**BANK_ADDRESS_DEPTH, depth, False)
-	readback_8765 = althea.read_data_from_pollable_memory_on_half_duplex_bus(4 * 2**BANK_ADDRESS_DEPTH, depth, False)
-	readback_cba9 = althea.read_data_from_pollable_memory_on_half_duplex_bus(5 * 2**BANK_ADDRESS_DEPTH, depth, False)
-	for i in range(depth):
-		print(hex(readback_cba9[i], 8) + " " + hex(readback_8765[i], 8) + " " + hex(readback_4321[i], 8))
-
-def readout_fifo_single():
-	readback_4321, = althea.read_data_from_pollable_memory_on_half_duplex_bus(3 * 2**BANK_ADDRESS_DEPTH, 1, False)
-	readback_8765, = althea.read_data_from_pollable_memory_on_half_duplex_bus(4 * 2**BANK_ADDRESS_DEPTH, 1, False)
-	readback_cba9, = althea.read_data_from_pollable_memory_on_half_duplex_bus(5 * 2**BANK_ADDRESS_DEPTH, 1, False)
-	return (readback_cba9, readback_8765, readback_4321)
-
-def readout_fifo_split():
-	fifo = readout_fifo_single()
-	ToT_reversed = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-	for i in range(3):
-		for j in range(4):
-			k = i*4+j
-			ToT_reversed[k] = (fifo[i] >> (8*(3-j)) ) & 0xff
-#	string = ""
-#	for i in range(3):
-#		string += hex(fifo[i], 8, False) + " "
-#	print(string)
-	global ToT
-	ToT = [ ToT_reversed[11-i] for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-	return ToT
-
-def show_fifo_split():
-	readout_fifo_split()
-	string = ""
-	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
-		string += hex(ToT[i], 2, True) + " "
-	print(string)
-
-ToT_object = [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-
 def update_ToT():
-	readout_fifo_split()
-	for i in range(NUMBER_OF_CHANNELS_PER_BANK):
-		try:
-			temp_surface = pygame.Surface(ToT_object[i].get_size())
-			temp_surface.fill(blue)
-			screen.blit(temp_surface, ToT_object[i].get_rect(center=(X_POSITION_OF_TOT-ToT_object[i].get_width()//2,Y_POSITION_OF_TOT+FONT_SIZE_BANKS*i)))
-		except Exception as e:
-			#print(str(e))
-			pass
-		ToT_object[i] = banks_font.render(hex(ToT[i], 2, True), False, white)
-		screen.blit(ToT_object[i], ToT_object[i].get_rect(center=(X_POSITION_OF_TOT-ToT_object[i].get_width()//2,Y_POSITION_OF_TOT+FONT_SIZE_BANKS*i)))
+	readout_ToT()
+	for j in range(number_of_pin_diode_boxes):
+		for i in range(NUMBER_OF_CHANNELS_PER_BANK):
+			try:
+				temp_surface = pygame.Surface(ToT_object[j][i].get_size())
+				temp_surface.fill(blue)
+				screen.blit(temp_surface, ToT_object[j][i].get_rect(center=(X_POSITION_OF_TOT+j*(plot_width+GAP_X_BETWEEN_PLOTS)-ToT_object[j][i].get_width()//2,Y_POSITION_OF_TOT+FONT_SIZE_BANKS*i)))
+			except Exception as e:
+				#print(str(e))
+				pass
+			ToT_object[j][i] = banks_font.render(hex(ToT[j][i], 2, True), False, white)
+			screen.blit(ToT_object[j][i], ToT_object[j][i].get_rect(center=(X_POSITION_OF_TOT+j*(plot_width+GAP_X_BETWEEN_PLOTS)-ToT_object[j][i].get_width()//2,Y_POSITION_OF_TOT+FONT_SIZE_BANKS*i)))
 
 #def return_fifo_string():
 #	fifo_cba9, fifo_8765, fifo_4321 = readout_fifo_single()
@@ -732,11 +895,10 @@ def update_bank1_bank2_scalers():
 				screen.blit(bank_scalers_object[i][k], bank_scalers_object[i][k].get_rect(center=(X_POSITION_OF_SCALERS+i*(plot_width+GAP_X_BETWEEN_PLOTS)-bank_scalers_object[i][k].get_width()//2,Y_POSITION_OF_SCALERS+FONT_SIZE_BANKS*k)))
 
 def do_something():
-	print("")
+	#print("")
 	#show_other_registers()
 	#show_status_register()
-	#show_trigger_count()
-	clear_trigger_count()
+	show_trigger_count()
 	#show_fifo()
 	return
 #	global selection
@@ -810,6 +972,7 @@ def set_thresholds_for_lower_null_scaler(i, j):
 def set_thresholds_for_upper_null_scaler(i, j):
 	voltage_at_upper_null_scaler = read_thresholds_for_upper_null_scalers_file(i, j)
 	print(prepare_string_with_voltages(voltage_at_upper_null_scaler))
+	voltage_at_upper_null_scaler = [ voltage_at_upper_null_scaler[k] + EXTRA_EXTRA_BUMP for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		set_threshold_voltage(i, k, voltage_at_upper_null_scaler[k])
 
@@ -839,7 +1002,7 @@ def read_thresholds_for_lower_null_scalers_file(i, j):
 def read_thresholds_for_upper_null_scalers_file(i, j):
 	voltage_at_peak_scaler = read_thresholds_for_peak_scalers_file(i, j)
 	#print("peak: " + str(voltage_at_peak_scaler))
-	default_voltage_at_upper_null_scaler = [ voltage_at_peak_scaler[k] - GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	default_voltage_at_upper_null_scaler = [ voltage_at_peak_scaler[k] + GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	#print("null: " + str(default_voltage_at_upper_null_scaler))
 	if not os.path.exists(thresholds_for_upper_null_scalers_filename[i]):
 		print("thresholds for null scalers file not found")
@@ -895,6 +1058,7 @@ def prepare_string_with_voltages(voltage):
 
 import copy
 upper_null_scaler_zero_value = 1
+lower_null_scaler_zero_value = 1
 def sophisticated_threshold_scan(i, j):
 	print("running threshold scan for bank" + chr(i+ord('A')) + "...")
 	global have_just_run_threshold_scan
@@ -906,8 +1070,11 @@ def sophisticated_threshold_scan(i, j):
 	global voltage_at_lower_null_scaler
 	global voltage_at_upper_null_scaler
 	voltage_at_lower_null_scaler = read_thresholds_for_lower_null_scalers_file(i, j)
-	voltage_at_upper_null_scaler = [ voltage_at_lower_null_scaler[k] + 2*GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL + 2*extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
-	voltage = [ voltage_at_lower_null_scaler[k] - extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	voltage_at_upper_null_scaler = read_thresholds_for_upper_null_scalers_file(i, j)
+	if "lower"==cliff:
+		voltage = [ voltage_at_lower_null_scaler[k] - extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
+	else:
+		voltage = [ voltage_at_upper_null_scaler[k] + extra_voltage for k in range(NUMBER_OF_CHANNELS_PER_BANK) ]
 	#print(str(voltage))
 	for k in range(NUMBER_OF_CHANNELS_PER_BANK):
 		#voltage[k] = fround(voltage[k], 0.000001)
@@ -945,24 +1112,41 @@ def sophisticated_threshold_scan(i, j):
 				voltage_at_peak_scaler[k] = voltage[k]
 			total_hits_seen_so_far_in_this_scan[k] += counters[k]
 			if total_hits_seen_so_far_in_this_scan[k]<=incidentals_for_null_scalers:
-				voltage_at_lower_null_scaler[k] = voltage[k]
+				if "lower"==cliff:
+					voltage_at_lower_null_scaler[k] = voltage[k]
+				else:
+					voltage_at_upper_null_scaler[k] = voltage[k]
 				string += "*"
 			else:
 				string += " "
-			if previous_count_was_nonzero[k] and upper_null_scaler_zero_value==counters[k]:
-				voltage_at_upper_null_scaler[k] = voltage[k]
-				#print("ch" + str(k) + " v:" + str(voltage[k]))
+			if "lower"==cliff:
+				if previous_count_was_nonzero[k] and upper_null_scaler_zero_value==counters[k]:
+					voltage_at_upper_null_scaler[k] = voltage[k]
+					#print("ch" + str(k) + " v:" + str(voltage[k]))
+			else:
+				if previous_count_was_nonzero[k] and lower_null_scaler_zero_value==counters[k]:
+					voltage_at_lower_null_scaler[k] = voltage[k]
+					#print("ch" + str(k) + " v:" + str(voltage[k]))
 		print(string)
 #		raw_threshold_scan_file.write(string + "\n")
 #		if 0==n%10:
 #			raw_threshold_scan_file.flush()
 		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-			if upper_null_scaler_zero_value==counters[k]:
-				previous_count_was_nonzero[k] = False
+			if "lower"==cliff:
+				if upper_null_scaler_zero_value==counters[k]:
+					previous_count_was_nonzero[k] = False
+				else:
+					previous_count_was_nonzero[k] = True
 			else:
-				previous_count_was_nonzero[k] = True
+				if lower_null_scaler_zero_value==counters[k]:
+					previous_count_was_nonzero[k] = False
+				else:
+					previous_count_was_nonzero[k] = True
 		for k in range(NUMBER_OF_CHANNELS_PER_BANK):
-			voltage[k] += threshold_step_size_in_volts
+			if "lower"==cliff:
+				voltage[k] += threshold_step_size_in_volts
+			else:
+				voltage[k] -= threshold_step_size_in_volts
 	with open(thresholds_for_peak_scalers_filename[i], "w") as thresholds_for_peak_scalers_file:
 		string = prepare_string_with_voltages(voltage_at_peak_scaler)
 		print("peak: " + string)
@@ -1064,55 +1248,6 @@ def show_stuff():
 	#show_fifo_split()
 	pass
 
-def setup_trigger_mask_inversion_mask_trigger_quantity_and_duration():
-	setup_hit_mask(0b111111111111)
-	#setup_hit_mask(0b000000000001)
-	#setup_inversion_mask(0b000000000000)
-	setup_inversion_mask(0b111111111111)
-	setup_desired_trigger_quantity(int(1e3))
-	setup_trigger_duration(25)
-#	select(0)
-
-def setup_everything():
-	if 1: # mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM
-		bank = 0
-		print("bank" + str(bank) + ":")
-		values = [ 0 for a in range(2**4) ]
-		values[0] = 0b111111111111 # hit_mask
-		values[1] = 0b000000000000 # inversion_mask
-		values[2] = int(1e6) # desired_trigger_quantity
-		values[3] = 250 # trigger_duration_in_word_clocks
-		values[4] = 1 # clear_trigger_count
-		#values[0] = 0xff # minuend
-		#values[4] = 0 # train_oserdes
-		#values[5] = 0b10001010 # train_oserdes_pattern
-		values[6] = 0 # start_sample (3 LSBs ignored)
-		values[7] = 0 # end_sample (3 LSBs ignored)
-		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH, values)
-		values[4] = 0 # clear_trigger_count
-		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH, values)
-		time.sleep(1)
-		readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 2**4)
-		for i in range(16):
-			print(hex(readback[i], 8))
-	if 0:
-	#	for bank in range(4):
-	#		print()
-		bank = 1
-		print("bank" + str(bank) + ":")
-		readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, 2**4)
-		for i in range(2**4):
-	#	for i in range(8):
-			print(hex(readback[i], 8))
-	if 0:
-		depth = 4
-		print("fifo" + ":")
-		readback_4321 = althea.read_data_from_pollable_memory_on_half_duplex_bus(3 * 2**BANK_ADDRESS_DEPTH, 2**depth)
-		readback_8765 = althea.read_data_from_pollable_memory_on_half_duplex_bus(4 * 2**BANK_ADDRESS_DEPTH, 2**depth)
-		readback_cba9 = althea.read_data_from_pollable_memory_on_half_duplex_bus(5 * 2**BANK_ADDRESS_DEPTH, 2**depth)
-		for i in range(2**depth):
-			print(hex(readback_cba9[i], 8) + " " + hex(readback_8765[i], 8) + " " + hex(readback_4321[i], 8))
-
 if __name__ == "__main__":
 	from sys import argv
 	if len(argv)>1:
@@ -1124,15 +1259,15 @@ if __name__ == "__main__":
 	wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
 	desired_window_width = int(number_of_pin_diode_boxes * box_dimension_x_in * scale_pixels_per_in + wasted_width)
 	SCREEN_WIDTH = desired_window_width
-	SCREEN_HEIGHT = 720
+	SCREEN_HEIGHT = 725
 	if 1==number_of_pin_diode_boxes:
 		# ampoliros12 revB
 		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.008 # [1.196,1.214] avg=1.2045
 		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.060 / 2 # for when diff_term=false
 	else:
 		# ampoliros48 revA board #2
-		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.008 # [1.194,1.210] avg=1.203
-		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.016 / 2 # for when diff_term=false
+		GUESS_FOR_VOLTAGE_AT_PEAK_SCALER = LTC1631A_PEDESTAL_VOLTAGE - 0.006 # [1.194,1.210] avg=1.203
+		GUESS_AT_THRESHOLD_VOLTAGE_DISTANCE_FROM_PEAK_TO_NULL = 0.045 / 2 # for when diff_term=false
 	thresholds_for_peak_scalers_filename = []
 	thresholds_for_lower_null_scalers_filename = []
 	thresholds_for_upper_null_scalers_filename = []
@@ -1147,6 +1282,8 @@ if __name__ == "__main__":
 	short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
 	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
 	maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
+	ToT = [ [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ] for j in range(number_of_pin_diode_boxes) ]
+	ToT_object = [ [ 0 for i in range(NUMBER_OF_CHANNELS_PER_BANK) ] for j in range(number_of_pin_diode_boxes) ]
 	setup()
 	#write_to_pollable_memory_value()
 	running = True

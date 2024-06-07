@@ -114,6 +114,22 @@ if 0:
 if 1:
 	althea.setup_half_duplex_bus("test058")
 
+if 1:
+	bank = 1
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 1)
+	print("number of register transactions: " + str(readback[0]))
+	bank = 7
+	values = [ random.randint(0, 2**12-1) for a in range(4) ]
+	quantity = len(values)
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH, values)
+	time.sleep(1)
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, quantity)
+	for i in range(quantity):
+		print(hex(readback[i], 6))
+	bank = 1
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 1, 1)
+	print("number of register transactions: " + str(readback[0]))
+
 if 0:
 	j = 2
 	values = [ 0 for a in range(2**4) ]
@@ -178,7 +194,7 @@ if 0:
 	for i in range(2**depth):
 		print(hex(readback_cba9[i], 8) + " " + hex(readback_8765[i], 8) + " " + hex(readback_4321[i], 8))
 
-if 1:
+if 0:
 	#althea.write_data_to_pollable_memory_on_half_duplex_bus(0, [ random.randint(0, 2**32-1) for a in range(2**14) ])
 	#values = [ random.randint(0, 2**32-1) for a in range(2**14) ]
 	#values = [ 0 for a in range(2**14) ]

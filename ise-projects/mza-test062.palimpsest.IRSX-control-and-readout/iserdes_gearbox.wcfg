@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/iserdes_gearbox_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="iserdes_gearbox_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="8" />
+   <wvobject fp_name="/iserdes_gearbox_tb/word_clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">word_clock</obj_property>
+      <obj_property name="ObjectShortName">word_clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/iserdes_gearbox_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/iserdes_gearbox_tb/shortword" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">shortword[7:0]</obj_property>
+      <obj_property name="ObjectShortName">shortword[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/iserdes_gearbox_tb/isgb/select" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">select[1:0]</obj_property>
+      <obj_property name="ObjectShortName">select[1:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/iserdes_gearbox_tb/longword" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">longword[23:0]</obj_property>
+      <obj_property name="ObjectShortName">longword[23:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/iserdes_gearbox_tb/valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">valid</obj_property>
+      <obj_property name="ObjectShortName">valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/iserdes_gearbox_tb/saved_longword" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">saved_longword[23:0]</obj_property>
+      <obj_property name="ObjectShortName">saved_longword[23:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/iserdes_gearbox_tb/sync" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sync</obj_property>
+      <obj_property name="ObjectShortName">sync</obj_property>
+   </wvobject>
+</wave_config>

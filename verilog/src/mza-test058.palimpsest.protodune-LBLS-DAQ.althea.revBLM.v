@@ -2,7 +2,7 @@
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // based on mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2024-03-14 by mza
+// last updated 2024-05-09 by mza
 
 `define althea_revBLM
 `include "lib/duneLBLS.v"
@@ -15,12 +15,22 @@
 `include "lib/half_duplex_rpi_bus.v"
 `include "lib/sequencer.v"
 `include "lib/reset.v"
-`include "lib/edge_to_pulse.v"
+//`include "lib/edge_to_pulse.v"
 `include "lib/frequency_counter.v"
 
 module LBLS12 #(
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
+	// PLL_ADV VCO range is 400 MHz to 1080 MHz
+	parameter PERIOD = 10.0, // 100 MHz
+	parameter MULTIPLY = 10, // 1000 MHz
+	parameter DIVIDE = 1, // 1000 MHz
+	//parameter EXTRA_DIVIDE = 1, // 1000 MHz bit clock; 125 MHz word clock (fails timing by 52 ps)
+	parameter EXTRA_DIVIDE = 2, // 500 MHz bit clock; 62.5 MHz word clock
+	parameter OSCILLATOR_FREQUENCY_HZ = 100_000_000,
+	parameter WORD_CLOCK_FREQUENCY_HZ = $int(OSCILLATOR_FREQUENCY_HZ * MULTIPLY / DIVIDE / EXTRA_DIVIDE),
+	parameter GUI_UPDATE_PERIOD = 0.2,
+	parameter CLOCK_PERIODS_TO_ACCUMULATE = $int(WORD_CLOCK_FREQUENCY_HZ * GUI_UPDATE_PERIOD), // should be roughly same duration as gui update period (0.2s)
 	parameter ROTATED = 0,
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
@@ -54,11 +64,6 @@ module LBLS12 #(
 	output [3:0] coax_led
 );
 	genvar i;
-	// PLL_ADV VCO range is 400 MHz to 1080 MHz
-	localparam PERIOD = 10.0;
-	localparam MULTIPLY = 8;
-	localparam DIVIDE = 2;
-	localparam EXTRA_DIVIDE = 16;
 	localparam SCOPE = "GLOBAL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 //	wire [7:0] pattern [12:1];
 //	reg [7:0] status [12:1];
@@ -71,11 +76,11 @@ module LBLS12 #(
 	wire reset100;
 	wire clock100;
 	IBUFGDS mybuf0 (.I(clock100_p), .IB(clock100_n), .O(clock100));
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock100), .reset_output(reset100));
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset100_wait4pll (.reset1_input(reset), .pll_locked1_input(1'b1), .clock1_input(clock100), .clock2_input(clock100), .reset2_output(reset100));
 	wire word_clock;
 	// ----------------------------------------------------------------------
 	wire reset_word;
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset100), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock), .reset_output(reset_word));
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(reset100), .pll_locked1_input(pll_oserdes_locked), .clock1_input(clock100), .clock2_input(word_clock), .reset2_output(reset_word));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
 	wire [BANK_ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[BANK_ADDRESS_DEPTH-1:0];
@@ -124,12 +129,14 @@ module LBLS12 #(
 	wire [12:1] inversion_mask                  = bank0[1][11:0];
 	wire [31:0] desired_trigger_quantity        = bank0[2][31:0];
 	wire [31:0] trigger_duration_in_word_clocks = bank0[3][31:0];
-	wire [3:0]  monitor_channel                 = bank0[4];
 	wire        clear_gate_counter              = bank0[5][0];
 	wire        clear_trigger_count             = bank0[5][1];
 	wire        clear_hit_counter               = bank0[5][2];
 	wire        clear_channel_counters          = bank0[5][3];
 	wire        clear_channel_ones_counters     = bank0[5][4];
+	// assign      ampen                           = bank0[6][0];
+	// wire [1:0]  monitor_bank                    = bank0[7][1:0];
+	wire [3:0]  monitor_channel                 = bank0[8][3:0];
 	wire [31:0] bank1 [15:0];
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
@@ -316,6 +323,8 @@ module LBLS12 #(
 	end
 	// ----------------------------------------------------------------------
 	wire [7:0] wa [12:1]; // word_A output from iserdes for bankA
+	wire pll_oserdes_locked_copy_on_word_clock;
+	ssynchronizer #(.WIDTH(1)) mysin (.clock1(clock100), .clock2(word_clock), .reset1(reset100), .reset2(reset_word), .in1(pll_oserdes_locked), .out2(pll_oserdes_locked_copy_on_word_clock));
 	iserdes_dodecahedron_input #(
 		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE), .SCOPE(SCOPE), .SPLIT_BANKS(1)
 	) inputs_bankA (
@@ -328,7 +337,7 @@ module LBLS12 #(
 	wire [COUNTER_WIDTH-1:0] ca [12:1]; // channel_counter_a
 	wire [7:0] tota [12:1]; // time-over-threshold for bankA
 	wire any;
-	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) logic_bankA (
+	LBLS_bank #(.COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) logic_bankA (
 		.clock(word_clock), .reset(reset_word),
 		.inversion_mask(inversion_mask), .hit_mask(hit_mask), .gate(gate), .clear_channel_counters(clear_channel_counters), .trigger_active(trigger_active),
 		.win1(wa[1]), .win2(wa[2]), .win3(wa[3]), .win4(wa[4]), .win5(wa[5]), .win6(wa[6]), .win7(wa[7]), .win8(wa[8]), .win9(wa[9]), .win10(wa[10]), .win11(wa[11]), .win12(wa[12]),
@@ -338,7 +347,12 @@ module LBLS12 #(
 		.any(any)
 	);
 	// ----------------------------------------------------------------------
-	for (i=0; i<=5; i=i+1) begin : dummy_coax
+	wire monitor = signal[monitor_channel];
+	assign coax[2] = trigger_active;
+	assign coax[1] = any;
+	assign coax[0] = monitor;
+	assign coax_led = status4;
+	for (i=3; i<=5; i=i+1) begin : dummy_coax
 		assign coax[i] = 0;
 	end
 	for (i=1; i<=12; i=i+1) begin : dummy_indicator
@@ -346,6 +360,23 @@ module LBLS12 #(
 	end
 	assign other = 0;
 	assign reset = 0;
+	// ----------------------------------------------------------------------
+	if (1) begin
+		assign status4[3] = ~pll_oserdes_locked_copy_on_word_clock;
+		assign status4[2] = trigger_active;
+		assign status4[1] = any;
+		assign status4[0] = monitor;
+		// -------------------------------------
+		assign status8[7] = 0;
+		assign status8[6] = 0;
+		assign status8[5] = 0;
+		assign status8[4] = 0;
+		// -------------------------------------
+		assign status8[3] = ~pll_oserdes_locked_copy_on_word_clock;
+		assign status8[2] = trigger_active;
+		assign status8[1] = 0;
+		assign status8[0] = any;
+	end
 /*
 	for (i=0; i<4; i=i+1) begin : coax_mux_mapping
 		always @(posedge word_clock) begin
@@ -375,24 +406,6 @@ module LBLS12 #(
 		assign bank3[i] = { 24'b0, tota[i] }; // time-over-threshold
 		assign bank4[i] = ca[i]; // counters
 	end
-	// ----------------------------------------------------------------------
-	if (1) begin
-		assign status4[3] = ~pll_oserdes_locked;
-		assign status4[2] = trigger_active;
-		assign status4[1] = 0;
-		assign status4[0] = any;
-		// -------------------------------------
-		assign status8[7] = 0;
-		assign status8[6] = 0;
-		assign status8[5] = 0;
-		assign status8[4] = 0;
-		// -------------------------------------
-		assign status8[3] = ~pll_oserdes_locked;
-		assign status8[2] = trigger_active;
-		assign status8[1] = 0;
-		assign status8[0] = any;
-	end
-	assign coax_led = status4;
 	initial begin
 		#100;
 		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, BANK_ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH);

@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2023-11-07 by mza
+// last updated 2024-06-05 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -8,7 +8,7 @@
 //`include "lib/fifo.v"
 //`include "lib/RAM.sv" // ise does not and will not support systemverilog
 `include "lib/plldcm.v"
-//`include "lib/serdes_pll.v"
+`include "lib/serdes_pll.v"
 `include "lib/half_duplex_rpi_bus.v"
 //`include "lib/sequencer.v"
 `include "lib/reset.v"
@@ -17,6 +17,12 @@
 `include "lib/irsx.v"
 
 module IRSXtest #(
+	parameter NUMBER_OF_CHANNELS = 8,
+	parameter TRIGSTREAM_LENGTH = 50,
+	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH) - 1,
+	parameter COUNTER_WIDTH = 32,
+	parameter SCALER_WIDTH = 16,
+	parameter BIT_DEPTH = 8,
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
@@ -37,13 +43,12 @@ module IRSXtest #(
 	input button,
 	inout [5:0] coax,
 //	input [2:0] rot,
-	inout [BUS_WIDTH-1:0] bus,
-	input read, // 0=write; 1=read
-	input register_select, // 0=address; 1=data
-	input enable, // 1=active; 0=inactive
-	output ack_valid,
-	output sin, sclk, pclk, regclr, sst, hs_clk, gcc_clk, wr_clk, wr_dat, convert, ss_incr, spgin,
-	input shout, data, trg01, trg23, trg45, trg67, done_out, wr_syncmon, montiming1, montiming2,
+	inout [23:4] rpi_gpio,
+	output sin, sclk, pclk, regclr, convert, spgin,
+	output reg ss_incr = 1,
+	output sstclk_p, sstclk_n, hs_clk_p, hs_clk_n, gcc_clk_p, gcc_clk_n, wr_clk_p, wr_clk_n, wr_dat_p, wr_dat_n,
+	input shout, done_out, wr_syncmon, montiming2,
+	input data_p, data_n, trg01_p, trg01_n, trg23_p, trg23_n, trg45_p, trg45_n, trg67_p, trg67_n, montiming1_p, montiming1_n,
 //	output other,
 	output [7:0] led,
 	output [3:0] coax_led
@@ -51,27 +56,195 @@ module IRSXtest #(
 	wire reset;
 	assign reset = ~button;
 	// PLL_ADV VCO range is 400 MHz to 1080 MHz
-	localparam PERIOD = 7.8;
-	localparam MULTIPLY = 8;
-	localparam DIVIDE = 2;
-	localparam EXTRA_DIVIDE = 16;
-	localparam SCOPE = "GLOBAL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
+//	localparam PERIOD = 7.8;
+//	localparam MULTIPLY = 8;
+//	localparam DIVIDE = 2;
+//	localparam EXTRA_DIVIDE = 16;
+//	localparam SCOPE = "GLOBAL"; // "GLOBAL" (400 MHz), "BUFIO2" (525 MHz), "BUFPLL" (1080 MHz)
 	localparam ERROR_COUNT_PICKOFF = 7;
 	wire [3:0] status4;
 	wire [7:0] status8;
-	genvar i;
-	wire pll_oserdes_locked;
-	wire pll_oserdes_locked_other;
-	// ----------------------------------------------------------------------
-	wire reset127;
-	wire clock127;
-	IBUFGDS mybuf0 (.I(clock127_p), .IB(clock127_n), .O(clock127));
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock127), .reset_output(reset127));
-	wire word_clock;
-	assign word_clock = clock127;
-	// ----------------------------------------------------------------------
 	wire reset_word;
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset_input(reset127), .pll_locked_input(pll_oserdes_locked), .clock_input(word_clock), .reset_output(reset_word));
+	genvar i;
+	// ----------------------------------------------------------------------
+	wire word_clock_raw, word_clock;
+	wire bit_clock_raw;
+	wire first_pll_locked, second_pll_locked, third_pll_locked, all_plls_locked;
+	assign all_plls_locked = first_pll_locked && second_pll_locked && third_pll_locked;
+	// ----------------------------------------------------------------------
+	wire hs_reset;
+	wire hs_word_clock, hs_bit_clk_raw, hs_bit_clk, hs_bit_strobe, hs_pll_is_locked_and_strobe_is_aligned;
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) hs_bufpll_inst (
+		.PLLIN(hs_bit_clk_raw), // PLL Clock input
+		.GCLK(hs_word_clock), // Global Clock input
+		.LOCKED(third_pll_locked), // Clock0 locked input
+		.IOCLK(hs_bit_clk), // Output PLL Clock
+		.LOCK(hs_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(hs_bit_strobe) // Output SERDES strobe
+	);
+	wire hs_clk_raw, hs_clk180_raw, hs_clk, hs_clk180;
+	if (0) begin
+		assign hs_reset = reset_word;
+		//wire [23:0] longword = 24'b000111000111000111000111; // 169.667 MHz (this is fine, but SS_INCR is not phased up to *this* clock, so the data comes out with a variable phase...)
+		wire [7:0] hs_clk_word;
+		//oserdes_gearbox #(.RATIO(3)) osgb (.word_clock(hs_word_clock), .reset(hs_reset), .input_longword(longword), .output_shortword(hs_clk_word), .start(), .finish());
+		//assign hs_clk_word = 8'b10101010; // 508.8875 MHz
+		//assign hs_clk_word = 8'b11001100; // 254.     MHz - 01100110 and 00110011 are both noticably worse
+		//assign hs_clk_word = 8'b10001000; // get two phases out this that each look clean, just difficult to know which one is happening
+		//assign hs_clk_word = 8'b11101110; // this looks better than 11001100
+		//assign hs_clk_word = 8'b11110000; // 127.     MHz
+		ocyrus_single8_inner #(.BIT_RATIO(8)) hs_clk_oserdes (.word_clock(hs_word_clock), .bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .reset(hs_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
+		OBUFDS hs_clk_buf (.I(hs_clk), .O(hs_clk_p), .OB(hs_clk_n));
+	end else begin
+		reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(1'b0), .pll_locked1_input(1'b1), .clock1_input(hs_clk), .clock2_input(hs_clk), .reset2_output(hs_reset));
+		BUFG hsraw (.I(hs_clk_raw), .O(hs_clk));
+		BUFG hs180 (.I(hs_clk180_raw), .O(hs_clk180));
+		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(hs_reset), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
+	end
+	// ----------------------------------------------------------------------
+	wire hs_data;
+	wire [7:0] hs_data_word;
+	IBUFDS hs_data_buf (.I(data_p), .IB(data_n), .O(hs_data));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
+	localparam HS_DATA_INTENDED_NUMBER_OF_BITS = 25;
+	localparam HS_DATA_EXTRA_BITS_TO_CAPTURE = 28;
+	localparam HS_DATA_PICKOFF = HS_DATA_INTENDED_NUMBER_OF_BITS*4+HS_DATA_EXTRA_BITS_TO_CAPTURE; // sampling at 1018 MHz; hs_clk is 254 MHz
+	reg [HS_DATA_PICKOFF:0] hs_data_stream = 0;
+	reg [HS_DATA_PICKOFF:0] buffered_hs_data_stream = 0;
+	reg [4:0] hs_data_counter = 0;
+	always @(posedge hs_word_clock) begin
+		ss_incr <= 1;
+		if (hs_reset) begin
+			hs_data_stream <= 0;
+			hs_data_counter <= 0;
+		end else begin
+			if (hs_data_counter==hs_data_ss_incr) begin
+				ss_incr <= 0;
+			end
+			if (hs_data_counter==hs_data_capture) begin
+				buffered_hs_data_stream <= hs_data_stream;
+			end
+			hs_data_stream <= { hs_data_stream[HS_DATA_PICKOFF-8:0], hs_data_word };
+			hs_data_counter <= hs_data_counter + 1'b1;
+		end
+	end
+	localparam hs_data_ratio = 4;
+	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated;
+	for (i=0; i<HS_DATA_INTENDED_NUMBER_OF_BITS; i=i+1) begin : hs_data_decimation
+		assign hs_data_word_decimated[i] = buffered_hs_data_stream[hs_data_ratio*i+hs_data_offset];
+	end
+	// ----------------------------------------------------------------------
+	wire montiming1;
+	IBUFDS montiming1_buf (.I(montiming1_p), .IB(montiming1_n), .O(montiming1));
+	// ----------------------------------------------------------------------
+	wire trg01, trg23, trg45, trg67;
+	IBUFDS trg01_buf (.I(trg01_p), .IB(trg01_n), .O(trg01));
+	IBUFDS trg23_buf (.I(trg23_p), .IB(trg23_n), .O(trg23));
+	IBUFDS trg45_buf (.I(trg45_p), .IB(trg45_n), .O(trg45)); // pins swapped on PCB
+	IBUFDS trg67_buf (.I(trg67_p), .IB(trg67_n), .O(trg67)); // pins swapped on PCB
+	wire [3:0] trg_inversion_mask;
+	wire trg0123 = trg_inversion_mask[0] ^ trg01 || trg_inversion_mask[1] ^ trg23;
+	wire trg4567 = trg_inversion_mask[2] ^ trg45 || trg_inversion_mask[3] ^ trg67;
+	wire trg_reset = 0;
+	wire trg_pll_is_locked_and_strobe_is_aligned1;
+	wire trg_pll_is_locked_and_strobe_is_aligned2;
+	wire [2:0] plls_locked_and_strobes_are_aligned = { hs_pll_is_locked_and_strobe_is_aligned, trg_pll_is_locked_and_strobe_is_aligned2, trg_pll_is_locked_and_strobe_is_aligned1 };
+	wire trg_word_clock_raw, trg_word_clock;
+	wire trg_bit_clock1_raw, trg_bit_clock1;
+	wire trg_bit_clock2_raw, trg_bit_clock2;
+	BUFG trgraw (.I(trg_word_clock_raw), .O(trg_word_clock));
+	wire trg_bit_strobe1;
+	wire trg_bit_strobe2;
+	wire [BIT_DEPTH-1:0] trg01_word, trg23_word, trg45_word, trg67_word;
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) trg_bufpll_inst1 (
+		.PLLIN(trg_bit_clock1_raw), // PLL Clock input
+		.GCLK(trg_word_clock), // Global Clock input
+		.LOCKED(third_pll_locked), // Clock0 locked input
+		.IOCLK(trg_bit_clock1), // Output PLL Clock
+		.LOCK(trg_pll_is_locked_and_strobe_is_aligned1), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(trg_bit_strobe1) // Output SERDES strobe
+	);
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) trg_bufpll_inst2 (
+		.PLLIN(trg_bit_clock2_raw), // PLL Clock input
+		.GCLK(trg_word_clock), // Global Clock input
+		.LOCKED(third_pll_locked), // Clock0 locked input
+		.IOCLK(trg_bit_clock2), // Output PLL Clock
+		.LOCK(trg_pll_is_locked_and_strobe_is_aligned2), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(trg_bit_strobe2) // Output SERDES strobe
+	);
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg01_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg01), .word_out(trg01_word));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
+	// ----------------------------------------------------------------------
+	OBUFDS wr_dat_dummy (.I(1'b0), .O(wr_dat_p), .OB(wr_dat_n));
+	// ----------------------------------------------------------------------
+	assign word_clock = trg_word_clock;
+	assign hs_word_clock = trg_word_clock;
+	wire clock127;
+	wire reset127;
+	IBUFGDS mybuf0 (.I(clock127_p), .IB(clock127_n), .O(clock127));
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait4pll (.reset1_input(reset), .pll_locked1_input(1'b1), .clock1_input(clock127), .clock2_input(clock127), .reset2_output(reset127));
+	// ----------------------------------------------------------------------
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(reset127), .pll_locked1_input(all_plls_locked), .clock1_input(clock127), .clock2_input(word_clock), .reset2_output(reset_word));
+	wire wr_clk_raw, wr_clk180_raw, sstclk_raw, sstclk180_raw, gcc_clk_raw, gcc_clk180_raw;
+	wire wr_clk, wr_clk180, sstclk, sstclk180, gcc_clk, gcc_clk180;
+//	wire double_period_clk_raw, double_period_clk180_raw, double_period_clk, double_period_clk180;
+	localparam TRG_DIVIDE = 8;
+	localparam HS_DAT_DIVIDE = TRG_DIVIDE; // iserdes2 bitclock is 1018 MHz -> word clock is 127 MHz
+	localparam HS_CLK_DIVIDE = 4; // ODDR clockout -> 254 MHz
+	dcm_pll_pll #(
+		.DCM_PERIOD(7.861), .DCM_MULTIPLY(4), .DCM_DIVIDE(4), // 127.221875 MHz
+		.PLL_PERIOD(7.861), .PLL_MULTIPLY(8), .PLL_OVERALL_DIVIDE(1), // 1017.775 MHz
+		.PLL_DIVIDE0(48), .PLL_DIVIDE1(TRG_DIVIDE/BIT_DEPTH),
+		.PLL_DIVIDE2(48), .PLL_DIVIDE3(48),
+		.PLL_DIVIDE4(48), .PLL_DIVIDE5(48),
+		.PLL_DIVIDE6(HS_DAT_DIVIDE/BIT_DEPTH), .PLL_DIVIDE7(TRG_DIVIDE/BIT_DEPTH),
+		.PLL_DIVIDE8(TRG_DIVIDE), .PLL_DIVIDE9(48),
+		.PLL_DIVIDE10(HS_CLK_DIVIDE), .PLL_DIVIDE11(HS_CLK_DIVIDE),
+		.PLL_PHASE0(0.0),  .PLL_PHASE1(0.0),
+		.PLL_PHASE2(0.0),  .PLL_PHASE3(180.0),
+		.PLL_PHASE4(0.0),  .PLL_PHASE5(180.0),
+		.PLL_PHASE6(0.0),  .PLL_PHASE7(0.0),
+		.PLL_PHASE8(0.0),  .PLL_PHASE9(180.0),
+		.PLL_PHASE10(0.0), .PLL_PHASE11(180.0)
+	) my_dcm_pll (
+		.clockin(clock127), .reset(reset127), .clockintermediate(), .dcm_locked(first_pll_locked), .pll1_locked(second_pll_locked), .pll2_locked(third_pll_locked),
+		.clock0out(), .clock1out(trg_bit_clock1_raw),
+		.clock2out(sstclk_raw), .clock3out(sstclk180_raw),
+		.clock4out(gcc_clk_raw), .clock5out(gcc_clk180_raw),
+		.clock6out(hs_bit_clk_raw), .clock7out(trg_bit_clock2_raw),
+		.clock8out(trg_word_clock_raw), .clock9out(),
+		.clock10out(hs_clk_raw), .clock11out(hs_clk180_raw)
+	);
+	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
+	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
+//	BUFG wr_raw (.I(wr_clk_raw), .O(wr_clk));
+//	BUFG wr_180 (.I(wr_clk180_raw), .O(wr_clk180));
+	BUFG gccraw (.I(gcc_clk_raw), .O(gcc_clk));
+	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
+//	BUFG dpraw (.I(double_period_clk_raw), .O(double_period_clk));
+//	BUFG dp180 (.I(double_period_clk180_raw), .O(double_period_clk180));
+	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
+//	clock_ODDR_out_diff wr_clk_ODDR  (.clock_in_p(wr_clk),  .clock_in_n(wr_clk180),  .reset(reset), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
+	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(reset), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
+//	clock_ODDR_out_diff hs_clk_ODDR  (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(reset), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
+//	clock_ODDR_out_diff sstclk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
+	clock_ODDR_out_diff wr_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
+//	clock_ODDR_out_diff gcc_clk_ODDR_dummy (.clock_in_p(sstclk), .clock_in_n(sstclk180), .reset(reset), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
+//	clock_ODDR_out_diff hs_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
+	// ----------------------------------------------------------------------
+	wire [7:0] status8_copy_on_word_clock_domain;
+	ssynchronizer #(.WIDTH(8)) status8_copy (.clock1(clock127), .clock2(word_clock), .reset1(reset127), .reset2(reset_word), .in1(status8), .out2(status8_copy_on_word_clock_domain));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
 	wire [BANK_ADDRESS_DEPTH-1:0] address_word_narrow = address_word_full[BANK_ADDRESS_DEPTH-1:0];
@@ -90,55 +263,197 @@ module IRSXtest #(
 		.BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
 		.ADDRESS_AUTOINCREMENT_MODE(ADDRESS_AUTOINCREMENT_MODE)
 	) hdrb (
-		.clock(word_clock),
-		.reset(reset_word),
-		.bus(bus),
-		.read(read), // 0=write; 1=read
-		.register_select(register_select), // 0=address; 1=data
-		.enable(enable), // 1=active; 0=inactive
-		.ack_valid(ack_valid),
-		.write_strobe(write_strobe),
-		.read_strobe(read_strobe),
-		.write_data_word(write_data_word),
-		.read_data_word(read_data_word[bank]),
-		.address_word_reg(address_word_full),
-		.read_errors(hdrb_read_errors),
-		.write_errors(hdrb_write_errors),
-		.address_errors(hdrb_address_errors),
-		.bank(bank)
+		.register_select(rpi_gpio[23]), // 0=address;  1=data
+		      .ack_valid(rpi_gpio[22]),
+		            .bus(rpi_gpio[21:6]),
+		           .read(rpi_gpio[5]),  // 0=write;    1=read
+		         .enable(rpi_gpio[4]),  // 0=inactive; 1=active
+		.write_strobe(write_strobe), .read_strobe(read_strobe), .bank(bank), .clock(word_clock), .reset(reset_word),
+		.write_data_word(write_data_word), .read_data_word(read_data_word[bank]), .address_word_reg(address_word_full),
+		.read_errors(hdrb_read_errors), .write_errors(hdrb_write_errors), .address_errors(hdrb_address_errors)
 	);
 //	wire [ADDRESS_DEPTH_OSERDES-1:0] read_address; // in 8-bit words
-	assign convert = 0;
-	assign ss_incr = 0;
-	assign spgin = 0;
-	assign hs_clk = 0;
-	assign sst = 0;
-	assign gcc_clk = 0;
-	assign hs_clk = 0;
-	assign wr_clk = 0;
-	assign wr_dat = 0;
-//	assign sin = 0;
-//	assign sclk = 0;
-//	assign pclk = 0;
-//	assign regclr = 0;
-	irsx_register_interface irsx_reg (.clock(clock127), .reset(reset127),
-		.data_in(write_data_word[11:0]), .data_out(read_data_word[0][11:0]), .address(address_word_full[7:0]), .write_enable(write_strobe[0]),
-		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
 	// ----------------------------------------------------------------------
-	assign status4[3] = ~pll_oserdes_locked;
-	assign status4[2] = 0;
-	assign status4[1] = 0;
-	assign status4[0] = 0;
+	wire [31:0] bank0 [15:0]; // general settings
+	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank0 (.clock(word_clock), .reset(reset_word),
+		.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[0]),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[0]),
+		.data_out_b_0(bank0[0]),  .data_out_b_1(bank0[1]),  .data_out_b_2(bank0[2]),  .data_out_b_3(bank0[3]),
+		.data_out_b_4(bank0[4]),  .data_out_b_5(bank0[5]),  .data_out_b_6(bank0[6]),  .data_out_b_7(bank0[7]),
+		.data_out_b_8(bank0[8]),  .data_out_b_9(bank0[9]),  .data_out_b_a(bank0[10]), .data_out_b_b(bank0[11]),
+		.data_out_b_c(bank0[12]), .data_out_b_d(bank0[13]), .data_out_b_e(bank0[14]), .data_out_b_f(bank0[15]));
+	wire [7:0] clock_divider_initial_value_for_register_transactions = bank0[0][7:0];
+	wire [7:0] max_retries = bank0[1][7:0];
+	wire verify_with_shout = bank0[2][0];
+	assign spgin = bank0[3][0];
+	assign trg_inversion_mask = bank0[4][3:0];
+	wire [LOG2_OF_TRIGSTREAM_LENGTH:0] even_channel_trigger_width = bank0[5][LOG2_OF_TRIGSTREAM_LENGTH:0];
+	wire [LOG2_OF_TRIGSTREAM_LENGTH:0] odd_channel_trigger_width  = bank0[6][LOG2_OF_TRIGSTREAM_LENGTH:0];
+	wire [4:0] hs_data_ss_incr = bank0[7][4:0];
+	wire [4:0] hs_data_capture = bank0[8][4:0];
+	wire [31:0] timeout = bank0[9];
+	wire [6:0] hs_data_offset = bank0[10][6:0]; // 6
+//	wire [2:0] hs_data_ratio  = bank0[11][2:0]; // 4 (localparam is much more efficient on resources...)
+	// ----------------------------------------------------------------------
+	wire [31:0] bank1 [15:0]; // status
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
+		.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
+		.data_in_b_4(bank1[4]),  .data_in_b_5(bank1[5]),  .data_in_b_6(bank1[6]),  .data_in_b_7(bank1[7]),
+		.data_in_b_8(bank1[8]),  .data_in_b_9(bank1[9]),  .data_in_b_a(bank1[10]), .data_in_b_b(bank1[11]),
+		.data_in_b_c(bank1[12]), .data_in_b_d(bank1[13]), .data_in_b_e(bank1[14]), .data_in_b_f(bank1[15]),
+		.write_strobe_b(1'b1));
+	wire [31:0] number_of_register_transactions;
+	wire [31:0] number_of_readback_errors;
+	wire [19:0] last_erroneous_readback;
+	assign bank1[0] = { hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8_copy_on_word_clock_domain };
+	assign bank1[1] = number_of_register_transactions;
+	assign bank1[2] = number_of_readback_errors;
+	assign bank1[3][19:0] = last_erroneous_readback;
+	assign bank1[4] = buffered_hs_data_stream[127-:32];
+	assign bank1[5] = buffered_hs_data_stream[95-:32];
+	assign bank1[6] = buffered_hs_data_stream[63-:32];
+	assign bank1[7] = buffered_hs_data_stream[31-:32];
+	assign bank1[8][HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1:0];
+	// ----------------------------------------------------------------------
+	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
+	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(word_clock),
+		.address(address_word_full[3:0]), .strobe(write_strobe[2]), .pulse_out(bank2));
+	wire clear_channel_counters = bank2[0];
+	wire force_write_registers_again = bank2[1];
+	// ----------------------------------------------------------------------
+	wire [31:0] bank3 [15:0]; // i2c registers
+	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank3 (.clock(word_clock), .reset(reset_word),
+		.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[3]),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[3]),
+		.data_out_b_0(bank3[0]),  .data_out_b_1(bank3[1]),  .data_out_b_2(bank3[2]),  .data_out_b_3(bank3[3]),
+		.data_out_b_4(bank3[4]),  .data_out_b_5(bank3[5]),  .data_out_b_6(bank3[6]),  .data_out_b_7(bank3[7]),
+		.data_out_b_8(bank3[8]),  .data_out_b_9(bank3[9]),  .data_out_b_a(bank3[10]), .data_out_b_b(bank3[11]),
+		.data_out_b_c(bank3[12]), .data_out_b_d(bank3[13]), .data_out_b_e(bank3[14]), .data_out_b_f(bank3[15]));
+//	wire [4:0] I2CupAddr             = bank3[1][7:3];
+//	wire LVDSB_pwr                   = bank3[1][2];
+//	wire LVDSA_pwr                   = bank3[1][1];
+//	wire SRCsel                      = bank3[1][0]; // set this to zero or the data will come from data_b (you probably don't want that)
+//	wire TMReg_Reset                 = bank3[2][0];
+//	wire [7:0] samples_after_trigger = bank3[3][7:0];
+//	wire [7:0] lookback_windows      = bank3[4][7:0];
+//	wire [7:0] number_of_samples     = bank3[5][7:0];
+	// ----------------------------------------------------------------------
+	wire [31:0] bank4 [15:0]; // legacy serial registers
+	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank4 (.clock(word_clock), .reset(reset_word),
+		.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[4]),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[4]),
+		.data_out_b_0(bank4[0]),  .data_out_b_1(bank4[1]),  .data_out_b_2(bank4[2]),  .data_out_b_3(bank4[3]),
+		.data_out_b_4(bank4[4]),  .data_out_b_5(bank4[5]),  .data_out_b_6(bank4[6]),  .data_out_b_7(bank4[7]),
+		.data_out_b_8(bank4[8]),  .data_out_b_9(bank4[9]),  .data_out_b_a(bank4[10]), .data_out_b_b(bank4[11]),
+		.data_out_b_c(bank4[12]), .data_out_b_d(bank4[13]), .data_out_b_e(bank4[14]), .data_out_b_f(bank4[15]));
+//	wire [11:0] CMPbias = bank4[0][11:0]; // 1000
+//	wire [11:0] ISEL    = bank4[1][11:0]; // 0xa80
+//	wire [11:0] SBbias  = bank4[2][11:0]; // 1300
+//	wire [11:0] DBbias  = bank4[3][11:0]; // 1300
+	// ----------------------------------------------------------------------
+//	// bank5 asic fifo data
+//	wire [15:0] asic_data_from_fifo;
+//	assign read_data_word[5] = { 16'd0, asic_data_from_fifo };
+//	wire fifo_read_strobe = read_strobe[5];
+	// ----------------------------------------------------------------------
+	wire [31:0] bank5 [15:0]; // 
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank5 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[5]),
+		.data_in_b_0(bank5[0]),  .data_in_b_1(bank5[1]),  .data_in_b_2(bank5[2]),  .data_in_b_3(bank5[3]),
+		.data_in_b_4(bank5[4]),  .data_in_b_5(bank5[5]),  .data_in_b_6(bank5[6]),  .data_in_b_7(bank5[7]),
+		.data_in_b_8(bank5[8]),  .data_in_b_9(bank5[9]),  .data_in_b_a(bank5[10]), .data_in_b_b(bank5[11]),
+		.data_in_b_c(bank5[12]), .data_in_b_d(bank5[13]), .data_in_b_e(bank5[14]), .data_in_b_f(bank5[15]),
+		.write_strobe_b(1'b1));
+	// ----------------------------------------------------------------------
+	wire [31:0] bank6 [15:0]; // counter and scalers
+	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
+		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
+		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
+		.data_in_b_4(bank6[4]),  .data_in_b_5(bank6[5]),  .data_in_b_6(bank6[6]),  .data_in_b_7(bank6[7]),
+		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
+		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
+		.write_strobe_b(1'b1));
+	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
+	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
+	assign bank6[0][COUNTER_WIDTH-1:0] = c0;
+	assign bank6[1][COUNTER_WIDTH-1:0] = c1;
+	assign bank6[2][COUNTER_WIDTH-1:0] = c2;
+	assign bank6[3][COUNTER_WIDTH-1:0] = c3;
+	assign bank6[4][COUNTER_WIDTH-1:0] = c4;
+	assign bank6[5][COUNTER_WIDTH-1:0] = c5;
+	assign bank6[6][COUNTER_WIDTH-1:0] = c6;
+	assign bank6[7][COUNTER_WIDTH-1:0] = c7;
+	assign bank6[8][SCALER_WIDTH-1:0]  = sc0;
+	assign bank6[9][SCALER_WIDTH-1:0]  = sc1;
+	assign bank6[10][SCALER_WIDTH-1:0] = sc2;
+	assign bank6[11][SCALER_WIDTH-1:0] = sc3;
+	assign bank6[12][SCALER_WIDTH-1:0] = sc4;
+	assign bank6[13][SCALER_WIDTH-1:0] = sc5;
+	assign bank6[14][SCALER_WIDTH-1:0] = sc6;
+	assign bank6[15][SCALER_WIDTH-1:0] = sc7;
+	wire scaler_valid;
+	wire t0, t1, t2, t3, t4, t5, t6, t7;
+	irsx_scaler_counter_dual_trigger_interface #(.TRIGSTREAM_LENGTH(TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) irsx_scaler_counter (
+		.clock(word_clock), .reset(reset_word), .clear_channel_counters(clear_channel_counters), .timeout(timeout), .scaler_valid(scaler_valid),
+		.iserdes_word_in0(trg01_word), .iserdes_word_in1(trg23_word), .iserdes_word_in2(trg45_word), .iserdes_word_in3(trg67_word),
+		.odd_channel_trigger_width(odd_channel_trigger_width), .even_channel_trigger_width(even_channel_trigger_width),
+		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
+		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
+		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
+	// ----------------------------------------------------------------------
+	assign convert = 0;
+	// ----------------------------------------------------------------------
+	irsx_register_interface irsx_reg (.clock(word_clock), .reset(reset_word),
+		.intended_data_in(write_data_word[11:0]), .intended_data_out(read_data_word[7][11:0]), .readback_data_out(read_data_word[7][23:12]),
+		.number_of_transactions(number_of_register_transactions), .force_write_registers_again(force_write_registers_again),
+		.number_of_readback_errors(number_of_readback_errors), .last_erroneous_readback(last_erroneous_readback),
+		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
+		.max_retries(max_retries), .verify_with_shout(verify_with_shout),
+		.address(address_word_full[7:0]), .write_enable(write_strobe[7]),
+		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
+	assign read_data_word[7][31:24] = 0;
+	// ----------------------------------------------------------------------
+	//wire oddr_sstclk;
+	//clock_ODDR_out sstclk_second_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out(oddr_sstclk));
+//	wire oddr_double_period;
+//	clock_ODDR_out double_period_ODDR  (.clock_in_p(double_period_clk),  .clock_in_n(double_period_clk180),  .reset(reset), .clock_out(oddr_double_period));
+	assign coax[5] = shout;
+	assign coax[4] = sin;
+	if (0) begin
+		assign coax[0] = shout;
+		assign coax[1] = pclk;
+		assign coax[2] = sclk;
+		assign coax[3] = sin;
+	end else if (0) begin
+		assign coax[0] = wr_syncmon;
+		assign coax[1] = 0;//oddr_double_period;
+		assign coax[2] = montiming2;
+		assign coax[3] = montiming1;
+	end else if (0) begin
+		assign coax[0] = t0;
+		assign coax[1] = t1;
+		assign coax[2] = trg0123;
+		assign coax[3] = trg4567;
+	end else begin
+		assign coax[0] = t0;
+		assign coax[1] = t1;
+		assign coax[2] = ss_incr;
+		assign coax[3] = hs_data;
+	end
+	// ----------------------------------------------------------------------
+	assign status8[7] = ~first_pll_locked;
+	assign status8[6] = ~second_pll_locked;
+	assign status8[5] = ~third_pll_locked;
+	assign status8[4] = ~all_plls_locked;
+	assign status8[3] = reset_word;
+	assign status8[2:0] = ~plls_locked_and_strobes_are_aligned;
+	// ----------------------------------------------------------------------
+	assign status4[3] = ~first_pll_locked;
+	assign status4[2] = ~second_pll_locked;
+	assign status4[1] = ~reset127;
+	assign status4[0] = ~reset_word;
 	// -------------------------------------
-	assign status8[7] = 0;
-	assign status8[6] = 0;
-	assign status8[5] = 0;
-	assign status8[4] = 0;
-	// -------------------------------------
-	assign status8[3] = ~pll_oserdes_locked;
-	assign status8[2] = 0;
-	assign status8[1] = 0;
-	assign status8[0] = 0;
 	assign coax_led = status4;
 	assign led = status8;
 	initial begin
@@ -455,15 +770,7 @@ module altheaIRSXtest #(
 	input clock127_p, clock127_n,
 	inout [5:0] coax,
 	// other IOs:
-	output rpi_gpio22, // ack_valid
-	input rpi_gpio23, // register_select
-	input rpi_gpio4_gpclk0, // enable
-	input rpi_gpio5, // read
-	// 16 bit bus:
-	inout rpi_gpio6_gpclk2, rpi_gpio7_spi_ce1, rpi_gpio8_spi_ce0, rpi_gpio9_spi_miso,
-	inout rpi_gpio10_spi_mosi, rpi_gpio11_spi_sclk, rpi_gpio12, rpi_gpio13,
-	inout rpi_gpio14, rpi_gpio15, rpi_gpio16, rpi_gpio17,
-	inout rpi_gpio18, rpi_gpio19, rpi_gpio20, rpi_gpio21,
+	inout [23:4] rpi_gpio,
 	// toupee connectors:
 	input
 	a_p, b_p, g_p, j_p, k_p, m_p,
@@ -486,8 +793,7 @@ module altheaIRSXtest #(
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 	// irsx pin names:
 	wire sclk, sin, pclk, shout, regclr;
-	wire montiming1, montiming2, done_out, wr_syncmon, spgin, ss_incr, convert;
-	wire trg01, trg23, trg45, trg67, wr_clk, wr_dat, gcc_clk, hs_clk, data, sst;
+	wire montiming2, done_out, wr_syncmon, spgin, ss_incr, convert;
 	// irsx pin mapping:
 	assign y = sclk;
 	assign x = regclr;
@@ -500,17 +806,6 @@ module altheaIRSXtest #(
 	assign r = spgin;
 	assign s = ss_incr;
 	assign t = convert;
-	IBUFDS ibuf_trg01 (.I(m_p), .IB(m_n), .O(trg01));
-	IBUFDS ibuf_trg23 (.I(k_p), .IB(k_n), .O(trg23));
-	IBUFDS ibuf_trg45 (.I(a_n), .IB(a_p), .O(trg45)); // pins are swapped on PCB
-	IBUFDS ibuf_trg67 (.I(b_n), .IB(b_p), .O(trg67)); // pins are swapped on PCB
-	IBUFDS ibuf_data (.I(g_p), .IB(g_n), .O(data));
-	IBUFDS ibuf_montiming1 (.I(j_p), .IB(j_n), .O(montiming1));
-	OBUFDS obuf_sst (.I(sst), .O(l_p), .OB(l_n));
-	OBUFDS obuf_hs_clk (.I(hs_clk), .O(h_p), .OB(h_n));
-	OBUFDS obuf_wr_clk (.I(wr_clk), .O(d_p), .OB(d_n));
-	OBUFDS obuf_wr_dat (.I(wr_dat), .O(e_p), .OB(e_n));
-	OBUFDS obuf_gcc_clk (.I(gcc_clk), .O(f_p), .OB(f_n));
 	assign u = 0; // not wired to anything on the PCB
 	assign v = 0; // not wired to anything on the PCB
 	assign z = 0; // not wired to anything on the PCB
@@ -525,19 +820,13 @@ module altheaIRSXtest #(
 		.button(button),
 		.coax(coax),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout),
-		.sst(sst), .hs_clk(hs_clk), .gcc_clk(gcc_clk), .wr_clk(wr_clk), .wr_dat(wr_dat), .data(data),
-		.trg01(trg01), .trg23(trg23), .trg45(trg45), .trg67(trg67),
-		.convert(convert), .done_out(done_out),
-		.ss_incr(ss_incr), .wr_syncmon(wr_syncmon), .spgin(spgin),
-		.montiming1(montiming1), .montiming2(montiming2), 
-		.bus({
-			rpi_gpio21, rpi_gpio20, rpi_gpio19, rpi_gpio18,
-			rpi_gpio17, rpi_gpio16, rpi_gpio15, rpi_gpio14,
-			rpi_gpio13, rpi_gpio12, rpi_gpio11_spi_sclk, rpi_gpio10_spi_mosi,
-			rpi_gpio9_spi_miso, rpi_gpio8_spi_ce0, rpi_gpio7_spi_ce1, rpi_gpio6_gpclk2
-		}),
-		.register_select(rpi_gpio23), .read(rpi_gpio5),
-		.enable(rpi_gpio4_gpclk0), .ack_valid(rpi_gpio22),
+		.sstclk_p(l_p), .hs_clk_p(h_p), .gcc_clk_p(f_p), .wr_clk_p(d_p), .wr_dat_p(e_p),
+		.sstclk_n(l_n), .hs_clk_n(h_n), .gcc_clk_n(f_n), .wr_clk_n(d_n), .wr_dat_n(e_n),
+		.data_p(g_p), .trg01_p(m_p), .trg23_p(k_p), .trg45_p(a_p), .trg67_p(b_p), // pins are swapped on PCB for trg45 and trg67
+		.data_n(g_n), .trg01_n(m_n), .trg23_n(k_n), .trg45_n(a_n), .trg67_n(b_n), // pins are swapped on PCB for trg45 and trg67
+		.convert(convert), .done_out(done_out), .ss_incr(ss_incr), .wr_syncmon(wr_syncmon), .spgin(spgin),
+		.montiming1_p(j_p), .montiming1_n(j_n), .montiming2(montiming2), 
+		.rpi_gpio(rpi_gpio[23:4]),
 //		.rot(rot),
 //		.other(other),
 		.led(led),
