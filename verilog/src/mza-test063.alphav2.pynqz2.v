@@ -582,6 +582,7 @@ module testALPHA #(
 		assign nclk = c1;
 	end else begin
 		assign sysclk = clock;
+		assign sstclk = clock;
 		assign sysclk_pll_locked = 1'b1;
 	end
 	reg [3:0] rot_buffered_a = 0;
@@ -649,16 +650,14 @@ module testALPHA #(
 	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_0_debounce (.clock(sysclk), .raw_button_input(btn[0]), .polarity(1'b1), .button_activated_pulse(initiate_trigger), .button_deactivated_pulse(), .button_active());
 	wire trig;
 	wire sda_in, sda_out, sda_dir;
-//	assign sda = ( (sda_dir==1) && (sda_out==0) ) ? 1'b0 : 1'bz;
-	OBUFT staypuft (.I(sda_out), .T(sda_dir==0||sda_out==1), .O(sda));
-	assign sda_in = sda;
+	IOBUF staypuft (.I(sda_out), .O(sda_in), .IO(sda), .T(sda_dir==0));
 	//alpha_control alpha_control (.clock(sysclk), .reset(reset_sysclk), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .initiate_dreset_sequence(initiate_dreset_sequence), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_dir(sda_dir), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
-	alpha_control alpha_control (.clock(sysclk), .reset(reset_sysclk), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in),
+	alpha_control alpha_control (.clock(sysclk), .reset(reset_sysclk), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t),
 		.initiate_trigger(initiate_trigger), .trig_top(trig), .initiate_dreset_sequence(initiate_dreset_sequence),
 		.scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .initiate_i2c_transfer(initiate_i2c_transfer),
 		.sin(sin), .pclk(pclk), .sclk(sclk), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence),
-		.I2CupAddr(I2CupAddr), .LVDSA_pwr(LVDSA_pwr), .LVDSB_pwr(LVDSB_pwr), .SRCsel(SRCsel), .TMReg_Reset(TMReg_Reset), 
-		.samples_after_trigger(samples_after_trigger), .lookback_windows(lookback_windows), .number_of_samples(number_of_samples), 
+		.I2CupAddr(I2CupAddr), .LVDSA_pwr(LVDSA_pwr), .LVDSB_pwr(LVDSB_pwr), .SRCsel(SRCsel), .TMReg_Reset(TMReg_Reset),
+		.samples_after_trigger(samples_after_trigger), .lookback_windows(lookback_windows), .number_of_samples(number_of_samples),
 		.CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 	assign trig_top = trig;
 	//assign trig_mid = sw[0] ? trig : 1'b0; // trig_mid is on a 3.3V bank but only ever reaches 200mV
