@@ -1,8 +1,9 @@
-// last updated 2024-04-12 by mza
+// last updated 2024-06-21 by mza
 
 `ifndef FIFO_LIB
 `define FIFO_LIB
 
+// https://support.xilinx.com/s/article/54006?language=en_US tools/settings/general/verilog options/verilog include files search paths
 `include "generic.v"
 `include "RAM8.v"
 
