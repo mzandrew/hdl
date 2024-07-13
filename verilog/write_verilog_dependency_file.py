@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # written 2018-07-31 by mza
 # writes out a .d (dependency) file that can be included in makefiles
 # last updated 2020-06-01 by mza
@@ -29,22 +29,22 @@ def run_file(filename):
 	else:
 		return # not a .v file
 	depfilename = "work/" + basename + ".d"
-	#print depfilename
+	#print(depfilename)
 	board = ""
 	for line in open(filename):
 		line = line.rstrip("\n\r")
 		#match = re.search("[^/]*`include \"(.*)\"", line)
 		match = re.search("^`include \"(.*)\"", line)
 		if match:
-			#print match.group(1)
+			#print(match.group(1))
 			includes.append(input_dirname + "/" + match.group(1))
 		match = re.search("^`define (icestick|icezero|althea_revA|althea_revB|scrod_revA3).*$", line)
 		#match = re.search("define", line)
 		if match:
 			board = match.group(1)
-			#print filename + ":" + board
+			#print(filename + ":" + board)
 	if board=="":
-		print "WARNING:  file " + filename + " has an unknown board type (icestick, icezero, althea_revA, scrod_revA3, etc)"
+		print("WARNING:  file " + filename + " has an unknown board type (icestick, icezero, althea_revA, scrod_revA3, etc)")
 		pass
 	else:
 		board = "." + board
@@ -55,9 +55,10 @@ def run_file(filename):
 	for include in includes:
 		string += " " + include
 	string += "\n"
-	#print string
+	#print(string)
 	#print(depfilename, file=depfile)
-	print >>depfile, string
+	#print >>depfile, string
+	depfile.write(string + "\n")
 	depfile.close()
 	touch(depfilename, filename)
 
