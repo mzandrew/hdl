@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-07-12 by mza
+# last updated 2024-07-14 by mza
 
 bank0_register_names = [ "ls_i2c" ]
 bank1_register_names = [ "hdrb errors, status8", "triggers since reset", "fifo empty", "fifo pending", "fifo errors", "asic output strobes", "fifo output strobes", "alfa counter", "omga counter" ]
@@ -20,7 +20,7 @@ datafile_name = "alpha.data"
 number_of_words_to_read_from_the_fifo = 4106
 ALFA = 0xa1fa
 OMGA = 0x0e6a
-LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 8
+LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 4
 #enabled_channels = [ 0, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 0,  0, 0, 1, 0 ] # two good channels
 #enabled_channels = [ 1, 0, 0, 0,  0, 1, 1, 0,  0, 0, 0, 0,  0, 0, 0, 1 ] # how the board is wired
 enabled_channels = [ 1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1 ] # all channels
@@ -39,6 +39,10 @@ timestep = 1
 
 NUMBER_OF_CHANNELS_PER_ASIC = 16
 gui_update_period = 0.2 # in seconds
+
+MIDRANGE = 1900
+CHANNEL_OFFSET = 150
+QUAD_CHANNEL_OFFSET = 200
 
 MAX_ADC = 4095
 display_precision_of_hex_counter_counts = 6
@@ -105,8 +109,11 @@ dark_red = (127, 0, 0)
 dark_blue = (0, 0, 127)
 dark_purple = (127, 0, 127)
 
-# grey
-color = [ black, white, yellow, red, dark_red, pink, maroon, purple, orange, dark_purple, green, light_blue, dark_teal, dark_green, blue, dark_blue, teal, grey, brown ]
+import colorsys
+waveform_colors = [ tuple(255*x for x in colorsys.hsv_to_rgb(k/(NUMBER_OF_CHANNELS_PER_ASIC+2), 1.0, 1.0)) for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+#print(str(waveform_colors))
+color = [ black, white ]
+color.extend(waveform_colors)
 
 selection = 0
 coax_mux = [ 0 for i in range(4) ]
@@ -207,9 +214,11 @@ def update_plot(i, j):
 			# when the TDC should be pegged near ~4095 for large input voltages, the decoded gcc_counter rolls over to a low number
 			if pedestals_have_been_taken:
 				if 0==i:
-					voltage += data_and_pedestal_coefficients[i][1] * pedestal_data[i][j][k][n]
+					voltage += data_and_pedestal_coefficients[i][1] * pedestal_data[j][k][n]
 				else:
-					voltage += data_and_pedestal_coefficients[i][1] * (pedestal_data[i][j][k][n] - average_pedestal[j][k])
+					#voltage += data_and_pedestal_coefficients[i][1] * (pedestal_data[j][k][n] - average_pedestal[j][k])
+					#voltage += data_and_pedestal_coefficients[i][1] * (pedestal_data[j][k][n] - MIDRANGE)
+					voltage += data_and_pedestal_coefficients[i][1] * (pedestal_data[j][k][n] - MIDRANGE + (k-NUMBER_OF_CHANNELS_PER_ASIC//2) * CHANNEL_OFFSET + QUAD_CHANNEL_OFFSET * (k//4))
 			time = timestep*n
 			x = int(time)
 			formatted_data[k][x] = voltage * scale
@@ -412,7 +421,7 @@ def loop():
 			elif K_F4==event.key:
 				initiate_trigger()
 			elif K_p==event.key:
-				gather_pedestals(1)
+				gather_pedestals()
 			elif K_F5==event.key:
 				readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 			elif K_F6==event.key:
@@ -638,7 +647,7 @@ def get_fifo_empty():
 	return fifo_empty
 
 def gulp(word):
-	global buffer_new, buffer_old, waveform_data, ALFA_OMGA_counter, have_just_gathered_waveform_data
+	global buffer_new, buffer_old, waveform_data, ALFA_OMGA_counter
 	if ALFA==word:
 		if not buffer_new[0]==ALFA:
 			print("first word of previous buffer: " + hex(buffer_new[0], 4))
@@ -665,7 +674,7 @@ def gulp(word):
 		parse_packet()
 
 def parse_packet():
-	global sampling_bank, ASICID, fine_time, coarse_time, asic_trigger_number, samples_after_trigger, lookback_samples, samples_to_read, starting_sample, missed_triggers, asic_status
+	global sampling_bank, ASICID, fine_time, coarse_time, asic_trigger_number, samples_after_trigger, lookback_samples, samples_to_read, starting_sample, missed_triggers, asic_status, have_just_gathered_waveform_data
 	#header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
 	#header_description_words = [ "ALFA", "IdFi", "cs43", "cs21", "tg21", "AfLo", "ReSt", "MiSt" ]
 	#header_decode_descriptions
@@ -760,20 +769,21 @@ def drain_fifo():
 	while count:
 		count = readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 
-def gather_pedestals(i):
-	previous_number_of_samples = change_number_of_samples(256)
-	initiate_legacy_serial_sequence()
-	global pedestal_mode, pedestal_data, pedestals_have_been_taken
+def gather_pedestals():
+	previous_number_of_samples = number_of_samples
+	if not MAX_SAMPLES_PER_WAVEFORM==previous_number_of_samples:
+		previous_number_of_samples = change_number_of_samples(MAX_SAMPLES_PER_WAVEFORM)
+		initiate_legacy_serial_sequence()
+	global pedestal_mode, pedestal_data, pedestals_have_been_taken, have_just_gathered_waveform_data, average_pedestal
 	pedestal_mode = True
 	number_of_acquisitions_so_far = [ [ 0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
 	for j in range(ROWS):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			for n in range(MAX_SAMPLES_PER_WAVEFORM):
-				pedestal_data[i][j][k][n] = 0
+				pedestal_data[j][k][n] = 0
 	not_done = True
+	i = 1
 	while not_done:
-		for j in range(ROWS):
-			have_just_gathered_waveform_data[i][j] = False
 		initiate_trigger()
 		readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 		for j in range(ROWS):
@@ -786,9 +796,9 @@ def gather_pedestals(i):
 						#if 15==k:
 						#	print("waveform_data[" + str(j) + "][" + str(k) + "]: " + str(waveform_data[i][j][k]))
 						for n in range(MAX_SAMPLES_PER_WAVEFORM):
-							pedestal_data[i][j][k][n] += waveform_data[i][j][k][n]
+							pedestal_data[j][k][n] += waveform_data[i][j][k][n]
 						#if 15==k:
-						#	print("pedestal_data[" + str(j) + "][" + str(k) + "]: " + str(pedestal_data[i][j][k]))
+						#	print("pedestal_data[" + str(j) + "][" + str(k) + "]: " + str(pedestal_data[j][k]))
 			print("number_of_acquisitions_so_far[" + str(j) + "]: " + str(number_of_acquisitions_so_far[j]))
 		not_done = False
 		for j in range(ROWS):
@@ -797,25 +807,16 @@ def gather_pedestals(i):
 					continue
 				if number_of_acquisitions_so_far[j][k]<2**LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE:
 					not_done = True
-	global average_pedestal
 	for j in range(ROWS):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			if not enabled_channels[k]:
 				continue
 			average_pedestal[j][k] = 0.0
 			for n in range(MAX_SAMPLES_PER_WAVEFORM):
-				pedestal_data[i][j][k][n] >>= LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
-				average_pedestal[j][k] += pedestal_data[i][j][k][n]
+				pedestal_data[j][k][n] >>= LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE
+				average_pedestal[j][k] += pedestal_data[j][k][n]
 			average_pedestal[j][k] /= MAX_SAMPLES_PER_WAVEFORM
 			print("average_pedestal for ch" + str(k) + " bank" + str(j) + ": " + str(average_pedestal[j][k]))
-	for j in range(ROWS):
-		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			for n in range(MAX_SAMPLES_PER_WAVEFORM):
-				pedestal_data[0][j][k][n] = pedestal_data[i][j][k][n]
-				pedestal_data[1][j][k][n] = pedestal_data[i][j][k][n]
-				pedestal_data[2][j][k][n] = pedestal_data[i][j][k][n]
-			#if 15==k:
-			#	print("pedestal_data[" + str(j) + "][" + str(k) + "]: " + str(pedestal_data[i][j][k]))
 	print("pedestals acquired")
 	pedestals_have_been_taken = True
 	pedestal_mode = False
@@ -826,9 +827,10 @@ def gather_pedestals(i):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			if not enabled_channels[k]:
 				continue
-			#print("peds for ch" + str(k) + " bank" + str(j) + ": " + str(pedestal_data[i][j][k]))
-	change_number_of_samples(previous_number_of_samples)
-	initiate_legacy_serial_sequence()
+			#print("peds for ch" + str(k) + " bank" + str(j) + ": " + str(pedestal_data[j][k]))
+	if not MAX_SAMPLES_PER_WAVEFORM==previous_number_of_samples:
+		change_number_of_samples(previous_number_of_samples)
+		initiate_legacy_serial_sequence()
 
 if __name__ == "__main__":
 	datafile = open(datafile_name, "a")
@@ -846,7 +848,7 @@ if __name__ == "__main__":
 	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
 	maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
 	waveform_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
-	pedestal_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	pedestal_data = [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
 	have_just_gathered_waveform_data = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	average_pedestal = [ [ 2047.0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
 	setup()
