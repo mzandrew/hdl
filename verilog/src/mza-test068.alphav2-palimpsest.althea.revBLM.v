@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test067.alphav2.althea.revBLM.v and mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
-// last updated 2024-04-25 by mza
+// last updated 2024-07-12 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -28,14 +28,12 @@ module ALPHAtestPALIMPSEST #(
 ) (
 	// althea revBLM:
 	input clock100_p, clock100_n,
-	input button,
+//	input button,
 	output [5:0] coax,
 	output [3:0] coax_led,
 	output [7:0] led,
 	input [3:0] rot,
-	//inout [23:4] rpi_gpio, // pulled out the wrong pin
-	inout [23:5] rpi_gpio, // pulled out the wrong pin
-	input n, // pulled out the wrong pin
+	inout [23:4] rpi_gpio,
 	// alpha_eval revC / revD:
 	output sysclk_p, sysclk_n,
 	output ls_i2c,
@@ -110,8 +108,7 @@ module ALPHAtestPALIMPSEST #(
 		      .ack_valid(rpi_gpio[22]),
 		            .bus(rpi_gpio[21:6]),
 		           .read(rpi_gpio[5]),  // 0=write;    1=read
-		         //.enable(rpi_gpio[4]),  // 0=inactive; 1=active // pulled out the wrong pin
-		         .enable(n          ),  // 0=inactive; 1=active // pulled out the wrong pin
+		         .enable(rpi_gpio[4]),  // 0=inactive; 1=active
 		.write_strobe(write_strobe), .read_strobe(read_strobe), .bank(bank), .clock(sysclk), .reset(reset),
 		.write_data_word(write_data_word), .read_data_word(read_data_word[bank]), .address_word_reg(address_word_full),
 		.read_errors(hdrb_read_errors), .write_errors(hdrb_write_errors), .address_errors(hdrb_address_errors)
@@ -293,12 +290,21 @@ module ALPHAtestPALIMPSEST #(
 		.data_out(asic_data_from_fifo), .read_enable(fifo_read_strobe), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
 	counter_level fifo_output_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(fifo_read_strobe), .counter(fifo_output_strobe_counter));
 	// tok_a_in tok_a_out anything_that_is_going_on msn header footer meat
-	assign coax[0] = data_a;
-	assign coax[1] = header;
-	assign coax[2] = footer;
-	assign coax[3] = meat;
-	assign coax[4] = msn;
-	assign coax[5] = tok_a_out;
+	if (1) begin
+		assign coax[0] = data_a;
+		assign coax[1] = header;
+		assign coax[2] = footer;
+		assign coax[3] = meat;
+		assign coax[4] = msn;
+		assign coax[5] = tok_a_out;
+	end else begin
+		assign coax[0] = rpi_gpio[4];  // enable          0=inactive; 1=active
+		assign coax[1] = rpi_gpio[23]; // register_select 0=address;  1=data
+		assign coax[2] = rpi_gpio[5];  // read            0=write;    1=read
+		assign coax[3] = rpi_gpio[22]; // ack_valid
+		assign coax[4] = 0;
+		assign coax[5] = 0;
+	end
 	reg [3:0] rot_buffered_a = 0;
 	reg [3:0] rot_buffered_b = 0;
 	always @(posedge sysclk) begin

@@ -1,6 +1,6 @@
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-04-25 by mza
+// last updated 2024-07-12 by mza
 
 `ifndef ALPHA_LIB
 `define ALPHA_LIB
@@ -479,9 +479,9 @@ module alpha_readout (
 );
 	localparam DATA_WIDTH = 16;
 	localparam METASTABILITY_BUFFER_SIZE = 3;
-	localparam EXTRA_WIDTH = 4;
-	localparam SR_HIGH_BIT = DATA_WIDTH + METASTABILITY_BUFFER_SIZE + EXTRA_WIDTH;
-	localparam SR_PICKOFF = SR_HIGH_BIT - 4;
+	localparam EXTRA_WIDTH = 8;
+	localparam SR_HIGH_BIT = 3 * DATA_WIDTH + METASTABILITY_BUFFER_SIZE + EXTRA_WIDTH; // 3*16 + 3 + 8 = 59
+	localparam SR_PICKOFF = SR_HIGH_BIT - 2*DATA_WIDTH - 4; // 43
 	reg [SR_HIGH_BIT:0] data_sr = 0;
 	reg [3:0] data_bit_counter = 0;
 	reg [12:0] data_word_counter = 0;
@@ -517,21 +517,27 @@ module alpha_readout (
 				footer <= 0;
 				data_bit_counter <= 0; // 2 least significant bits must not be 2'b01 (see assignment for strobe, below)
 			end
-			if (data_sr[SR_PICKOFF-1-:16]==ALFA) begin // WARNING: this might accidentally re-bitslip align on data 0x1fa from channel 0xa (might need a deeper pipeline and to check that the very next word is 16'hb... or something)
-				strobe_valid <= 1;
-				data_bit_counter <= 15;
-				data_word_counter <= 0;
-				header <= 1'b1;
-				meat <= 1'b1;
-				data_word <= data_sr[SR_PICKOFF-1-:16];
-				alfa_counter <= alfa_counter + 1'b1;
+			if (data_sr[SR_PICKOFF-1-:16]==ALFA) begin // WARNING: this might accidentally re-bitslip align on data 0x1fa from channel 0xa or kind of anywhere else in the bitstream
+				//if (data_sr[SR_PICKOFF-1-16-:4]!=4'hb) begin // this presupposes that the high nybble of ASICID can't be 0xb
+				if (data_sr[SR_PICKOFF-1+32-:16]==16'hffff) begin
+					strobe_valid <= 1;
+					data_bit_counter <= 15;
+					data_word_counter <= 0;
+					header <= 1'b1;
+					meat <= 1'b1;
+					data_word <= data_sr[SR_PICKOFF-1-:16];
+					alfa_counter <= alfa_counter + 1'b1;
+				end
 			end else if (data_sr[SR_PICKOFF-1-:16]==OMGA) begin // WARNING: this might accidentally re-bitslip align on data 0x0e6a from channel 0x0
-				header <= 0;
-				meat <= 0;
-				footer <= 1'b1;
-//				data_bit_counter <= 0; // 2 least significant bits must not be 2'b01 (see assignment for strobe, below)
-				data_word_counter <= DATA_WORD_COUNTER_MAX - 1;
-				omga_counter <= omga_counter + 1'b1;
+//				if (data_sr[SR_PICKOFF-1-16-:4]!=4'h1) begin
+				if (data_sr[SR_PICKOFF-1+16-:16]==16'hffff) begin
+					header <= 0;
+					meat <= 0;
+					footer <= 1'b1;
+//					data_bit_counter <= 0; // 2 least significant bits must not be 2'b01 (see assignment for strobe, below)
+					data_word_counter <= DATA_WORD_COUNTER_MAX - 1;
+					omga_counter <= omga_counter + 1'b1;
+				end
 			end
 		end
 	end
@@ -550,6 +556,7 @@ endmodule
 module alpha_readout_tb;
 	localparam half_clock_period = 16;
 	localparam clock_period = 2*half_clock_period;
+	localparam four_clock_periods = 4*clock_period;
 	reg clock = 0;
 	reg reset = 1;
 	reg dat_a_t2f = 0;
@@ -558,49 +565,53 @@ module alpha_readout_tb;
 	wire [1:0] nybble_counter;
 	wire [15:0] data_word;
 	wire msn; // most significant nybble
+	reg [3:0] data = 0;
+	reg [1:0] i = 2;
 	initial begin
 		reset <= 1;
 		#100;
 		reset <= 0;
 		#100;
-		// blah
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period;
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period;
-		dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
-		dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
-		// 0xa
-		dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
-		// 0x1
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period;
-		// 0xf
-		dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period;
-		// 0xa
-		dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
-		// blah
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
-		// blah
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
-		// blah
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
-		// blah
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
-		// 0x3
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period;
-		// 0x4
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
-		// 0x5
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period;
-		// 0x6
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 1; #clock_period; dat_a_t2f <= 0; #clock_period;
-		// blah
-		dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period; dat_a_t2f <= 0; #clock_period;
-		#100;
+		// ---------------------
+		i = 3;
+		data <= 4'b0001; #four_clock_periods;
+		data <= 4'b0111; #four_clock_periods;
+		data <= 4'b0111; #four_clock_periods;
+		i = 1;
+		data <= 4'b1000; #clock_period;
+		i = 3;
+		// real header:
+		/* 0xffff */ data <= 4'hf; #four_clock_periods; data <= 4'hf; #four_clock_periods; data <= 4'hf; #four_clock_periods; data <= 4'hf; #four_clock_periods;
+		/* 0x0000 */ data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods;
+		/* 0xalfa */ data <= 4'ha; #four_clock_periods; data <= 4'h1; #four_clock_periods; data <= 4'hf; #four_clock_periods; data <= 4'ha; #four_clock_periods;
+		/* 0x0000 */ data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods;
+		/* 0x3456 */ data <= 4'h3; #four_clock_periods; data <= 4'h4; #four_clock_periods; data <= 4'h5; #four_clock_periods; data <= 4'h6; #four_clock_periods;
+		/* 0x0000 */ data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods;
+		// fake header:
+		/* 0x8000 */ data <= 4'h8; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods;
+		/* 0x9000 */ data <= 4'h9; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods;
+		/* 0xalfa */ data <= 4'ha; #four_clock_periods; data <= 4'h1; #four_clock_periods; data <= 4'hf; #four_clock_periods; data <= 4'ha; #four_clock_periods;
+		/* 0xb000 */ data <= 4'hb; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods;
+		// fake footer:
+		/* 0xf000 */ data <= 4'hf; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods;
+		/* 0x0e6a */ data <= 4'h0; #four_clock_periods; data <= 4'he; #four_clock_periods; data <= 4'h6; #four_clock_periods; data <= 4'ha; #four_clock_periods;
+		/* 0x1000 */ data <= 4'h1; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods;
+		// real footer:
+		/* 0xffff */ data <= 4'hf; #four_clock_periods; data <= 4'hf; #four_clock_periods; data <= 4'hf; #four_clock_periods; data <= 4'hf; #four_clock_periods;
+		/* 0x0e6a */ data <= 4'h0; #four_clock_periods; data <= 4'he; #four_clock_periods; data <= 4'h6; #four_clock_periods; data <= 4'ha; #four_clock_periods;
+		/* 0x0000 */ data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods; data <= 4'h0; #four_clock_periods;
+		/* 0xffff */ data <= 4'hf; #four_clock_periods; data <= 4'hf; #four_clock_periods; data <= 4'hf; #four_clock_periods; data <= 4'hf; #four_clock_periods;
+		#1000;
 		$finish;
 	end
 	alpha_readout alpha_readout (.clock(clock), .reset(reset), .data_a(dat_a_t2f), .header(header), .msn(msn), .nybble(nybble), .nybble_counter(nybble_counter), .data_word(data_word));
 	always begin
 		clock <= ~clock;
 		#half_clock_period;
+	end
+	always @(posedge clock) begin
+		dat_a_t2f <= data[i];
+		i <= i - 1'b1;
 	end
 endmodule
 
