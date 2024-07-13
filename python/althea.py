@@ -1,6 +1,6 @@
 # written 2020-05-23 by mza
 # based on ./mza-test042.spi-pollable-memories-and-oserdes-function-generator.althea.py
-# last updated 2023-08-30 by mza
+# last updated 2024-07-12 by mza
 
 import time
 import time # time.sleep
@@ -528,7 +528,6 @@ def setup_half_duplex_bus_test058():
 		register_select=23,
 		read=5,
 		enable=4,
-		#enable=2, # pulled out the wrong pin
 		ack_valid=22,
 		verbosity=2
 	)
