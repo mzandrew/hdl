@@ -441,9 +441,9 @@ def loop():
 				DAC_to_control = 3
 				print("now controlling DBbias")
 			elif K_RIGHTBRACKET==event.key:
-				change_DAC_value(+0x80)
+				change_DAC_value(+0x40)
 			elif K_LEFTBRACKET==event.key:
-				change_DAC_value(-0x80)
+				change_DAC_value(-0x40)
 		elif event.type == QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -673,6 +673,15 @@ def gulp(word):
 			return
 		parse_packet()
 
+scrambling = [ 8, 4, 12, 2,  10, 6, 14, 0,  9, 5, 13, 3,  11, 7, 15, 1 ]
+def mind_scrambler(value):
+#	new_value  = ( value&0x1)<<2
+#	new_value |= ( value&0x2)<<2
+#	new_value |= ( value&0x4)>>1
+#	new_value |= (~value&0x8)>>3
+#	return new_value
+	return scrambling[value]
+
 def parse_packet():
 	global sampling_bank, ASICID, fine_time, coarse_time, asic_trigger_number, samples_after_trigger, lookback_samples, samples_to_read, starting_sample, missed_triggers, asic_status, have_just_gathered_waveform_data
 	#header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
@@ -724,18 +733,32 @@ def parse_packet():
 		if len(buffer_old)-NUMBER_OF_CHANNELS_PER_ASIC-NUMBER_OF_WORDS_PER_FOOTER<index:
 			break
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
-			waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
-			waveform_data[2][sampling_bank][k][n] = buffer_old[index] & 0xfff
+			kprime = (buffer_old[index] & 0xf000) >> 12
+			#print(str(k) + " " + str(kprime))
+			if kprime==k:
+				kprime = mind_scrambler(kprime)
+				#print(str(k) + " " + str(kprime))
+				waveform_data[0][sampling_bank][kprime][n] = buffer_old[index] & 0xfff
+				waveform_data[1][sampling_bank][kprime][n] = buffer_old[index] & 0xfff
+				waveform_data[2][sampling_bank][kprime][n] = buffer_old[index] & 0xfff
+			else:
+				print("WARNING: unexpected channel number order: " + str(k) + "!=" + str(kprime))
 #			datafile.write(hex(buffer_old[index], 4))
 			index += 1
 	for n in range(starting_sample):
 		if len(buffer_old)-NUMBER_OF_CHANNELS_PER_ASIC-NUMBER_OF_WORDS_PER_FOOTER<index:
 			break
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
-			waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
-			waveform_data[2][sampling_bank][k][n] = buffer_old[index] & 0xfff
+			kprime = (buffer_old[index] & 0xf000) >> 12
+			#print(str(k) + " " + str(kprime))
+			if kprime==k:
+				kprime = mind_scrambler(kprime)
+				#print(str(k) + " " + str(kprime))
+				waveform_data[0][sampling_bank][kprime][n] = buffer_old[index] & 0xfff
+				waveform_data[1][sampling_bank][kprime][n] = buffer_old[index] & 0xfff
+				waveform_data[2][sampling_bank][kprime][n] = buffer_old[index] & 0xfff
+			else:
+				print("WARNING: unexpected channel number order: " + str(k) + "!=" + str(kprime))
 #			datafile.write(hex(buffer_old[index], 4))
 			index += 1
 #	datafile.write(hex(buffer_old[index], 4)); index += 1
