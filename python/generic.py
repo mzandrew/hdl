@@ -43,6 +43,13 @@ def fround(value, precision):
 	#print(str(precision*int(value/precision+extra)))
 	return precision*int(value/precision+extra)
 
+def sround(value, decimal_places):
+	if value<0.0:
+		extra = -0.5
+	else:
+		extra = 0.5
+	return "%.*f" % (decimal_places, value)
+
 def bin(number, width=1):
 	#number = int(number)
 	#print(str(number))
