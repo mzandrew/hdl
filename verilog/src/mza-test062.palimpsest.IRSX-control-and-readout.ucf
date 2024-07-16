@@ -3,7 +3,7 @@
 # and mza-test068.alphav2-palimpsest.althea.revBLM.ucf
 # for an althea revBLM
 # see ug385 page 24 for spartan6 tqg133 package pins to bank mapping
-# last updated 2024-06-03 by mza
+# last updated 2024-07-15 by mza
 
 # 127 MHz local oscillator:
 net clock127_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK127+
@@ -68,8 +68,10 @@ net s loc=p24  | iostandard=lvcmos25 | drive = 2 | slew = slow; # S bank3 LB - s
 net t loc=p51  | iostandard=lvcmos25 | drive = 2 | slew = slow; # T bank2 BL - differs from althea revB and revBL - conflicts with rot<2> when using cascaded serdes - convert
 
 # raspberry pi 40pin headers, general purpose IO:
-#net sda loc=p138 | iostandard=lvcmos25 | pullup; # bank0 TL broadcom i2c peripheral rpi_gpio2_i2c1_sda
-#net scl loc=p137 | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank0 TL broadcom i2c peripheral rpi_gpio3_i2c1_scl
+net sda loc=p138 | iostandard=lvcmos25; # bank0 TL broadcom i2c peripheral rpi_gpio2_i2c1_sda
+net scl loc=p137 | iostandard=lvcmos25; # bank0 TL broadcom i2c peripheral rpi_gpio3_i2c1_scl
+net dummy1 loc=p84 | iostandard=lvcmos25; # fake output to unused pin
+net dummy2 loc=p74 | iostandard=lvcmos25; # fake output to unused pin
 net rpi_gpio<4>  loc=p88  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank1 RB broadcom gpclk peripheral rpi_gpio4_gpclk0 - differs from althea revB
 net rpi_gpio<5>  loc=p66  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank2 BR rpi_gpio5
 net rpi_gpio<6>  loc=p67  | iostandard=lvcmos25 | drive = 4 | slew = slow; # bank2 BR broadcom gpclk peripheral rpi_gpio6_gpclk2 - differs from althea revB and revBL

@@ -517,7 +517,7 @@ module alpha_readout (
 				footer <= 0;
 				data_bit_counter <= 0; // 2 least significant bits must not be 2'b01 (see assignment for strobe, below)
 			end
-			if (data_sr[SR_PICKOFF-1-:16]==ALFA) begin // WARNING: this might accidentally re-bitslip align on data 0x1fa from channel 0xa or kind of anywhere else in the bitstream
+			if (data_sr[SR_PICKOFF-1-:16]==ALFA) begin // WARNING: this might accidentally re-bitslip align on data 0x1fa from channel 0xa (or kind of anywhere else in the bitstream)
 				//if (data_sr[SR_PICKOFF-1-16-:4]!=4'hb) begin // this presupposes that the high nybble of ASICID can't be 0xb
 				if (data_sr[SR_PICKOFF-1+32-:16]==16'hffff) begin
 					strobe_valid <= 1;

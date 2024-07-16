@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-06-05 by mza
+// last updated 2024-07-15 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -776,11 +776,15 @@ module altheaIRSXtest #(
 	a_p, b_p, g_p, j_p, k_p, m_p,
 	a_n, b_n, g_n, j_n, k_n, m_n, 
 	n, p, q, w,
+	z, v, // copies of sda and scl
 	output
 	c_p, c_n, d_p, d_n, e_p, e_n, f_p, f_n, h_p, h_n, l_p, l_n,
 	r, s, t, x, y,
-	z, v, u, // not wired to anything on the PCB
+	u, // regen
 	//input [2:0] rot
+	input scl,
+	input sda,
+	output dummy1, dummy2,
 	input button, // reset
 //	output other, // goes to PMOD connector
 	output [7:0] led,
@@ -806,9 +810,9 @@ module altheaIRSXtest #(
 	assign r = spgin;
 	assign s = ss_incr;
 	assign t = convert;
-	assign u = 0; // not wired to anything on the PCB
-	assign v = 0; // not wired to anything on the PCB
-	assign z = 0; // not wired to anything on the PCB
+	assign u = 1; // regen
+	assign dummy1 = sda;
+	assign dummy2 = scl;
 	IRSXtest #(
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
