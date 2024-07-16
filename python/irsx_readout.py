@@ -10,7 +10,7 @@ from generic import * # hex, eng
 import althea
 import sys
 sys.path.append("../../bin/embedded/sensors")
-import board, generic, ina260_adafruit
+import board, generic, ina260_adafruit, stts751
 BANK_ADDRESS_DEPTH = 13
 
 NUMBER_OF_CHANNELS_PER_ASIC = 8
@@ -332,13 +332,27 @@ def draw_plot_border(i, j):
 	#print("drawing plot border...")
 	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
 
-def setup_ammeter():
+def setup_sensors():
+	global i2c
+	i2c = board.I2C()
+	setup_ammeter(i2c)
+	setup_temperature_sensor(i2c)
+
+def setup_ammeter(i2c):
 	default_address = 0x40
 	try:
-		i2c = board.I2C()
 		ina260_adafruit.setup(i2c, 32, default_address)
 	except:
 		print("ERROR: ina260 not present at address 0x" + generic.hex(default_address))
+		raise
+
+def setup_temperature_sensor(i2c):
+	default_address = 0x4a
+	try:
+		#stts751.setup(i2c, 32, default_address)
+		stts751.setup(i2c, default_address)
+	except:
+		print("ERROR: stts751 not present at address 0x" + generic.hex(default_address))
 		raise
 
 def read_ammeter():
@@ -347,6 +361,12 @@ def read_ammeter():
 	#print(str(fround(current_mA, 0.1)) + ", " + str(fround(voltage_V, 0.001)))
 	#print(sround(current_mA, 1) + ", " + sround(voltage_V, 3))
 	return current_mA, voltage_V
+
+def read_temperature_sensor():
+	global temp_C
+	#temp_C = stts751.get_values()[0]
+	temp_C = stts751.get_temperature_from_sensor()
+	return temp_C
 
 def setup():
 	global plot_width, plot_height, screen, plot, something_was_updated
@@ -471,7 +491,7 @@ def setup():
 	should_check_for_new_data = pygame.USEREVENT + 1
 	print("gui_update_period: " + str(gui_update_period))
 	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
-	setup_ammeter()
+	setup_sensors()
 	write_bootup_values()
 
 def write_bootup_values():
@@ -797,6 +817,7 @@ def update_bank6_registers():
 
 def show_other_stuff():
 	read_ammeter()
+	read_temperature_sensor()
 	other_stuff_values = [ current_mA, voltage_V, temp_C ]
 	other_stuff_decimal_places = [ 1, 3, 1 ]
 	if should_show_other_stuff:
