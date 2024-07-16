@@ -4,7 +4,7 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-06-05 by mza
+# last updated 2024-07-15 by mza
 
 from generic import * # hex, eng
 import althea
@@ -33,20 +33,22 @@ default_hs_data_ratio = 4
 default_tpg = 0xb05 # only accepts the lsb=1 after having written a 1 in that position already
 
 # the following lists of values are for the trigger_gain x1, x4 and x16 settings:
-default_number_of_steps_for_threshold_scan = [ 64, 128, 512 ]
-default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = [ 32, 64, 256 ]
+#default_number_of_steps_for_threshold_scan = [ 64, 128, 512 ]
+default_number_of_steps_for_threshold_scan = [ 128, 256, 1024 ]
+#default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = [ 32, 64, 256 ]
+default_number_of_steps_for_threshold_scan_when_valid_threshold_file_exists = [ 64, 128, 512 ]
 basename = "irsx.thresholds-for-lower-null-scalers"
 thresholds_for_lower_null_scalers_filename = [ basename + ".x1", basename + ".x4", basename + ".x16" ]
 basename = "irsx.thresholds-for-upper-null-scalers"
 thresholds_for_upper_null_scalers_filename = [ basename + ".x1", basename + ".x4", basename + ".x16" ]
 #thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
-extra_for_threshold_scan = [ 1, 4, 4 ]
+extra_for_threshold_scan = [ 1, 8, 4 ]
 extra_for_setting_thresholds = [ 3, 15, 99 ]
 bump_threshold_amount = [ 1, 4, 16 ]
-trigger_gain_x1_upper = [ 0x7e0, 0x880, 0x9a0 ]
+trigger_gain_x1_upper = [ 0x7e0, 0x870, 0x9a0 ]
 trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
 
-bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture", "scaler timeout", "hs_data_offset", "hs_data_ratio" ]
+bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture", "scaler timeout", "hs_data_offset", "hs_data_ratio", "regen" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_high", "buffered_hs_data_stream_middle1", "buffered_hs_data_stream_middle0", "buffered_hs_data_stream_low", "hs_data_word_decimated" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
@@ -459,6 +461,7 @@ def write_bootup_values():
 	set_spgin(default_spgin)
 	set_scaler_timeout(default_scaler_timeout)
 	set_hs_data_offset_and_ratio(default_hs_data_offset, default_hs_data_ratio)
+	control_regulator(1)
 
 import subprocess
 def reprogram_fpga():
@@ -479,6 +482,8 @@ def loop():
 	mouse = pygame.mouse.get_pos()
 	for event in pygame.event.get():
 		if event.type == pygame.KEYDOWN:
+#				initiate_trigger()
+				#gather_pedestals(1)
 			if pygame.K_ESCAPE==event.key:
 				running = False
 			elif pygame.K_b==event.key:
@@ -512,9 +517,10 @@ def loop():
 				clear_all_registers_quickly()
 				#clear_all_registers_slowly()
 			elif pygame.K_p==event.key:
-#				initiate_trigger()
-				#gather_pedestals(1)
-				pass
+				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+					control_regulator(1)
+				else:
+					control_regulator(0)
 			elif pygame.K_F5==event.key:
 				#readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 				cycle_reg179()
@@ -592,6 +598,8 @@ def loop():
 					bump_hs_data_offset(+1)
 				else:
 					bump_hs_data_offset(-1)
+			elif pygame.K_m==event.key:
+				test_tpg_as_a_pollable_memory()
 		elif event.type == pygame.QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -870,6 +878,11 @@ def bump_hs_data_offset(amount):
 	if 127<offset:
 		offset = 127
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 10, [offset])
+
+def control_regulator(value=1):
+	bank = 0
+	value &= 1
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 12, [value])
 
 def clear_channel_counters():
 	bank = 2
@@ -1464,6 +1477,35 @@ def cycle_through_x1_x4_x16_trigger_gains():
 		load_thresholds_corresponding_to_upper_null_scaler()
 	else:
 		load_thresholds_corresponding_to_lower_null_scaler()
+
+def write_new_tpg_value(tpg):
+	bank = 7
+	tpg &= 0xfff
+	#althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 199, [tpg])
+	althea.write_to_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 199, [tpg])
+
+def test_tpg_as_a_pollable_memory():
+	address = [ random.randint(0, 2**12-1) for a in range(2**12) ]
+	value = [ i for i in range(2**12) ]
+	random.shuffle(value)
+	count = 0
+	total = 2**12
+	for i in range(total):
+		if i%58==0:
+			print("")
+			print("#" + hex(i,3) + "  ", end=" ")
+		write_new_tpg_value(value[i])
+		readback = read_hs_data()
+		if not value[i]==readback[0]&0xfff:
+			print(hex(value[i], 3) + ":" + hex(readback[0]&0xfff, 3), end=" ")
+			count += 1
+	print("")
+	print("there were " + str(count) + " errors out of " + str(total) + " (" + str(int(100*count/total)) + "%)")
+
+def read_hs_data():
+	bank = 1
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 8, 1, False)
+	return readback
 
 def initiate_legacy_serial_sequence():
 	set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
