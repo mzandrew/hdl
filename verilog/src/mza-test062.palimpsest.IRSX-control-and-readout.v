@@ -50,6 +50,7 @@ module IRSXtest #(
 	input shout, done_out, wr_syncmon, montiming2,
 	input data_p, data_n, trg01_p, trg01_n, trg23_p, trg23_n, trg45_p, trg45_n, trg67_p, trg67_n, montiming1_p, montiming1_n,
 //	output other,
+	output regen, // regulator enable
 	output [7:0] led,
 	output [3:0] coax_led
 );
@@ -294,6 +295,7 @@ module IRSXtest #(
 	wire [31:0] timeout = bank0[9];
 	wire [6:0] hs_data_offset = bank0[10][6:0]; // 6
 //	wire [2:0] hs_data_ratio  = bank0[11][2:0]; // 4 (localparam is much more efficient on resources...)
+	assign regen = bank0[12][0]; // regulator enable
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -780,7 +782,7 @@ module altheaIRSXtest #(
 	output
 	c_p, c_n, d_p, d_n, e_p, e_n, f_p, f_n, h_p, h_n, l_p, l_n,
 	r, s, t, x, y,
-	u, // regen
+	u, // regen = regulator enable
 	//input [2:0] rot
 	input scl,
 	input sda,
@@ -796,7 +798,7 @@ module altheaIRSXtest #(
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
 	// irsx pin names:
-	wire sclk, sin, pclk, shout, regclr;
+	wire sclk, sin, pclk, shout, regclr, regen;
 	wire montiming2, done_out, wr_syncmon, spgin, ss_incr, convert;
 	// irsx pin mapping:
 	assign y = sclk;
@@ -810,7 +812,7 @@ module altheaIRSXtest #(
 	assign r = spgin;
 	assign s = ss_incr;
 	assign t = convert;
-	assign u = 1; // regen
+	assign u = regen; // regulator enable
 	assign dummy1 = sda;
 	assign dummy2 = scl;
 	IRSXtest #(
@@ -829,7 +831,8 @@ module altheaIRSXtest #(
 		.data_p(g_p), .trg01_p(m_p), .trg23_p(k_p), .trg45_p(a_p), .trg67_p(b_p), // pins are swapped on PCB for trg45 and trg67
 		.data_n(g_n), .trg01_n(m_n), .trg23_n(k_n), .trg45_n(a_n), .trg67_n(b_n), // pins are swapped on PCB for trg45 and trg67
 		.convert(convert), .done_out(done_out), .ss_incr(ss_incr), .wr_syncmon(wr_syncmon), .spgin(spgin),
-		.montiming1_p(j_p), .montiming1_n(j_n), .montiming2(montiming2), 
+		.montiming1_p(j_p), .montiming1_n(j_n), .montiming2(montiming2),
+		.regen(regen),
 		.rpi_gpio(rpi_gpio[23:4]),
 //		.rot(rot),
 //		.other(other),
