@@ -4,10 +4,13 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-07-15 by mza
+# last updated 2024-07-16 by mza
 
 from generic import * # hex, eng
 import althea
+import sys
+sys.path.append("../../bin/embedded/sensors")
+import board, generic, ina260_adafruit
 BANK_ADDRESS_DEPTH = 13
 
 NUMBER_OF_CHANNELS_PER_ASIC = 8
@@ -53,6 +56,7 @@ bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback e
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
+other_stuff_names = [ "current (mA)", "voltage (V)", "temp (C)" ]
 #header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
 #header_decode_descriptions = [ "ASICID", "bank", "fine time", "coarse time", "trigger#", "samples after trigger", "lookback samples", "samples to read", "starting sample", "missed triggers", "status" ]
 CMPbias = 0x1e8
@@ -112,6 +116,7 @@ X_POSITION_OF_SCALERS = 845
 #X_POSITION_OF_BANK4_REGISTERS = 100
 #X_POSITION_OF_BANK5_REGISTERS = 300
 #X_POSITION_OF_BANK6_REGISTERS = 400
+X_POSITION_OF_OTHER_STUFF = 410
 
 box_dimension_x_in = 3.0
 box_dimension_y_in = 2.0
@@ -162,6 +167,7 @@ should_show_scalers = True
 should_show_bank4_registers = False
 should_show_bank5_registers = False
 should_show_bank6_registers = False
+should_show_other_stuff = True
 scaler_values_seen = set()
 pedestal_mode = False
 DAC_to_control = 0
@@ -195,6 +201,10 @@ import random
 import os
 import datetime
 import re
+
+current_mA = 0.0
+voltage_V = 0.0
+temp_C = 0.0
 
 def setup_pygame_sdl():
 	os.environ['SDL_AUDIODRIVER'] = 'dsp'
@@ -322,6 +332,22 @@ def draw_plot_border(i, j):
 	#print("drawing plot border...")
 	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
 
+def setup_ammeter():
+	default_address = 0x40
+	try:
+		i2c = board.I2C()
+		ina260_adafruit.setup(i2c, 32, default_address)
+	except:
+		print("ERROR: ina260 not present at address 0x" + generic.hex(default_address))
+		raise
+
+def read_ammeter():
+	global current_mA, voltage_V
+	current_mA, voltage_V = ina260_adafruit.get_values()[0:2]
+	#print(str(fround(current_mA, 0.1)) + ", " + str(fround(voltage_V, 0.001)))
+	#print(sround(current_mA, 1) + ", " + sround(voltage_V, 3))
+	return current_mA, voltage_V
+
 def setup():
 	global plot_width, plot_height, screen, plot, something_was_updated
 	something_was_updated = False
@@ -346,6 +372,7 @@ def setup():
 	global Y_POSITION_OF_BANK4_REGISTERS
 	global Y_POSITION_OF_BANK5_REGISTERS
 	global Y_POSITION_OF_BANK6_REGISTERS
+	global Y_POSITION_OF_OTHER_STUFF
 	gap = 20
 	Y_POSITION_OF_CHANNEL_NAMES = ROWS * (plot_height + 2*gap)
 	Y_POSITION_OF_COUNTERS      = ROWS * (plot_height + 2*gap)
@@ -356,6 +383,7 @@ def setup():
 	#Y_POSITION_OF_BANK4_REGISTERS = ROWS * (plot_height + 2*gap) + 170
 	#Y_POSITION_OF_BANK5_REGISTERS = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
 	#Y_POSITION_OF_BANK6_REGISTERS = ROWS * (plot_height + 2*gap)
+	Y_POSITION_OF_OTHER_STUFF = ROWS * (plot_height + 2*gap) + 150
 	setup_pygame_sdl()
 	#pygame.mixer.quit()
 	global game_clock
@@ -404,6 +432,10 @@ def setup():
 		for i in range(len(bank6_register_names)):
 			register_name = banks_font.render(bank6_register_names[i], 1, white)
 			screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_BANK6_REGISTERS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_BANK6_REGISTERS+FONT_SIZE_BANKS*i)))
+	if should_show_other_stuff:
+		for i in range(len(other_stuff_names)):
+			register_name = banks_font.render(other_stuff_names[i], 1, white)
+			screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_OTHER_STUFF+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_OTHER_STUFF+FONT_SIZE_BANKS*i)))
 	#for i in range(NUMBER_OF_CHANNELS_PER_ASIC):
 	if should_show_channel_names:
 		for i in range(len(channel_names)):
@@ -439,6 +471,7 @@ def setup():
 	should_check_for_new_data = pygame.USEREVENT + 1
 	print("gui_update_period: " + str(gui_update_period))
 	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
+	setup_ammeter()
 	write_bootup_values()
 
 def write_bootup_values():
@@ -611,6 +644,7 @@ def loop():
 			update_bank4_registers()
 			update_bank5_registers()
 			update_bank6_registers()
+			show_other_stuff()
 #			update_bank1_bank2_scalers()
 #			update_counters()
 	if not pedestal_mode:
@@ -684,6 +718,7 @@ bank1_register_object = [ 0 for i in range(len(bank1_register_names)) ]
 bank4_register_object = [ 0 for i in range(len(bank1_register_names)) ]
 bank5_register_object = [ 0 for i in range(len(bank5_register_names)) ]
 bank6_register_object = [ 0 for i in range(len(bank6_register_names)) ]
+other_stuff_object    = [ 0 for i in range(len(other_stuff_names)) ]
 
 def update_bank0_registers():
 	global bank0_register_object
@@ -759,6 +794,22 @@ def update_bank6_registers():
 				pass
 			bank6_register_object[i] = banks_font.render(hex(bank6_register_values[i], 8, True), False, white)
 			screen.blit(bank6_register_object[i], bank6_register_object[i].get_rect(center=(X_POSITION_OF_BANK6_REGISTERS-bank6_register_object[i].get_width()//2,Y_POSITION_OF_BANK6_REGISTERS+FONT_SIZE_BANKS*i)))
+
+def show_other_stuff():
+	read_ammeter()
+	other_stuff_values = [ current_mA, voltage_V, temp_C ]
+	other_stuff_decimal_places = [ 1, 3, 1 ]
+	if should_show_other_stuff:
+		for i in range(len(other_stuff_names)):
+			try:
+				temp_surface = pygame.Surface(other_stuff_object[i].get_size())
+				temp_surface.fill(dark_teal)
+				screen.blit(temp_surface, other_stuff_object[i].get_rect(center=(X_POSITION_OF_OTHER_STUFF-other_stuff_object[i].get_width()//2,Y_POSITION_OF_OTHER_STUFF+FONT_SIZE_BANKS*i)))
+			except Exception as e:
+				#print(str(e))
+				pass
+			other_stuff_object[i] = banks_font.render(sround(other_stuff_values[i], other_stuff_decimal_places[i]), False, white)
+			screen.blit(other_stuff_object[i], other_stuff_object[i].get_rect(center=(X_POSITION_OF_OTHER_STUFF-other_stuff_object[i].get_width()//2,Y_POSITION_OF_OTHER_STUFF+FONT_SIZE_BANKS*i)))
 
 def set_ls_i2c_mode(mode):
 	bank = 0
