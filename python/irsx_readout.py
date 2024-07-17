@@ -31,7 +31,7 @@ default_hs_data_ss_incr = 4
 default_hs_data_capture = default_hs_data_ss_incr + 9 + 8 + 1
 default_spgin = 0
 default_scaler_timeout = 127.22e6 * gui_update_period
-default_hs_data_offset = 6
+default_hs_data_offset = 7
 default_hs_data_ratio = 4
 default_tpg = 0xb05 # only accepts the lsb=1 after having written a 1 in that position already
 
@@ -496,10 +496,12 @@ def setup():
 
 def write_bootup_values():
 	print("writing bootup values...")
+	control_regulator(1)
 	#set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
 	#write_DAC_values()
 	#write_I2C_register_values()
 	write_value_to_clock_divider_for_register_transactions(3)
+	set_min_tries(4)
 	set_max_retries_for_register_transactions(5)
 	set_whether_to_verify_with_shout(0)
 	set_trg_inversion_mask(0b1100)
@@ -514,7 +516,6 @@ def write_bootup_values():
 	set_spgin(default_spgin)
 	set_scaler_timeout(default_scaler_timeout)
 	set_hs_data_offset_and_ratio(default_hs_data_offset, default_hs_data_ratio)
-	control_regulator(1)
 
 import subprocess
 def reprogram_fpga():
@@ -956,6 +957,14 @@ def control_regulator(value=1):
 	value &= 1
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 12, [value])
 
+def set_min_tries(value):
+	if 255<value:
+		value = 255
+	if value<0:
+		value = 0
+	bank = 0
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 13, [value])
+
 def clear_channel_counters():
 	bank = 2
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [1])
@@ -1020,8 +1029,8 @@ nominal_register_values.append([151, "Wbias5", wbias_odd,  "width of trigger out
 nominal_register_values.append([155, "Wbias6", wbias_even, "width of trigger output for ch6; needs TBbias"])
 nominal_register_values.append([159, "Wbias7", wbias_odd,  "width of trigger output for ch7; needs TBbias"])
 nominal_register_values.append([160, "TBbias", 1000]) # needs ITbias - above 1100 doesn't allow for short (7.8ns)) trigger pulses
-#nominal_register_values.append([161, "Vbias", 1100]) # needs ITbias
-#nominal_register_values.append([162, "Vbias2", 950]) # needs ITbias
+#nominal_register_values.append([161, "Vbias", 1100]) # needs ITbias - this alone draws 200mA extra
+#nominal_register_values.append([162, "Vbias2", 950]) # needs ITbias - this also draws an extra ~200mA
 nominal_register_values.append([163, "ITbias", 1000])
 nominal_register_values.append([164, "dualWbias01", wbias_dual]) # needs TBbias and ITbias
 nominal_register_values.append([165, "dualWbias23", wbias_dual]) # needs TBbias and ITbias
