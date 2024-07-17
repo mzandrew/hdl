@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="32" />
+   <WVObjectSize size="33" />
    <wvobject fp_name="/irsx_register_interface_tb/clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock</obj_property>
       <obj_property name="ObjectShortName">clock</obj_property>
@@ -118,6 +118,11 @@
    <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/retries_remaining" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">retries_remaining[7:0]</obj_property>
       <obj_property name="ObjectShortName">retries_remaining[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_register_interface_tb/irsx_reg/tries_remaining" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tries_remaining[7:0]</obj_property>
+      <obj_property name="ObjectShortName">tries_remaining[7:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="divider49" type="divider">

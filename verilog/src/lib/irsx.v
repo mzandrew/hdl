@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-06-08 by mza
+// last updated 2024-07-16 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -316,6 +316,7 @@ module irsx_register_interface #(
 	input force_write_registers_again,
 	input [CLOCK_DIVISOR_COUNTER_PICKOFF:0] clock_divider_initial_value_for_register_transactions,
 	input [7:0] max_retries,
+	input [7:0] min_tries,
 	input verify_with_shout,
 	input write_enable,
 	output reg sin = 0,
@@ -354,6 +355,7 @@ module irsx_register_interface #(
 	assign sclk = sin_counter[0];
 	reg [1:0] bram_wait_state = 2;
 	reg [7:0] retries_remaining = 1;
+	reg [7:0] tries_remaining = 0;
 	reg [MAX_REGISTER_ADDRESS:0] forced_rewrite = 0;
 	always @(posedge clock) begin
 		regclr <= 0;
@@ -372,7 +374,8 @@ module irsx_register_interface #(
 			number_of_readback_errors <= 0;
 			data_intended_copy <= 0;
 			data_readback_copy <= 0;
-			retries_remaining <= 1;
+			retries_remaining <= max_retries + 1'b1;
+			tries_remaining <= min_tries;
 			last_erroneous_readback <= 0;
 			shout_word <= 0;
 			shout_pipeline1 <= 0;
@@ -388,20 +391,26 @@ module irsx_register_interface #(
 					if (data_intended_copy!=data_readback_copy || forced_rewrite[address_10[7:0]]) begin // checking two block rams against each other at address address_10
 						if (0<retries_remaining) begin
 							mode <= 2'b01; // difference found, so write updated value to asic
-							sin <= 0;
-							pclk <= 0;
+							sin <= 1'b0;
+							pclk <= 1'b0;
 							sin_counter <= 2;
 							pclk_counter <= 0;
 							sin <= sin_word[0]; // must get this ready before the first sclk
 							clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
-							bram_wait_state <= 2; // just to force it to copy from the block ram again
-							retries_remaining <= retries_remaining - 1'b1;
+							if (0<tries_remaining) begin
+								tries_remaining <= tries_remaining - 1'b1;
+								forced_rewrite[address_10[7:0]] <= 1'b1;
+							end else begin
+								retries_remaining <= retries_remaining - 1'b1;
+								bram_wait_state <= 2; // just to force it to copy from the block ram again
+							end
 						end else begin
 							last_erroneous_readback <= shout_word;
 							shout_word <= data_intended_copy; // give up on this one
-							shout_write <= 1; // write it into the "actual_readback" block ram
+							shout_write <= 1'b1; // write it into the "actual_readback" block ram
 							bram_wait_state <= 2; // just to force it to copy from the block ram again
-							retries_remaining <= 1;
+//							retries_remaining <= 1; // is this just so that it does a readback/compare against the forced correct value?
+//							tries_remaining <= 0;
 						end
 					end else begin
 						if (address_10<=MAX_REGISTER_ADDRESS) begin
@@ -411,6 +420,7 @@ module irsx_register_interface #(
 						end
 						bram_wait_state <= 2; // after every address_10 change
 						retries_remaining <= max_retries + 1'b1;
+						tries_remaining <= min_tries;
 					end
 				end else if (bram_wait_state==1) begin
 					data_intended_copy <= data_intended;
@@ -447,7 +457,9 @@ module irsx_register_interface #(
 							end else if (pclk_counter==6) begin
 								sin <= 0;
 							end else if (pclk_counter==7) begin
-								forced_rewrite[address_10[7:0]] <= 0;
+								if (0==tries_remaining) begin
+									forced_rewrite[address_10[7:0]] <= 0;
+								end
 								if (verify_with_shout) begin
 									mode <= 2'b10; // readback shout
 								end else begin
@@ -504,7 +516,7 @@ module irsx_register_interface_tb ();
 	localparam SEVERAL_CLOCK_PERIODS = 2*WHOLE_CLOCK_PERIOD;
 	localparam MANY_CLOCK_PERIODS = 100*WHOLE_CLOCK_PERIOD;
 	localparam REALLY_A_LOT_OF_CLOCK_PERIODS = 1400*WHOLE_CLOCK_PERIOD;
-	localparam SO_MANY_CLOCK_PERIODS = 55000*WHOLE_CLOCK_PERIOD;
+	localparam SO_MANY_CLOCK_PERIODS = 3*55000*WHOLE_CLOCK_PERIOD;
 	localparam DELAY_BETWEEN_SCLK_IN_AND_SHOUT_OUT = 16; // 10 ns, measured (scope_45.png)
 	reg clock = 0;
 	reg raw_reset = 1;
@@ -524,6 +536,7 @@ module irsx_register_interface_tb ();
 	reg [7:0] clock_divider_initial_value_for_register_transactions = 0;
 	wire [31:0] number_of_readback_errors;
 	reg [7:0] max_retries = 5;
+	reg [7:0] min_tries = 3;
 	reg verify_with_shout = 0;
 	reg force_write_registers_again = 0;
 	wire [19:0] last_erroneous_readback;
@@ -532,7 +545,7 @@ module irsx_register_interface_tb ();
 		.number_of_transactions(number_of_register_transactions), .force_write_registers_again(force_write_registers_again),
 		.number_of_readback_errors(number_of_readback_errors), .last_erroneous_readback(last_erroneous_readback),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
-		.max_retries(max_retries), .verify_with_shout(verify_with_shout),
+		.max_retries(max_retries), .min_tries(min_tries), .verify_with_shout(verify_with_shout),
 		.address(address_word), .write_enable(write_strobe),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
 	wire pre_shout = shift_register[18];

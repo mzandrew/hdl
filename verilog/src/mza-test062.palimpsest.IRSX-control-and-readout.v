@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-07-15 by mza
+// last updated 2024-07-16 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -103,7 +103,9 @@ module IRSXtest #(
 		reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(1'b0), .pll_locked1_input(1'b1), .clock1_input(hs_clk), .clock2_input(hs_clk), .reset2_output(hs_reset));
 		BUFG hsraw (.I(hs_clk_raw), .O(hs_clk));
 		BUFG hs180 (.I(hs_clk180_raw), .O(hs_clk180));
-		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(hs_reset), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
+		wire regen_copy_on_hs_clk;
+		ssynchronizer regen_copy_hs_clk (.clock1(word_clock), .clock2(hs_clk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_hs_clk));
+		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180), .reset(hs_reset), .clock_enable(regen_copy_on_hs_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
 	end
 	// ----------------------------------------------------------------------
 	wire hs_data;
@@ -235,14 +237,22 @@ module IRSXtest #(
 	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
 //	BUFG dpraw (.I(double_period_clk_raw), .O(double_period_clk));
 //	BUFG dp180 (.I(double_period_clk180_raw), .O(double_period_clk180));
-	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
-//	clock_ODDR_out_diff wr_clk_ODDR  (.clock_in_p(wr_clk),  .clock_in_n(wr_clk180),  .reset(reset), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
-	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(reset), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
-//	clock_ODDR_out_diff hs_clk_ODDR  (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(reset), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
-//	clock_ODDR_out_diff sstclk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
-	clock_ODDR_out_diff wr_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
-//	clock_ODDR_out_diff gcc_clk_ODDR_dummy (.clock_in_p(sstclk), .clock_in_n(sstclk180), .reset(reset), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
-//	clock_ODDR_out_diff hs_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
+	// ----------------------------------------------------------------------
+	wire regen_copy_on_sstclk;
+	ssynchronizer regen_copy_sstclk (.clock1(word_clock), .clock2(sstclk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_sstclk));
+	wire regen_copy_on_gcc_clk;
+	ssynchronizer regen_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_gcc_clk));
+	//wire regen_copy_on_wr_clk;
+	//ssynchronizer regen_copy_wr_clk (.clock1(word_clock), .clock2(wr_clk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_wr_clk));
+	// ----------------------------------------------------------------------
+	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
+//	clock_ODDR_out_diff wr_clk_ODDR  (.clock_in_p(wr_clk),  .clock_in_n(wr_clk180),  .reset(reset), .clock_enable(regen_copy_on_wr_clk), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
+	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(reset), .clock_enable(regen_copy_on_gcc_clk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
+//	clock_ODDR_out_diff hs_clk_ODDR  (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(reset), .clock_enable(regen_copy_on_hs_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
+//	clock_ODDR_out_diff sstclk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
+	clock_ODDR_out_diff wr_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_enable(regen_copy_on_wr_clk), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
+//	clock_ODDR_out_diff gcc_clk_ODDR_dummy (.clock_in_p(sstclk), .clock_in_n(sstclk180), .reset(reset), .clock_enable(regen_copy_on_gcc_clk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
+//	clock_ODDR_out_diff hs_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_enable(regen_copy_on_hs_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
 	// ----------------------------------------------------------------------
 	wire [7:0] status8_copy_on_word_clock_domain;
 	ssynchronizer #(.WIDTH(8)) status8_copy (.clock1(clock127), .clock2(word_clock), .reset1(reset127), .reset2(reset_word), .in1(status8), .out2(status8_copy_on_word_clock_domain));
@@ -296,6 +306,7 @@ module IRSXtest #(
 	wire [6:0] hs_data_offset = bank0[10][6:0]; // 6
 //	wire [2:0] hs_data_ratio  = bank0[11][2:0]; // 4 (localparam is much more efficient on resources...)
 	assign regen = bank0[12][0]; // regulator enable
+	wire [7:0] min_tries = bank0[13][7:0];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -411,7 +422,7 @@ module IRSXtest #(
 		.number_of_transactions(number_of_register_transactions), .force_write_registers_again(force_write_registers_again),
 		.number_of_readback_errors(number_of_readback_errors), .last_erroneous_readback(last_erroneous_readback),
 		.clock_divider_initial_value_for_register_transactions(clock_divider_initial_value_for_register_transactions),
-		.max_retries(max_retries), .verify_with_shout(verify_with_shout),
+		.max_retries(max_retries), .min_tries(min_tries), .verify_with_shout(verify_with_shout),
 		.address(address_word_full[7:0]), .write_enable(write_strobe[7]),
 		.sin(sin), .sclk(sclk), .pclk(pclk), .regclr(regclr), .shout(shout));
 	assign read_data_word[7][31:24] = 0;
@@ -437,9 +448,14 @@ module IRSXtest #(
 		assign coax[1] = t1;
 		assign coax[2] = trg0123;
 		assign coax[3] = trg4567;
-	end else begin
+	end else if (0) begin
 		assign coax[0] = t0;
 		assign coax[1] = t1;
+		assign coax[2] = ss_incr;
+		assign coax[3] = hs_data;
+	end else if (1) begin
+		assign coax[0] = sin;
+		assign coax[1] = pclk;
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;
 	end
@@ -797,8 +813,9 @@ module altheaIRSXtest #(
 	localparam TRANSACTIONS_PER_DATA_WORD = 2;
 	localparam TRANSACTIONS_PER_ADDRESS_WORD = 1;
 	localparam ADDRESS_AUTOINCREMENT_MODE = 1;
+	wire regen;
 	// irsx pin names:
-	wire sclk, sin, pclk, shout, regclr, regen;
+	wire sclk, sin, pclk, shout, regclr;
 	wire montiming2, done_out, wr_syncmon, spgin, ss_incr, convert;
 	// irsx pin mapping:
 	assign y = sclk;
