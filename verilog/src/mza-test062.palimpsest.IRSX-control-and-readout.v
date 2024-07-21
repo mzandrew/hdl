@@ -431,8 +431,6 @@ module IRSXtest #(
 	//clock_ODDR_out sstclk_second_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out(oddr_sstclk));
 //	wire oddr_double_period;
 //	clock_ODDR_out double_period_ODDR  (.clock_in_p(double_period_clk),  .clock_in_n(double_period_clk180),  .reset(reset), .clock_out(oddr_double_period));
-	assign coax[5] = shout;
-	assign coax[4] = sin;
 	if (0) begin
 		assign coax[0] = shout;
 		assign coax[1] = pclk;
@@ -459,6 +457,8 @@ module IRSXtest #(
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;
 	end
+	assign coax[4] = shout;
+	assign coax[5] = sclk;
 	// ----------------------------------------------------------------------
 	assign status8[7] = ~first_pll_locked;
 	assign status8[6] = ~second_pll_locked;
