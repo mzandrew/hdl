@@ -429,82 +429,80 @@ module irsx_register_interface #(
 				end else begin
 					bram_wait_state <= bram_wait_state - 1'b1;
 				end
-			end else begin
-				if (mode==2'b01) begin // difference found, so write updated value to asic
-					if (clock_divisor_counter==0) begin
-						clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
-						if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS) begin
-							if (sclk) begin
-								sin <= sin_word[sin_counter[5:1]];
-							end
-							sin_counter <= sin_counter + 1'b1;
-						end else if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS+2) begin
-							pclk_counter <= 0;
-							sin_counter <= sin_counter + 1'b1; // the last sclk
-						end else begin
-							if (pclk_counter==0) begin
-								sin <= 0;
-							end else if (pclk_counter==1) begin
-								pclk <= 1; // "latch" a.k.a. "load bus register"
-							end else if (pclk_counter==2) begin
-								pclk <= 0;
-							end else if (pclk_counter==3) begin
-								sin <= 1;
-							end else if (pclk_counter==4) begin
-								pclk <= 1; // "load" a.k.a. "load destination/address node"
-							end else if (pclk_counter==5) begin
-								pclk <= 0;
-							end else if (pclk_counter==6) begin
-								sin <= 0;
-							end else if (pclk_counter==7) begin
-								if (0==tries_remaining) begin
-									forced_rewrite[address_10[7:0]] <= 0;
-								end
-								if (verify_with_shout) begin
-									mode <= 2'b10; // readback shout
-								end else begin
-									shout_word <= data_intended_copy;
-									shout_write <= 1; // write it into the "actual_readback" block ram
-									bram_wait_state <= 2;
-									mode <= 2'b00; // scan for differences
-								end
-								number_of_transactions <= number_of_transactions + 1'b1;
-								sin_counter <= 0;
-							end
-							pclk_counter <= pclk_counter + 1'b1;
+			end else if (mode==2'b01) begin // difference found, so write updated value to asic
+				if (clock_divisor_counter==0) begin
+					clock_divisor_counter <= clock_divider_initial_value_for_register_transactions;
+					if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS) begin
+						if (sclk) begin
+							sin <= sin_word[sin_counter[5:1]];
 						end
+						sin_counter <= sin_counter + 1'b1;
+					end else if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS+2) begin
+						pclk_counter <= 0;
+						sin_counter <= sin_counter + 1'b1; // the last sclk
 					end else begin
-						clock_divisor_counter <= clock_divisor_counter - 1'b1;
-					end
-				end else if (mode==2'b10) begin // readback shout
-					if (clock_divisor_counter==0) begin
-						clock_divisor_counter <= clock_divider_initial_value_for_register_transactions + 2'd2;
-						if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS) begin
-							if (sclk==0) begin
-								shout_pipeline2 <= { shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-1:0], shout_pipeline1[SHOUT_PIPELINE1_PICKOFF] };
-							end
-							sin_counter <= sin_counter + 1'b1;
-							pclk_counter <= 0;
-						end else if (pclk_counter==0) begin
-							shout_pipeline2 <= { shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-1:0], shout_pipeline1[SHOUT_PIPELINE1_PICKOFF] };
-							pclk_counter <= pclk_counter + 1'b1;
+						if (pclk_counter==0) begin
+							sin <= 0;
 						end else if (pclk_counter==1) begin
-							shout_word <= shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-:NUMBER_OF_SIN_WORD_BITS];
-							shout_write <= 1; // write it into the "actual_readback" block ram
-							pclk_counter <= pclk_counter + 1'b1;
-						end else begin
-							if (sin_word!=shout_word) begin
-								number_of_readback_errors <= number_of_readback_errors + 1'b1;
+							pclk <= 1; // "latch" a.k.a. "load bus register"
+						end else if (pclk_counter==2) begin
+							pclk <= 0;
+						end else if (pclk_counter==3) begin
+							sin <= 1;
+						end else if (pclk_counter==4) begin
+							pclk <= 1; // "load" a.k.a. "load destination/address node"
+						end else if (pclk_counter==5) begin
+							pclk <= 0;
+						end else if (pclk_counter==6) begin
+							sin <= 0;
+						end else if (pclk_counter==7) begin
+							if (0==tries_remaining) begin
+								forced_rewrite[address_10[7:0]] <= 0;
 							end
-							mode <= 2'b00; // scan for differences
-							bram_wait_state <= 2;
+							if (verify_with_shout) begin
+								mode <= 2'b10; // readback shout
+							end else begin
+								shout_word <= data_intended_copy;
+								shout_write <= 1; // write it into the "actual_readback" block ram
+								bram_wait_state <= 2;
+								mode <= 2'b00; // scan for differences
+							end
+							number_of_transactions <= number_of_transactions + 1'b1;
+							sin_counter <= 0;
 						end
-					end else begin
-						clock_divisor_counter <= clock_divisor_counter - 1'b1;
+						pclk_counter <= pclk_counter + 1'b1;
 					end
-				end else begin // extra state
-					mode <= 2'b00; // scan for differences
+				end else begin
+					clock_divisor_counter <= clock_divisor_counter - 1'b1;
 				end
+			end else if (mode==2'b10) begin // readback shout
+				if (clock_divisor_counter==0) begin
+					clock_divisor_counter <= clock_divider_initial_value_for_register_transactions + 2'd2;
+					if (sin_counter<2*NUMBER_OF_SIN_WORD_BITS) begin
+						if (sclk==0) begin
+							shout_pipeline2 <= { shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-1:0], shout_pipeline1[SHOUT_PIPELINE1_PICKOFF] };
+						end
+						sin_counter <= sin_counter + 1'b1;
+						pclk_counter <= 0;
+					end else if (pclk_counter==0) begin
+						shout_pipeline2 <= { shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-1:0], shout_pipeline1[SHOUT_PIPELINE1_PICKOFF] };
+						pclk_counter <= pclk_counter + 1'b1;
+					end else if (pclk_counter==1) begin
+						shout_word <= shout_pipeline2[SHOUT_PIPELINE2_PICKOFF-:NUMBER_OF_SIN_WORD_BITS];
+						shout_write <= 1; // write it into the "actual_readback" block ram
+						pclk_counter <= pclk_counter + 1'b1;
+					end else begin
+						if (sin_word!=shout_word) begin
+							number_of_readback_errors <= number_of_readback_errors + 1'b1;
+						end
+						mode <= 2'b00; // scan for differences
+						bram_wait_state <= 2;
+					end
+				end else begin
+					clock_divisor_counter <= clock_divisor_counter - 1'b1;
+				end
+			end else begin // extra state
+				mode <= 2'b00; // scan for differences
 			end
 		end
 	end
