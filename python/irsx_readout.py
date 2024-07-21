@@ -4,7 +4,7 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-07-16 by mza
+# last updated 2024-07-21 by mza
 
 from generic import * # hex, eng
 import althea
@@ -500,8 +500,8 @@ def write_bootup_values():
 	#set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
 	#write_DAC_values()
 	#write_I2C_register_values()
-	write_value_to_clock_divider_for_register_transactions(3)
-	set_min_tries(4)
+	write_value_to_clock_divider_for_register_transactions(0) # this must be at least 5 unless min_tries is at least 2
+	set_min_tries(2) # this must be at least 2 if clock_divider is less than 5
 	set_max_retries_for_register_transactions(5)
 	set_whether_to_verify_with_shout(0)
 	set_trg_inversion_mask(0b1100)
@@ -583,6 +583,10 @@ def loop():
 				#readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 				#drain_fifo()
 				pass
+			elif pygame.K_F7==event.key:
+				send_unique_test_pattern(0)
+			elif pygame.K_F8==event.key:
+				send_unique_test_pattern(1)
 			elif pygame.K_F9==event.key:
 				pass
 				#DAC_to_control = 0
@@ -1565,6 +1569,15 @@ def write_new_tpg_value(tpg):
 	#althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 199, [tpg])
 	althea.write_to_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 199, [tpg])
 
+def send_unique_test_pattern(value):
+	if 0==value:
+		write_new_tpg_value(0xaf5)
+	elif 1==value:
+		write_new_tpg_value(0x5fa)
+	else:
+		print("WARNING: no value set up for this input")
+		write_new_tpg_value(0)
+
 def test_tpg_as_a_pollable_memory():
 	address = [ random.randint(0, 2**12-1) for a in range(2**12) ]
 	value = [ i for i in range(2**12) ]
@@ -1576,6 +1589,7 @@ def test_tpg_as_a_pollable_memory():
 			print("")
 			print("#" + hex(i,3) + "  ", end=" ")
 		write_new_tpg_value(value[i])
+		time.sleep(0.000001)
 		readback = read_hs_data()
 		if not value[i]==readback[0]&0xfff:
 			print(hex(value[i], 3) + ":" + hex(readback[0]&0xfff, 3), end=" ")
