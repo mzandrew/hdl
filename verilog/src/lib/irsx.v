@@ -10,6 +10,9 @@
 
 module irsx_hs_data #(
 	parameter TESTBENCH = 0,
+	parameter DATA_WIDTH = 12,
+	parameter LOG2_OF_DEPTH = 9, // 9 = 64 samples by 8 channels
+	parameter SERIES = "spartan6",
 	parameter BIT_DEPTH = 8,
 	parameter HS_DATA_INTENDED_NUMBER_OF_BITS = 25,
 	parameter HS_DATA_EXTRA_BITS_TO_CAPTURE = 28,
@@ -24,6 +27,8 @@ module irsx_hs_data #(
 	input [6:0] hs_data_offset,
 	input [4:0] hs_data_ss_incr,
 	input [4:0] hs_data_capture,
+	input [LOG2_OF_DEPTH-1:0] read_address,
+	output [DATA_WIDTH-1:0] data_out,
 	output reg [HS_DATA_PICKOFF:0] buffered_hs_data_stream = 0,
 	output reg ss_incr = 1,
 	output hs_pll_is_locked_and_strobe_is_aligned,
@@ -49,17 +54,23 @@ module irsx_hs_data #(
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
 	reg [HS_DATA_PICKOFF:0] hs_data_stream = 0;
 	reg [4:0] hs_data_counter = 0;
+	reg [LOG2_OF_DEPTH-1:0] write_address = 0;
+	reg write_strobe = 0;
 	always @(posedge hs_word_clock) begin
 		ss_incr <= 1;
+		write_strobe <= 0;
 		if (hs_reset) begin
 			hs_data_stream <= 0;
 			hs_data_counter <= 0;
+			write_address <= 0;
 		end else begin
 			if (hs_data_counter==hs_data_ss_incr) begin
 				ss_incr <= 0;
 			end
 			if (hs_data_counter==hs_data_capture) begin
 				buffered_hs_data_stream <= hs_data_stream;
+				write_strobe <= 1;
+				write_address <= write_address + 1'b1;
 			end
 			hs_data_stream <= { hs_data_stream[HS_DATA_PICKOFF-8:0], hs_data_word };
 			hs_data_counter <= hs_data_counter + 1'b1;
@@ -68,7 +79,15 @@ module irsx_hs_data #(
 	for (i=0; i<HS_DATA_INTENDED_NUMBER_OF_BITS; i=i+1) begin : hs_data_decimation
 		assign hs_data_word_decimated[i] = buffered_hs_data_stream[HS_DATA_RATIO*i+hs_data_offset];
 	end
-//	data_stream[i] <= { data_stream[i][DATASTREAM_LENGTH-1-8:0], iserdes_word_in[i] };
+	wire [11:0] data_12bit = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1-:12];
+	wire [LOG2_OF_DEPTH:0] write_address10 = { 1'b0, write_address };
+	wire [LOG2_OF_DEPTH:0] read_address10  = { 1'b0, read_address };
+	wire [15:0] data_in16 = { 4'b0, data_12bit };
+	wire [15:0] data_out16;
+	assign data_out = data_out16[DATA_WIDTH-1:0];
+	RAM_unidirectional  #(.DATA_WIDTH_A(16), .DATA_WIDTH_B(16), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH+1), .SERIES(SERIES)) chock_a_block ( .reset(hs_reset),
+		.clock_a(hs_word_clock), .address_a(write_address10), .data_in_a(data_in16), .write_enable_a(write_strobe),
+		.clock_b(hs_word_clock), .address_b(read_address10), .data_out_b(data_out16));
 endmodule
 
 //irsx_scaler_counter_interface #(.COUNTER_WIDTH(8), .SCALER_WIDTH(4), .CLOCK_PERIODS_TO_ACCUMULATE(16)) irsx_scaler_counter (

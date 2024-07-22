@@ -212,7 +212,7 @@ module fifo_single_clock #(
 	parameter DATA_WIDTH = 8,
 	parameter LOG2_OF_DEPTH = 4,
 	parameter SERIES = "spartan6", // "spartan6" or "7series"
-	parameter PRIMITIVE_ADDRESS_DEPTH = SERIES=="spartan6" ? 14 : 15, // each s6 BRAM is 16kbits (18kbits); each 7series BRAM is 32kbits (36kbits) [where is the extra bit going?!?]
+	//parameter PRIMITIVE_ADDRESS_DEPTH = SERIES=="spartan6" ? 14 : 15, // each s6 BRAM is 16kbits (18kbits); each 7series BRAM is 32kbits (36kbits) [where is the extra bit going?!?]
 	parameter DEPTH = 1<<LOG2_OF_DEPTH
 ) (
 	input clock, reset,
