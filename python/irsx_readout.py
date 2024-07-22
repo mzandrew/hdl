@@ -29,11 +29,16 @@ default_expected_even_channel_trigger_width = 8
 default_expected_odd_channel_trigger_width  = 5
 default_hs_data_ss_incr = 4
 default_hs_data_capture = default_hs_data_ss_incr + 9 + 8 + 1
-default_spgin = 0
+default_spgin = 0 # default state of hs_data stream (page 40 of schematics)
 default_scaler_timeout = 127.22e6 * gui_update_period
 default_hs_data_offset = 7
 default_hs_data_ratio = 4
 default_tpg = 0xb05 # only accepts the lsb=1 after having written a 1 in that position already
+
+MIDRANGE = 0xd55
+EXTRA_OFFSET = 500
+CHANNEL_OFFSET = 200
+QUAD_CHANNEL_OFFSET = 300
 
 # the following lists of values are for the trigger_gain x1, x4 and x16 settings:
 #default_number_of_steps_for_threshold_scan = [ 64, 128, 512 ]
@@ -69,9 +74,7 @@ number_of_words_to_read_from_the_fifo = 4106
 ALFA = 0xa1fa
 OMGA = 0x0e6a
 LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 8
-enabled_channels = [ 0, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 0,  0, 0, 1, 0 ] # two good channels
-#enabled_channels = [ 1, 0, 0, 0,  0, 1, 1, 0,  0, 0, 0, 0,  0, 0, 0, 1 ] # how the board is wired
-#enabled_channels = [ 1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1 ] # all channels
+enabled_channels = [ 1, 1, 1, 1,  1, 1, 1, 1 ] # all channels
 I2CupAddr = 0x0
 LVDSA_pwr = 0 # 0 is high power mode
 LVDSB_pwr = 0 # 0 is high power mode
@@ -83,7 +86,7 @@ number_of_samples = 0x00 # 0 means 256 here
 previous_number_of_samples = 0x00 # 0 means 256 here
 
 number_of_pin_diode_boxes = 1
-MAX_SAMPLES_PER_WAVEFORM = 256
+MAX_SAMPLES_PER_WAVEFORM = 64
 timestep = 1
 
 MAX_ADC = 4095
@@ -153,8 +156,11 @@ dark_red = (127, 0, 0)
 dark_blue = (0, 0, 127)
 dark_purple = (127, 0, 127)
 
-# grey
-color = [ black, white, yellow, red, dark_red, pink, maroon, purple, orange, dark_purple, green, light_blue, dark_teal, dark_green, blue, dark_blue, teal, grey, brown ]
+import colorsys
+waveform_colors = [ tuple(255*x for x in colorsys.hsv_to_rgb(k/(NUMBER_OF_CHANNELS_PER_ASIC+2), 1.0, 1.0)) for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+#print(str(waveform_colors))
+color = [ black, white ]
+color.extend(waveform_colors)
 
 selection = 0
 coax_mux = [ 0 for i in range(4) ]
@@ -246,13 +252,17 @@ def update_plot(i, j):
 	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
 	scale = 1.0 / MAX_ADC
 	#print(str(scale))
+	min_data_value_seen = MAX_ADC
 	max_data_value_seen = 0
+	#print_waveform_data(0)
 	for n in range(len(waveform_data[i][j][0])):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			if not enabled_channels[k]:
 				continue
 			if max_data_value_seen<waveform_data[i][j][k][n]:
 				max_data_value_seen = waveform_data[i][j][k][n]
+			if waveform_data[i][j][k][n]<min_data_value_seen:
+				min_data_value_seen = waveform_data[i][j][k][n]
 			voltage = data_and_pedestal_coefficients[i][0] * waveform_data[i][j][k][n]
 			#if 15==k and 0==n:
 			#	voltage = MAX_ADC
@@ -261,12 +271,16 @@ def update_plot(i, j):
 				if 0==i:
 					voltage += data_and_pedestal_coefficients[i][1] * pedestal_data[i][j][k][n]
 				else:
-					voltage += data_and_pedestal_coefficients[i][1] * (pedestal_data[i][j][k][n] - average_pedestal[j][k])
+					#voltage += data_and_pedestal_coefficients[i][1] * (pedestal_data[i][j][k][n] - average_pedestal[j][k])
+					voltage += data_and_pedestal_coefficients[i][1] * (pedestal_data[j][j][k][n] - MIDRANGE + (k-NUMBER_OF_CHANNELS_PER_ASIC//2) * CHANNEL_OFFSET + QUAD_CHANNEL_OFFSET * (k//4))
+			else:
+				voltage -= EXTRA_OFFSET + (k-NUMBER_OF_CHANNELS_PER_ASIC//2) * CHANNEL_OFFSET + QUAD_CHANNEL_OFFSET * (k//4)
 			time = timestep*n
 			x = int(time)
 			formatted_data[k][x] = voltage * scale
 			#if 0==n%40:
 			#	print(str(time) + "," + str(voltage) + ":" + str(x) + ":" + str(formatted_data[k][x]))
+	print("min_data_value_seen: 0x" + hex(min_data_value_seen, 3))
 	print("max_data_value_seen: 0x" + hex(max_data_value_seen, 3))
 	pygame.event.pump()
 	print("plotting data...")
@@ -621,6 +635,8 @@ def loop():
 				bump_thresholds(+bump_threshold_amount[trigger_gain])
 			elif pygame.K_s==event.key:
 				toggle_trigger_sign_bit()
+			elif pygame.K_a==event.key:
+				read_bank5_data()
 			elif pygame.K_g==event.key:
 				cycle_through_x1_x4_x16_trigger_gains()
 			elif pygame.K_z==event.key:
@@ -667,7 +683,6 @@ def loop():
 			update_bank0_registers()
 			update_bank1_registers()
 			update_bank4_registers()
-			update_bank5_registers()
 			update_bank6_registers()
 			show_other_stuff()
 #			update_bank1_bank2_scalers()
@@ -688,7 +703,7 @@ def blit(i, j):
 	if plots_were_updated[i][j]:
 		#print("blitting...")
 		screen.blit(plot[i][j], (GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)))
-		pygame.image.save(plot[i][j], "alpha.data." + str(i) + ".png")
+		#pygame.image.save(plot[i][j], "alpha.data." + str(i) + ".png")
 		pygame.event.pump()
 		plots_were_updated[i][j] = False
 		something_was_updated = True
@@ -728,10 +743,26 @@ def read_bank4_registers():
 	bank = 4
 	bank4_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank4_register_names), False)
 
-def read_bank5_registers():
-	global bank5_register_values
+def print_waveform_data(k):
+	string = ""
+	for n in range(MAX_SAMPLES_PER_WAVEFORM):
+		string += hex(waveform_data[1][0][k][n]) + ","
+	print(string)
+
+def read_bank5_data():
 	bank = 5
-	bank5_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank5_register_names), False)
+	bank5_data = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, 512, False)
+	global waveform_data
+	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		for n in range(MAX_SAMPLES_PER_WAVEFORM):
+			waveform_data[1][0][k][n] = bank5_data[k*64+n] & 0xfff
+#	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+#		print_waveform_data(k)
+	global have_just_gathered_waveform_data
+#	for i in range(COLUMNS):
+#		for j in range(ROWS):
+#			have_just_gathered_waveform_data[i][j] = True
+	have_just_gathered_waveform_data[1][0] = True
 
 def read_bank6_registers():
 	global bank6_register_values
@@ -789,21 +820,6 @@ def update_bank4_registers():
 				pass
 			bank4_register_object[i] = banks_font.render(hex(bank4_register_values[i], 8, True), False, white)
 			screen.blit(bank4_register_object[i], bank4_register_object[i].get_rect(center=(X_POSITION_OF_BANK4_REGISTERS-bank4_register_object[i].get_width()//2,Y_POSITION_OF_BANK4_REGISTERS+FONT_SIZE_BANKS*i)))
-
-def update_bank5_registers():
-	global bank5_register_object
-	read_bank5_registers()
-	if should_show_bank5_registers:
-		for i in range(len(bank5_register_names)):
-			try:
-				temp_surface = pygame.Surface(bank5_register_object[i].get_size())
-				temp_surface.fill(brown)
-				screen.blit(temp_surface, bank5_register_object[i].get_rect(center=(X_POSITION_OF_BANK5_REGISTERS-bank5_register_object[i].get_width()//2,Y_POSITION_OF_BANK5_REGISTERS+FONT_SIZE_BANKS*i)))
-			except Exception as e:
-				#print(str(e))
-				pass
-			bank5_register_object[i] = banks_font.render(hex(bank5_register_values[i], 6, True), False, white)
-			screen.blit(bank5_register_object[i], bank5_register_object[i].get_rect(center=(X_POSITION_OF_BANK5_REGISTERS-bank5_register_object[i].get_width()//2,Y_POSITION_OF_BANK5_REGISTERS+FONT_SIZE_BANKS*i)))
 
 def update_bank6_registers():
 	global bank6_register_object
@@ -1052,7 +1068,7 @@ nominal_register_values.append([176, "VtrimT", 4090]) # needs VQbuff
 #nominal_register_values.append([177, "Qbias", 1300, "set to 0 until DLL set"]) # needs VQbuff
 nominal_register_values.append([177, "Qbias", 0, "set to 0 until DLL set"]) # needs VQbuff
 nominal_register_values.append([178, "VQbuff", 1300])
-nominal_register_values.append([179, "reg179", 0, "nCLR_PHASE, nTime1Time2 (for viewing SST on montiming1 and realmont on montiming2), SSTSEL, -, -, montiming select (3bit): A1, B1, A2, B2, PHASE, PHAB, SSPin, WR_STRB"])
+nominal_register_values.append([179, "reg179", 0<<7 | 0<<6 | 0<<5 | 0, "nCLR_PHASE, nTime1Time2 (for viewing SST on montiming1 and realmont on montiming2), SSTSEL, -, -, montiming select (3bit): A1, B1, A2, B2, PHASE, PHAB, SSPin, WR_STRB"])
 nominal_register_values.append([180, "VadjP", 2700]) # needs VAPbuff
 nominal_register_values.append([181, "VAPbuff", 3500, "set to 0 for DLL mode"])
 nominal_register_values.append([182, "VadjN", 1530]) # needs VANbuff
@@ -1073,10 +1089,10 @@ nominal_register_values.append([196, "SSToutFB", 110, ""])
 #nominal_register_values.append([197, "spare1", ])
 #nominal_register_values.append([198, "spart2", ])
 #nominal_register_values.append([199, "TPG", 0x402, "test pattern generator (12bit)"])
-nominal_register_values.append([199, "TPG", default_tpg, "test pattern generator (12bit)"])
-nominal_register_values.append([200, "LD_RD_ADDR", 0x800, "rd_ena, read address (9bit)"]) # not sure what bit11 is doing here in the suggested value...
-nominal_register_values.append([201, "LOAD_SS", 0, "ss_dir, -, -, channel (3bit), sample select (9bit); ss_dir=0 to load from here; then set to 1 to have it increment from there"])
-nominal_register_values.append([202, "Jam_SS", 0, "Nib ADDR (3bit), SS_ENA; page 46 of schematics"])
+nominal_register_values.append([199, "TPG", default_tpg, "test pattern generator (12bit); page 40 of schematics"])
+nominal_register_values.append([200, "LD_RD_ADDR", 1<<9 | 0, "rd_ena, read address (9bit)"])
+nominal_register_values.append([201, "LOAD_SS", 1<<11 | 0<<6 | 0, "ss_dir, -, -, channel (3bit), sample select (6bit); ss_dir=0 to load from here; then set to 1 to have it increment from there; page 46 of schematics"])
+nominal_register_values.append([202, "Jam_SS", 0<<1 | 1, "Nib ADDR (3bit), SS_ENA; page 46 of schematics"])
 nominal_register_values.append([252, "CLR_Sync", 1, "WR_ADDR addr mode (no data)"])
 nominal_register_values.append([253, "CatchSpy", 1, "WR_ADDR addr mode (no data)"])
 
