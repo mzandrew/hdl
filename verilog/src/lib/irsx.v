@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-07-16 by mza
+// last updated 2024-07-21 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -8,11 +8,68 @@
 `include "RAM8.v"
 `include "frequency_counter.v"
 
-//module irsx_hs_data_out #(
-//) (
-//);
-//				data_stream[i] <= { data_stream[i][DATASTREAM_LENGTH-1-8:0], iserdes_word_in[i] };
-//endmodule
+module irsx_hs_data #(
+	parameter TESTBENCH = 0,
+	parameter BIT_DEPTH = 8,
+	parameter HS_DATA_INTENDED_NUMBER_OF_BITS = 25,
+	parameter HS_DATA_EXTRA_BITS_TO_CAPTURE = 28,
+	parameter HS_DATA_RATIO = 4,
+	parameter HS_DATA_PICKOFF = HS_DATA_INTENDED_NUMBER_OF_BITS*HS_DATA_RATIO+HS_DATA_EXTRA_BITS_TO_CAPTURE, // sampling at 1018 MHz; hs_clk is 254 MHz
+	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
+) (
+	input hs_data,
+	input hs_bit_clk_raw,
+	input hs_word_clock,
+	input input_pll_locked,
+	input [6:0] hs_data_offset,
+	input [4:0] hs_data_ss_incr,
+	input [4:0] hs_data_capture,
+	output reg [HS_DATA_PICKOFF:0] buffered_hs_data_stream = 0,
+	output reg ss_incr = 1,
+	output hs_pll_is_locked_and_strobe_is_aligned,
+	output [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated
+);
+	genvar i;
+	wire hs_bit_clk, hs_bit_strobe;
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) hs_bufpll_inst (
+		.PLLIN(hs_bit_clk_raw), // PLL Clock input
+		.GCLK(hs_word_clock), // Global Clock input
+		.LOCKED(input_pll_locked), // Clock0 locked input
+		.IOCLK(hs_bit_clk), // Output PLL Clock
+		.LOCK(hs_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(hs_bit_strobe) // Output SERDES strobe
+	);
+	wire hs_reset = 1'b0;
+//	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(1'b0), .pll_locked1_input(input_pll_locked), .clock1_input(word_clock), .clock2_input(hs_word_clock), .reset2_output(hs_reset));
+	// ----------------------------------------------------------------------
+	wire [7:0] hs_data_word;
+	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
+	reg [HS_DATA_PICKOFF:0] hs_data_stream = 0;
+	reg [4:0] hs_data_counter = 0;
+	always @(posedge hs_word_clock) begin
+		ss_incr <= 1;
+		if (hs_reset) begin
+			hs_data_stream <= 0;
+			hs_data_counter <= 0;
+		end else begin
+			if (hs_data_counter==hs_data_ss_incr) begin
+				ss_incr <= 0;
+			end
+			if (hs_data_counter==hs_data_capture) begin
+				buffered_hs_data_stream <= hs_data_stream;
+			end
+			hs_data_stream <= { hs_data_stream[HS_DATA_PICKOFF-8:0], hs_data_word };
+			hs_data_counter <= hs_data_counter + 1'b1;
+		end
+	end
+	for (i=0; i<HS_DATA_INTENDED_NUMBER_OF_BITS; i=i+1) begin : hs_data_decimation
+		assign hs_data_word_decimated[i] = buffered_hs_data_stream[HS_DATA_RATIO*i+hs_data_offset];
+	end
+//	data_stream[i] <= { data_stream[i][DATASTREAM_LENGTH-1-8:0], iserdes_word_in[i] };
+endmodule
 
 //irsx_scaler_counter_interface #(.COUNTER_WIDTH(8), .SCALER_WIDTH(4), .CLOCK_PERIODS_TO_ACCUMULATE(16)) irsx_scaler_counter (
 //	.clock(clock), .reset(reset), .clear_channel_counters(clear_channel_counters), .timeout(timeout),
