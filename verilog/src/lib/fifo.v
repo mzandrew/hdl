@@ -1,4 +1,4 @@
-// last updated 2024-06-21 by mza
+// last updated 2024-08-19 by mza
 
 `ifndef FIFO_LIB
 `define FIFO_LIB
@@ -167,9 +167,10 @@ module fifo_single_clock_using_single_bram #(
 	reg [LOG2_OF_DEPTH:0] count = MIN_COUNT; // 1 extra bit
 	reg [7:0] write_error_count = 0;
 	reg [7:0] read_error_count = 0;
-	reg [7:0] other_error_count = 0;
+//	reg [7:0] other_error_count = 0;
 	//assign error_count = write_error_count + read_error_count + other_error_count;
-	assign error_count = { 8'd0, write_error_count[7:0], read_error_count[7:0], other_error_count[7:0] };
+	//assign error_count = { 8'd0, write_error_count[7:0], read_error_count[7:0], other_error_count[7:0] };
+	assign error_count = { 8'd0, write_error_count[7:0], read_error_count[7:0], 8'd0 };
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};
 	wire ram_write_enable = write_enable && ((~full) || (read_enable && full));
 	RAM_s6_primitive #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH)) mem (.reset(reset),
@@ -182,7 +183,7 @@ module fifo_single_clock_using_single_bram #(
 			count <= MIN_COUNT;
 			write_error_count <= 0;
 			read_error_count <= 0;
-			other_error_count <= 0;
+//			other_error_count <= 0;
 		end else begin
 			casez (rwef)
 				4'b100? : begin read_address <= read_address + 1'd1; count <= count - 1'd1; end
@@ -192,8 +193,9 @@ module fifo_single_clock_using_single_bram #(
 				4'b1100 : begin write_address <= write_address + 1'd1; read_address <= read_address + 1'd1; end
 				4'b1110 : begin write_address <= write_address + 1'd1; count <= count + 1'd1; end
 				4'b1101 : begin read_address <= read_address + 1'd1; count <= count - 1'd1; end
-				4'b00?? : begin end // idle
-				default : begin other_error_count <= other_error_count + 1'd1; end
+				//4'b00?? : begin end // idle
+				//default : begin other_error_count <= other_error_count + 1'd1; end // WARNING:Xst:1293 - FF/Latch <other_error_count_0> has a constant value of 0 in block <fifo_single_clock>. This FF/Latch will be trimmed during the optimization process.
+				default : begin end // idle
 			endcase
 		end
 	end
@@ -231,8 +233,9 @@ module fifo_single_clock #(
 	reg [LOG2_OF_DEPTH:0] count = MIN_COUNT; // 1 extra bit
 	reg [7:0] write_error_count = 0;
 	reg [7:0] read_error_count = 0;
-	reg [7:0] other_error_count = 0;
-	assign error_count = { write_error_count, read_error_count, other_error_count };
+	//reg [7:0] other_error_count = 0;
+	//assign error_count = { write_error_count, read_error_count, other_error_count };
+	assign error_count = { write_error_count, read_error_count, 8'd0 };
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};
 	wire ram_write_enable = write_enable && ((~full) || (read_enable && full));
 	RAM_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH), .SERIES(SERIES)) myuni ( .reset(reset),
@@ -245,7 +248,7 @@ module fifo_single_clock #(
 			count <= MIN_COUNT;
 			write_error_count <= 0;
 			read_error_count <= 0;
-			other_error_count <= 0;
+			//other_error_count <= 0;
 		end else begin
 			casez (rwef)
 				4'b100? : begin read_address <= read_address + 1'd1; count <= count - 1'd1; end
@@ -255,8 +258,9 @@ module fifo_single_clock #(
 				4'b1100 : begin write_address <= write_address + 1'd1; read_address <= read_address + 1'd1; end
 				4'b1110 : begin write_address <= write_address + 1'd1; count <= count + 1'd1; end
 				4'b1101 : begin read_address <= read_address + 1'd1; count <= count - 1'd1; end
-				4'b00?? : begin end // idle
-				default : begin other_error_count <= other_error_count + 1'd1; end
+				//4'b00?? : begin end // idle
+				//default : begin other_error_count <= other_error_count + 1'd1; end // WARNING:Xst:1293 - FF/Latch <other_error_count_0> has a constant value of 0 in block <fifo_single_clock>. This FF/Latch will be trimmed during the optimization process.
+				default : begin end // idle
 			endcase
 		end
 	end
