@@ -3,7 +3,7 @@
 # written 2023-08-23 by mza
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-07-14 by mza
+# last updated 2024-08-27 by mza
 
 bank0_register_names = [ "ls_i2c" ]
 bank1_register_names = [ "hdrb errors, status8", "triggers since reset", "fifo empty", "fifo pending", "fifo errors", "asic output strobes", "fifo output strobes", "alfa counter", "omga counter" ]
@@ -21,18 +21,19 @@ number_of_words_to_read_from_the_fifo = 4106
 ALFA = 0xa1fa
 OMGA = 0x0e6a
 LOG2_OF_NUMBER_OF_PEDESTALS_TO_ACQUIRE = 4
-#enabled_channels = [ 0, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 0,  0, 0, 1, 0 ] # two good channels
+#enabled_channels = [ 0, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 0,  0, 0, 1, 0 ] # two good channels on the revD board
 #enabled_channels = [ 1, 0, 0, 0,  0, 1, 1, 0,  0, 0, 0, 0,  0, 0, 0, 1 ] # how the board is wired
 enabled_channels = [ 1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1 ] # all channels
 I2CupAddr = 0x0
 LVDSA_pwr = 0 # 0 is high power mode
 LVDSB_pwr = 0 # 0 is high power mode
 SRCsel = 0 # 0 means data path A which is probably what you want while testing
-TMReg_Reset = 0 # not currently implemented; breaks ls_i2c somehow
+TMReg_Reset = 1 # not currently implemented; breaks ls_i2c somehow
 samples_after_trigger = 0x80
 lookback_windows = 0x80
 number_of_samples = 0x00 # 0 means 256 here
 previous_number_of_samples = 0x00 # 0 means 256 here
+PCLK_period = 0xff
 
 MAX_SAMPLES_PER_WAVEFORM = 256
 timestep = 1
@@ -395,9 +396,8 @@ def setup():
 	should_check_for_new_data = pygame.USEREVENT + 1
 	print("gui_update_period: " + str(gui_update_period))
 	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
-	set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
+	set_ls_i2c_mode(0) # ls_i2c: 0=i2c; 1=LS
 	write_DAC_values()
-	write_I2C_register_values()
 
 def loop():
 	#pygame.time.wait(10)
@@ -417,7 +417,7 @@ def loop():
 			elif K_F2==event.key:
 				initiate_legacy_serial_sequence()
 			elif K_F3==event.key:
-				initiate_i2c_transfer()
+				write_I2C_register_values_and_initiate_i2c_transfers()
 			elif K_F4==event.key:
 				initiate_trigger()
 			elif K_p==event.key:
@@ -598,15 +598,30 @@ def change_number_of_samples(value):
 		number_of_samples = 0 # 0 means 256 here
 	elif 255<number_of_samples:
 		number_of_samples = 0 # 0 means 256 here
-	write_I2C_register_values()
-	initiate_i2c_transfer()
+	write_I2C_register_values_and_initiate_i2c_transfers()
 	return previous_number_of_samples
 
-def write_I2C_register_values():
-	SRC = I2CupAddr<<3 | LVDSB_pwr<<2 | LVDSA_pwr<<1 | SRCsel
-	I2C_register_values = [ 0, SRC, TMReg_Reset, samples_after_trigger, lookback_windows, number_of_samples ]
+def write_I2C_register_values_and_initiate_i2c_transfers():
+	set_ls_i2c_mode(0) # ls_i2c: 0=i2c; 1=LS
 	bank = 3
+	SRC = I2CupAddr<<3 | LVDSB_pwr<<2 | LVDSA_pwr<<1 | SRCsel
+	#i2c_address_register_enables = 0b0000000000111010 # nSP, LBW, SAT, SRC
+	i2c_address_register_enables = 0b0000000000111110 # nSP, LBW, SAT, TMReg_Reset, SRC
+	I2C_register_values = [ 0, SRC, TMReg_Reset, samples_after_trigger, lookback_windows, number_of_samples, 0, 0, 0, 0, 0, 0, 0, 0, 0, i2c_address_register_enables ]
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, I2C_register_values, False)
+	print(str(I2C_register_values))
+	initiate_i2c_transfer()
+	time.sleep(0.01)
+	i2c_address_register_enables = 0b0111100000000000 # PCLK_period, DBM, DBL, pclk
+	for i in range(len(DAC_values)):
+		most_significant_nybbles = (DAC_values[i] & 0xf00)>>8
+		least_significant_nybbles = DAC_values[i] & 0x0ff
+		PCLK_4DACs = 1<<i
+		I2C_register_values = [ 0, SRC, TMReg_Reset, samples_after_trigger, lookback_windows, number_of_samples, 0, 0, 0, 0, 0, PCLK_period, least_significant_nybbles, most_significant_nybbles, PCLK_4DACs, i2c_address_register_enables ]
+		print(str(I2C_register_values))
+		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, I2C_register_values, False)
+		initiate_i2c_transfer()
+		time.sleep(0.01)
 
 def change_DAC_value(delta):
 	global DAC_values
