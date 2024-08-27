@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test067.alphav2.althea.revBLM.v and mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
-// last updated 2024-07-12 by mza
+// last updated 2024-08-26 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -52,7 +52,7 @@ module ALPHAtestPALIMPSEST #(
 	input data_a_out_p, data_a_out_n
 );
 	wire clock100;
-	IBUFGDS clock_in_diff (.I(clock100_p), .IB(clock100_n), .O(clock100));
+	IBUFGDS clock_in_diff (.I(clock100_p), .IB(clock100_n), .O(clock100)); // WARNING:Xst:2957 - There are clock and non-clock loads on clock signal clock100_BUFG. This is not a recommended design practice, that may cause excessive delay, skew or unroutable situations.
 	wire first_pll_locked;
 	// ----------------------------------------------------------------------
 	reg reset100 = 1;
@@ -83,8 +83,8 @@ module ALPHAtestPALIMPSEST #(
 	BUFG sys180 (.I(sysclk180_raw), .O(sysclk180));
 	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
 	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
-	clock_ODDR_out_diff sysclk_ODDR (.clock_in_p(sysclk), .clock_in_n(sysclk180), .reset(reset), .clock_out_p(sysclk_p), .clock_out_n(sysclk_n));
-	clock_ODDR_out_diff sstclk_ODDR (.clock_in_p(sstclk), .clock_in_n(sstclk180), .reset(reset), .clock_out_p(sstclk_p), .clock_out_n(sstclk_n));
+	clock_ODDR_out_diff sysclk_ODDR (.clock_in_p(sysclk), .clock_in_n(sysclk180), .reset(reset), .clock_enable(1'b1), .clock_out_p(sysclk_p), .clock_out_n(sysclk_n));
+	clock_ODDR_out_diff sstclk_ODDR (.clock_in_p(sstclk), .clock_in_n(sstclk180), .reset(reset), .clock_enable(1'b1), .clock_out_p(sstclk_p), .clock_out_n(sstclk_n));
 //	ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(sysclk), .C1(sysclk180), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(reset), .S(1'b0), .Q(coax[3]));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
@@ -113,6 +113,7 @@ module ALPHAtestPALIMPSEST #(
 		.write_data_word(write_data_word), .read_data_word(read_data_word[bank]), .address_word_reg(address_word_full),
 		.read_errors(hdrb_read_errors), .write_errors(hdrb_write_errors), .address_errors(hdrb_address_errors)
 	);
+/*
 	wire [31:0] bank_r_strobe_counter [7:0];
 	wire [31:0] bank_w_strobe_counter [7:0];
 	counter_level bank0_r_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(read_strobe[0]),  .counter(bank_r_strobe_counter[0]));
@@ -131,6 +132,9 @@ module ALPHAtestPALIMPSEST #(
 	counter_level bank5_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[5]), .counter(bank_w_strobe_counter[5]));
 	counter_level bank6_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[6]), .counter(bank_w_strobe_counter[6]));
 	counter_level bank7_w_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(write_strobe[7]), .counter(bank_w_strobe_counter[7]));
+*/
+	// ----------------------------------------------------------------------
+	genvar i;
 	// ----------------------------------------------------------------------
 	wire [31:0] bank0 [15:0]; // general settings
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank0 (.clock(sysclk), .reset(reset),
@@ -160,16 +164,21 @@ module ALPHAtestPALIMPSEST #(
 	wire [31:0] alfa_counter;
 	wire [31:0] omga_counter;
 	assign bank1[0] = { hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8 };
-	assign bank1[1][7:0] = number_of_triggers_since_reset;
-	assign bank1[2][0] = fifo_empty;
-//	assign bank1[3][:] = fifo_pending;
-	assign bank1[4][23:0] = fifo_error_count;
+	assign bank1[1][7:0] = number_of_triggers_since_reset; assign bank1[1][31:8] = 0;
+	assign bank1[2][0] = fifo_empty; assign bank1[2][31:1] = 0;
+	assign bank1[3] = 0;
+	assign bank1[4][23:0] = fifo_error_count; assign bank1[4][31:24] = 0;
 	assign bank1[5] = asic_output_strobe_counter;
 	assign bank1[6] = fifo_output_strobe_counter;
 	assign bank1[7] = alfa_counter;
 	assign bank1[8] = omga_counter;
+	for (i=9; i<16; i=i+1) begin : bank1_unused
+		assign bank1[i] = 0;
+	end
 	// ----------------------------------------------------------------------
 	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
+	// WARNING:Xst:2677 - Node <pulse_out_4> of sequential type is unconnected in block <pulsed_things_bank2>.
+	assign read_data_word[2] = 0;
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(sysclk),
 		.address(address_word_full[3:0]), .strobe(write_strobe[2]), .pulse_out(bank2));
 	wire should_initiate_dreset_sequence        = bank2[0];
@@ -193,6 +202,11 @@ module ALPHAtestPALIMPSEST #(
 	wire [7:0] samples_after_trigger = bank3[3][7:0];
 	wire [7:0] lookback_windows      = bank3[4][7:0];
 	wire [7:0] number_of_samples     = bank3[5][7:0];
+	wire [7:0] PCLK_period                   = bank3[11][7:0];
+	wire [7:0] least_significant_nybbles     = bank3[12][7:0];
+	wire [7:0] most_significant_nybble       = bank3[13][7:0];
+	wire [7:0] PCLK_4DACs                    = bank3[14][7:0];
+	wire [15:0] i2c_address_register_enables = bank3[15][15:0];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank4 [15:0]; // legacy serial registers
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank4 (.clock(sysclk), .reset(reset),
@@ -220,6 +234,7 @@ module ALPHAtestPALIMPSEST #(
 		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
 		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
 		.write_strobe_b(1'b1));
+/*
 	assign bank6[0] = bank_r_strobe_counter[0];
 	assign bank6[1] = bank_r_strobe_counter[1];
 	assign bank6[2] = bank_r_strobe_counter[2];
@@ -236,7 +251,12 @@ module ALPHAtestPALIMPSEST #(
 	assign bank6[13] = bank_w_strobe_counter[5];
 	assign bank6[14] = bank_w_strobe_counter[6];
 	assign bank6[15] = bank_w_strobe_counter[7];
+*/
+	for (i=0; i<16; i=i+1) begin : bank6_unused
+		assign bank6[i] = 0;
+	end
 	// ----------------------------------------------------------------------
+	assign read_data_word[7] = 0;
 	// bank7 pollable memory
 	if (0) begin
 		RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank7 (.reset(reset100),
@@ -290,7 +310,19 @@ module ALPHAtestPALIMPSEST #(
 		.data_out(asic_data_from_fifo), .read_enable(fifo_read_strobe), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
 	counter_level fifo_output_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(fifo_read_strobe), .counter(fifo_output_strobe_counter));
 	// tok_a_in tok_a_out anything_that_is_going_on msn header footer meat
+	// ----------------------------------------------------------------------
+	wire sda_in, sda_out, sda_dir, i2c_busy, i2c_nack, i2c_error;
+	assign sda = sda_dir & (~sda_out) ? 1'b0 : 1'bz;
+	assign sda_in = sda;
+	// ----------------------------------------------------------------------
 	if (1) begin
+		assign coax[0] = scl;
+		assign coax[1] = sda;
+		assign coax[2] = i2c_busy;
+		assign coax[3] = i2c_nack;
+		assign coax[4] = i2c_error;
+		assign coax[5] = initiate_i2c_transfer;
+	end else if (1) begin
 		assign coax[0] = data_a;
 		assign coax[1] = header;
 		assign coax[2] = footer;
@@ -371,15 +403,16 @@ module ALPHAtestPALIMPSEST #(
 		end
 	end
 	// ----------------------------------------------------------------------
-	wire sda_in, sda_out, sda_dir;
-	assign sda = sda_dir ? sda_out : 1'bz;
-	assign sda_in = sda;
 	alpha_control alpha_control (.clock(sysclk), .reset(reset), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in),
 		.initiate_trigger(initiate_trigger), .trig_top(trigin), .initiate_dreset_sequence(initiate_dreset_sequence),
-		.scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .initiate_i2c_transfer(initiate_i2c_transfer),
+		.scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir),
+		.i2c_busy(i2c_busy), .i2c_nack(i2c_nack), .i2c_error(i2c_error), .initiate_i2c_transfer(initiate_i2c_transfer),
+		.i2c_address_register_enables(i2c_address_register_enables),
 		.sin(sin), .pclk(pclk), .sclk(sclk), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence),
 		.I2CupAddr(I2CupAddr), .LVDSA_pwr(LVDSA_pwr), .LVDSB_pwr(LVDSB_pwr), .SRCsel(SRCsel), .TMReg_Reset(TMReg_Reset), 
 		.samples_after_trigger(samples_after_trigger), .lookback_windows(lookback_windows), .number_of_samples(number_of_samples), 
+		.PCLK_period(PCLK_period), .PCLK_4DACs(PCLK_4DACs),
+		.least_significant_nybbles(least_significant_nybbles), .most_significant_nybble(most_significant_nybble),
 		.CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 endmodule
 

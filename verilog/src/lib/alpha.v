@@ -1,6 +1,6 @@
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-07-12 by mza
+// last updated 2024-08-27 by mza
 
 `ifndef ALPHA_LIB
 `define ALPHA_LIB
@@ -66,9 +66,13 @@ module alpha_control #(
 	input [11:0] CMPbias, ISEL, SBbias, DBbias,
 	input [4:0] I2CupAddr,
 	input LVDSA_pwr, LVDSB_pwr, SRCsel, TMReg_Reset,
+	input [7:0] PCLK_period,
+	input [7:0] least_significant_nybbles, most_significant_nybble,
+	input [7:0] PCLK_4DACs,
+	input [15:0] i2c_address_register_enables,
 	input [7:0] samples_after_trigger, lookback_windows, number_of_samples,
 	output reg sync, dreset, tok_a_in, sin, pclk, sclk, trig_top,
-	output scl, sda_out, sda_dir
+	output scl, sda_out, sda_dir, i2c_busy, i2c_nack, i2c_error
 );
 	reg [31:0] counter1 = 0;
 	reg [31:0] counter2 = 0;
@@ -314,9 +318,9 @@ module alpha_control #(
 		end
 	end
 	// ----------------------------------------------------------------------
-	//wire [2:0] i2c_address_pins = 3'b000; // hard-coded on alpha-eval-toupee revC and revD; alpha_top
+	wire [2:0] i2c_address_pins = 3'b000; // hard-coded on alpha-eval-toupee revC and revD; alpha_top
 	//wire [2:0] i2c_address_pins = 3'b100; // alpha_middle/alpha_test
-	wire [2:0] i2c_address_pins = 3'b010; // alpha_bot
+	//wire [2:0] i2c_address_pins = 3'b010; // alpha_bot
 	reg [3:0] i2c_register = 0;
 	wire [6:0] address = { i2c_address_pins, i2c_register };
 	wire [7:0] i2c_value [15:0];
@@ -325,6 +329,7 @@ module alpha_control #(
 	// ----------------------------------------------------------------------
 	// 00 I2C_trigger
 	//assign i2c_value[0] = 0; // I2C trigger
+	assign i2c_value[0] = 0;
 	// ----------------------------------------------------------------------
 	// 01 SRC register:
 	//wire [4:0] I2CupAddr = 5'h17;
@@ -350,27 +355,35 @@ module alpha_control #(
 	assign i2c_value[5] = number_of_samples; // nSP
 	// ----------------------------------------------------------------------
 	// 06 OSs: status?
+	assign i2c_value[6] = 0;
 	// ----------------------------------------------------------------------
 	// 07 ALP: asic version?
+	assign i2c_value[7] = 0;
 	// ----------------------------------------------------------------------
 	// 08 trigger_select_c:
+	assign i2c_value[8] = 0;
 	// ----------------------------------------------------------------------
 	// 09 token_edge_detection_c:
+	assign i2c_value[9] = 0;
 	// ----------------------------------------------------------------------
 	// 10 oBL: not implemented
+	assign i2c_value[10] = 0;
 	// ----------------------------------------------------------------------
 	// 11 PCLK_period: for writing to DAC registers
+	assign i2c_value[11] = PCLK_period; // PCLK_period
 	// ----------------------------------------------------------------------
 	// 12 DBL: least significant nybbles
+	assign i2c_value[12] = least_significant_nybbles; // DBL
 	// ----------------------------------------------------------------------
 	// 13 DBM: most significant nybble
+	assign i2c_value[13] = most_significant_nybble; // DBM
 	// ----------------------------------------------------------------------
 	// 14 pclk: 4 bits corresponding to the 4 DACs
+	assign i2c_value[14] = PCLK_4DACs; // pclk
 	// ----------------------------------------------------------------------
 	// 15 pck: not implemented
+	assign i2c_value[15] = 0;
 	// ----------------------------------------------------------------------
-	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0011_1010; // nSP, LBW, SAT, SRC
-	//wire [15:0] i2c_address_register_enables = 16'b_1111_1111_1111_1111; // for testing
 	reg i2c_working_on_some_transfers = 0;
 	reg i2c_transitioning_to_the_next_transfer = 0;
 	reg i2c_inner_start_transfer = 0;
@@ -411,24 +424,24 @@ module alpha_control #(
 		if (SIMULATION) begin
 			i2c_poll_address_for_nack #(.CLOCK_DIVIDE_RATIO(4))
 				i2c_poller (.clock(clock), .address(address), .scl(scl), .sda_out(sda_out), .sda_dir(sda_dir),
-				.busy(), .nack(), .error(), .sda_in(sda_in),
+				.busy(i2c_busy), .nack(i2c_nack), .error(i2c_error), .sda_in(sda_in),
 				.start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
 		end else begin
 			i2c_poll_address_for_nack #(.CLOCK_FREQUENCY_IN_HZ(100000000), .DESIRED_I2C_FREQUENCY_IN_HZ(100000))
 				i2c_poller (.clock(clock), .address(address), .scl(scl), .sda_out(sda_out), .sda_dir(sda_dir),
-				.busy(), .nack(), .error(), .sda_in(sda_in),
+				.busy(i2c_busy), .nack(i2c_nack), .error(i2c_error), .sda_in(sda_in),
 				.start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
 		end
 	end else begin
 		if (SIMULATION) begin
 			i2c_write_value_to_address #(.CLOCK_DIVIDE_RATIO(4))
 				thing (.clock(clock), .address(address), .value(i2c_value[i2c_register]),
-				.scl(scl), .sda_out(sda_out), .sda_dir(sda_dir), .busy(), .nack(), .error(),
+				.scl(scl), .sda_out(sda_out), .sda_dir(sda_dir), .busy(i2c_busy), .nack(i2c_nack), .error(i2c_error),
 				.sda_in(sda_in), .start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
 		end else begin
 			i2c_write_value_to_address #(.CLOCK_FREQUENCY_IN_HZ(100000000), .DESIRED_I2C_FREQUENCY_IN_HZ(100000))
 				thing (.clock(clock), .address(address), .value(i2c_value[i2c_register]),
-				.scl(scl), .sda_out(sda_out), .sda_dir(sda_dir), .busy(), .nack(), .error(),
+				.scl(scl), .sda_out(sda_out), .sda_dir(sda_dir), .busy(i2c_busy), .nack(i2c_nack), .error(i2c_error),
 				.sda_in(sda_in), .start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
 		end
 	end
@@ -444,7 +457,7 @@ module alpha_control_tb;
 	reg initiate_dreset_sequence = 0;
 	reg initiate_i2c_transfer = 0;
 	wire sync, dreset, tok_a_in;
-	wire scl, sda_out, sda_dir, sin, pclk, sclk, trig_top;
+	wire scl, sda_out, sda_dir, i2c_busy, i2c_nack, i2c_error, sin, pclk, sclk, trig_top;
 	reg sda_in = 0;
 	initial begin
 		reset <= 1; #101; reset <= 0;
@@ -460,7 +473,7 @@ module alpha_control_tb;
 		clock <= ~clock;
 		#half_clock_period;
 	end
-	alpha_control #(.SIMULATION(1)) alpha_control (.clock(clock), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
+	alpha_control #(.SIMULATION(1)) alpha_control (.clock(clock), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .i2c_busy(i2c_busy), .i2c_nack(i2c_nack), .i2c_error(i2c_error), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
 endmodule
 
 // this module is ALWAYS hunting for the pattern a1fa...
