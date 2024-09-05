@@ -36,91 +36,103 @@ module i2c_write_value_to_address #(
 			divide_counter <= divide_counter + 1'b1;
 		end
 	end
+	localparam SHORT_GAP = 5;
+	localparam MEDIUM_GAP = 10;
+	localparam LONG_GAP = 20;
+	localparam ENDING = 1 + LONG_GAP; // duration 1; was 1
+	localparam SEND_STOP = ENDING + 5 + MEDIUM_GAP; // duration 5; was 9
+	localparam GET_SECOND_NACK = SEND_STOP + 12 + SHORT_GAP; // duration 12; was 27
+	localparam PUT_OUT_8BIT_DATA = GET_SECOND_NACK + 24 + SHORT_GAP; // duration 24; was 51
+	localparam GET_FIRST_NACK = PUT_OUT_8BIT_DATA + 12 + LONG_GAP; // duration 12; was 124
+	localparam PUT_OUT_WRITE_OR_READ = GET_FIRST_NACK + 6 + SHORT_GAP; // duration 6; was 130
+	localparam PUT_OUT_7BIT_ADDRESS = PUT_OUT_WRITE_OR_READ + 21 + SHORT_GAP; // duration 21; was 151
+	localparam SEND_START = PUT_OUT_7BIT_ADDRESS + 2 + MEDIUM_GAP; // duration 2; was 157
+	localparam BEGINNING = SEND_START + 5 + LONG_GAP; // duration 5; was 160
 	always @(posedge clock) begin
 		if (bit_counter>0) begin
 			if (i2c_strobe) begin
 				case(bit_counter)
-					160 : begin sda_dir <= 1; scl <= 1'bz; sda_out <= 1; end
+					BEGINNING - 0 : begin sda_dir <= 1; scl <= 1'bz; sda_out <= 1; end
 					// send start or repeated start
-					157 : sda_out <= 0; // this 1->0 transition of sda (while scl=1'bz) is the start condition
-					156 : scl <= 0;
+					SEND_START - 0 : sda_out <= 0; // this 1->0 transition of sda (while scl=1'bz) is the start condition
+					SEND_START - 1 : scl <= 0;
 					// send address word
-					151 : sda_out <= address[6]; // byte[7]
-					150 : scl <= 1'bz;
-					149 : scl <= 0;
-					148 : sda_out <= address[5]; // byte[6]
-					147 : scl <= 1'bz;
-					146 : scl <= 0;
-					145 : sda_out <= address[4]; // byte[5]
-					144 : scl <= 1'bz;
-					143 : scl <= 0;
-					142 : sda_out <= address[3]; // byte[4]
-					141 : scl <= 1'bz;
-					140 : scl <= 0;
-					139 : sda_out <= address[2]; // byte[3]
-					138 : scl <= 1'bz;
-					137 : scl <= 0;
-					136 : sda_out <= address[1]; // byte[2]
-					135 : scl <= 1'bz;
-					134 : scl <= 0;
-					133 : sda_out <= address[0]; // byte[1]
-					132 : scl <= 1'bz;
-					131 : scl <= 0;
+					PUT_OUT_7BIT_ADDRESS -  0 : sda_out <= address[6]; // byte[7]
+					PUT_OUT_7BIT_ADDRESS -  1 : scl <= 1'bz;
+					PUT_OUT_7BIT_ADDRESS -  2 : scl <= 0;
+					PUT_OUT_7BIT_ADDRESS -  3 : sda_out <= address[5]; // byte[6]
+					PUT_OUT_7BIT_ADDRESS -  4 : scl <= 1'bz;
+					PUT_OUT_7BIT_ADDRESS -  5 : scl <= 0;
+					PUT_OUT_7BIT_ADDRESS -  6 : sda_out <= address[4]; // byte[5]
+					PUT_OUT_7BIT_ADDRESS -  7 : scl <= 1'bz;
+					PUT_OUT_7BIT_ADDRESS -  8 : scl <= 0;
+					PUT_OUT_7BIT_ADDRESS -  9 : sda_out <= address[3]; // byte[4]
+					PUT_OUT_7BIT_ADDRESS - 10 : scl <= 1'bz;
+					PUT_OUT_7BIT_ADDRESS - 11 : scl <= 0;
+					PUT_OUT_7BIT_ADDRESS - 12 : sda_out <= address[2]; // byte[3]
+					PUT_OUT_7BIT_ADDRESS - 13 : scl <= 1'bz;
+					PUT_OUT_7BIT_ADDRESS - 14 : scl <= 0;
+					PUT_OUT_7BIT_ADDRESS - 15 : sda_out <= address[1]; // byte[2]
+					PUT_OUT_7BIT_ADDRESS - 16 : scl <= 1'bz;
+					PUT_OUT_7BIT_ADDRESS - 17 : scl <= 0;
+					PUT_OUT_7BIT_ADDRESS - 18 : sda_out <= address[0]; // byte[1]
+					PUT_OUT_7BIT_ADDRESS - 19 : scl <= 1'bz;
+					PUT_OUT_7BIT_ADDRESS - 20 : scl <= 0;
 					// send write command
-					130 : sda_out <= 0; // byte[0] = 0; write
-					126 : scl <= 1'bz;
-					125 : scl <= 0;
+					PUT_OUT_WRITE_OR_READ - 0 : sda_out <= 0; // byte[0] = 0; write
+					PUT_OUT_WRITE_OR_READ - 4 : scl <= 1'bz;
+					PUT_OUT_WRITE_OR_READ - 5 : scl <= 0;
 					// get nack
-					124 : sda_dir <= 0; // input
-					123 : sda_out <= 0; // set neutral value for after we change sda direction again
-					118 : scl <= 1'bz;
-					117 : nack <= sda_in; // nack
-					116 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
-					113 : if (nack) begin error <= 1; bit_counter <= 10; end else begin error <= 0; end
+					GET_FIRST_NACK -  0 : sda_dir <= 0; // input
+					GET_FIRST_NACK -  1 : sda_out <= 0; // set neutral value for after we change sda direction again
+					GET_FIRST_NACK -  6 : scl <= 1'bz;
+					GET_FIRST_NACK -  7 : nack <= sda_in; // nack
+					GET_FIRST_NACK -  8 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
+					GET_FIRST_NACK - 11 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end else begin error <= 0; end
 					// send value
-					051 : sda_out <= value[7]; // byte[7]
-					050 : scl <= 1'bz;
-					049 : scl <= 0;
-					048 : sda_out <= value[6]; // byte[6]
-					047 : scl <= 1'bz;
-					046 : scl <= 0;
-					045 : sda_out <= value[5]; // byte[5]
-					044 : scl <= 1'bz;
-					043 : scl <= 0;
-					042 : sda_out <= value[4]; // byte[4]
-					041 : scl <= 1'bz;
-					040 : scl <= 0;
-					039 : sda_out <= value[3]; // byte[3]
-					038 : scl <= 1'bz;
-					037 : scl <= 0;
-					036 : sda_out <= value[2]; // byte[2]
-					035 : scl <= 1'bz;
-					034 : scl <= 0;
-					033 : sda_out <= value[1]; // byte[1]
-					032 : scl <= 1'bz;
-					031 : scl <= 0;
-					030 : sda_out <= value[0]; // byte[0]
-					029 : scl <= 1'bz;
-					028 : scl <= 0;
+					PUT_OUT_8BIT_DATA -  0 : sda_out <= value[7]; // byte[7]
+					PUT_OUT_8BIT_DATA -  1 : scl <= 1'bz;
+					PUT_OUT_8BIT_DATA -  2 : scl <= 0;
+					PUT_OUT_8BIT_DATA -  3 : sda_out <= value[6]; // byte[6]
+					PUT_OUT_8BIT_DATA -  4 : scl <= 1'bz;
+					PUT_OUT_8BIT_DATA -  5 : scl <= 0;
+					PUT_OUT_8BIT_DATA -  6 : sda_out <= value[5]; // byte[5]
+					PUT_OUT_8BIT_DATA -  7 : scl <= 1'bz;
+					PUT_OUT_8BIT_DATA -  8 : scl <= 0;
+					PUT_OUT_8BIT_DATA -  9 : sda_out <= value[4]; // byte[4]
+					PUT_OUT_8BIT_DATA - 10 : scl <= 1'bz;
+					PUT_OUT_8BIT_DATA - 11 : scl <= 0;
+					PUT_OUT_8BIT_DATA - 12 : sda_out <= value[3]; // byte[3]
+					PUT_OUT_8BIT_DATA - 13 : scl <= 1'bz;
+					PUT_OUT_8BIT_DATA - 14 : scl <= 0;
+					PUT_OUT_8BIT_DATA - 15 : sda_out <= value[2]; // byte[2]
+					PUT_OUT_8BIT_DATA - 16 : scl <= 1'bz;
+					PUT_OUT_8BIT_DATA - 17 : scl <= 0;
+					PUT_OUT_8BIT_DATA - 18 : sda_out <= value[1]; // byte[1]
+					PUT_OUT_8BIT_DATA - 19 : scl <= 1'bz;
+					PUT_OUT_8BIT_DATA - 20 : scl <= 0;
+					PUT_OUT_8BIT_DATA - 21 : sda_out <= value[0]; // byte[0]
+					PUT_OUT_8BIT_DATA - 22 : scl <= 1'bz;
+					PUT_OUT_8BIT_DATA - 23 : scl <= 0;
 					// get nack
-					027 : sda_dir <= 0; // input
-					026 : sda_out <= 0; // set neutral value for after we change sda direction again
-					018 : scl <= 1'bz;
-					017 : nack <= sda_in; // nack
-					016 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
-					013 : if (nack) begin error <= 1; bit_counter <= 10; end else begin error <= 0; end
+					GET_SECOND_NACK -  0 : sda_dir <= 0; // input
+					GET_SECOND_NACK -  1 : sda_out <= 0; // set neutral value for after we change sda direction again
+					GET_SECOND_NACK -  6 : scl <= 1'bz;
+					GET_SECOND_NACK -  7 : nack <= sda_in; // nack
+					GET_SECOND_NACK -  8 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
+					GET_SECOND_NACK - 11 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end else begin error <= 0; end
 					// send stop
-					009 : begin sda_out <= 0; sda_dir <= 1; end // output
-					006 : scl <= 1'bz;
-					005 : sda_out <= 1; // this 0->1 transition of sda (while scl=1'bz) is the stop condition
-					001 : begin sda_dir <= 1; scl <= 1'bz; sda_out <= 1; end
+					SEND_STOP - 0 : begin sda_out <= 0; sda_dir <= 1; end // output
+					SEND_STOP - 3 : scl <= 1'bz;
+					SEND_STOP - 4 : sda_out <= 1; // this 0->1 transition of sda (while scl=1'bz) is the stop condition
+					ENDING - 0 : begin sda_dir <= 1; scl <= 1'bz; sda_out <= 1; end
 					default : ;
 				endcase
 				bit_counter <= bit_counter - 1'b1;
 			end
 		end else begin
 			if (start_transfer) begin
-				bit_counter <= 160;
+				bit_counter <= BEGINNING;
 				busy <= 1;
 				transfer_complete <= 0;
 			end else begin
