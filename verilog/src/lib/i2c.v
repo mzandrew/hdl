@@ -1,6 +1,6 @@
 // written 2018-08-06 by mza
 // based on mza-test013.i2c.v
-// last updated 2024-04-26 by mza
+// last updated 2024-09-04 by mza
 
 `ifndef I2C_LIB
 `define I2C_LIB
@@ -14,7 +14,7 @@ module i2c_write_value_to_address #(
 	input clock,
 	input [6:0] address,
 	input [7:0] value,
-	output reg scl = 1,
+	output reg scl = 1'bz,
 	output reg sda_out = 1,
 	output reg sda_dir = 0,
 	input sda_in,
@@ -40,80 +40,80 @@ module i2c_write_value_to_address #(
 		if (bit_counter>0) begin
 			if (i2c_strobe) begin
 				case(bit_counter)
-					160 : begin sda_dir <= 1; scl <= 1; sda_out <= 1; end
+					160 : begin sda_dir <= 1; scl <= 1'bz; sda_out <= 1; end
 					// send start or repeated start
-					157 : sda_out <= 0; // this 1->0 transition of sda (while scl=1) is the start condition
+					157 : sda_out <= 0; // this 1->0 transition of sda (while scl=1'bz) is the start condition
 					156 : scl <= 0;
 					// send address word
 					151 : sda_out <= address[6]; // byte[7]
-					150 : scl <= 1;
+					150 : scl <= 1'bz;
 					149 : scl <= 0;
 					148 : sda_out <= address[5]; // byte[6]
-					147 : scl <= 1;
+					147 : scl <= 1'bz;
 					146 : scl <= 0;
 					145 : sda_out <= address[4]; // byte[5]
-					144 : scl <= 1;
+					144 : scl <= 1'bz;
 					143 : scl <= 0;
 					142 : sda_out <= address[3]; // byte[4]
-					141 : scl <= 1;
+					141 : scl <= 1'bz;
 					140 : scl <= 0;
 					139 : sda_out <= address[2]; // byte[3]
-					138 : scl <= 1;
+					138 : scl <= 1'bz;
 					137 : scl <= 0;
 					136 : sda_out <= address[1]; // byte[2]
-					135 : scl <= 1;
+					135 : scl <= 1'bz;
 					134 : scl <= 0;
 					133 : sda_out <= address[0]; // byte[1]
-					132 : scl <= 1;
+					132 : scl <= 1'bz;
 					131 : scl <= 0;
 					// send write command
 					130 : sda_out <= 0; // byte[0] = 0; write
-					126 : scl <= 1;
+					126 : scl <= 1'bz;
 					125 : scl <= 0;
 					// get nack
 					124 : sda_dir <= 0; // input
 					123 : sda_out <= 0; // set neutral value for after we change sda direction again
-					118 : scl <= 1;
+					118 : scl <= 1'bz;
 					117 : nack <= sda_in; // nack
 					116 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
 					113 : if (nack) begin error <= 1; bit_counter <= 10; end else begin error <= 0; end
 					// send value
 					051 : sda_out <= value[7]; // byte[7]
-					050 : scl <= 1;
+					050 : scl <= 1'bz;
 					049 : scl <= 0;
 					048 : sda_out <= value[6]; // byte[6]
-					047 : scl <= 1;
+					047 : scl <= 1'bz;
 					046 : scl <= 0;
 					045 : sda_out <= value[5]; // byte[5]
-					044 : scl <= 1;
+					044 : scl <= 1'bz;
 					043 : scl <= 0;
 					042 : sda_out <= value[4]; // byte[4]
-					041 : scl <= 1;
+					041 : scl <= 1'bz;
 					040 : scl <= 0;
 					039 : sda_out <= value[3]; // byte[3]
-					038 : scl <= 1;
+					038 : scl <= 1'bz;
 					037 : scl <= 0;
 					036 : sda_out <= value[2]; // byte[2]
-					035 : scl <= 1;
+					035 : scl <= 1'bz;
 					034 : scl <= 0;
 					033 : sda_out <= value[1]; // byte[1]
-					032 : scl <= 1;
+					032 : scl <= 1'bz;
 					031 : scl <= 0;
 					030 : sda_out <= value[0]; // byte[0]
-					029 : scl <= 1;
+					029 : scl <= 1'bz;
 					028 : scl <= 0;
 					// get nack
 					027 : sda_dir <= 0; // input
 					026 : sda_out <= 0; // set neutral value for after we change sda direction again
-					018 : scl <= 1;
+					018 : scl <= 1'bz;
 					017 : nack <= sda_in; // nack
 					016 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
 					013 : if (nack) begin error <= 1; bit_counter <= 10; end else begin error <= 0; end
 					// send stop
 					009 : begin sda_out <= 0; sda_dir <= 1; end // output
-					006 : scl <= 1;
-					005 : sda_out <= 1; // this 0->1 transition of sda (while scl=1) is the stop condition
-					001 : begin sda_dir <= 1; scl <= 1; sda_out <= 1; end
+					006 : scl <= 1'bz;
+					005 : sda_out <= 1; // this 0->1 transition of sda (while scl=1'bz) is the stop condition
+					001 : begin sda_dir <= 1; scl <= 1'bz; sda_out <= 1; end
 					default : ;
 				endcase
 				bit_counter <= bit_counter - 1'b1;
@@ -556,7 +556,7 @@ module i2c_send_one_byte_and_read_one_plus_four_bytes_back (
 
 				001 : begin
 					sda_dir <= 1;
-					scl <= 1;
+					scl <= 1'bz;
 					sda_out <= 1;
 				end
 				default : ;
