@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test067.alphav2.althea.revBLM.v and mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
-// last updated 2024-08-26 by mza
+// last updated 2024-09-06 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -311,12 +311,10 @@ module ALPHAtestPALIMPSEST #(
 	counter_level fifo_output_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(fifo_read_strobe), .counter(fifo_output_strobe_counter));
 	// tok_a_in tok_a_out anything_that_is_going_on msn header footer meat
 	// ----------------------------------------------------------------------
-	wire sda_in, sda_out, sda_dir, i2c_busy, i2c_nack, i2c_error;
-	assign sda = sda_dir & (~sda_out) ? 1'b0 : 1'bz;
-	assign sda_in = sda;
+	wire i2c_busy, i2c_nack, i2c_error;
 	// ----------------------------------------------------------------------
 	if (1) begin
-		assign coax[0] = scl;
+		assign coax[0] = scl; // always reads as 0 because scl declared as an output, not an inout, so the pullup doesn't affect coax[0]
 		assign coax[1] = sda;
 		assign coax[2] = i2c_busy;
 		assign coax[3] = i2c_nack;
@@ -405,7 +403,7 @@ module ALPHAtestPALIMPSEST #(
 	// ----------------------------------------------------------------------
 	alpha_control alpha_control (.clock(sysclk), .reset(reset), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in),
 		.initiate_trigger(initiate_trigger), .trig_top(trigin), .initiate_dreset_sequence(initiate_dreset_sequence),
-		.scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir),
+		.scl(scl), .sda(sda),
 		.i2c_busy(i2c_busy), .i2c_nack(i2c_nack), .i2c_error(i2c_error), .initiate_i2c_transfer(initiate_i2c_transfer),
 		.i2c_address_register_enables(i2c_address_register_enables),
 		.sin(sin), .pclk(pclk), .sclk(sclk), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence),

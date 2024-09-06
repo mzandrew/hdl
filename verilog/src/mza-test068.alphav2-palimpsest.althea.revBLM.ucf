@@ -1,8 +1,8 @@
 # written 2021-10-28 by mza
 # based off of mza-test067.alphav2.althea.revBLM.ucf
-# for an althea revBLM with an alpha_eval revC/revD
+# for an althea revBLM with an alpha_eval revC/revD/revE
 # see ug385 page 24 for spartan6 tqg133 package pins to bank mapping
-# last updated 2024-07-12 by mza
+# last updated 2024-09-06 by mza
 
 # 100 MHz local oscillator:
 net clock100_p loc=p127 | iostandard=lvds_25 | diff_term=true; # CLOCK100+
@@ -21,8 +21,8 @@ net actual_auxtrig loc=p141 | iostandard=lvcmos25 | drive = 4 | slew = slow; # F
 net tok_a_out      loc=p142 | iostandard=lvcmos25 | drive = 4 | slew = slow; # F+ bank0 TL
 
 # middle column, on left side of board
-net scl    loc=p123 | iostandard=lvcmos25 | drive = 4 | slew = slow; # B- bank0 TR - only on alpha-eval revE
-net sda    loc=p124 | iostandard=lvcmos25 | pullup; # B+ bank0 TR - only on alpha-eval revE
+net scl    loc=p123 | iostandard=lvcmos25 | pullup; # B- bank0 TR - only on alpha-eval revE/revF
+net sda    loc=p124 | iostandard=lvcmos25 | pullup; # B+ bank0 TR - only on alpha-eval revE/revF
 #net        loc=p133 | iostandard=lvcmos25 | drive = 4 | slew = slow; # E- bank0 TL
 net ls_i2c loc=p134 | iostandard=lvcmos25 | drive = 4 | slew = slow; # E+ bank0 TL
 
