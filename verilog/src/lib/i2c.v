@@ -1,6 +1,6 @@
 // written 2018-08-06 by mza
 // based on mza-test013.i2c.v
-// last updated 2024-09-04 by mza
+// last updated 2024-09-06 by mza
 
 `ifndef I2C_LIB
 `define I2C_LIB
@@ -88,7 +88,7 @@ module i2c_write_value_to_address #(
 					GET_FIRST_NACK -  6 : scl <= 1'bz;
 					GET_FIRST_NACK -  7 : nack <= sda_in; // nack
 					GET_FIRST_NACK -  8 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
-					GET_FIRST_NACK - 11 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end else begin error <= 0; end
+					GET_FIRST_NACK - 11 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end
 					// send value
 					PUT_OUT_8BIT_DATA -  0 : sda_out <= value[7]; // byte[7]
 					PUT_OUT_8BIT_DATA -  1 : scl <= 1'bz;
@@ -120,13 +120,13 @@ module i2c_write_value_to_address #(
 					GET_SECOND_NACK -  6 : scl <= 1'bz;
 					GET_SECOND_NACK -  7 : nack <= sda_in; // nack
 					GET_SECOND_NACK -  8 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
-					GET_SECOND_NACK - 11 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end else begin error <= 0; end
+					GET_SECOND_NACK - 11 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end
 					// send stop
 					SEND_STOP - 0 : begin sda_out <= 0; sda_dir <= 1; end // output
 					SEND_STOP - 3 : scl <= 1'bz;
 					SEND_STOP - 4 : sda_out <= 1; // this 0->1 transition of sda (while scl=1'bz) is the stop condition
-					ENDING - 0 : begin sda_dir <= 1; scl <= 1'bz; sda_out <= 1; end
-					default : ;
+					ENDING - 0 : begin sda_dir <= 1; scl <= 1'bz; sda_out <= 1; error <= 0; end
+					default : ; // this must remain empty as there are gaps in the above bit_counter cases
 				endcase
 				bit_counter <= bit_counter - 1'b1;
 			end
