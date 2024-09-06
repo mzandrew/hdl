@@ -58,8 +58,8 @@ set_property -dict { PACKAGE_PIN T11   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_
 set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { pmod[3] }]; #IO_L1N_T0_34 Sch=jb_n[2]
 set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { pmod[4] }]; #IO_L18P_T2_34 Sch=jb_p[3]
 set_property -dict { PACKAGE_PIN W16   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { acknowledge }]; #IO_L18N_T2_34 Sch=jb_n[3]
-#set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { jb[6] }]; #IO_L4P_T0_34 Sch=jb_p[4]
-#set_property -dict { PACKAGE_PIN W13   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { jb[7] }]; #IO_L4N_T0_34 Sch=jb_n[4]
+set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { debug[0] }]; #IO_L4P_T0_34 Sch=jb_p[4]
+set_property -dict { PACKAGE_PIN W13   IOSTANDARD LVCMOS33 PULLDOWN TRUE } [get_ports { debug[1] }]; #IO_L4N_T0_34 Sch=jb_n[4]
 
 ##Audio 
 #set_property -dict { PACKAGE_PIN M17   IOSTANDARD LVCMOS33 } [get_ports { adr0 }]; #IO_L8P_T1_AD10P_35 Sch=adr0

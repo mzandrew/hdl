@@ -2,7 +2,8 @@
 
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
-// last updated 2024-06-07 by mza and makiko
+// updated throughout 2024 by mza and makiko
+// last updated 2024-09-06 by mza
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -318,6 +319,7 @@ module testALPHA #(
 	//output [7:0] jb, // PMODB
 	input acknowledge,
 	output [4:0] pmod,
+	output [1:0] debug, // pmod[7:6]
 	input [5:4] ja, // 100.0 MHz, comes from PMODA
 //	output [3:2] jc, // ja[3] is the clock output, renamed jc here for verilog in/out reasons
 //	input [7:6] ja,
@@ -597,7 +599,7 @@ module testALPHA #(
 		end
 	end
 	// ----------------------------------------------------------------------
-	wire [4:0] I2CupAddr             = 5'd7; // whatever you like
+	wire [4:0] I2CupAddr             = 0; // whatever you like
 	wire LVDSB_pwr                   = 0; // 0 means high power mode
 	wire LVDSA_pwr                   = 0; // 0 means high power mode
 	wire SRCsel                      = 0; // set this to zero or the data will come from data_b (you probably don't want that)
@@ -650,13 +652,23 @@ module testALPHA #(
 	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_0_debounce (.clock(sysclk), .raw_button_input(btn[0]), .polarity(1'b1), .button_activated_pulse(initiate_trigger), .button_deactivated_pulse(), .button_active());
 	wire trig;
 	wire sda_in, sda_out, sda_dir;
-	IOBUF staypuft (.I(sda_out), .O(sda_in), .IO(sda), .T(sda_dir==0));
+	//IOBUF staypuft (.I(sda_out), .O(sda_in), .IO(sda), .T(~sda_dir)); // [DRC BUFC-1] Input Buffer Connections: Input buffer staypuft/IBUF has no loads. It is recommended to have an input buffer drive an internal load.
+	assign sda = sda_dir & (~sda_out) ? 1'b0 : 1'bz; // [DRC RPBF-3] IO port buffering is incomplete: Device port rpio_13_r expects both input and output buffering but the buffers are incomplete.
+	assign sda_in = rpio_13_r; // sda
 	//alpha_control alpha_control (.clock(sysclk), .reset(reset_sysclk), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .initiate_dreset_sequence(initiate_dreset_sequence), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_dir(sda_dir), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
+	wire [7:0] PCLK_period = 8'hff;
+	wire [7:0] least_significant_nybbles = 8'h7f;
+	wire [7:0] most_significant_nybble = 8'h03;
+	wire [7:0] PCLK_4DACs = 8'h0f;
+	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0001_1010;
 	alpha_control alpha_control (.clock(sysclk), .reset(reset_sysclk), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t),
 		.initiate_trigger(initiate_trigger), .trig_top(trig), .initiate_dreset_sequence(initiate_dreset_sequence),
 		.scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .initiate_i2c_transfer(initiate_i2c_transfer),
+		.i2c_busy(), .i2c_nack(debug[0]), .i2c_error(debug[1]),
 		.sin(sin), .pclk(pclk), .sclk(sclk), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence),
 		.I2CupAddr(I2CupAddr), .LVDSA_pwr(LVDSA_pwr), .LVDSB_pwr(LVDSB_pwr), .SRCsel(SRCsel), .TMReg_Reset(TMReg_Reset),
+		.PCLK_period(PCLK_period), .least_significant_nybbles(least_significant_nybbles), .most_significant_nybble(most_significant_nybble),
+		.PCLK_4DACs(PCLK_4DACs), .i2c_address_register_enables(i2c_address_register_enables),
 		.samples_after_trigger(samples_after_trigger), .lookback_windows(lookback_windows), .number_of_samples(number_of_samples),
 		.CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 	assign trig_top = trig;
