@@ -39,9 +39,9 @@ module i2c_write_value_to_address #(
 			divide_counter <= divide_counter + 1'b1;
 		end
 	end
-	localparam SHORT_GAP = 5;
-	localparam MEDIUM_GAP = 10;
-	localparam LONG_GAP = 20;
+	localparam SHORT_GAP = 5; // setting this below 5 results in the alpha not always nack'ing the second byte of every transfer
+	localparam MEDIUM_GAP = 5;
+	localparam LONG_GAP = 5;
 	localparam ENDING = 1 + LONG_GAP; // duration 1
 	localparam SEND_STOP = ENDING + 5 + MEDIUM_GAP; // duration 5
 	localparam GET_SECOND_NACK = SEND_STOP + 12 + SHORT_GAP; // duration 12
