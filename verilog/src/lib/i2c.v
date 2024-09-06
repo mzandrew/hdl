@@ -44,10 +44,10 @@ module i2c_write_value_to_address #(
 	localparam LONG_GAP = 5;
 	localparam ENDING = 1 + LONG_GAP; // duration 1
 	localparam SEND_STOP = ENDING + 5 + MEDIUM_GAP; // duration 5
-	localparam GET_SECOND_NACK = SEND_STOP + 12 + SHORT_GAP; // duration 12
+	localparam GET_SECOND_NACK = SEND_STOP + 9 + SHORT_GAP; // duration 9
 	localparam PUT_OUT_8BIT_DATA = GET_SECOND_NACK + 25 + SHORT_GAP; // duration 25
-	localparam GET_FIRST_NACK = PUT_OUT_8BIT_DATA + 12 + LONG_GAP; // duration 12
-	localparam PUT_OUT_WRITE_OR_READ = GET_FIRST_NACK + 7 + SHORT_GAP; // duration 7
+	localparam GET_FIRST_NACK = PUT_OUT_8BIT_DATA + 9 + LONG_GAP; // duration 9
+	localparam PUT_OUT_WRITE_OR_READ = GET_FIRST_NACK + 5 + SHORT_GAP; // duration 5
 	localparam PUT_OUT_7BIT_ADDRESS = PUT_OUT_WRITE_OR_READ + 22 + SHORT_GAP; // duration 22
 	localparam SEND_START = PUT_OUT_7BIT_ADDRESS + 2 + MEDIUM_GAP; // duration 2
 	localparam BEGINNING = SEND_START + 5 + LONG_GAP; // duration 5
@@ -85,17 +85,17 @@ module i2c_write_value_to_address #(
 					// send write command
 					PUT_OUT_7BIT_ADDRESS - 21 : sda_out <= 0; // byte[0] = 0; write (slightly early so last address bit doesn't seem too wide)
 //					PUT_OUT_WRITE_OR_READ - 0 : sda_out <= 0; // byte[0] = 0; write
-					PUT_OUT_WRITE_OR_READ - 4 : scl <= 1'bz;
-					PUT_OUT_WRITE_OR_READ - 5 : scl <= 0;
+					PUT_OUT_WRITE_OR_READ - 2 : scl <= 1'bz;
+					PUT_OUT_WRITE_OR_READ - 3 : scl <= 0;
 					// get nack
-					PUT_OUT_WRITE_OR_READ - 6 : sda_dir <= 0; // input (slightly early)
+					PUT_OUT_WRITE_OR_READ - 4 : sda_dir <= 0; // input (slightly early)
 //					GET_FIRST_NACK -  0 : sda_dir <= 0; // input
-					GET_FIRST_NACK -  5 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
-					GET_FIRST_NACK -  6 : scl <= 1'bz;
-//					GET_FIRST_NACK -  7 : nack <= sda_in; // nack
-					GET_FIRST_NACK -  8 : sda_out <= nack; // set neutral value for after we change sda direction again
-					GET_FIRST_NACK -  9 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
-					GET_FIRST_NACK - 11 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end
+					GET_FIRST_NACK -  2 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
+					GET_FIRST_NACK -  3 : scl <= 1'bz;
+//					GET_FIRST_NACK -  4 : nack <= sda_in; // nack
+					GET_FIRST_NACK -  5 : sda_out <= nack; // set neutral value for after we change sda direction again
+					GET_FIRST_NACK -  6 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
+					GET_FIRST_NACK -  8 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end
 					// send value
 					PUT_OUT_8BIT_DATA -  0 : sda_out <= value[7]; // byte[7]
 					PUT_OUT_8BIT_DATA -  1 : scl <= 1'bz;
@@ -124,12 +124,12 @@ module i2c_write_value_to_address #(
 					// get nack
 					PUT_OUT_8BIT_DATA - 24 : sda_dir <= 0; // input (slightly early)
 //					GET_SECOND_NACK -  0 : sda_dir <= 0; // input
-					GET_SECOND_NACK -  5 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
-					GET_SECOND_NACK -  6 : scl <= 1'bz;
-//					GET_SECOND_NACK -  7 : nack <= sda_in; // nack
-					GET_SECOND_NACK -  8 : sda_out <= nack; // set neutral value for after we change sda direction again
-					GET_SECOND_NACK -  9 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
-					GET_SECOND_NACK - 11 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end
+					GET_SECOND_NACK -  2 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
+					GET_SECOND_NACK -  3 : scl <= 1'bz;
+//					GET_SECOND_NACK -  4 : nack <= sda_in; // nack
+					GET_SECOND_NACK -  5 : sda_out <= nack; // set neutral value for after we change sda direction again
+					GET_SECOND_NACK -  6 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
+					GET_SECOND_NACK -  8 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end
 					// send stop
 					SEND_STOP - 0 : begin sda_out <= 0; sda_dir <= 1; end // output
 					SEND_STOP - 3 : scl <= 1'bz;
