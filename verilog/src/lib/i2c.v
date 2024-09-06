@@ -89,9 +89,9 @@ module i2c_write_value_to_address #(
 					// get nack
 					GET_FIRST_NACK -  0 : sda_dir <= 0; // input
 					GET_FIRST_NACK -  1 : sda_out <= 0; // set neutral value for after we change sda direction again
-//					GET_FIRST_NACK -  5 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
+					GET_FIRST_NACK -  5 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
 					GET_FIRST_NACK -  6 : scl <= 1'bz;
-					GET_FIRST_NACK -  7 : nack <= sda_in; // nack
+//					GET_FIRST_NACK -  7 : nack <= sda_in; // nack
 					GET_FIRST_NACK -  8 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
 					GET_FIRST_NACK - 11 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end
 					// send value
@@ -122,9 +122,9 @@ module i2c_write_value_to_address #(
 					// get nack
 					GET_SECOND_NACK -  0 : sda_dir <= 0; // input
 					GET_SECOND_NACK -  1 : sda_out <= 0; // set neutral value for after we change sda direction again
-//					GET_SECOND_NACK -  5 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
+					GET_SECOND_NACK -  5 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
 					GET_SECOND_NACK -  6 : scl <= 1'bz;
-					GET_SECOND_NACK -  7 : nack <= sda_in; // nack
+//					GET_SECOND_NACK -  7 : nack <= sda_in; // nack
 					GET_SECOND_NACK -  8 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
 					GET_SECOND_NACK - 11 : if (nack) begin error <= 1; bit_counter <= SEND_STOP; end
 					// send stop
