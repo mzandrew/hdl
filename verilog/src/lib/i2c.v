@@ -51,6 +51,7 @@ module i2c_write_value_to_address #(
 	always @(posedge clock) begin
 		if (bit_counter>0) begin
 			if (i2c_strobe) begin
+				bit_counter <= bit_counter - 1'b1;
 				case(bit_counter)
 					BEGINNING - 0 : begin sda_dir <= 1; scl <= 1'bz; sda_out <= 1; end
 					// send start or repeated start
@@ -128,7 +129,6 @@ module i2c_write_value_to_address #(
 					ENDING - 0 : begin sda_dir <= 1; scl <= 1'bz; sda_out <= 1; error <= 0; end
 					default : ; // this must remain empty as there are gaps in the above bit_counter cases
 				endcase
-				bit_counter <= bit_counter - 1'b1;
 			end
 		end else begin
 			if (start_transfer) begin
