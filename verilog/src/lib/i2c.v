@@ -45,10 +45,10 @@ module i2c_write_value_to_address #(
 	localparam ENDING = 1 + LONG_GAP; // duration 1
 	localparam SEND_STOP = ENDING + 5 + MEDIUM_GAP; // duration 5
 	localparam GET_SECOND_NACK = SEND_STOP + 12 + SHORT_GAP; // duration 12
-	localparam PUT_OUT_8BIT_DATA = GET_SECOND_NACK + 24 + SHORT_GAP; // duration 24
+	localparam PUT_OUT_8BIT_DATA = GET_SECOND_NACK + 25 + SHORT_GAP; // duration 25
 	localparam GET_FIRST_NACK = PUT_OUT_8BIT_DATA + 12 + LONG_GAP; // duration 12
-	localparam PUT_OUT_WRITE_OR_READ = GET_FIRST_NACK + 6 + SHORT_GAP; // duration 6
-	localparam PUT_OUT_7BIT_ADDRESS = PUT_OUT_WRITE_OR_READ + 21 + SHORT_GAP; // duration 21
+	localparam PUT_OUT_WRITE_OR_READ = GET_FIRST_NACK + 7 + SHORT_GAP; // duration 7
+	localparam PUT_OUT_7BIT_ADDRESS = PUT_OUT_WRITE_OR_READ + 22 + SHORT_GAP; // duration 22
 	localparam SEND_START = PUT_OUT_7BIT_ADDRESS + 2 + MEDIUM_GAP; // duration 2
 	localparam BEGINNING = SEND_START + 5 + LONG_GAP; // duration 5
 	always @(posedge clock) begin
@@ -83,11 +83,13 @@ module i2c_write_value_to_address #(
 					PUT_OUT_7BIT_ADDRESS - 19 : scl <= 1'bz;
 					PUT_OUT_7BIT_ADDRESS - 20 : scl <= 0;
 					// send write command
-					PUT_OUT_WRITE_OR_READ - 0 : sda_out <= 0; // byte[0] = 0; write
+					PUT_OUT_7BIT_ADDRESS - 21 : sda_out <= 0; // byte[0] = 0; write (slightly early so last address bit doesn't seem too wide)
+//					PUT_OUT_WRITE_OR_READ - 0 : sda_out <= 0; // byte[0] = 0; write
 					PUT_OUT_WRITE_OR_READ - 4 : scl <= 1'bz;
 					PUT_OUT_WRITE_OR_READ - 5 : scl <= 0;
 					// get nack
-					GET_FIRST_NACK -  0 : sda_dir <= 0; // input
+					PUT_OUT_WRITE_OR_READ - 6 : sda_dir <= 0; // input (slightly early)
+//					GET_FIRST_NACK -  0 : sda_dir <= 0; // input
 					GET_FIRST_NACK -  5 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
 					GET_FIRST_NACK -  6 : scl <= 1'bz;
 //					GET_FIRST_NACK -  7 : nack <= sda_in; // nack
@@ -120,7 +122,8 @@ module i2c_write_value_to_address #(
 					PUT_OUT_8BIT_DATA - 22 : scl <= 1'bz;
 					PUT_OUT_8BIT_DATA - 23 : scl <= 0;
 					// get nack
-					GET_SECOND_NACK -  0 : sda_dir <= 0; // input
+					PUT_OUT_8BIT_DATA - 24 : sda_dir <= 0; // input (slightly early)
+//					GET_SECOND_NACK -  0 : sda_dir <= 0; // input
 					GET_SECOND_NACK -  5 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
 					GET_SECOND_NACK -  6 : scl <= 1'bz;
 //					GET_SECOND_NACK -  7 : nack <= sda_in; // nack
