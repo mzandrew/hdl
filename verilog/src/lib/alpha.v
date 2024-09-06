@@ -1,6 +1,6 @@
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-08-27 by mza
+// last updated 2024-09-06 by mza
 
 `ifndef ALPHA_LIB
 `define ALPHA_LIB
@@ -62,7 +62,7 @@ module alpha_control #(
 ) (
 	input clock, reset,
 	input initiate_trigger, initiate_legacy_serial_sequence, initiate_dreset_sequence, initiate_i2c_transfer,
-	input sda_in,
+	inout sda,
 	input [11:0] CMPbias, ISEL, SBbias, DBbias,
 	input [4:0] I2CupAddr,
 	input LVDSA_pwr, LVDSB_pwr, SRCsel, TMReg_Reset,
@@ -72,7 +72,7 @@ module alpha_control #(
 	input [15:0] i2c_address_register_enables,
 	input [7:0] samples_after_trigger, lookback_windows, number_of_samples,
 	output reg sync, dreset, tok_a_in, sin, pclk, sclk, trig_top,
-	output scl, sda_out, sda_dir, i2c_busy, i2c_nack, i2c_error
+	output scl, i2c_busy, i2c_nack, i2c_error
 );
 	reg [31:0] counter1 = 0;
 	reg [31:0] counter2 = 0;
@@ -436,13 +436,13 @@ module alpha_control #(
 		if (SIMULATION) begin
 			i2c_write_value_to_address #(.CLOCK_DIVIDE_RATIO(4))
 				thing (.clock(clock), .address(address), .value(i2c_value[i2c_register]),
-				.scl(scl), .sda_out(sda_out), .sda_dir(sda_dir), .busy(i2c_busy), .nack(i2c_nack), .error(i2c_error),
-				.sda_in(sda_in), .start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
+				.scl(scl), .sda(sda), .busy(i2c_busy), .nack(i2c_nack), .error(i2c_error),
+				.start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
 		end else begin
 			i2c_write_value_to_address #(.CLOCK_FREQUENCY_IN_HZ(100000000), .DESIRED_I2C_FREQUENCY_IN_HZ(100000))
 				thing (.clock(clock), .address(address), .value(i2c_value[i2c_register]),
-				.scl(scl), .sda_out(sda_out), .sda_dir(sda_dir), .busy(i2c_busy), .nack(i2c_nack), .error(i2c_error),
-				.sda_in(sda_in), .start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
+				.scl(scl), .sda(sda), .busy(i2c_busy), .nack(i2c_nack), .error(i2c_error),
+				.start_transfer(i2c_inner_start_transfer), .transfer_complete(i2c_transfer_complete));
 		end
 	end
 endmodule

@@ -376,8 +376,8 @@ module testALPHA #(
 	wire nclk;
 //	assign jb[4] = nclk;
 	wire pclk, pclk_t, pclk_m, pclk_b, sin, sclk;
-	wire sda;
-	wire scl;
+//	wire sda;
+//	wire scl;
 	wire tok_a_f2t;
 	wire testmode;
 	wire tok_b_f2m;
@@ -418,13 +418,13 @@ module testALPHA #(
 	assign rpio_10_r = actual_pclk_b;
 	assign rpio_11_r = tok_b_f2m;
 	assign rpio_12_r = sync;
-	assign rpio_13_r = sda;
+	//assign rpio_13_r = sda;
 	assign rpio_14_r = trig_top; // trigtop
 	assign rpio_15_r = actual_sclk;
 //	assign rpio_16_r, // dat_b_m2f
 	assign rpio_17_r = gpio17;
 	assign rpio_18_r = sin;
-	assign rpio_19_r = scl;
+	//assign rpio_19_r = scl;
 //	assign rpio_20_r = trig_bot; // trigbot
 //	assign rpio_21_r, // dat_a_f2b
 //	assign rpio_22_r, // sstclk
@@ -651,11 +651,6 @@ module testALPHA #(
 	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_1_debounce (.clock(sysclk), .raw_button_input(btn[1]), .polarity(1'b1), .button_activated_pulse(initiate_i2c_transfer), .button_deactivated_pulse(), .button_active());
 	debounce #(.CLOCK_FREQUENCY(100000000), .TIMEOUT_IN_MILLISECONDS(50)) button_0_debounce (.clock(sysclk), .raw_button_input(btn[0]), .polarity(1'b1), .button_activated_pulse(initiate_trigger), .button_deactivated_pulse(), .button_active());
 	wire trig;
-	wire sda_in, sda_out, sda_dir;
-	//IOBUF staypuft (.I(sda_out), .O(sda_in), .IO(sda), .T(~sda_dir)); // [DRC BUFC-1] Input Buffer Connections: Input buffer staypuft/IBUF has no loads. It is recommended to have an input buffer drive an internal load.
-	assign sda = sda_dir & (~sda_out) ? 1'b0 : 1'bz; // [DRC RPBF-3] IO port buffering is incomplete: Device port rpio_13_r expects both input and output buffering but the buffers are incomplete.
-	assign sda_in = rpio_13_r; // sda
-	//alpha_control alpha_control (.clock(sysclk), .reset(reset_sysclk), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .initiate_dreset_sequence(initiate_dreset_sequence), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t), .scl(scl), .sda_in(sda_in), .sda_dir(sda_dir), .sda_out(sda_out), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig), .CMPbias(CMPbias), .ISEL(ISEL), .SBbias(SBbias), .DBbias(DBbias));
 	wire [7:0] PCLK_period = 8'hff;
 	wire [7:0] least_significant_nybbles = 8'h7f;
 	wire [7:0] most_significant_nybble = 8'h03;
@@ -663,7 +658,7 @@ module testALPHA #(
 	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0001_1010;
 	alpha_control alpha_control (.clock(sysclk), .reset(reset_sysclk), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t),
 		.initiate_trigger(initiate_trigger), .trig_top(trig), .initiate_dreset_sequence(initiate_dreset_sequence),
-		.scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .initiate_i2c_transfer(initiate_i2c_transfer),
+		.scl(rpio_19_r), .sda(rpio_13_r), .initiate_i2c_transfer(initiate_i2c_transfer),
 		.i2c_busy(), .i2c_nack(debug[0]), .i2c_error(debug[1]),
 		.sin(sin), .pclk(pclk), .sclk(sclk), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence),
 		.I2CupAddr(I2CupAddr), .LVDSA_pwr(LVDSA_pwr), .LVDSB_pwr(LVDSB_pwr), .SRCsel(SRCsel), .TMReg_Reset(TMReg_Reset),

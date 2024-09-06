@@ -15,15 +15,18 @@ module i2c_write_value_to_address #(
 	input [6:0] address,
 	input [7:0] value,
 	output reg scl = 1'bz,
-	output reg sda_out = 1,
-	output reg sda_dir = 0,
-	input sda_in,
+	inout sda,
 	input start_transfer,
 	output reg busy = 0,
 	output reg nack = 0,
 	output reg error = 0,
 	output reg transfer_complete = 1
 );
+	reg sda_out = 1;
+	reg sda_dir = 0;
+	wire sda_in = sda;
+	//IOBUF staypuft (.I(sda_out), .O(sda_in), .IO(sda), .T(~sda_dir)); // [DRC BUFC-1] Input Buffer Connections: Input buffer staypuft/IBUF has no loads. It is recommended to have an input buffer drive an internal load.
+	assign sda = sda_dir & (~sda_out) ? 1'b0 : 1'bz; // [DRC RPBF-3] IO port buffering is incomplete: Device port rpio_13_r expects both input and output buffering but the buffers are incomplete.
 	reg i2c_strobe = 0;
 	reg [7:0] bit_counter = 0;
 	reg [DIVIDE_COUNTER_PICKOFF:0] divide_counter = 1;
@@ -39,15 +42,15 @@ module i2c_write_value_to_address #(
 	localparam SHORT_GAP = 5;
 	localparam MEDIUM_GAP = 10;
 	localparam LONG_GAP = 20;
-	localparam ENDING = 1 + LONG_GAP; // duration 1; was 1
-	localparam SEND_STOP = ENDING + 5 + MEDIUM_GAP; // duration 5; was 9
-	localparam GET_SECOND_NACK = SEND_STOP + 12 + SHORT_GAP; // duration 12; was 27
-	localparam PUT_OUT_8BIT_DATA = GET_SECOND_NACK + 24 + SHORT_GAP; // duration 24; was 51
-	localparam GET_FIRST_NACK = PUT_OUT_8BIT_DATA + 12 + LONG_GAP; // duration 12; was 124
-	localparam PUT_OUT_WRITE_OR_READ = GET_FIRST_NACK + 6 + SHORT_GAP; // duration 6; was 130
-	localparam PUT_OUT_7BIT_ADDRESS = PUT_OUT_WRITE_OR_READ + 21 + SHORT_GAP; // duration 21; was 151
-	localparam SEND_START = PUT_OUT_7BIT_ADDRESS + 2 + MEDIUM_GAP; // duration 2; was 157
-	localparam BEGINNING = SEND_START + 5 + LONG_GAP; // duration 5; was 160
+	localparam ENDING = 1 + LONG_GAP; // duration 1
+	localparam SEND_STOP = ENDING + 5 + MEDIUM_GAP; // duration 5
+	localparam GET_SECOND_NACK = SEND_STOP + 12 + SHORT_GAP; // duration 12
+	localparam PUT_OUT_8BIT_DATA = GET_SECOND_NACK + 24 + SHORT_GAP; // duration 24
+	localparam GET_FIRST_NACK = PUT_OUT_8BIT_DATA + 12 + LONG_GAP; // duration 12
+	localparam PUT_OUT_WRITE_OR_READ = GET_FIRST_NACK + 6 + SHORT_GAP; // duration 6
+	localparam PUT_OUT_7BIT_ADDRESS = PUT_OUT_WRITE_OR_READ + 21 + SHORT_GAP; // duration 21
+	localparam SEND_START = PUT_OUT_7BIT_ADDRESS + 2 + MEDIUM_GAP; // duration 2
+	localparam BEGINNING = SEND_START + 5 + LONG_GAP; // duration 5
 	always @(posedge clock) begin
 		if (bit_counter>0) begin
 			if (i2c_strobe) begin
@@ -86,6 +89,7 @@ module i2c_write_value_to_address #(
 					// get nack
 					GET_FIRST_NACK -  0 : sda_dir <= 0; // input
 					GET_FIRST_NACK -  1 : sda_out <= 0; // set neutral value for after we change sda direction again
+//					GET_FIRST_NACK -  5 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
 					GET_FIRST_NACK -  6 : scl <= 1'bz;
 					GET_FIRST_NACK -  7 : nack <= sda_in; // nack
 					GET_FIRST_NACK -  8 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
@@ -118,6 +122,7 @@ module i2c_write_value_to_address #(
 					// get nack
 					GET_SECOND_NACK -  0 : sda_dir <= 0; // input
 					GET_SECOND_NACK -  1 : sda_out <= 0; // set neutral value for after we change sda direction again
+//					GET_SECOND_NACK -  5 : nack <= sda_in; // nack (special location for alpha's implementation of i2c)
 					GET_SECOND_NACK -  6 : scl <= 1'bz;
 					GET_SECOND_NACK -  7 : nack <= sda_in; // nack
 					GET_SECOND_NACK -  8 : begin scl <= 0; sda_dir <= 1; end // drop scl and change sda direction at same time
