@@ -415,7 +415,8 @@ def loop():
 			elif K_F1==event.key:
 				initiate_dreset_sequence()
 			elif K_F2==event.key:
-				initiate_legacy_serial_sequence()
+				#initiate_legacy_serial_sequence()
+				pass
 			elif K_F3==event.key:
 				write_I2C_register_values_and_initiate_i2c_transfers()
 			elif K_F4==event.key:
@@ -811,7 +812,7 @@ def gather_pedestals():
 	previous_number_of_samples = number_of_samples
 	if not MAX_SAMPLES_PER_WAVEFORM==previous_number_of_samples:
 		previous_number_of_samples = change_number_of_samples(MAX_SAMPLES_PER_WAVEFORM)
-		initiate_legacy_serial_sequence()
+		#initiate_legacy_serial_sequence()
 	global pedestal_mode, pedestal_data, pedestals_have_been_taken, have_just_gathered_waveform_data, average_pedestal
 	pedestal_mode = True
 	number_of_acquisitions_so_far = [ [ 0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
@@ -868,7 +869,7 @@ def gather_pedestals():
 			#print("peds for ch" + str(k) + " bank" + str(j) + ": " + str(pedestal_data[j][k]))
 	if not MAX_SAMPLES_PER_WAVEFORM==previous_number_of_samples:
 		change_number_of_samples(previous_number_of_samples)
-		initiate_legacy_serial_sequence()
+		#initiate_legacy_serial_sequence()
 
 if __name__ == "__main__":
 	datafile = open(datafile_name, "a")
