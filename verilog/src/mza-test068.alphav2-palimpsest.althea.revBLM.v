@@ -313,13 +313,20 @@ module ALPHAtestPALIMPSEST #(
 	// ----------------------------------------------------------------------
 	wire i2c_busy, i2c_nack, i2c_error;
 	// ----------------------------------------------------------------------
-	if (1) begin
+	if (0) begin
 		assign coax[0] = scl; // always reads as 0 because scl declared as an output, not an inout, so the pullup doesn't affect coax[0]
 		assign coax[1] = sda;
 		assign coax[2] = i2c_busy;
 		assign coax[3] = i2c_nack;
 		assign coax[4] = i2c_error;
 		assign coax[5] = initiate_i2c_transfer;
+	end else if (1) begin
+		assign coax[0] = trigin;
+		assign coax[1] = data_a;
+		assign coax[2] = tok_a_in;
+		assign coax[3] = tok_a_out;
+		assign coax[4] = 0;
+		assign coax[5] = 0;
 	end else if (1) begin
 		assign coax[0] = data_a;
 		assign coax[1] = header;
@@ -402,7 +409,7 @@ module ALPHAtestPALIMPSEST #(
 	end
 	// ----------------------------------------------------------------------
 	alpha_control alpha_control (.clock(sysclk), .reset(reset), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in),
-		.initiate_trigger(initiate_trigger), .trig_top(trigin), .initiate_dreset_sequence(initiate_dreset_sequence),
+		.initiate_trigger(initiate_trigger), .trig(trigin), .initiate_dreset_sequence(initiate_dreset_sequence),
 		.scl(scl), .sda(sda),
 		.i2c_busy(i2c_busy), .i2c_nack(i2c_nack), .i2c_error(i2c_error), .initiate_i2c_transfer(initiate_i2c_transfer),
 		.i2c_address_register_enables(i2c_address_register_enables),

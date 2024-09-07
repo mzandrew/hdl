@@ -71,7 +71,7 @@ module alpha_control #(
 	input [7:0] PCLK_4DACs,
 	input [15:0] i2c_address_register_enables,
 	input [7:0] samples_after_trigger, lookback_windows, number_of_samples,
-	output reg sync, dreset, tok_a_in, sin, pclk, sclk, trig_top,
+	output reg sync, dreset, tok_a_in, sin, pclk, sclk, trig,
 	output scl, i2c_busy, i2c_nack, i2c_error
 );
 	reg [31:0] counter1 = 0;
@@ -112,24 +112,33 @@ module alpha_control #(
 		end
 	end
 	localparam ADC_CONVERSION_TIME = SIMULATION ? 400 : 2*4096;
+	localparam READOUT_TIME = SIMULATION ? 400 : 80000; // takes about 656 us to readout all 16 channels
 	always @(posedge clock) begin
 		if (reset) begin
 			counter1 <= 0;
 			tok_a_in <= 0;
-			trig_top <= 0;
+			trig <= 0;
 			mode1 <= 0;
 		end else begin
 			counter1 <= counter1 + 1'b1;
 			if (mode1==1'b1) begin
-				if (1*TIMING_CONSTANT==counter1) begin
-					trig_top <= 1'b1;
-				end else if (2*TIMING_CONSTANT==counter1) begin
-					trig_top <= 0;
-				end else if (3*TIMING_CONSTANT+ADC_CONVERSION_TIME==counter1) begin
+				if          (1*TIMING_CONSTANT+0*ADC_CONVERSION_TIME+0*READOUT_TIME==counter1) begin
+					trig <= 1'b1;
+				end else if (2*TIMING_CONSTANT+0*ADC_CONVERSION_TIME+0*READOUT_TIME==counter1) begin
+					trig <= 0;
+				end else if (3*TIMING_CONSTANT+1*ADC_CONVERSION_TIME+0*READOUT_TIME==counter1) begin
 					tok_a_in <= 1'b1;
-				end else if (4*TIMING_CONSTANT+ADC_CONVERSION_TIME==counter1) begin
+				end else if (4*TIMING_CONSTANT+1*ADC_CONVERSION_TIME+0*READOUT_TIME==counter1) begin
 					tok_a_in <= 0;
-				end else if (5*TIMING_CONSTANT+ADC_CONVERSION_TIME==counter1) begin
+				end else if (5*TIMING_CONSTANT+1*ADC_CONVERSION_TIME+1*READOUT_TIME==counter1) begin
+					trig <= 1'b1;
+				end else if (6*TIMING_CONSTANT+1*ADC_CONVERSION_TIME+1*READOUT_TIME==counter1) begin
+					trig <= 0;
+				end else if (7*TIMING_CONSTANT+2*ADC_CONVERSION_TIME+1*READOUT_TIME==counter1) begin
+					tok_a_in <= 1'b1;
+				end else if (8*TIMING_CONSTANT+2*ADC_CONVERSION_TIME+1*READOUT_TIME==counter1) begin
+					tok_a_in <= 0;
+				end else if (9*TIMING_CONSTANT+2*ADC_CONVERSION_TIME+2*READOUT_TIME==counter1) begin
 					mode1 <= 1'b0;
 				end else begin
 				end
@@ -137,7 +146,7 @@ module alpha_control #(
 			if (initiate_trigger) begin
 				counter1 <= 0;
 				tok_a_in <= 0;
-				trig_top <= 0;
+				trig <= 0;
 				mode1 <= 1'b1;
 			end
 		end
@@ -457,7 +466,7 @@ module alpha_control_tb;
 	reg initiate_dreset_sequence = 0;
 	reg initiate_i2c_transfer = 0;
 	wire sync, dreset, tok_a_in;
-	wire scl, sda_out, sda_dir, i2c_busy, i2c_nack, i2c_error, sin, pclk, sclk, trig_top;
+	wire scl, sda_out, sda_dir, i2c_busy, i2c_nack, i2c_error, sin, pclk, sclk, trig;
 	reg sda_in = 0;
 	initial begin
 		reset <= 1; #101; reset <= 0;
@@ -473,7 +482,7 @@ module alpha_control_tb;
 		clock <= ~clock;
 		#half_clock_period;
 	end
-	alpha_control #(.SIMULATION(1)) alpha_control (.clock(clock), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .i2c_busy(i2c_busy), .i2c_nack(i2c_nack), .i2c_error(i2c_error), .sin(sin), .pclk(pclk), .sclk(sclk), .trig_top(trig_top));
+	alpha_control #(.SIMULATION(1)) alpha_control (.clock(clock), .reset(reset), .initiate_trigger(initiate_trigger), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence), .initiate_dreset_sequence(initiate_dreset_sequence), .initiate_i2c_transfer(initiate_i2c_transfer), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_in), .scl(scl), .sda_in(sda_in), .sda_out(sda_out), .sda_dir(sda_dir), .i2c_busy(i2c_busy), .i2c_nack(i2c_nack), .i2c_error(i2c_error), .sin(sin), .pclk(pclk), .sclk(sclk), .trig(trig));
 endmodule
 
 // this module is ALWAYS hunting for the pattern a1fa...

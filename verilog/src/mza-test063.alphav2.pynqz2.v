@@ -657,7 +657,7 @@ module testALPHA #(
 	wire [7:0] PCLK_4DACs = 8'h0f;
 	wire [15:0] i2c_address_register_enables = 16'b_0000_0000_0001_1010;
 	alpha_control alpha_control (.clock(sysclk), .reset(reset_sysclk), .sync(sync), .dreset(dreset), .tok_a_in(tok_a_f2t),
-		.initiate_trigger(initiate_trigger), .trig_top(trig), .initiate_dreset_sequence(initiate_dreset_sequence),
+		.initiate_trigger(initiate_trigger), .trig(trig), .initiate_dreset_sequence(initiate_dreset_sequence),
 		.scl(rpio_19_r), .sda(rpio_13_r), .initiate_i2c_transfer(initiate_i2c_transfer),
 		.i2c_busy(), .i2c_nack(debug[0]), .i2c_error(debug[1]),
 		.sin(sin), .pclk(pclk), .sclk(sclk), .initiate_legacy_serial_sequence(initiate_legacy_serial_sequence),
