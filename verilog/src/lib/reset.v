@@ -7,7 +7,7 @@
 `include "generic.v"
 `include "synchronizer.v"
 
-//	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(CLOCK1_BIT_PICKOFF), .PLL_LOCKED_PIPELINE_PICKOFF(PLL_LOCKED_PIPELINE_CLOCK1_PICKOFF), .RESET_PIPELINE_PICKOFF(RESET_PIPELINE_PICKOFF)) reset1_wait4pll (.reset1_input(reset1), .reset2_input(reset2), .pll_locked1_input(pll_locked1_input), .clock1_input(clock1_input), .clock2_input(clock2_input), .reset2_output(reset2_output));
+//	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(CLOCK1_BIT_PICKOFF), .PLL_LOCKED_PIPELINE_PICKOFF(PLL_LOCKED_PIPELINE_CLOCK1_PICKOFF), .RESET_PIPELINE_PICKOFF(RESET_PIPELINE_PICKOFF)) reset1_wait4pll (.reset1_input(reset1), .pll_locked1_input(pll_locked1_input), .clock1_input(clock1_input), .clock2_input(clock2_input), .reset2_output(reset2_output));
 module reset_wait4pll_synchronized #(
 	parameter COUNTER_BIT_PICKOFF = 20,
 	parameter PIPELINE_PICKOFF = 6

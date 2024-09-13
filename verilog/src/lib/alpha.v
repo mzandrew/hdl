@@ -1,6 +1,6 @@
 // written 2022-11-16 by mza
 // based on mza-test063.alphav2.pynqz2.v
-// last updated 2024-09-06 by mza
+// last updated 2024-09-13 by mza
 
 `ifndef ALPHA_LIB
 `define ALPHA_LIB
@@ -58,6 +58,8 @@
 `include "i2c.v"
 
 module alpha_control #(
+	parameter USE_LEGACY_SERIAL_INTERFACE = 0,
+	parameter USE_DOUBLE_TRIGGER_DOUBLE_TOKEN_DOUBLE_READOUT = 0,
 	parameter SIMULATION = 0
 ) (
 	input clock, reset,
@@ -71,14 +73,13 @@ module alpha_control #(
 	input [7:0] PCLK_4DACs,
 	input [15:0] i2c_address_register_enables,
 	input [7:0] samples_after_trigger, lookback_windows, number_of_samples,
-	output reg sync, dreset, tok_a_in, sin, pclk, sclk, trig,
+	output reg sync = 0, dreset = 0, tok_a_in = 0, trig = 0,
+	output reg sin = 0, pclk = 0, sclk = 0,
 	output scl, i2c_busy, i2c_nack, i2c_error
 );
 	reg [31:0] counter1 = 0;
-	reg [31:0] counter2 = 0;
 	reg [31:0] counter3 = 0;
 	reg mode3 = 0;
-	reg mode2 = 0;
 	reg mode1 = 0;
 	localparam TIMING_CONSTANT = SIMULATION ? 1 : 100; // 20=bad; 70=bad; 100=good; 150=bad; 200=worse
 	always @(posedge clock) begin
@@ -131,7 +132,11 @@ module alpha_control #(
 				end else if (4*TIMING_CONSTANT+1*ADC_CONVERSION_TIME+0*READOUT_TIME==counter1) begin
 					tok_a_in <= 0;
 				end else if (5*TIMING_CONSTANT+1*ADC_CONVERSION_TIME+1*READOUT_TIME==counter1) begin
-					trig <= 1'b1;
+					if (USE_DOUBLE_TRIGGER_DOUBLE_TOKEN_DOUBLE_READOUT) begin
+						trig <= 1'b1;
+					end else begin
+						mode1 <= 1'b0;
+					end
 				end else if (6*TIMING_CONSTANT+1*ADC_CONVERSION_TIME+1*READOUT_TIME==counter1) begin
 					trig <= 0;
 				end else if (7*TIMING_CONSTANT+2*ADC_CONVERSION_TIME+1*READOUT_TIME==counter1) begin
@@ -151,178 +156,182 @@ module alpha_control #(
 			end
 		end
 	end
-	localparam LEGACY_SERIAL_CONSTANT = SIMULATION ? 1 : 50;
-	wire [1:0] CMPbias_address = 2'b00;
-	wire [1:0] ISEL_address    = 2'b01;
-	wire [1:0] SBbias_address  = 2'b10;
-	wire [1:0] DBbias_address  = 2'b11;
-	wire [15:0] data_word [3:0];
-	assign data_word[0] = { 2'b00, CMPbias_address, CMPbias };
-	assign data_word[1] = { 2'b00, ISEL_address,    ISEL };
-	assign data_word[2] = { 2'b00, SBbias_address,  SBbias };
-	assign data_word[3] = { 2'b00, DBbias_address,  DBbias };
-	reg [3:0] bit_counter = 0;
-	reg [1:0] word_counter = 0;
-	always @(posedge clock) begin
-		if (reset) begin
-			counter2 <= 0;
-			sin <= 0;
-			sclk <= 0;
-			pclk <= 0;
-			bit_counter <= 15;
-			word_counter <= 0;
-			mode2 <= 0;
-		end else begin
-			counter2 <= counter2 + 1'b1;
-			if (mode2==1'b1) begin
-				if          (1*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (2*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (3*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (4*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (5*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (6*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (7*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (8*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (9*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (10*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (11*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (12*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (13*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (14*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (15*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (16*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (17*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (18*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (19*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (20*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (21*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (22*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (23*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (24*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (25*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (26*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (27*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (28*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (29*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (30*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (31*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (32*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (33*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (34*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (35*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (36*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (37*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (38*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (39*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (40*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (41*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (42*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (43*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (44*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (45*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-					bit_counter <= bit_counter - 1'b1;
-				end else if (46*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= data_word[word_counter][bit_counter];
-				end else if (47*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b1;
-				end else if (48*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sclk <= 1'b0;
-				end else if (49*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= 1'b0;
-				end else if (50*LEGACY_SERIAL_CONSTANT==counter2) begin
-					pclk <= 1'b1;
-				end else if (63*LEGACY_SERIAL_CONSTANT==counter2) begin
-					pclk <= 1'b0;
-				end else if (64*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= 1'b1;
-				end else if (65*LEGACY_SERIAL_CONSTANT==counter2) begin
-					pclk <= 1'b1;
-				end else if (78*LEGACY_SERIAL_CONSTANT==counter2) begin
-					pclk <= 1'b0;
-				end else if (79*LEGACY_SERIAL_CONSTANT==counter2) begin
-					sin <= 1'b0;
-				end else if (81*LEGACY_SERIAL_CONSTANT==counter2) begin
-					if (word_counter==2'b11) begin
-						mode2 <= 1'b0;
-					end else begin
-						counter2 <= 0;
-						sin <= 0;
-						sclk <= 0;
-						pclk <= 0;
-						bit_counter <= 15;
-						word_counter <= word_counter + 1'b1;
-					end
-				end else begin
-					// no operation
-				end
-			end
-			if (initiate_legacy_serial_sequence) begin
+	if (USE_LEGACY_SERIAL_INTERFACE) begin
+		localparam LEGACY_SERIAL_CONSTANT = SIMULATION ? 1 : 50;
+		wire [1:0] CMPbias_address = 2'b00;
+		wire [1:0] ISEL_address    = 2'b01;
+		wire [1:0] SBbias_address  = 2'b10;
+		wire [1:0] DBbias_address  = 2'b11;
+		wire [15:0] data_word [3:0];
+		assign data_word[0] = { 2'b00, CMPbias_address, CMPbias };
+		assign data_word[1] = { 2'b00, ISEL_address,    ISEL };
+		assign data_word[2] = { 2'b00, SBbias_address,  SBbias };
+		assign data_word[3] = { 2'b00, DBbias_address,  DBbias };
+		reg [3:0] bit_counter = 0;
+		reg [1:0] word_counter = 0;
+		reg mode2 = 0;
+		reg [31:0] counter2 = 0;
+		always @(posedge clock) begin
+			if (reset) begin
 				counter2 <= 0;
 				sin <= 0;
 				sclk <= 0;
 				pclk <= 0;
 				bit_counter <= 15;
 				word_counter <= 0;
-				mode2 <= 1'b1;
+				mode2 <= 0;
+			end else begin
+				counter2 <= counter2 + 1'b1;
+				if (mode2==1'b1) begin
+					if          (1*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (2*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (3*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (4*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (5*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (6*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (7*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (8*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (9*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (10*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (11*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (12*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (13*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (14*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (15*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (16*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (17*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (18*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (19*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (20*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (21*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (22*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (23*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (24*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (25*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (26*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (27*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (28*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (29*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (30*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (31*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (32*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (33*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (34*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (35*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (36*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (37*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (38*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (39*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (40*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (41*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (42*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (43*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (44*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (45*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+						bit_counter <= bit_counter - 1'b1;
+					end else if (46*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= data_word[word_counter][bit_counter];
+					end else if (47*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b1;
+					end else if (48*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sclk <= 1'b0;
+					end else if (49*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= 1'b0;
+					end else if (50*LEGACY_SERIAL_CONSTANT==counter2) begin
+						pclk <= 1'b1;
+					end else if (63*LEGACY_SERIAL_CONSTANT==counter2) begin
+						pclk <= 1'b0;
+					end else if (64*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= 1'b1;
+					end else if (65*LEGACY_SERIAL_CONSTANT==counter2) begin
+						pclk <= 1'b1;
+					end else if (78*LEGACY_SERIAL_CONSTANT==counter2) begin
+						pclk <= 1'b0;
+					end else if (79*LEGACY_SERIAL_CONSTANT==counter2) begin
+						sin <= 1'b0;
+					end else if (81*LEGACY_SERIAL_CONSTANT==counter2) begin
+						if (word_counter==2'b11) begin
+							mode2 <= 1'b0;
+						end else begin
+							counter2 <= 0;
+							sin <= 0;
+							sclk <= 0;
+							pclk <= 0;
+							bit_counter <= 15;
+							word_counter <= word_counter + 1'b1;
+						end
+					end else begin
+						// no operation
+					end
+				end
+				if (initiate_legacy_serial_sequence) begin
+					counter2 <= 0;
+					sin <= 0;
+					sclk <= 0;
+					pclk <= 0;
+					bit_counter <= 15;
+					word_counter <= 0;
+					mode2 <= 1'b1;
+				end
 			end
 		end
 	end
