@@ -131,9 +131,9 @@ net coax<5> loc=p33  | iostandard=lvcmos25 | drive = 24 | slew = fast; # bank3 -
 #net "althea/word_clock_sel<?>" tig;
 #net "led<?>" tig;
 net "coax_led<?>" tig;
-#net "*cdc*" tig;
+net "*cdc*" tig;
 
 vccaux=2.5;
-temperature=85c;
+#temperature=85c; # Temperature prorating is not available for this device and speed grade.
 #voltage=1.21v;
 

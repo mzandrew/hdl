@@ -1,4 +1,4 @@
-// last updated 2024-08-19 by mza
+// last updated 2024-09-13 by mza
 
 `ifndef FIFO_LIB
 `define FIFO_LIB
@@ -218,24 +218,25 @@ module fifo_single_clock #(
 	parameter DEPTH = 1<<LOG2_OF_DEPTH
 ) (
 	input clock, reset,
-	output almost_full, full, full_or_almost_full,
+	output empty, full,
+	//output almost_full, full_or_almost_full,
 	input [DATA_WIDTH-1:0] data_in,
 	input write_enable,
-	output almost_empty, empty, empty_or_almost_empty,
+	//output almost_empty, empty_or_almost_empty,
 	input read_enable,
-	output [DATA_WIDTH-1:0] data_out,
-	output [23:0] error_count
+	output [DATA_WIDTH-1:0] data_out
+	//output [23:0] error_count
 );
 	reg [LOG2_OF_DEPTH-1:0] write_address = 0;
 	reg [LOG2_OF_DEPTH-1:0] read_address = 0;
 	localparam MIN_COUNT = 1;
 	localparam MAX_COUNT = MIN_COUNT + DEPTH;
 	reg [LOG2_OF_DEPTH:0] count = MIN_COUNT; // 1 extra bit
-	reg [7:0] write_error_count = 0;
-	reg [7:0] read_error_count = 0;
+	//reg [7:0] write_error_count = 0;
+	//reg [7:0] read_error_count = 0;
 	//reg [7:0] other_error_count = 0;
 	//assign error_count = { write_error_count, read_error_count, other_error_count };
-	assign error_count = { write_error_count, read_error_count, 8'd0 };
+	//assign error_count = { write_error_count, read_error_count, 8'd0 };
 	wire [3:0] rwef = {read_enable, write_enable, empty, full};
 	wire ram_write_enable = write_enable && ((~full) || (read_enable && full));
 	RAM_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH), .SERIES(SERIES)) myuni ( .reset(reset),
@@ -246,15 +247,15 @@ module fifo_single_clock #(
 			write_address <= 0;
 			read_address <= 0;
 			count <= MIN_COUNT;
-			write_error_count <= 0;
-			read_error_count <= 0;
+			//write_error_count <= 0;
+			//read_error_count <= 0;
 			//other_error_count <= 0;
 		end else begin
 			casez (rwef)
 				4'b100? : begin read_address <= read_address + 1'd1; count <= count - 1'd1; end
-				4'b101? : begin read_error_count <= read_error_count + 1'd1; end // no data to read
+				//4'b101? : begin read_error_count <= read_error_count + 1'd1; end // no data to read
 				4'b01?0 : begin write_address <= write_address + 1'd1; count <= count + 1'd1; end
-				4'b01?1 : begin write_error_count <= write_error_count + 1'd1; end // no more room to write
+				//4'b01?1 : begin write_error_count <= write_error_count + 1'd1; end // no more room to write
 				4'b1100 : begin write_address <= write_address + 1'd1; read_address <= read_address + 1'd1; end
 				4'b1110 : begin write_address <= write_address + 1'd1; count <= count + 1'd1; end
 				4'b1101 : begin read_address <= read_address + 1'd1; count <= count - 1'd1; end
@@ -266,10 +267,10 @@ module fifo_single_clock #(
 	end
 	assign full  = (count == MAX_COUNT) ? 1'b1 : 1'b0;
 	assign empty = (count == MIN_COUNT) ? 1'b1 : 1'b0;
-	assign almost_full  = (count == MAX_COUNT-1) ? 1'b1 : 1'b0;
-	assign almost_empty = (count == MIN_COUNT+1) ? 1'b1 : 1'b0;
-	assign full_or_almost_full   = full  || almost_full;
-	assign empty_or_almost_empty = empty || almost_empty;
+	//assign almost_full  = (count == MAX_COUNT-1) ? 1'b1 : 1'b0;
+	//assign almost_empty = (count == MIN_COUNT+1) ? 1'b1 : 1'b0;
+	//assign full_or_almost_full   = full  || almost_full;
+	//assign empty_or_almost_empty = empty || almost_empty;
 endmodule
 
 module fifo_single_clock_tb;

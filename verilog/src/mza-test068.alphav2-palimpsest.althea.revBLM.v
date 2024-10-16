@@ -2,7 +2,7 @@
 
 // written 2022-11-16 by mza
 // based on mza-test067.alphav2.althea.revBLM.v and mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
-// last updated 2024-09-06 by mza
+// last updated 2024-09-13 by mza
 
 `include "lib/reset.v"
 `include "lib/debounce.v"
@@ -53,28 +53,20 @@ module ALPHAtestPALIMPSEST #(
 );
 	wire clock100;
 	IBUFGDS clock_in_diff (.I(clock100_p), .IB(clock100_n), .O(clock100)); // WARNING:Xst:2957 - There are clock and non-clock loads on clock signal clock100_BUFG. This is not a recommended design practice, that may cause excessive delay, skew or unroutable situations.
-	wire first_pll_locked;
-	// ----------------------------------------------------------------------
-	reg reset100 = 1;
-	localparam RESET_COUNTER_PICKOFF = 9;
-	reg [RESET_COUNTER_PICKOFF:0] reset_counter = 0;
-	always @(posedge clock100) begin
-		if (reset_counter[RESET_COUNTER_PICKOFF]) begin
-			reset100 <= 0;
-		end else begin
-			reset100 <= 1;
-			reset_counter <= reset_counter + 1'b1;
-		end
-	end
-	wire reset;
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(RESET_COUNTER_PICKOFF)) reset100_wait4pll (.reset_input(reset100), .pll_locked_input(first_pll_locked), .clock_input(clock100), .reset_output(reset));
 	// ----------------------------------------------------------------------
 	wire sysclk_raw, sysclk180_raw, sstclk_raw, sstclk180_raw;
-	wire sysclk, sysclk180, sstclk, sstclk180;
-	simplepll_BASE #(.PERIOD(10.0), .OVERALL_DIVIDE(1), .MULTIPLY(4), .COMPENSATION("INTERNAL"),
-		.DIVIDE0(4), .DIVIDE1(4), .DIVIDE2(4), .DIVIDE3(4), .DIVIDE4(4), .DIVIDE5(4),
-		.PHASE0(0.0), .PHASE1(180.0), .PHASE2(0.0), .PHASE3(180.0), .PHASE4(0.0), .PHASE5(0.0)
-	) pll_sys_sst (.clockin(clock100), .reset(reset100), .locked(first_pll_locked),
+	wire sysclk, sysclk180, sstclk, sstclk180, first_pll_locked, reset;
+	localparam RESET_COUNTER_PICKOFF = 9;
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(RESET_COUNTER_PICKOFF)) reset100_wait4pll (.reset1_input(1'b0), .pll_locked1_input(first_pll_locked), .clock1_input(clock100), .clock2_input(sysclk), .reset2_output(reset));
+	simplepll_BASE #(.PERIOD(10.0), .OVERALL_DIVIDE(1), .MULTIPLY(10), .COMPENSATION("INTERNAL"),
+		// 9->111 MHz; 8->125 MHz; 7->143 MHz; 6->167 MHz; 5->200 MHz; 4->250 MHz
+		.DIVIDE0(7), .DIVIDE1(7),
+		.DIVIDE2(4), .DIVIDE3(4),
+		.DIVIDE4(4), .DIVIDE5(4),
+		.PHASE0(0.0), .PHASE1(180.0),
+		.PHASE2(0.0), .PHASE3(180.0),
+		.PHASE4(0.0), .PHASE5(0.0)
+	) pll_sys_sst (.clockin(clock100), .reset(1'b0), .locked(first_pll_locked),
 		.clock0out(sysclk_raw), .clock1out(sysclk180_raw),
 		.clock2out(sstclk_raw), .clock3out(sstclk180_raw),
 		.clock4out(), .clock5out()
@@ -83,8 +75,8 @@ module ALPHAtestPALIMPSEST #(
 	BUFG sys180 (.I(sysclk180_raw), .O(sysclk180));
 	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
 	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
-	clock_ODDR_out_diff sysclk_ODDR (.clock_in_p(sysclk), .clock_in_n(sysclk180), .reset(reset), .clock_enable(1'b1), .clock_out_p(sysclk_p), .clock_out_n(sysclk_n));
-	clock_ODDR_out_diff sstclk_ODDR (.clock_in_p(sstclk), .clock_in_n(sstclk180), .reset(reset), .clock_enable(1'b1), .clock_out_p(sstclk_p), .clock_out_n(sstclk_n));
+	clock_ODDR_out_diff sysclk_ODDR (.clock_in_p(sysclk), .clock_in_n(sysclk180), .reset(1'b0), .clock_enable(1'b1), .clock_out_p(sysclk_p), .clock_out_n(sysclk_n));
+	clock_ODDR_out_diff sstclk_ODDR (.clock_in_p(sstclk), .clock_in_n(sstclk180), .reset(1'b0), .clock_enable(1'b1), .clock_out_p(sstclk_p), .clock_out_n(sstclk_n));
 //	ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(sysclk), .C1(sysclk180), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(reset), .S(1'b0), .Q(coax[3]));
 	// ----------------------------------------------------------------------
 	wire [BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1:0] address_word_full;
@@ -156,18 +148,17 @@ module ALPHAtestPALIMPSEST #(
 		.write_strobe_b(1'b1));
 	wire [7:0] status8;
 	reg [7:0] number_of_triggers_since_reset = 0;
-	wire fifo_empty;
+//	wire fifo_empty;
 //	wire [:] fifo_pending;
-	wire [23:0] fifo_error_count;
 	wire [31:0] asic_output_strobe_counter;
 	wire [31:0] fifo_output_strobe_counter;
 	wire [31:0] alfa_counter;
 	wire [31:0] omga_counter;
 	assign bank1[0] = { hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8 };
 	assign bank1[1][7:0] = number_of_triggers_since_reset; assign bank1[1][31:8] = 0;
-	assign bank1[2][0] = fifo_empty; assign bank1[2][31:1] = 0;
+	assign bank1[2] = 0; // was fifo_empty
 	assign bank1[3] = 0;
-	assign bank1[4][23:0] = fifo_error_count; assign bank1[4][31:24] = 0;
+	assign bank1[4] = 0; // was fifo_error_count
 	assign bank1[5] = asic_output_strobe_counter;
 	assign bank1[6] = fifo_output_strobe_counter;
 	assign bank1[7] = alfa_counter;
@@ -259,9 +250,9 @@ module ALPHAtestPALIMPSEST #(
 	assign read_data_word[7] = 0;
 	// bank7 pollable memory
 	if (0) begin
-		RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank7 (.reset(reset100),
-			.clock_a(clock100), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[7]), .data_out_a(read_data_word[7]),
-			.clock_b(clock100), .address_b(15'd0), .data_out_b());
+		RAM_s6_8k_32bit_8bit #(.ENDIANNESS("BIG")) mem_bank7 (.reset(reset),
+			.clock_a(sysclk), .address_a(address_word_narrow), .data_in_a(write_data_word), .write_enable_a(write_strobe[7]), .data_out_a(read_data_word[7]),
+			.clock_b(sysclk), .address_b(15'd0), .data_out_b());
 	end
 	// ----------------------------------------------------------------------
 	wire trigin;
@@ -305,9 +296,9 @@ module ALPHAtestPALIMPSEST #(
 	alpha_readout alpha_readout (.clock(sysclk), .reset(reset), .data_a(data_a), .header(header), .meat(meat), .footer(footer), .alfa_counter(alfa_counter), .omga_counter(omga_counter), .strobe(fifo_write_strobe), .msn(msn), .nybble(), .nybble_counter(), .data_word(data_word_from_asic));
 	counter_level asic_output_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(fifo_write_strobe), .counter(asic_output_strobe_counter));
 	localparam LOG2_OF_DEPTH = 13+2; // $clog2(4200)
-	fifo_single_clock #(.DATA_WIDTH(16), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(sysclk), .reset(reset), .error_count(fifo_error_count),
-		.data_in(data_word_from_asic), .write_enable(fifo_write_strobe && msn), .full(), .almost_full(), .full_or_almost_full(),
-		.data_out(asic_data_from_fifo), .read_enable(fifo_read_strobe), .empty(fifo_empty), .almost_empty(), .empty_or_almost_empty());
+	fifo_single_clock #(.DATA_WIDTH(16), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) fsc (.clock(sysclk), .reset(reset),
+		.data_in(data_word_from_asic), .write_enable(fifo_write_strobe && msn), .full(),
+		.data_out(asic_data_from_fifo), .read_enable(fifo_read_strobe), .empty());
 	counter_level fifo_output_strobe_counter_thing (.clock(sysclk), .reset(reset), .in(fifo_read_strobe), .counter(fifo_output_strobe_counter));
 	// tok_a_in tok_a_out anything_that_is_going_on msn header footer meat
 	// ----------------------------------------------------------------------
