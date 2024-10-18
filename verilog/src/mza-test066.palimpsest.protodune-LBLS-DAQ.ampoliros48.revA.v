@@ -1,6 +1,6 @@
 // written 2024-03-08 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-05-09 by mza
+// last updated 2024-08-14 by mza
 
 `define ampoliros48_revA
 `include "lib/duneLBLS.v"
@@ -25,9 +25,9 @@ module LBLS48 #(
 	//parameter EXTRA_DIVIDE = 1, // 1000 MHz bit clock; 125 MHz word clock (fails timing by 52 ps)
 	parameter EXTRA_DIVIDE = 2, // 500 MHz bit clock; 62.5 MHz word clock
 	parameter OSCILLATOR_FREQUENCY_HZ = 100_000_000,
-	parameter WORD_CLOCK_FREQUENCY_HZ = $int(OSCILLATOR_FREQUENCY_HZ * MULTIPLY / DIVIDE / EXTRA_DIVIDE),
+	parameter WORD_CLOCK_FREQUENCY_HZ = $clog2(OSCILLATOR_FREQUENCY_HZ * MULTIPLY / DIVIDE / EXTRA_DIVIDE),
 	parameter GUI_UPDATE_PERIOD = 0.2,
-	parameter CLOCK_PERIODS_TO_ACCUMULATE = $int(WORD_CLOCK_FREQUENCY_HZ * GUI_UPDATE_PERIOD), // should be roughly same duration as gui update period (0.2s)
+	parameter CLOCK_PERIODS_TO_ACCUMULATE = $clog2(WORD_CLOCK_FREQUENCY_HZ * GUI_UPDATE_PERIOD), // should be roughly same duration as gui update period (0.2s)
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
@@ -261,8 +261,8 @@ module LBLS48 #(
 	wire [3:0] status_resets = { ~pll_oserdes_locked_copy_on_word_clock, reset, reset100, reset_word };
 	wire [3:0] status_any = { anyA, anyB, anyC, anyD };
 	wire [3:0] status_trigger = { inR[3], inR[2], trigger_active, monitor };
-	assign toupee_diff[11:9] = status_resets;
-	assign toupee_diff[8:5] = status_any;
+	assign toupee_diff[11:8] = status_resets;
+	assign toupee_diff[7:4] = status_any;
 	assign toupee_diff[3:0] = status_trigger;
 //	assign toupee_diff[11] = ~pll_oserdes_locked_copy_on_word_clock;
 //	assign toupee_diff[10] = reset;
