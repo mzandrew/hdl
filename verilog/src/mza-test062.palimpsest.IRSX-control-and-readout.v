@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-07-21 by mza
+// last updated 2024-10-18 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -140,12 +140,13 @@ module IRSXtest #(
 	localparam TRG_DIVIDE = 8;
 	localparam HS_DAT_DIVIDE = TRG_DIVIDE; // iserdes2 bitclock is 1018 MHz -> word clock is 127 MHz
 	localparam HS_CLK_DIVIDE = 4; // ODDR clockout -> 254 MHz
+	localparam GCC_CLK_DIVIDE = 4;
 	dcm_pll_pll #(
 		.DCM_PERIOD(7.861), .DCM_MULTIPLY(4), .DCM_DIVIDE(4), // 127.221875 MHz
 		.PLL_PERIOD(7.861), .PLL_MULTIPLY(8), .PLL_OVERALL_DIVIDE(1), // 1017.775 MHz
 		.PLL_DIVIDE0(48), .PLL_DIVIDE1(TRG_DIVIDE/BIT_DEPTH),
 		.PLL_DIVIDE2(48), .PLL_DIVIDE3(48),
-		.PLL_DIVIDE4(48), .PLL_DIVIDE5(48),
+		.PLL_DIVIDE4(GCC_CLK_DIVIDE), .PLL_DIVIDE5(GCC_CLK_DIVIDE),
 		.PLL_DIVIDE6(HS_DAT_DIVIDE/BIT_DEPTH), .PLL_DIVIDE7(TRG_DIVIDE/BIT_DEPTH),
 		.PLL_DIVIDE8(TRG_DIVIDE), .PLL_DIVIDE9(48),
 		.PLL_DIVIDE10(HS_CLK_DIVIDE), .PLL_DIVIDE11(HS_CLK_DIVIDE),
@@ -177,6 +178,9 @@ module IRSXtest #(
 	ssynchronizer regen_copy_sstclk (.clock1(word_clock), .clock2(sstclk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_sstclk));
 	wire regen_copy_on_gcc_clk;
 	ssynchronizer regen_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_gcc_clk));
+	wire should_start_wilkinson_conversion_now;
+	wire should_start_wilkinson_conversion_now_copy_on_gcc_clk;
+	ssynchronizer should_start_wilkinson_conversion_now_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .reset1(reset_word), .reset2(1'b0), .in1(should_start_wilkinson_conversion_now), .out2(should_start_wilkinson_conversion_now_copy_on_gcc_clk));
 //	wire regen_copy_on_wr_clk;
 //	ssynchronizer regen_copy_wr_clk (.clock1(word_clock), .clock2(wr_clk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_wr_clk));
 	// ----------------------------------------------------------------------
@@ -268,12 +272,19 @@ module IRSXtest #(
 	assign bank1[6] = buffered_hs_data_stream[63-:32];
 	assign bank1[7] = buffered_hs_data_stream[31-:32];
 	assign bank1[8][HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1:0];
+	wire [31:0] convert_counter, done_out_counter;
+	assign bank1[9] = convert_counter;
+	assign bank1[10] = done_out_counter;
 	// ----------------------------------------------------------------------
 	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(word_clock),
 		.address(address_word_full[3:0]), .strobe(write_strobe[2]), .pulse_out(bank2));
 	wire clear_channel_counters = bank2[0];
 	wire force_write_registers_again = bank2[1];
+	assign should_start_wilkinson_conversion_now = bank2[2];
+	// ----------------------------------------------------------------------
+	wire done_out_buffered;
+	irsx_wilkinson_convert wilkie (.gcc_clock(gcc_clk), .reset(reset_word), .should_start_wilkinson_conversion_now(should_start_wilkinson_conversion_now), .convert(convert), .done_out(done_out), .done_out_buffered(done_out_buffered), .convert_counter(convert_counter), .done_out_counter(done_out_counter));
 	// ----------------------------------------------------------------------
 	wire [31:0] bank3 [15:0]; // 
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank3 (.clock(word_clock), .reset(reset_word),
@@ -299,7 +310,7 @@ module IRSXtest #(
 	wire hs_word_clock;
 	assign hs_word_clock = trg_word_clock;
 	assign read_data_word[5][31:12] = 0;
-	irsx_hs_data #(.HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS), .COUNTERWORD_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) hsdo (
+	irsx_read_hs_data_from_storage #(.HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS), .COUNTERWORD_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) hsdo (
 		.hs_bit_clk_raw(hs_bit_clk_raw), .hs_word_clock(hs_word_clock), .input_pll_locked(third_pll_locked),
 		.hs_data_offset(hs_data_offset), .hs_data(hs_data),
 		.hs_data_ss_incr(hs_data_ss_incr), .hs_data_capture(hs_data_capture), .ss_incr(ss_incr),
@@ -348,8 +359,6 @@ module IRSXtest #(
 		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
 		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
 	// ----------------------------------------------------------------------
-	assign convert = 0;
-	// ----------------------------------------------------------------------
 	// bank7 is the register interface
 	irsx_register_interface irsx_reg (.clock(word_clock), .reset(reset_word),
 		.intended_data_in(write_data_word[11:0]), .intended_data_out(read_data_word[7][11:0]), .readback_data_out(read_data_word[7][23:12]),
@@ -386,13 +395,15 @@ module IRSXtest #(
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;
 	end else if (1) begin
-		assign coax[0] = sin;
-		assign coax[1] = pclk;
+		assign coax[0] = wr_syncmon; // this is a 4ns long pulse that repeats at the SST frequency
+		assign coax[1] = montiming1;
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;
 	end
-	assign coax[4] = shout;
-	assign coax[5] = sclk;
+	//assign coax[4] = shout;
+	//assign coax[5] = sclk;
+	assign coax[4] = convert;
+	assign coax[5] = done_out_buffered;
 	// ----------------------------------------------------------------------
 	assign status8[7] = ~first_pll_locked;
 	assign status8[6] = ~second_pll_locked;

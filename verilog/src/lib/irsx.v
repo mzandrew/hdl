@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-07-21 by mza
+// last updated 2024-10-18 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -8,7 +8,57 @@
 `include "RAM8.v"
 `include "frequency_counter.v"
 
-module irsx_hs_data #(
+module irsx_write_to_storage #(
+) (
+);
+endmodule
+
+//	irsx_wilkinson_convert #() wilkie (.gcc_clock(), .reset(), .should_start_wilkinson_conversion_now(), .convert(), .done_out(), .done_out_buffered(), .convert_counter(), .done_out_counter());
+module irsx_wilkinson_convert #(
+	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 64,
+	parameter LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS = $clog2(CONVERT_DURATION_IN_GCC_CLOCKS),
+	parameter DONE_OUT_PIPELINE_DEPTH = 8
+) (
+	input gcc_clock, reset,
+	input should_start_wilkinson_conversion_now,
+	output reg [31:0] convert_counter,
+	output reg [31:0] done_out_counter,
+	output reg convert,
+	input done_out,
+	output reg done_out_buffered
+);
+	reg [15:0] should_start_wilkinson_conversion_now_pipeline = 0;
+	reg [LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS:0] convert_duration_counter = 0;
+	reg [DONE_OUT_PIPELINE_DEPTH-1:0] done_out_pipeline = 0;
+	always @(posedge gcc_clock) begin
+		done_out_buffered <= 0;
+		convert <= 0;
+		if (reset) begin
+			convert_counter <= 0;
+			done_out_counter <= 0;
+			done_out_pipeline <= 0;
+			convert_duration_counter <= 0;
+			should_start_wilkinson_conversion_now_pipeline <= 0;
+		end else begin
+			if (should_start_wilkinson_conversion_now_pipeline[15:14]==2'b01) begin
+				convert_counter <= convert_counter + 1'b1;
+				convert_duration_counter <= CONVERT_DURATION_IN_GCC_CLOCKS;
+			end
+			if (convert_duration_counter) begin
+				convert <= 1'b1;
+				convert_duration_counter <= convert_duration_counter - 1'b1;
+			end
+			if (done_out_pipeline[DONE_OUT_PIPELINE_DEPTH-1:DONE_OUT_PIPELINE_DEPTH-2]==2'b01) begin
+				done_out_counter <= done_out_counter + 1'b1;
+				done_out_buffered <= 1'b1;
+			end
+			done_out_pipeline <= { done_out_pipeline[DONE_OUT_PIPELINE_DEPTH-2:0], done_out };
+			should_start_wilkinson_conversion_now_pipeline <= { should_start_wilkinson_conversion_now_pipeline[14:0], should_start_wilkinson_conversion_now }; // this assumes gcc_clock is faster than word_clock
+		end
+	end
+endmodule
+
+module irsx_read_hs_data_from_storage #(
 	parameter TESTBENCH = 0,
 	parameter DATA_WIDTH = 12,
 	parameter LOG2_OF_DEPTH = 9, // 9 = 64 samples by 8 channels
