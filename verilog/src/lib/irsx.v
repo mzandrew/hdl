@@ -15,11 +15,12 @@ endmodule
 
 //	irsx_wilkinson_convert #() wilkie (.gcc_clock(), .reset(), .should_start_wilkinson_conversion_now(), .convert(), .done_out(), .done_out_buffered(), .convert_counter(), .done_out_counter());
 module irsx_wilkinson_convert #(
-	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 64,
+	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 4000,
 	parameter LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS = $clog2(CONVERT_DURATION_IN_GCC_CLOCKS),
 	parameter DONE_OUT_PIPELINE_DEPTH = 8
 ) (
-	input gcc_clock, reset,
+	input gcc_clock, // 254 MHz
+	input reset,
 	input should_start_wilkinson_conversion_now,
 	output reg [31:0] convert_counter,
 	output reg [31:0] done_out_counter,
