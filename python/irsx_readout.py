@@ -56,8 +56,8 @@ bump_threshold_amount = [ 1, 4, 16 ]
 trigger_gain_x1_upper = [ 0x7e0, 0x870, 0x9a0 ]
 trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
 
-bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture", "scaler timeout", "hs_data_offset", "hs_data_ratio", "regen" ]
-bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_high", "buffered_hs_data_stream_middle1", "buffered_hs_data_stream_middle0", "buffered_hs_data_stream_low", "hs_data_word_decimated" ]
+bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture", "scaler timeout", "hs_data_offset", "hs_data_ratio", "regen", "min_tries" ]
+bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_high", "buffered_hs_data_stream_middle1", "buffered_hs_data_stream_middle0", "buffered_hs_data_stream_low", "hs_data_word_decimated", "convert_counter", "done_out_counter" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
@@ -417,7 +417,7 @@ def setup():
 	#Y_POSITION_OF_BANK4_REGISTERS = ROWS * (plot_height + 2*gap) + 170
 	#Y_POSITION_OF_BANK5_REGISTERS = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
 	#Y_POSITION_OF_BANK6_REGISTERS = ROWS * (plot_height + 2*gap)
-	Y_POSITION_OF_OTHER_STUFF = ROWS * (plot_height + 2*gap) + 150
+	Y_POSITION_OF_OTHER_STUFF = ROWS * (plot_height + 2*gap) + 175
 	setup_pygame_sdl()
 	#pygame.mixer.quit()
 	global game_clock
@@ -672,6 +672,8 @@ def loop():
 					bump_hs_data_offset(+1)
 				else:
 					bump_hs_data_offset(-1)
+			elif pygame.K_j==event.key:
+				send_signal_to_start_wilkinson_conversion()
 			elif pygame.K_m==event.key:
 				test_tpg_as_a_pollable_memory()
 		elif event.type == pygame.QUIT:
@@ -986,12 +988,19 @@ def set_min_tries(value):
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 13, [value])
 
 def clear_channel_counters():
+	print("clearing channel counters")
 	bank = 2
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [1])
 
 def force_register_rewrite():
+	print("forcing register rewrite")
 	bank = 2
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 1, [1])
+
+def send_signal_to_start_wilkinson_conversion():
+	print("sending signal to start wilkinson conversion")
+	bank = 2
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [1])
 
 def read_modify_write_speed_test():
 	print("starting speed test...")
