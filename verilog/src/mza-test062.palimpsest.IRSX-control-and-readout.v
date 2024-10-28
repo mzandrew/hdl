@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-10-18 by mza
+// last updated 2024-10-28 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -409,7 +409,7 @@ module IRSXtest #(
 	//assign coax[4] = shout;
 	//assign coax[5] = sclk;
 	assign coax[4] = convert;
-	assign coax[5] = done_out_buffered;
+	assign coax[5] = done_out;
 	// ----------------------------------------------------------------------
 	assign status8[7] = ~first_pll_locked;
 	assign status8[6] = ~second_pll_locked;
