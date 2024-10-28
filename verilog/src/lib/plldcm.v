@@ -1,6 +1,6 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2024-05-29 by mza
+// last updated 2024-10-28 by mza
 
 `ifndef PLLDCM_LIB
 `define PLLDCM_LIB
@@ -436,12 +436,11 @@ module dcm_pll_pll #(
 ) (
 	input clockin,
 	input reset,
-	output clockintermediate,
+	output clockintermediate, clockintermediate_raw, clockintermediate_raw180,
 	output clock0out, clock1out, clock2out, clock3out, clock4out, clock5out,
 	output clock6out, clock7out, clock8out, clock9out, clock10out, clock11out,
 	output dcm_locked, pll1_locked, pll2_locked
 );
-	wire clockintermediate_raw;
 	BUFG intermediate (.I(clockintermediate_raw), .O(clockintermediate));
 	simpledcm_SP #(
 		.MULTIPLY(DCM_MULTIPLY), .DIVIDE(DCM_DIVIDE), .PERIOD(DCM_PERIOD)
@@ -449,7 +448,7 @@ module dcm_pll_pll #(
 		.clockin(clockin),
 		.reset(reset),
 		.clockout(clockintermediate_raw),
-		.clockout180(),
+		.clockout180(clockintermediate_raw180),
 		.alt_clockout(),
 		.locked(dcm_locked));
 	simplepll_BASE #(

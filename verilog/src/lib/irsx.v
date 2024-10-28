@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-10-18 by mza
+// last updated 2024-10-28 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -8,14 +8,50 @@
 `include "RAM8.v"
 `include "frequency_counter.v"
 
+//	irsx_write_to_storage wright (.wr_clk(wr_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(input_pll_locked), .revo(1'b0), .wr_syncmon(wr_syncmon), .wr_dat(wr_dat));
 module irsx_write_to_storage #(
+	parameter WRITE_ADDRESS_BITS = 8,
+	parameter WR_SYNCMON_PICKOFF = 4
 ) (
+	input wr_clk, wr_bit_clk_raw, reset, input_pll_locked,
+	input revo, wr_syncmon,
+	output wr_dat
 );
+	reg [WRITE_ADDRESS_BITS-1:0] wr_address = 0;
+	reg [WR_SYNCMON_PICKOFF:0] wr_syncmon_pipeline = 0;
+	always @(posedge wr_clk) begin
+		if (reset) begin
+			wr_address <= 0;
+			wr_syncmon_pipeline <= 0;
+		end else begin
+			if (revo) begin
+				wr_address <= 0;
+			end else begin
+				if (wr_syncmon_pipeline[WR_SYNCMON_PICKOFF:WR_SYNCMON_PICKOFF-1]==2'b01) begin
+					wr_address <= wr_address + 1'b1;
+				end
+			end
+			wr_syncmon_pipeline <= { wr_syncmon_pipeline[WR_SYNCMON_PICKOFF-1:0], wr_syncmon };
+		end
+	end
+	wire wr_bit_clk, wr_bit_strobe, wr_pll_is_locked_and_strobe_is_aligned;
+	BUFPLL #(
+		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
+		.DIVIDE(WRITE_ADDRESS_BITS) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+	) wr_bufpll_inst (
+		.PLLIN(wr_bit_clk_raw), // PLL Clock input
+		.GCLK(wr_clk), // Global Clock input
+		.LOCKED(input_pll_locked), // Clock0 locked input
+		.IOCLK(wr_bit_clk), // Output PLL Clock
+		.LOCK(wr_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
+		.SERDESSTROBE(wr_bit_strobe) // Output SERDES strobe
+	);
+	ocyrus_single8_inner #(.BIT_RATIO(WRITE_ADDRESS_BITS), .PINTYPE("p")) wr_data_oserdes (.bit_clock(wr_bit_clk), .bit_strobe(wr_bit_strobe), .word_clock(wr_clk), .reset(reset), .word_in(wr_address), .bit_out(wr_dat));
 endmodule
 
 //	irsx_wilkinson_convert #() wilkie (.gcc_clock(), .reset(), .should_start_wilkinson_conversion_now(), .convert(), .done_out(), .done_out_buffered(), .convert_counter(), .done_out_counter());
 module irsx_wilkinson_convert #(
-	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 4000,
+	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 2000, // takes ~7 us with a 14k resistor and ISEL DAC set to 2200 (scope_1.png)
 	parameter LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS = $clog2(CONVERT_DURATION_IN_GCC_CLOCKS),
 	parameter DONE_OUT_PIPELINE_DEPTH = 8
 ) (
