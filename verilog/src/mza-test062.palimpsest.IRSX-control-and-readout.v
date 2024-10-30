@@ -129,14 +129,15 @@ module IRSXtest #(
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
 	// ----------------------------------------------------------------------
-	wire wr_dat;
+	wire wr_dat, wr_clk;
 	OBUFDS wr_dat_obufds (.I(wr_dat), .O(wr_dat_p), .OB(wr_dat_n));
+	OBUFDS wr_clk_obufds (.I(wr_clk), .O(wr_clk_p), .OB(wr_clk_n));
 	// ----------------------------------------------------------------------
 	assign word_clock = trg_word_clock;
 	wire clock127;
 	wire reset127;
 	wire wr_clk_raw, wr_clk180_raw, sstclk_raw, sstclk180_raw, gcc_clk_raw, gcc_clk180_raw;
-	wire wr_clk, wr_clk180, sstclk, sstclk180, gcc_clk, gcc_clk180;
+	wire wr_word_clk, wr_clk180, sstclk, sstclk180, gcc_clk, gcc_clk180;
 	IBUFGDS mybuf0 (.I(clock127_p), .IB(clock127_n), .O(clock127));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait4pll (.reset1_input(reset), .pll_locked1_input(1'b1), .clock1_input(clock127), .clock2_input(clock127), .reset2_output(reset127));
 	// ----------------------------------------------------------------------
@@ -144,7 +145,7 @@ module IRSXtest #(
 	wire reset_gcc;
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetgcc_wait4pll (.reset1_input(reset_word), .pll_locked1_input(1'b1), .clock1_input(word_clock), .clock2_input(gcc_clk), .reset2_output(reset_gcc));
 	wire reset_wr;
-	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetwr_wait4pll (.reset1_input(reset_word), .pll_locked1_input(1'b1), .clock1_input(word_clock), .clock2_input(wr_clk), .reset2_output(reset_wr));
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetwr_wait4pll (.reset1_input(reset_word), .pll_locked1_input(1'b1), .clock1_input(word_clock), .clock2_input(wr_word_clk), .reset2_output(reset_wr));
 	// ----------------------------------------------------------------------
 //	wire double_period_clk_raw, double_period_clk180_raw, double_period_clk, double_period_clk180;
 	localparam DCM_INPUT_PERIOD = 7.861; // 127.221875 MHz
@@ -192,8 +193,8 @@ module IRSXtest #(
 	);
 	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
 	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
-	BUFG wr_raw (.I(wr_clk_raw), .O(wr_clk));
-	BUFG wr_180 (.I(wr_clk180_raw), .O(wr_clk180));
+	BUFG wr_raw (.I(wr_clk_raw), .O(wr_word_clk));
+	BUFG wr_180 (.I(wr_clk180_raw), .O(wr_word_clk180));
 	BUFG gccraw (.I(gcc_clk_raw), .O(gcc_clk));
 	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
 //	BUFG dpraw (.I(double_period_clk_raw), .O(double_period_clk));
@@ -206,11 +207,11 @@ module IRSXtest #(
 	wire should_start_wilkinson_conversion_now;
 	wire should_start_wilkinson_conversion_now_copy_on_gcc_clk;
 	ssynchronizer should_start_wilkinson_conversion_now_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .reset1(reset_word), .reset2(reset_gcc), .in1(should_start_wilkinson_conversion_now), .out2(should_start_wilkinson_conversion_now_copy_on_gcc_clk));
-	wire regen_copy_on_wr_clk;
-	ssynchronizer regen_copy_wr_clk (.clock1(word_clock), .clock2(wr_clk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_wr_clk));
+//	wire regen_copy_on_wr_clk;
+//	ssynchronizer regen_copy_wr_clk (.clock1(word_clock), .clock2(wr_word_clk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_wr_clk));
 	// ----------------------------------------------------------------------
 	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
-	clock_ODDR_out_diff wr_clk_ODDR  (.clock_in_p(wr_clk),  .clock_in_n(wr_clk180),  .reset(1'b0), .clock_enable(regen_copy_on_wr_clk), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
+	//clock_ODDR_out_diff wr_clk_ODDR  (.clock_in_p(wr_word_clk),  .clock_in_n(wr_clk180),  .reset(1'b0), .clock_enable(regen_copy_on_wr_clk), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
 	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(1'b0), .clock_enable(regen_copy_on_gcc_clk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
 //	clock_ODDR_out_diff hs_clk_ODDR  (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(reset), .clock_enable(regen_copy_on_hs_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
 	// ----------------------------------------------------------------------
@@ -402,7 +403,7 @@ module IRSXtest #(
 	ssynchronizer #(.WIDTH(32)) convert_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(convert_counter), .out2(convert_counter_copy_on_word_clock));
 	ssynchronizer #(.WIDTH(32)) done_out_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(done_out_counter), .out2(done_out_counter_copy_on_word_clock));
 	// ----------------------------------------------------------------------
-	irsx_write_to_storage wright (.wr_clk(wr_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(second_pll_locked), .revo(1'b0), .wr_syncmon(wr_syncmon), .wr_dat(wr_dat), .wr_address(wr_address));
+	irsx_write_to_storage wright (.wr_word_clk(wr_word_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(second_pll_locked), .revo(1'b0), .wr_syncmon(wr_syncmon), .wr_clk(wr_clk), .wr_dat(wr_dat), .wr_address(wr_address));
 	ssynchronizer #(.WIDTH(8)) wr_address_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(wr_address), .out2(wr_address_copy_on_word_clock));
 	// ----------------------------------------------------------------------
 	//wire oddr_sstclk;

@@ -8,18 +8,20 @@
 `include "RAM8.v"
 `include "frequency_counter.v"
 
-//	irsx_write_to_storage wright (.wr_clk(wr_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(input_pll_locked), .revo(1'b0), .wr_syncmon(wr_syncmon), .wr_dat(wr_dat), .wr_address(wr_address));
+//	irsx_write_to_storage wright (.wr_word_clk(wr_word_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(input_pll_locked), .revo(1'b0), .wr_syncmon(wr_syncmon), .wr_dat(wr_dat), .wr_address(wr_address));
+// this module updates the storage array destination for the recently sampled values; wr_word_clk happens at 127 MHz, which is 6x as fast as SST (21 MHz), so there should be no problem getting the address updated before it is needed
+// asic needs a wr_clk transition for every wr_dat bit, so we changed this to have 2 oserdes units with the data one doubling up on the bits
 module irsx_write_to_storage #(
 	parameter WRITE_ADDRESS_BITS = 8,
 	parameter WR_SYNCMON_PICKOFF = 4
 ) (
-	input wr_clk, wr_bit_clk_raw, reset, input_pll_locked,
+	input wr_word_clk, wr_bit_clk_raw, reset, input_pll_locked,
 	input revo, wr_syncmon,
-	output wr_dat,
+	output wr_clk, wr_dat,
 	output reg [WRITE_ADDRESS_BITS-1:0] wr_address = 0
 );
 	reg [WR_SYNCMON_PICKOFF:0] wr_syncmon_pipeline = 0;
-	always @(posedge wr_clk) begin
+	always @(posedge wr_word_clk) begin
 		if (reset) begin
 			wr_address <= 0;
 			wr_syncmon_pipeline <= 0;
@@ -40,13 +42,19 @@ module irsx_write_to_storage #(
 		.DIVIDE(WRITE_ADDRESS_BITS) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
 	) wr_bufpll_inst (
 		.PLLIN(wr_bit_clk_raw), // PLL Clock input
-		.GCLK(wr_clk), // Global Clock input
+		.GCLK(wr_word_clk), // Global Clock input
 		.LOCKED(input_pll_locked), // Clock0 locked input
 		.IOCLK(wr_bit_clk), // Output PLL Clock
 		.LOCK(wr_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
 		.SERDESSTROBE(wr_bit_strobe) // Output SERDES strobe
 	);
-	ocyrus_single8_inner #(.BIT_RATIO(WRITE_ADDRESS_BITS), .PINTYPE("p")) wr_data_oserdes (.bit_clock(wr_bit_clk), .bit_strobe(wr_bit_strobe), .word_clock(wr_clk), .reset(reset), .word_in(wr_address), .bit_out(wr_dat));
+	wire [2*WRITE_ADDRESS_BITS-1:0] wr_address_double_trouble = { 
+		wr_address[7], wr_address[7], wr_address[6], wr_address[6], wr_address[5], wr_address[5], wr_address[4], wr_address[4],
+		wr_address[3], wr_address[3], wr_address[2], wr_address[2], wr_address[1], wr_address[1], wr_address[0], wr_address[0] };
+	wire [WRITE_ADDRESS_BITS-1:0] wr_address_single_trouble;
+	oserdes_gearbox #(.RATIO(2)) wr_dat_osgb (.word_clock(wr_word_clock), .reset(reset), .input_longword(wr_address_double_trouble), .output_shortword(wr_address_single_trouble), .start(), .finish());
+	ocyrus_single8_inner #(.BIT_RATIO(WRITE_ADDRESS_BITS), .PINTYPE("p")) wr_clk_oserdes (.bit_clock(wr_bit_clk), .bit_strobe(wr_bit_strobe), .word_clock(wr_word_clk), .reset(reset), .word_in(8'b01010101), .bit_out(wr_clk));
+	ocyrus_single8_inner #(.BIT_RATIO(WRITE_ADDRESS_BITS), .PINTYPE("p")) wr_data_oserdes (.bit_clock(wr_bit_clk), .bit_strobe(wr_bit_strobe), .word_clock(wr_word_clk), .reset(reset), .word_in(wr_address_single_trouble), .bit_out(wr_dat));
 endmodule
 
 //	irsx_wilkinson_convert #() wilkie (.gcc_clock(), .reset(), .should_start_wilkinson_conversion_now(), .convert(), .done_out(), .done_out_buffered(), .convert_counter(), .done_out_counter());
