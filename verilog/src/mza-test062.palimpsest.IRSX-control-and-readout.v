@@ -75,6 +75,10 @@ module IRSXtest #(
 	// ----------------------------------------------------------------------
 	wire montiming1;
 	IBUFDS montiming1_buf (.I(montiming1_p), .IB(montiming1_n), .O(montiming1));
+	wire [31:0] frequency_of_montiming1, frequency_of_montiming2;
+	localparam FREQUENCY_OF_WORD_CLOCK = 127221875;
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(24)) m1 (.reference_clock(word_clock), .unknown_clock(montiming1), .frequency_of_unknown_clock(frequency_of_montiming1), .valid());
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(24)) m2 (.reference_clock(word_clock), .unknown_clock(montiming2), .frequency_of_unknown_clock(frequency_of_montiming2), .valid());
 	// ----------------------------------------------------------------------
 	wire hs_bit_clk_raw, hs_pll_is_locked_and_strobe_is_aligned;
 	wire hs_clk_raw, hs_clk180_raw, hs_clk, hs_clk180;
@@ -299,6 +303,8 @@ module IRSXtest #(
 	assign bank1[9] = convert_counter_copy_on_word_clock;
 	assign bank1[10] = done_out_counter_copy_on_word_clock;
 	assign bank1[11][7:0] = wr_address_copy_on_word_clock;
+	assign bank1[12] = frequency_of_montiming1;
+	assign bank1[13] = frequency_of_montiming2;
 	// ----------------------------------------------------------------------
 	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(word_clock),
