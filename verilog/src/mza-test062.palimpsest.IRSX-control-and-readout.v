@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-10-28 by mza
+// last updated 2024-10-30 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -282,6 +282,7 @@ module IRSXtest #(
 	wire [31:0] number_of_readback_errors;
 	wire [19:0] last_erroneous_readback;
 	wire [128:0] buffered_hs_data_stream;
+	wire [7:0] wr_address, wr_address_copy_on_word_clock;
 	localparam HS_DATA_INTENDED_NUMBER_OF_BITS = 25;
 	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated;
 	assign bank1[0] = { hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8_copy_on_word_clock_domain };
@@ -297,6 +298,7 @@ module IRSXtest #(
 	wire [31:0] convert_counter_copy_on_word_clock, done_out_counter_copy_on_word_clock;
 	assign bank1[9] = convert_counter_copy_on_word_clock;
 	assign bank1[10] = done_out_counter_copy_on_word_clock;
+	assign bank1[11][7:0] = wr_address_copy_on_word_clock;
 	// ----------------------------------------------------------------------
 	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(word_clock),
@@ -394,7 +396,8 @@ module IRSXtest #(
 	ssynchronizer #(.WIDTH(32)) convert_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(convert_counter), .out2(convert_counter_copy_on_word_clock));
 	ssynchronizer #(.WIDTH(32)) done_out_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(done_out_counter), .out2(done_out_counter_copy_on_word_clock));
 	// ----------------------------------------------------------------------
-	irsx_write_to_storage wright (.wr_clk(wr_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(second_pll_locked), .revo(1'b0), .wr_syncmon(wr_syncmon), .wr_dat(wr_dat));
+	irsx_write_to_storage wright (.wr_clk(wr_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(second_pll_locked), .revo(1'b0), .wr_syncmon(wr_syncmon), .wr_dat(wr_dat), .wr_address(wr_address));
+	ssynchronizer #(.WIDTH(8)) wr_address_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(wr_address), .out2(wr_address_copy_on_word_clock));
 	// ----------------------------------------------------------------------
 	//wire oddr_sstclk;
 	//clock_ODDR_out sstclk_second_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out(oddr_sstclk));
@@ -421,7 +424,7 @@ module IRSXtest #(
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;
 	end else if (1) begin
-		assign coax[0] = wr_syncmon; // this is a 4ns long pulse that repeats at the SST frequency
+		assign coax[0] = wr_syncmon; // this is a 10.6 ns long pulse that repeats with SST (controlled by WR_SYNC_LE/WR_SYNC_TE)
 		assign coax[1] = montiming1;
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;

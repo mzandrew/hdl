@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-10-28 by mza
+// last updated 2024-10-30 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -8,16 +8,16 @@
 `include "RAM8.v"
 `include "frequency_counter.v"
 
-//	irsx_write_to_storage wright (.wr_clk(wr_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(input_pll_locked), .revo(1'b0), .wr_syncmon(wr_syncmon), .wr_dat(wr_dat));
+//	irsx_write_to_storage wright (.wr_clk(wr_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(input_pll_locked), .revo(1'b0), .wr_syncmon(wr_syncmon), .wr_dat(wr_dat), .wr_address(wr_address));
 module irsx_write_to_storage #(
 	parameter WRITE_ADDRESS_BITS = 8,
 	parameter WR_SYNCMON_PICKOFF = 4
 ) (
 	input wr_clk, wr_bit_clk_raw, reset, input_pll_locked,
 	input revo, wr_syncmon,
-	output wr_dat
+	output wr_dat,
+	output reg [WRITE_ADDRESS_BITS-1:0] wr_address = 0
 );
-	reg [WRITE_ADDRESS_BITS-1:0] wr_address = 0;
 	reg [WR_SYNCMON_PICKOFF:0] wr_syncmon_pipeline = 0;
 	always @(posedge wr_clk) begin
 		if (reset) begin
