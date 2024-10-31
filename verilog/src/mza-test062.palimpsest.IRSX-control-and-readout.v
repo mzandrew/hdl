@@ -136,7 +136,7 @@ module IRSXtest #(
 	assign word_clock = trg_word_clock;
 	wire clock127;
 	wire reset127;
-	wire wr_clk_raw, wr_clk180_raw, sstclk_raw, sstclk180_raw, gcc_clk_raw, gcc_clk180_raw;
+	wire wr_word_clk_raw, sstclk_raw, sstclk180_raw, gcc_clk_raw, gcc_clk180_raw;
 	wire wr_word_clk, wr_clk180, sstclk, sstclk180, gcc_clk, gcc_clk180;
 	IBUFGDS mybuf0 (.I(clock127_p), .IB(clock127_n), .O(clock127));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait4pll (.reset1_input(reset), .pll_locked1_input(1'b1), .clock1_input(clock127), .clock2_input(clock127), .reset2_output(reset127));
@@ -185,7 +185,7 @@ module IRSXtest #(
 		.clockintermediate(), .clockintermediate_raw(sstclk_raw),  .clockintermediate_raw180(sstclk180_raw),
 		.dcm_locked(first_pll_locked), .pll1_locked(second_pll_locked), .pll2_locked(third_pll_locked),
 		.clock0out(wr_bit_clk_raw), .clock1out(trg_bit_clock1_raw),
-		.clock2out(wr_clk_raw), .clock3out(wr_clk180_raw),
+		.clock2out(wr_word_clk_raw), .clock3out(),
 		.clock4out(gcc_clk_raw), .clock5out(gcc_clk180_raw),
 		.clock6out(hs_bit_clk_raw), .clock7out(trg_bit_clock2_raw),
 		.clock8out(trg_word_clock_raw), .clock9out(),
@@ -193,8 +193,7 @@ module IRSXtest #(
 	);
 	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
 	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
-	BUFG wr_raw (.I(wr_clk_raw), .O(wr_word_clk));
-	BUFG wr_180 (.I(wr_clk180_raw), .O(wr_word_clk180));
+	BUFG wr_raw (.I(wr_word_clk_raw), .O(wr_word_clk));
 	BUFG gccraw (.I(gcc_clk_raw), .O(gcc_clk));
 	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
 //	BUFG dpraw (.I(double_period_clk_raw), .O(double_period_clk));
@@ -210,15 +209,15 @@ module IRSXtest #(
 //	wire regen_copy_on_wr_clk;
 //	ssynchronizer regen_copy_wr_clk (.clock1(word_clock), .clock2(wr_word_clk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_wr_clk));
 	// ----------------------------------------------------------------------
-	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
+	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
 	//clock_ODDR_out_diff wr_clk_ODDR  (.clock_in_p(wr_word_clk),  .clock_in_n(wr_clk180),  .reset(1'b0), .clock_enable(regen_copy_on_wr_clk), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
 	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(1'b0), .clock_enable(regen_copy_on_gcc_clk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
-//	clock_ODDR_out_diff hs_clk_ODDR  (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(reset), .clock_enable(regen_copy_on_hs_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
+//	clock_ODDR_out_diff hs_clk_ODDR  (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180),  .reset(1'b0), .clock_enable(regen_copy_on_hs_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
 	// ----------------------------------------------------------------------
-//	clock_ODDR_out_diff sstclk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
-//	clock_ODDR_out_diff wr_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_enable(regen_copy_on_sstclk), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
-//	clock_ODDR_out_diff gcc_clk_ODDR_dummy (.clock_in_p(sstclk), .clock_in_n(sstclk180), .reset(reset), .clock_enable(regen_copy_on_sstclk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
-//	clock_ODDR_out_diff hs_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_enable(regen_copy_on_sstclk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
+//	clock_ODDR_out_diff sstclk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
+//	clock_ODDR_out_diff wr_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
+//	clock_ODDR_out_diff gcc_clk_ODDR_dummy (.clock_in_p(sstclk), .clock_in_n(sstclk180), .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
+//	clock_ODDR_out_diff hs_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
 
 	// ----------------------------------------------------------------------
 	wire [7:0] status8_copy_on_word_clock_domain;
@@ -425,9 +424,10 @@ module IRSXtest #(
 		assign coax[1] = t1;
 		assign coax[2] = trg0123;
 		assign coax[3] = trg4567;
-	end else if (0) begin
-		assign coax[0] = t0;
-		assign coax[1] = t1;
+	end else if (1) begin
+		//assign coax[0] = ;
+		clock_ODDR_out sstclk_ODDR_second_copy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180), .clock_enable(regen_copy_on_sstclk), .reset(1'b0), .clock_out(coax[0]));
+		assign coax[1] = wr_syncmon;
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;
 	end else if (1) begin
@@ -775,15 +775,14 @@ module altheaIRSXtest #(
 	a_p, b_p, g_p, j_p, k_p, m_p,
 	a_n, b_n, g_n, j_n, k_n, m_n, 
 	n, p, q, w,
-	z, v, // copies of sda and scl
+//	z, v, // copies of sda and scl
 	output
 	c_p, c_n, d_p, d_n, e_p, e_n, f_p, f_n, h_p, h_n, l_p, l_n,
 	r, s, t, x, y,
 	u, // regen = regulator enable
 	//input [2:0] rot
-	input scl,
-	input sda,
-	output dummy1, dummy2,
+//	input scl, sda,
+//	output dummy1, dummy2,
 	input button, // reset
 //	output other, // goes to PMOD connector
 	output [7:0] led,
@@ -811,8 +810,8 @@ module altheaIRSXtest #(
 	assign s = ss_incr;
 	assign t = convert;
 	assign u = regen; // regulator enable
-	assign dummy1 = sda;
-	assign dummy2 = scl;
+//	assign dummy1 = sda;
+//	assign dummy2 = scl;
 	IRSXtest #(
 		.TESTBENCH(0),
 		.BUS_WIDTH(BUS_WIDTH), .BANK_ADDRESS_DEPTH(BANK_ADDRESS_DEPTH),
