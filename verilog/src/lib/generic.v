@@ -1,5 +1,5 @@
 // written 2019-09-22 by mza
-// last updated 2024-07-16 by mza
+// last updated 2024-10-30 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
@@ -560,46 +560,33 @@ module clock #(
 	end
 endmodule
 
-//clock_ODDR_out_diff sysclk_ODDR (.clock(sysclk), .clock_p(sysclk_p), .clock_n(sysclk_n));
+//	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
 module clock_ODDR_out_diff #(
 	parameter SERIES = "spartan6"
 ) (
 	input clock_in_n, clock_in_p,
 	input reset, clock_enable,
-//	output clock_out,
 	output clock_out_p, clock_out_n
 );
-	wire clock_for_output;
+	wire clock_out;
 	if (SERIES=="spartan6") begin
-		wire raw_clock0, raw_clock180;
-		wire clock0, clock180;
-//		BUFIO2 #(.DIVIDE(2), .USE_DOUBLER("TRUE"),  .I_INVERT("FALSE")) b0 (.I(clock), .IOCLK(raw_clock0),   .DIVCLK(), .SERDESSTROBE());
-//		BUFIO2 #(.DIVIDE(2), .USE_DOUBLER("FALSE"), .I_INVERT("TRUE"))  b1 (.I(clock), .IOCLK(raw_clock180), .DIVCLK(), .SERDESSTROBE());
-//		BUFG c0 (.I(raw_clock0), .O(clock0));
-//		BUFG c1 (.I(raw_clock180), .O(clock180));
-		ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(clock_in_p), .C1(clock_in_n), .CE(clock_enable), .D0(1'b1), .D1(1'b0), .R(reset), .S(1'b0), .Q(clock_for_output));
+		ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(clock_in_p), .C1(clock_in_n), .CE(clock_enable), .D0(1'b1), .D1(1'b0), .R(reset), .S(1'b0), .Q(clock_out));
 //	end else begin
-//		ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_clock (.C(clock), .CE(clock_enable), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_for_output));
+//		ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_clock (.C(clock), .CE(clock_enable), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_out));
 	end
-	OBUFDS obuf_clock (.I(clock_for_output), .O(clock_out_p), .OB(clock_out_n));
+	OBUFDS obuf_clock (.I(clock_out), .O(clock_out_p), .OB(clock_out_n));
 endmodule
 
+//	clock_ODDR_out sstclk_ODDR_second_copy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180), .clock_enable(regen_copy_on_sstclk), .reset(1'b0), .clock_out(coax[0]));
 module clock_ODDR_out #(
 	parameter SERIES = "spartan6"
 ) (
 	input clock_in_n, clock_in_p,
-	input reset,
+	input reset, clock_enable,
 	output clock_out
 );
-	wire clock_for_output;
 	if (SERIES=="spartan6") begin
-		wire raw_clock0, raw_clock180;
-		wire clock0, clock180;
-//		BUFIO2 #(.DIVIDE(2), .USE_DOUBLER("TRUE"),  .I_INVERT("FALSE")) b0 (.I(clock), .IOCLK(raw_clock0),   .DIVCLK(), .SERDESSTROBE());
-//		BUFIO2 #(.DIVIDE(2), .USE_DOUBLER("FALSE"), .I_INVERT("TRUE"))  b1 (.I(clock), .IOCLK(raw_clock180), .DIVCLK(), .SERDESSTROBE());
-//		BUFG c0 (.I(raw_clock0), .O(clock0));
-//		BUFG c1 (.I(raw_clock180), .O(clock180));
-		ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(clock_in_p), .C1(clock_in_n), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(reset), .S(1'b0), .Q(clock_out));
+		ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(clock_in_p), .C1(clock_in_n), .CE(clock_enable), .D0(1'b1), .D1(1'b0), .R(reset), .S(1'b0), .Q(clock_out));
 //	end else begin
 //		ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_clock (.C(clock), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_out));
 	end
