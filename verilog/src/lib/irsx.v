@@ -52,7 +52,7 @@ module irsx_write_to_storage #(
 		wr_address[7], wr_address[7], wr_address[6], wr_address[6], wr_address[5], wr_address[5], wr_address[4], wr_address[4],
 		wr_address[3], wr_address[3], wr_address[2], wr_address[2], wr_address[1], wr_address[1], wr_address[0], wr_address[0] };
 	wire [WRITE_ADDRESS_BITS-1:0] wr_address_single_trouble;
-	oserdes_gearbox #(.RATIO(2)) wr_dat_osgb (.word_clock(wr_word_clock), .reset(reset), .input_longword(wr_address_double_trouble), .output_shortword(wr_address_single_trouble), .start(), .finish());
+	oserdes_gearbox #(.RATIO(2)) wr_dat_osgb (.word_clock(wr_word_clk), .reset(reset), .input_longword(wr_address_double_trouble), .output_shortword(wr_address_single_trouble), .start(), .finish());
 	ocyrus_single8_inner #(.BIT_RATIO(WRITE_ADDRESS_BITS), .PINTYPE("p")) wr_clk_oserdes (.bit_clock(wr_bit_clk), .bit_strobe(wr_bit_strobe), .word_clock(wr_word_clk), .reset(reset), .word_in(8'b01010101), .bit_out(wr_clk));
 	ocyrus_single8_inner #(.BIT_RATIO(WRITE_ADDRESS_BITS), .PINTYPE("p")) wr_data_oserdes (.bit_clock(wr_bit_clk), .bit_strobe(wr_bit_strobe), .word_clock(wr_word_clk), .reset(reset), .word_in(wr_address_single_trouble), .bit_out(wr_dat));
 endmodule
@@ -125,7 +125,7 @@ module irsx_read_hs_data_from_storage #(
 	input [LOG2_OF_DEPTH-1:0] read_address,
 	output [DATA_WIDTH-1:0] data_out,
 	output reg [HS_DATA_PICKOFF:0] buffered_hs_data_stream = 0,
-	output reg ss_incr = 1,
+	output reg ss_incr = 0,
 	output hs_pll_is_locked_and_strobe_is_aligned,
 	output [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated
 );
@@ -145,14 +145,14 @@ module irsx_read_hs_data_from_storage #(
 	wire hs_reset = 1'b0;
 //	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(1'b0), .pll_locked1_input(input_pll_locked), .clock1_input(word_clock), .clock2_input(hs_word_clock), .reset2_output(hs_reset));
 	// ----------------------------------------------------------------------
-	wire [7:0] hs_data_word;
+	wire [BIT_DEPTH-1:0] hs_data_word;
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
 	reg [HS_DATA_PICKOFF:0] hs_data_stream = 0;
 	reg [4:0] hs_data_counter = 0;
 	reg [LOG2_OF_DEPTH-1:0] write_address = 0;
 	reg write_strobe = 0;
 	always @(posedge hs_word_clock) begin
-		ss_incr <= 1;
+		ss_incr <= 0;
 		write_strobe <= 0;
 		if (hs_reset) begin
 			hs_data_stream <= 0;
@@ -160,14 +160,14 @@ module irsx_read_hs_data_from_storage #(
 			write_address <= 0;
 		end else begin
 			if (hs_data_counter==hs_data_ss_incr) begin
-				ss_incr <= 0;
+				ss_incr <= 1;
 			end
 			if (hs_data_counter==hs_data_capture) begin
 				buffered_hs_data_stream <= hs_data_stream;
 				write_strobe <= 1;
 				write_address <= write_address + 1'b1;
 			end
-			hs_data_stream <= { hs_data_stream[HS_DATA_PICKOFF-8:0], hs_data_word };
+			hs_data_stream <= { hs_data_stream[HS_DATA_PICKOFF-BIT_DEPTH:0], hs_data_word };
 			hs_data_counter <= hs_data_counter + 1'b1;
 		end
 	end
