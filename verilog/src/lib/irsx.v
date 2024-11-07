@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-10-30 by mza
+// last updated 2024-11-05 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -17,20 +17,28 @@ module irsx_write_to_storage #(
 ) (
 	input wr_word_clk, wr_bit_clk_raw, reset, input_pll_locked,
 	input revo, wr_syncmon,
+	input hold,
+	input [7:0] start_address, end_address,
 	output wr_clk, wr_dat,
 	output reg [WRITE_ADDRESS_BITS-1:0] wr_address = 0
 );
 	reg [WR_SYNCMON_PICKOFF:0] wr_syncmon_pipeline = 0;
 	always @(posedge wr_word_clk) begin
 		if (reset) begin
-			wr_address <= 0;
+			wr_address <= start_address;
 			wr_syncmon_pipeline <= 0;
 		end else begin
-			if (revo) begin
-				wr_address <= 0;
-			end else begin
-				if (wr_syncmon_pipeline[WR_SYNCMON_PICKOFF:WR_SYNCMON_PICKOFF-1]==2'b01) begin
-					wr_address <= wr_address + 1'b1;
+			if (~hold) begin
+				if (revo) begin
+					wr_address <= start_address;
+				end else begin
+					if (wr_syncmon_pipeline[WR_SYNCMON_PICKOFF:WR_SYNCMON_PICKOFF-1]==2'b01) begin
+						if (wr_address<end_address) begin
+							wr_address <= wr_address + 1'b1;
+						end else begin
+							wr_address <= start_address;
+						end
+					end
 				end
 			end
 			wr_syncmon_pipeline <= { wr_syncmon_pipeline[WR_SYNCMON_PICKOFF-1:0], wr_syncmon };

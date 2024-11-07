@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-10-30 by mza
+// last updated 2024-11-05 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -273,6 +273,8 @@ module IRSXtest #(
 //	wire [2:0] hs_data_ratio  = bank0[11][2:0]; // 4 (localparam is much more efficient on resources...)
 	assign regen = bank0[12][0]; // regulator enable
 	wire [7:0] min_tries = bank0[13][7:0];
+	wire [7:0] start_address = bank0[14][7:0];
+	wire [7:0] end_address   = bank0[15][7:0];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
@@ -402,7 +404,10 @@ module IRSXtest #(
 	ssynchronizer #(.WIDTH(32)) convert_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(convert_counter), .out2(convert_counter_copy_on_word_clock));
 	ssynchronizer #(.WIDTH(32)) done_out_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(done_out_counter), .out2(done_out_counter_copy_on_word_clock));
 	// ----------------------------------------------------------------------
-	irsx_write_to_storage wright (.wr_word_clk(wr_word_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(second_pll_locked), .revo(1'b0), .wr_syncmon(wr_syncmon), .wr_clk(wr_clk), .wr_dat(wr_dat), .wr_address(wr_address));
+	irsx_write_to_storage wright (
+		.wr_word_clk(wr_word_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(second_pll_locked),
+		.revo(1'b0), .wr_syncmon(wr_syncmon), .hold(1'b0), .start_address(start_address), .end_address(end_address),
+		.wr_clk(wr_clk), .wr_dat(wr_dat), .wr_address(wr_address));
 	ssynchronizer #(.WIDTH(8)) wr_address_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(wr_address), .out2(wr_address_copy_on_word_clock));
 	// ----------------------------------------------------------------------
 	//wire oddr_sstclk;
