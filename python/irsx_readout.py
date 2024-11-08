@@ -62,7 +62,7 @@ basename = "irsx.thresholds-for-upper-null-scalers"
 thresholds_for_upper_null_scalers_filename = [ basename + ".x1", basename + ".x4", basename + ".x16" ]
 #thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
 extra_for_threshold_scan = [ 1, 8, 4 ]
-extra_for_setting_thresholds = [ 3, 4, 99 ]
+extra_for_setting_thresholds = [ 3, 14, 99 ]
 bump_threshold_amount = [ 1, 4, 16 ]
 trigger_gain_x1_upper = [ 0x7e0, 0x870, 0x9a0 ]
 trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
@@ -293,8 +293,8 @@ def update_plot(which_plot):
 #			formatted_data[k][x] = value * scale
 			#if 0==n%40:
 			#	print(str(time) + "," + str(value) + ":" + str(x) + ":" + str(formatted_data[k][x]))
-	print("min_data_value_seen: 0x" + hex(min_data_value_seen, 3))
-	print("max_data_value_seen: 0x" + hex(max_data_value_seen, 3))
+	#print("min_data_value_seen: 0x" + hex(min_data_value_seen, 3))
+	#print("max_data_value_seen: 0x" + hex(max_data_value_seen, 3))
 	for n in range(len(waveform_data[which_plot][0])):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			formatted_data[k][n] = k * waveform_data[which_plot][k][n] / NUMBER_OF_CHANNELS_PER_ASIC
@@ -796,19 +796,20 @@ def read_bank4_registers():
 def readout_trigger_memory():
 	bank = 4
 	trigger_memory = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, TRIGGER_MEMORY_READOUT_SIZE, False)
-	print("trigger memory:")
-	i = 0
-	string = ""
-	for n in range(len(trigger_memory)):
-		j = n%(16*RATIO_OF_TRG_CLOCK_TO_SST_CLOCK)
-		if j==0:
-			i = n//(16*RATIO_OF_TRG_CLOCK_TO_SST_CLOCK)
-			#print(hex(i,1) + ": " + string)
-			if n!=0:
-				print(string)
-			string = hex(i,1) + ": "
-		string += " " + hex(trigger_memory[n], 2)
-	print(string)
+	if 0:
+		print("trigger memory:")
+		i = 0
+		string = ""
+		for n in range(len(trigger_memory)):
+			j = n%(16*RATIO_OF_TRG_CLOCK_TO_SST_CLOCK)
+			if j==0:
+				i = n//(16*RATIO_OF_TRG_CLOCK_TO_SST_CLOCK)
+				#print(hex(i,1) + ": " + string)
+				if n!=0:
+					print(string)
+				string = hex(i,1) + ": "
+			string += " " + hex(trigger_memory[n], 2)
+		print(string)
 #	global waveform_data
 	for n in range(len(trigger_memory)):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
