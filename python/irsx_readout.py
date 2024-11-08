@@ -4,7 +4,7 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-11-07 by mza
+# last updated 2024-11-08 by mza
 
 # todo:
 # plot thresholds (pull from protodune_readout.py)
@@ -40,6 +40,12 @@ default_hs_data_offset = 1
 default_hs_data_ratio = 4 # this is currently unused
 default_tpg = 0xb05 # only accepts the lsb=1 after having written a 1 in that position already
 
+NUMBER_OF_STORAGE_WINDOWS_ON_ASIC = 256
+RATIO_OF_TRG_CLOCK_TO_SST_CLOCK = 4
+TRIGGER_MEMORY_READOUT_SIZE = NUMBER_OF_STORAGE_WINDOWS_ON_ASIC * RATIO_OF_TRG_CLOCK_TO_SST_CLOCK
+TRIGGER_MEMORY_PLOT_WIDTH = NUMBER_OF_STORAGE_WINDOWS_ON_ASIC * RATIO_OF_TRG_CLOCK_TO_SST_CLOCK + 6
+TRIGGER_MEMORY_PLOT_HEIGHT = 64 + 6
+
 MIDRANGE = 0xd55
 EXTRA_OFFSET = 500
 CHANNEL_OFFSET = 200
@@ -56,7 +62,7 @@ basename = "irsx.thresholds-for-upper-null-scalers"
 thresholds_for_upper_null_scalers_filename = [ basename + ".x1", basename + ".x4", basename + ".x16" ]
 #thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
 extra_for_threshold_scan = [ 1, 8, 4 ]
-extra_for_setting_thresholds = [ 3, 10, 99 ]
+extra_for_setting_thresholds = [ 3, 4, 99 ]
 bump_threshold_amount = [ 1, 4, 16 ]
 trigger_gain_x1_upper = [ 0x7e0, 0x870, 0x9a0 ]
 trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
@@ -118,13 +124,14 @@ BANKS_X_GAP = 10
 #X_POSITION_OF_TOT = 450
 X_POSITION_OF_BANK0_REGISTERS = 85
 X_POSITION_OF_BANK1_REGISTERS = 410
-X_POSITION_OF_CHANNEL_NAMES = 688
-X_POSITION_OF_COUNTERS = 805
-X_POSITION_OF_SCALERS = 845
+X_POSITION_OF_CHANNEL_NAMES = 700
+X_POSITION_OF_COUNTERS = X_POSITION_OF_CHANNEL_NAMES + 117
+X_POSITION_OF_SCALERS = X_POSITION_OF_COUNTERS + 40
 #X_POSITION_OF_BANK4_REGISTERS = 100
 #X_POSITION_OF_BANK5_REGISTERS = 300
 #X_POSITION_OF_BANK6_REGISTERS = 400
-X_POSITION_OF_OTHER_STUFF = 805
+X_POSITION_OF_OTHER_STUFF = X_POSITION_OF_CHANNEL_NAMES
+X_POSITION_OF_OTHER_STUFF_LABELS = X_POSITION_OF_OTHER_STUFF + 45
 
 box_dimension_x_in = 3.0
 box_dimension_y_in = 2.0
@@ -251,57 +258,58 @@ def setup_pygame_sdl():
 	pygame.font.init()
 	print("done setting up pygame/sdl")
 
-def update_plot(i, j):
+def update_plot(which_plot):
 	global plots_were_updated
 	pygame.event.pump()
-	formatted_data = [ [ 0 for x in range(plot_width) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
-	scale = 1.0 / MAX_ADC
+	formatted_data = [ [ 0 for x in range(plot_width[which_plot]) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+#	scale = 1.0 / MAX_ADC
 	#print(str(scale))
 	min_data_value_seen = MAX_ADC
 	max_data_value_seen = 0
 	#print_waveform_data(0)
-	for n in range(len(waveform_data[i][j][0])):
+	for n in range(len(waveform_data[which_plot][0])):
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 			if not enabled_channels[k]:
 				continue
-			if max_data_value_seen<waveform_data[i][j][k][n]:
-				max_data_value_seen = waveform_data[i][j][k][n]
-			if waveform_data[i][j][k][n]<min_data_value_seen:
-				min_data_value_seen = waveform_data[i][j][k][n]
-			voltage = data_and_pedestal_coefficients[i][0] * waveform_data[i][j][k][n]
+			if max_data_value_seen<waveform_data[which_plot][k][n]:
+				max_data_value_seen = waveform_data[which_plot][k][n]
+			if waveform_data[which_plot][k][n]<min_data_value_seen:
+				min_data_value_seen = waveform_data[which_plot][k][n]
+#			formatted_data[k][n] = data_and_pedestal_coefficients[which_plot] * waveform_data[which_plot][k][n]
+#			value = data_and_pedestal_coefficients[which_plot] * waveform_data[which_plot][k][n]
 			#if 15==k and 0==n:
-			#	voltage = MAX_ADC
-			# when the TDC should be pegged near ~4095 for large input voltages, the decoded gcc_counter rolls over to a low number
-			if pedestals_have_been_taken:
-				if 0==i:
-					voltage += data_and_pedestal_coefficients[i][1] * pedestal_data[i][j][k][n]
-				else:
-					#voltage += data_and_pedestal_coefficients[i][1] * (pedestal_data[i][j][k][n] - average_pedestal[j][k])
-					voltage += data_and_pedestal_coefficients[i][1] * (pedestal_data[j][j][k][n] - MIDRANGE + (k-NUMBER_OF_CHANNELS_PER_ASIC//2) * CHANNEL_OFFSET + QUAD_CHANNEL_OFFSET * (k//4))
-			else:
-				voltage -= EXTRA_OFFSET + (k-NUMBER_OF_CHANNELS_PER_ASIC//2) * CHANNEL_OFFSET + QUAD_CHANNEL_OFFSET * (k//4)
-			time = timestep*n
-			x = int(time)
-			formatted_data[k][x] = voltage * scale
+			#	value = MAX_ADC
+			# when the TDC should be pegged near ~4095 for large input values, the decoded gcc_counter rolls over to a low number
+#			if pedestals_have_been_taken:
+#				if 0==i:
+#					value += data_and_pedestal_coefficients[which_plot] * pedestal_data[i][j][k][n]
+#				else:
+#					#value += data_and_pedestal_coefficients[which_plot] * (pedestal_data[i][j][k][n] - average_pedestal[j][k])
+#					value += data_and_pedestal_coefficients[which_plot] * (pedestal_data[j][j][k][n] - MIDRANGE + (k-NUMBER_OF_CHANNELS_PER_ASIC//2) * CHANNEL_OFFSET + QUAD_CHANNEL_OFFSET * (k//4))
+#			else:
+#				value -= EXTRA_OFFSET + (k-NUMBER_OF_CHANNELS_PER_ASIC//2) * CHANNEL_OFFSET + QUAD_CHANNEL_OFFSET * (k//4)
+#			time = timestep*n
+#			x = int(time)
+#			formatted_data[k][x] = value * scale
 			#if 0==n%40:
-			#	print(str(time) + "," + str(voltage) + ":" + str(x) + ":" + str(formatted_data[k][x]))
+			#	print(str(time) + "," + str(value) + ":" + str(x) + ":" + str(formatted_data[k][x]))
 	print("min_data_value_seen: 0x" + hex(min_data_value_seen, 3))
 	print("max_data_value_seen: 0x" + hex(max_data_value_seen, 3))
+	for n in range(len(waveform_data[which_plot][0])):
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			formatted_data[k][n] = k * waveform_data[which_plot][k][n] / NUMBER_OF_CHANNELS_PER_ASIC
 	pygame.event.pump()
-	print("plotting data...")
-	# fill with colors for now:
-	#plot[i][j].fill((random.randrange(0, 255), random.randrange(0, 255), random.randrange(0, 255)))
-	print("[" + str(i) + "][" + str(j) + "]")
-	plot[i][j].fill(black)
+	print("plotting data [" + str(which_plot) + "]...")
+	plot[which_plot].fill(black)
 	how_many_times_we_did_not_plot = 0
 	offscale_count = 0
 	number_of_enabled_channels = sum(enabled_channels)
-	#print("plot_height: " + str(plot_height))
+	#print("plot_height: " + str(plot_height[which_plot]))
 	#print("extra_gap_y: " + str(extra_gap_y))
 	first_y = extra_gap_y
-	last_y = plot_height - extra_gap_y
+	last_y = plot_height[which_plot] - extra_gap_y
 	scale_y = last_y - first_y
-	for x in range(extra_gap_x, plot_width-extra_gap_x):
+	for x in range(extra_gap_x, plot_width[which_plot]-extra_gap_x):
 		pygame.event.pump()
 		how_many_things_were_plotted_at_this_x_value = 0
 		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
@@ -320,7 +328,8 @@ def update_plot(i, j):
 						#	print("first case")
 				elif last_y==y:
 					if last_y<=yn:
-						doit = True
+						if which_plot != "trigger_memory":
+							doit = True
 						offscale_count += 1
 						#if 15==k:
 						#	print("second case")
@@ -330,7 +339,7 @@ def update_plot(i, j):
 					#	print("exact")
 				if doit:
 					how_many_things_were_plotted_at_this_x_value += 1
-					plot[i][j].set_at((x, y), color[k+2]) # first two indices are black and white
+					plot[which_plot].set_at((x, y), color[k+2]) # first two indices are black and white
 		if how_many_things_were_plotted_at_this_x_value<number_of_enabled_channels:
 			#print(str(x) + ":" + str(how_many_things_were_plotted_at_this_x_value) + "/" + str(number_of_enabled_channels))
 			how_many_times_we_did_not_plot += number_of_enabled_channels - how_many_things_were_plotted_at_this_x_value
@@ -340,16 +349,16 @@ def update_plot(i, j):
 				for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 					if not enabled_channels[k]:
 						continue
-					string += str(formatted_data[k][x-extra_gap_x]) + " " + str(int(plot_height-extra_gap_y-1 - (plot_height-2*extra_gap_y)*formatted_data[k][x-extra_gap_x] + 0.5)) + ", "
+					string += str(formatted_data[k][x-extra_gap_x]) + " " + str(int(plot_height[which_plot]-extra_gap_y-1 - (plot_height[which_plot]-2*extra_gap_y)*formatted_data[k][x-extra_gap_x] + 0.5)) + ", "
 				print(string)
 	#print("how_many_times_we_did_not_plot: " + str(how_many_times_we_did_not_plot))
 	print("offscale_count: " + str(offscale_count))
-	plots_were_updated[i][j] = True
+	plots_were_updated[which_plot] = True
 	print("done")
 
-def draw_plot_border(i, j):
+def draw_plot_border(which_plot):
 	#print("drawing plot border...")
-	pygame.draw.rect(screen, white, pygame.Rect(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)-1, plot_width+2, plot_height+2), 1)
+	pygame.draw.rect(screen, white, pygame.Rect(coordinates[which_plot][0]-1, coordinates[which_plot][1]-1, plot_width[which_plot]+2, plot_height[which_plot]+2), 1)
 
 def setup_sensors():
 	global i2c
@@ -388,41 +397,17 @@ def read_temperature_sensor():
 	return temp_C
 
 def setup():
-	global plot_width, plot_height, screen, plot, something_was_updated
+	global screen, something_was_updated
 	something_was_updated = False
-	print("screen_width: " + str(SCREEN_WIDTH))
-	usable_width = int(SCREEN_WIDTH - GAP_X_LEFT - GAP_X_RIGHT - (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
-	print("usable_width: " + str(usable_width))
-	usable_height = int(SCREEN_HEIGHT - GAP_Y_TOP - GAP_Y_BOTTOM - (ROWS-1)*GAP_Y_BETWEEN_PLOTS)
-	print("usable_height: " + str(usable_height))
+	#print("screen_width: " + str(SCREEN_WIDTH))
+	#usable_width = int(SCREEN_WIDTH - GAP_X_LEFT - GAP_X_RIGHT - (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
+	#print("usable_width: " + str(usable_width))
+	#usable_height = int(SCREEN_HEIGHT - GAP_Y_TOP - GAP_Y_BOTTOM - (ROWS-1)*GAP_Y_BETWEEN_PLOTS)
+	#print("usable_height: " + str(usable_height))
 	global extra_gap_x, extra_gap_y
 	extra_gap_x = 4
 	extra_gap_y = 4
-	plot_width = MAX_SAMPLES_PER_WAVEFORM + 2*extra_gap_x
-	plot_height = int(0.7 * usable_height / ROWS) + 2*extra_gap_y
-	print("plot_width: " + str(plot_width))
-	print("plot_height: " + str(plot_height))
-	global Y_POSITION_OF_CHANNEL_NAMES
-	global Y_POSITION_OF_COUNTERS
-	global Y_POSITION_OF_SCALERS
-	#global Y_POSITION_OF_TOT
-	global Y_POSITION_OF_BANK0_REGISTERS
-	global Y_POSITION_OF_BANK1_REGISTERS
-	global Y_POSITION_OF_BANK4_REGISTERS
-	global Y_POSITION_OF_BANK5_REGISTERS
-	global Y_POSITION_OF_BANK6_REGISTERS
-	global Y_POSITION_OF_OTHER_STUFF
 	gap = 20
-	Y_POSITION_OF_CHANNEL_NAMES = ROWS * (plot_height + 2*gap)
-	Y_POSITION_OF_COUNTERS      = ROWS * (plot_height + 2*gap)
-	Y_POSITION_OF_SCALERS       = ROWS * (plot_height + 2*gap)
-	#Y_POSITION_OF_TOT = plot_height + gap + FONT_SIZE_BANKS
-	Y_POSITION_OF_BANK0_REGISTERS = ROWS * (plot_height + 2*gap)
-	Y_POSITION_OF_BANK1_REGISTERS = ROWS * (plot_height + 2*gap)
-	#Y_POSITION_OF_BANK4_REGISTERS = ROWS * (plot_height + 2*gap) + 170
-	#Y_POSITION_OF_BANK5_REGISTERS = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
-	#Y_POSITION_OF_BANK6_REGISTERS = ROWS * (plot_height + 2*gap)
-	Y_POSITION_OF_OTHER_STUFF = ROWS * (plot_height + 2*gap) + 195
 	setup_pygame_sdl()
 	#pygame.mixer.quit()
 	global game_clock
@@ -442,11 +427,63 @@ def setup():
 	screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 	screen.fill(black)
 	pygame.event.pump()
-	plot = [ [ pygame.Surface((plot_width, plot_height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
+	# -----------------------------------------------------------------------------------
+	waveform_plot_width = MAX_SAMPLES_PER_WAVEFORM + 2*extra_gap_x
+	waveform_plot_height = 80 + 2*extra_gap_y
+	global plot, have_just_gathered_waveform_data, coordinates, plot_width, plot_height, waveform_data, plots_were_updated
+	plot = {}
+	plot["raw_waveform"] = pygame.Surface((waveform_plot_width, waveform_plot_height))
+	plot["pedestal_waveform"] = pygame.Surface((waveform_plot_width, waveform_plot_height))
+	plot["pedestal_subtracted_waveform"] = pygame.Surface((waveform_plot_width, waveform_plot_height))
+	plot["trigger_memory"] = pygame.Surface((TRIGGER_MEMORY_PLOT_WIDTH, TRIGGER_MEMORY_PLOT_HEIGHT))
+	coordinates = {}
+	coordinates["raw_waveform"] = [ GAP_X_LEFT+0*(waveform_plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP ]
+	coordinates["pedestal_waveform"] = [ GAP_X_LEFT+1*(waveform_plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP ]
+	coordinates["pedestal_subtracted_waveform"] = [ GAP_X_LEFT+2*(waveform_plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP ]
+	coordinates["trigger_memory"] = [ GAP_X_LEFT, GAP_Y_TOP+1*(waveform_plot_height+GAP_Y_BETWEEN_PLOTS)-1 ]
+	plot_width = {}
+	plot_height = {}
+	waveform_data = {}
+	have_just_gathered_waveform_data = {}
+	plots_were_updated = {}
+	for which_plot in plot.keys():
+		plot_width[which_plot] = waveform_plot_width
+		plot_height[which_plot] = waveform_plot_height
+		waveform_data[which_plot] = [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+		have_just_gathered_waveform_data[which_plot] = False
+		plots_were_updated[which_plot] = False
+	# -----------------------------------------------------------------------------------
+	# special case the trigger memory stuff:
+	plot_width["trigger_memory"] = TRIGGER_MEMORY_PLOT_WIDTH
+	plot_height["trigger_memory"] = TRIGGER_MEMORY_PLOT_HEIGHT
+	waveform_data["trigger_memory"] = [ [ 0 for n in range(TRIGGER_MEMORY_READOUT_SIZE) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+	# -----------------------------------------------------------------------------------
+	global Y_POSITION_OF_CHANNEL_NAMES
+	global Y_POSITION_OF_COUNTERS
+	global Y_POSITION_OF_SCALERS
+	#global Y_POSITION_OF_TOT
+	global Y_POSITION_OF_BANK0_REGISTERS
+	global Y_POSITION_OF_BANK1_REGISTERS
+	global Y_POSITION_OF_BANK4_REGISTERS
+	global Y_POSITION_OF_BANK5_REGISTERS
+	global Y_POSITION_OF_BANK6_REGISTERS
+	global Y_POSITION_OF_OTHER_STUFF
+	TEXT_OFFSET = 2 * (waveform_plot_height + 2*gap)
+	Y_POSITION_OF_CHANNEL_NAMES = TEXT_OFFSET
+	Y_POSITION_OF_COUNTERS      = TEXT_OFFSET
+	Y_POSITION_OF_SCALERS       = TEXT_OFFSET
+	#Y_POSITION_OF_TOT = waveform_plot_height + gap + FONT_SIZE_BANKS
+	Y_POSITION_OF_BANK0_REGISTERS = TEXT_OFFSET
+	Y_POSITION_OF_BANK1_REGISTERS = TEXT_OFFSET
+	#Y_POSITION_OF_BANK4_REGISTERS = TEXT_OFFSET + 170
+	#Y_POSITION_OF_BANK5_REGISTERS = TEXT_OFFSET + FONT_SIZE_BANKS + 75
+	#Y_POSITION_OF_BANK6_REGISTERS = TEXT_OFFSET
+	Y_POSITION_OF_OTHER_STUFF = TEXT_OFFSET + 195
+	# -----------------------------------------------------------------------------------
 	width = int(box_dimension_x_in * scale_pixels_per_in)
 	height = int(box_dimension_y_in * scale_pixels_per_in)
-	global flarb
-	flarb = [ [ pygame.Surface((width, height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
+	#global flarb
+	#flarb = [ [ pygame.Surface((width, height)) for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#plot_rect = [ [ plot[i][j].get_rect() for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#clear_plots()
 	global banks_font
@@ -474,7 +511,7 @@ def setup():
 	if should_show_other_stuff:
 		for i in range(len(other_stuff_names)):
 			register_name = banks_font.render(other_stuff_names[i], 1, white)
-			screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_OTHER_STUFF+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_OTHER_STUFF+FONT_SIZE_BANKS*i)))
+			screen.blit(register_name, register_name.get_rect(center=(X_POSITION_OF_OTHER_STUFF_LABELS+BANKS_X_GAP+register_name.get_width()//2,Y_POSITION_OF_OTHER_STUFF+FONT_SIZE_BANKS*i)))
 	#for i in range(NUMBER_OF_CHANNELS_PER_ASIC):
 	if should_show_channel_names:
 		for i in range(len(channel_names)):
@@ -483,7 +520,9 @@ def setup():
 	#for i in range(NUMBER_OF_CHANNELS_PER_ASIC):
 	#	channel_name = banks_font.render(channel_names[i], 1, white)
 	#	screen.blit(channel_name, channel_name.get_rect(center=(X_POSITION_OF_BANK6_COUNTERS+BANKS_X_GAP+channel_name.get_width()//2,Y_POSITION_OF_BANK6_COUNTERS+FONT_SIZE_BANKS*i)))
-	for i in range(COLUMNS):
+#	for i in range(COLUMNS):
+	if 0:
+	#for which_plot in []:
 		for j in range(ROWS):
 			pygame.event.pump()
 			plot_caption = plot_caption_font.render(plot_name[i][j], 1, white)
@@ -498,18 +537,18 @@ def setup():
 				screen.blit(feed_caption[k], feed_caption[k].get_rect(center=(GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS)+plot_width//2-width//2+feed_caption[k].get_width()//2, GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)+plot_height+FONT_SIZE_FEED_NAME//2+4)))
 				width -= 2*(feed_caption[k].get_width() + FONT_SIZE_FEED_NAME_EXTRA_GAP)
 			#print("width: " + str(width))
-			pygame.event.pump()
-			draw_plot_border(i, j)
-#			update_plot(i, j)
-#			blit(i, j)
-			#draw_photodiode_box(i, j)
-			flip()
-			sys.stdout.flush()
+	for which_plot in plot.keys():
+		pygame.event.pump()
+		draw_plot_border(which_plot)
+#		update_plot(which_plot)
+#		blit(which_plot)
+	flip()
+	sys.stdout.flush()
 	althea.setup_half_duplex_bus("test058")
 	global should_check_for_new_data
 	should_check_for_new_data = pygame.USEREVENT + 1
 	print("gui_update_period: " + str(gui_update_period))
-	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/COLUMNS/ROWS))
+	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/3/2))
 	setup_sensors()
 	write_bootup_values()
 
@@ -535,8 +574,8 @@ def write_bootup_values():
 	set_spgin(default_spgin)
 	set_scaler_timeout(default_scaler_timeout)
 	set_hs_data_offset_and_ratio(default_hs_data_offset, default_hs_data_ratio)
-	set_start_wr_address(0x20)
-	set_end_wr_address(0x2f)
+	set_start_wr_address(0x00)
+	set_end_wr_address(0xff)
 
 import subprocess
 def reprogram_fpga():
@@ -641,7 +680,7 @@ def loop():
 			elif pygame.K_PERIOD==event.key:
 				bump_thresholds(+bump_threshold_amount[trigger_gain])
 			elif pygame.K_u==event.key:
-				readout_trigger_memory()
+				plot_trigger_memory()
 			elif pygame.K_s==event.key:
 				toggle_trigger_sign_bit()
 			elif pygame.K_a==event.key:
@@ -700,23 +739,23 @@ def loop():
 #			update_counters()
 	if not pedestal_mode:
 		global have_just_gathered_waveform_data
-		for i in range(COLUMNS):
-			for j in range(ROWS):
-				if have_just_gathered_waveform_data[i][j]:
-					have_just_gathered_waveform_data[i][j] = False
-					update_plot(i, j)
-					blit(i, j)
-#	draw_photodiode_box(i, j)
+#		for i in range(COLUMNS):
+#			for j in range(ROWS):
+		for which_plot in plot.keys():
+			if have_just_gathered_waveform_data[which_plot]:
+				have_just_gathered_waveform_data[which_plot] = False
+				update_plot(which_plot)
+				blit(which_plot)
 	flip()
 
-def blit(i, j):
+def blit(which_plot):
 	global something_was_updated
-	if plots_were_updated[i][j]:
+	if plots_were_updated[which_plot]:
 		#print("blitting...")
-		screen.blit(plot[i][j], (GAP_X_LEFT+i*(plot_width+GAP_X_BETWEEN_PLOTS), GAP_Y_TOP+j*(plot_height+GAP_Y_BETWEEN_PLOTS)))
-		#pygame.image.save(plot[i][j], "alpha.data." + str(i) + ".png")
+		screen.blit(plot[which_plot], (coordinates[which_plot][0], coordinates[which_plot][1]))
+		#pygame.image.save(plot[which_plot], "alpha.data." + str(i) + ".png")
 		pygame.event.pump()
-		plots_were_updated[i][j] = False
+		plots_were_updated[which_plot] = False
 		something_was_updated = True
 
 def flip():
@@ -754,10 +793,36 @@ def read_bank4_registers():
 	bank = 4
 	bank4_register_values = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, len(bank4_register_names), False)
 
+def readout_trigger_memory():
+	bank = 4
+	trigger_memory = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, TRIGGER_MEMORY_READOUT_SIZE, False)
+	print("trigger memory:")
+	i = 0
+	string = ""
+	for n in range(len(trigger_memory)):
+		j = n%(16*RATIO_OF_TRG_CLOCK_TO_SST_CLOCK)
+		if j==0:
+			i = n//(16*RATIO_OF_TRG_CLOCK_TO_SST_CLOCK)
+			#print(hex(i,1) + ": " + string)
+			if n!=0:
+				print(string)
+			string = hex(i,1) + ": "
+		string += " " + hex(trigger_memory[n], 2)
+	print(string)
+#	global waveform_data
+	for n in range(len(trigger_memory)):
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			waveform_data["trigger_memory"][k][n] = ((trigger_memory[n] & (1<<k))>>k) & 1
+	have_just_gathered_waveform_data["trigger_memory"] = True
+
+def plot_trigger_memory():
+	readout_trigger_memory()
+	#plot[which_plot].fill(black)
+
 def print_waveform_data(k):
 	string = ""
 	for n in range(MAX_SAMPLES_PER_WAVEFORM):
-		string += hex(waveform_data[1][0][k][n]) + ","
+		string += hex(waveform_data["raw_waveform"][k][n]) + ","
 	print(string)
 
 def read_bank5_data():
@@ -766,14 +831,11 @@ def read_bank5_data():
 	global waveform_data
 	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		for n in range(MAX_SAMPLES_PER_WAVEFORM):
-			waveform_data[1][0][k][n] = bank5_data[k*64+n] & 0xfff
-#	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-#		print_waveform_data(k)
+			waveform_data["raw_waveform"][k][n] = bank5_data[k*64+n] & 0xfff
+	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+		print_waveform_data(k)
 	global have_just_gathered_waveform_data
-#	for i in range(COLUMNS):
-#		for j in range(ROWS):
-#			have_just_gathered_waveform_data[i][j] = True
-	have_just_gathered_waveform_data[1][0] = True
+	have_just_gathered_waveform_data["raw_waveform"] = True
 
 def read_bank6_registers():
 	global bank6_register_values
@@ -857,12 +919,12 @@ def show_other_stuff():
 			try:
 				temp_surface = pygame.Surface(other_stuff_object[i].get_size())
 				temp_surface.fill(dark_teal)
-				screen.blit(temp_surface, other_stuff_object[i].get_rect(center=(X_POSITION_OF_OTHER_STUFF-other_stuff_object[i].get_width()//2,Y_POSITION_OF_OTHER_STUFF+FONT_SIZE_BANKS*i)))
+				screen.blit(temp_surface, other_stuff_object[i].get_rect(center=(X_POSITION_OF_OTHER_STUFF+other_stuff_object[i].get_width()//2,Y_POSITION_OF_OTHER_STUFF+FONT_SIZE_BANKS*i)))
 			except Exception as e:
 				#print(str(e))
 				pass
 			other_stuff_object[i] = banks_font.render(sround(other_stuff_values[i], other_stuff_decimal_places[i]), False, white)
-			screen.blit(other_stuff_object[i], other_stuff_object[i].get_rect(center=(X_POSITION_OF_OTHER_STUFF-other_stuff_object[i].get_width()//2,Y_POSITION_OF_OTHER_STUFF+FONT_SIZE_BANKS*i)))
+			screen.blit(other_stuff_object[i], other_stuff_object[i].get_rect(center=(X_POSITION_OF_OTHER_STUFF+other_stuff_object[i].get_width()//2,Y_POSITION_OF_OTHER_STUFF+FONT_SIZE_BANKS*i)))
 
 def set_ls_i2c_mode(mode):
 	bank = 0
@@ -1546,21 +1608,6 @@ def bump_thresholds(amount):
 		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [threshold], False)
 	print(string)
 
-def readout_trigger_memory():
-	bank = 4
-	NUMBER_OF_STORAGE_WINDOWS_ON_ASIC = 256
-	RATIO_OF_TRG_CLOCK_TO_SST_CLOCK = 4
-	size = NUMBER_OF_STORAGE_WINDOWS_ON_ASIC * RATIO_OF_TRG_CLOCK_TO_SST_CLOCK
-	trigger_memory = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, size, False)
-	string = ""
-	print("trigger memory:")
-	for i in range(len(trigger_memory)):
-		if i%32==0 and i!=0:
-			print(string)
-			string = ""
-		string += " " + hex(trigger_memory[i], 2)
-	print(string)
-
 def toggle_trigger_sign_bit():
 	bank = 7
 	address = 168
@@ -1785,9 +1832,9 @@ def parse_packet():
 	datafile.write("\n")
 	datafile.flush()
 	print("wrote " + str(len(buffer_old)) + " words to file " + datafile_name)
-	have_just_gathered_waveform_data[1][sampling_bank] = True
-	if pedestals_have_been_taken:
-		have_just_gathered_waveform_data[2][sampling_bank] = True
+#	have_just_gathered_waveform_data[1][sampling_bank] = True
+#	if pedestals_have_been_taken:
+#		have_just_gathered_waveform_data[2][sampling_bank] = True
 
 def readout_some_data_from_the_fifo(number_of_words):
 	bank = 5
@@ -1819,11 +1866,11 @@ def gather_pedestals(i):
 	not_done = True
 	while not_done:
 		for j in range(ROWS):
-			have_just_gathered_waveform_data[i][j] = False
+			have_just_gathered_waveform_data[which_plot] = False
 		initiate_trigger()
 		readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 		for j in range(ROWS):
-			if have_just_gathered_waveform_data[i][j]:
+			if have_just_gathered_waveform_data[which_plot]:
 				for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 					if not enabled_channels[k]:
 						continue
@@ -1878,23 +1925,22 @@ def gather_pedestals(i):
 
 if __name__ == "__main__":
 	datafile = open(datafile_name, "a")
-	ROWS = 2
-	COLUMNS = 3
-	wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
-	desired_window_width = int(COLUMNS * box_dimension_x_in * scale_pixels_per_in + wasted_width)
-	SCREEN_WIDTH = desired_window_width
-	SCREEN_HEIGHT = 892
-	plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
+	#ROWS = 2
+	#COLUMNS = 3
+	#wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
+	#desired_window_width = int(COLUMNS * box_dimension_x_in * scale_pixels_per_in + wasted_width)
+	SCREEN_WIDTH = 1100
+	SCREEN_HEIGHT = 600
+	#plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#plot_name = [ [ "alpha" for j in range(ROWS) ] for i in range(COLUMNS) ]
-	plot_name = [ ["pedestals(bankA)","pedestals(bankB)"], ["RAW(bankA)","RAW(bankB)"], ["pedestal subtracted(bankA)","pedestal subtracted(bankB)"] ]
-	data_and_pedestal_coefficients = [ [0,1], [1,0], [1,-1] ]
-	short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
-	minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
-	maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
-	waveform_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
-	pedestal_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
-	have_just_gathered_waveform_data = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
-	average_pedestal = [ [ 2047.0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
+	#plot_name = [ ["pedestals(bankA)","pedestals(bankB)"], ["RAW(bankA)","RAW(bankB)"], ["pedestal subtracted(bankA)","pedestal subtracted(bankB)"] ]
+	#data_and_pedestal_coefficients = [ [0,1], [1,0], [1,-1] ]
+	#short_feed_name = [ [ [] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	#minimum = [ [ 0 for j in range(ROWS) ] for i in range(COLUMNS) ]
+	#maximum = [ [ 100 for j in range(ROWS) ] for i in range(COLUMNS) ]
+	#waveform_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	#pedestal_data = [ [ [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ] for i in range(COLUMNS) ]
+	#average_pedestal = [ [ 2047.0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
 	setup()
 	#write_to_pollable_memory_value()
 	running = True
