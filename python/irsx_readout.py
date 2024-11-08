@@ -4,7 +4,12 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-07-21 by mza
+# last updated 2024-11-07 by mza
+
+# todo:
+# plot thresholds (pull from protodune_readout.py)
+# plot waveforms (pull from alpha_readout.py)
+# plot trigger memory
 
 from generic import * # hex, eng
 import althea
@@ -31,8 +36,8 @@ default_hs_data_ss_incr = 4
 default_hs_data_capture = default_hs_data_ss_incr + 9 + 8 + 1
 default_spgin = 0 # default state of hs_data stream (page 40 of schematics)
 default_scaler_timeout = 127.22e6 * gui_update_period
-default_hs_data_offset = 7
-default_hs_data_ratio = 4
+default_hs_data_offset = 1
+default_hs_data_ratio = 4 # this is currently unused
 default_tpg = 0xb05 # only accepts the lsb=1 after having written a 1 in that position already
 
 MIDRANGE = 0xd55
@@ -51,13 +56,13 @@ basename = "irsx.thresholds-for-upper-null-scalers"
 thresholds_for_upper_null_scalers_filename = [ basename + ".x1", basename + ".x4", basename + ".x16" ]
 #thresholds_for_peak_scalers_filename = "irsx.thresholds-for-peak-scalers"
 extra_for_threshold_scan = [ 1, 8, 4 ]
-extra_for_setting_thresholds = [ 3, 15, 99 ]
+extra_for_setting_thresholds = [ 3, 10, 99 ]
 bump_threshold_amount = [ 1, 4, 16 ]
 trigger_gain_x1_upper = [ 0x7e0, 0x870, 0x9a0 ]
 trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
 
-bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture", "scaler timeout", "hs_data_offset", "hs_data_ratio", "regen", "min_tries" ]
-bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_high", "buffered_hs_data_stream_middle1", "buffered_hs_data_stream_middle0", "buffered_hs_data_stream_low", "hs_data_word_decimated", "convert_counter", "done_out_counter" ]
+bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture", "scaler timeout", "hs_data_offset", "hs_data_ratio", "regen", "min_tries", "start_wr_address", "end_wr_address" ]
+bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_high", "buffered_hs_data_stream_middle1", "buffered_hs_data_stream_middle0", "buffered_hs_data_stream_low", "hs_data_word_decimated", "convert_counter", "done_out_counter", "wr_address", "f_montiming1", "f_montiming2" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
@@ -119,7 +124,7 @@ X_POSITION_OF_SCALERS = 845
 #X_POSITION_OF_BANK4_REGISTERS = 100
 #X_POSITION_OF_BANK5_REGISTERS = 300
 #X_POSITION_OF_BANK6_REGISTERS = 400
-X_POSITION_OF_OTHER_STUFF = 410
+X_POSITION_OF_OTHER_STUFF = 805
 
 box_dimension_x_in = 3.0
 box_dimension_y_in = 2.0
@@ -417,7 +422,7 @@ def setup():
 	#Y_POSITION_OF_BANK4_REGISTERS = ROWS * (plot_height + 2*gap) + 170
 	#Y_POSITION_OF_BANK5_REGISTERS = ROWS * (plot_height + 2*gap) + FONT_SIZE_BANKS + 75
 	#Y_POSITION_OF_BANK6_REGISTERS = ROWS * (plot_height + 2*gap)
-	Y_POSITION_OF_OTHER_STUFF = ROWS * (plot_height + 2*gap) + 175
+	Y_POSITION_OF_OTHER_STUFF = ROWS * (plot_height + 2*gap) + 195
 	setup_pygame_sdl()
 	#pygame.mixer.quit()
 	global game_clock
@@ -530,6 +535,8 @@ def write_bootup_values():
 	set_spgin(default_spgin)
 	set_scaler_timeout(default_scaler_timeout)
 	set_hs_data_offset_and_ratio(default_hs_data_offset, default_hs_data_ratio)
+	set_start_wr_address(0x20)
+	set_end_wr_address(0x2f)
 
 import subprocess
 def reprogram_fpga():
@@ -633,6 +640,8 @@ def loop():
 				bump_thresholds(-bump_threshold_amount[trigger_gain])
 			elif pygame.K_PERIOD==event.key:
 				bump_thresholds(+bump_threshold_amount[trigger_gain])
+			elif pygame.K_u==event.key:
+				readout_trigger_memory()
 			elif pygame.K_s==event.key:
 				toggle_trigger_sign_bit()
 			elif pygame.K_a==event.key:
@@ -987,6 +996,16 @@ def set_min_tries(value):
 	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 13, [value])
 
+def set_start_wr_address(value):
+	bank = 0
+	value &= 0xff
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 14, [value])
+
+def set_end_wr_address(value):
+	bank = 0
+	value &= 0xff
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 15, [value])
+
 def clear_channel_counters():
 	print("clearing channel counters")
 	bank = 2
@@ -1058,8 +1077,8 @@ nominal_register_values.append([151, "Wbias5", wbias_odd,  "width of trigger out
 nominal_register_values.append([155, "Wbias6", wbias_even, "width of trigger output for ch6; needs TBbias"])
 nominal_register_values.append([159, "Wbias7", wbias_odd,  "width of trigger output for ch7; needs TBbias"])
 nominal_register_values.append([160, "TBbias", 1000]) # needs ITbias - above 1100 doesn't allow for short (7.8ns)) trigger pulses
-#nominal_register_values.append([161, "Vbias", 1100]) # needs ITbias - this alone draws 200mA extra
-#nominal_register_values.append([162, "Vbias2", 950]) # needs ITbias - this also draws an extra ~200mA
+nominal_register_values.append([161, "Vbias", 1100]) # needs ITbias - this alone draws 200mA extra
+nominal_register_values.append([162, "Vbias2", 950]) # needs ITbias - this also draws an extra ~200mA
 nominal_register_values.append([163, "ITbias", 1000])
 nominal_register_values.append([164, "dualWbias01", wbias_dual]) # needs TBbias and ITbias
 nominal_register_values.append([165, "dualWbias23", wbias_dual]) # needs TBbias and ITbias
@@ -1077,13 +1096,13 @@ nominal_register_values.append([176, "VtrimT", 4090]) # needs VQbuff
 #nominal_register_values.append([177, "Qbias", 1300, "set to 0 until DLL set"]) # needs VQbuff
 nominal_register_values.append([177, "Qbias", 0, "set to 0 until DLL set"]) # needs VQbuff
 nominal_register_values.append([178, "VQbuff", 1300])
-nominal_register_values.append([179, "reg179", 0<<7 | 0<<6 | 0<<5 | 0, "nCLR_PHASE, nTime1Time2 (for viewing SST on montiming1 and realmont on montiming2), SSTSEL, -, -, montiming select (3bit): A1, B1, A2, B2, PHASE, PHAB, SSPin, WR_STRB"])
+nominal_register_values.append([179, "reg179", 0<<7 | 0<<6 | 0<<5 | 0, "nCLR_PHASE, nTime1Time2 (for swapping montiming1 and montiming2), SSTSEL, -, -, montiming select (3bit): A1, B1, A2, B2, PHASE, PHAB, SSPin, WR_STRB"])
 nominal_register_values.append([180, "VadjP", 2700]) # needs VAPbuff
 nominal_register_values.append([181, "VAPbuff", 3500, "set to 0 for DLL mode"])
 nominal_register_values.append([182, "VadjN", 1530]) # needs VANbuff
 nominal_register_values.append([183, "VANbuff", 3500, "set to 0 for DLL mode"])
-nominal_register_values.append([184, "WR_SYNC_LE", 0, "leading edge"])
-nominal_register_values.append([185, "WR_SYNC_TE", 30, "trailing edge"])
+nominal_register_values.append([184, "WR_SYNC_LE", 0, "leading edge"]) # this drives the wr_syncmon pin
+nominal_register_values.append([185, "WR_SYNC_TE", 30, "trailing edge"]) # this drives the wr_syncmon pin
 nominal_register_values.append([186, "SSPin_LE", 92, "leading edge"])
 nominal_register_values.append([187, "SSPin_TE", 10, "trailing edge"])
 nominal_register_values.append([188, "S1_LE", 38, "leading edge"])
@@ -1496,8 +1515,6 @@ def load_thresholds_corresponding_to_upper_null_scaler():
 	bank = 7
 	string = ""
 	for channel in range(NUMBER_OF_CHANNELS_PER_ASIC):
-		if 1<channel:
-			break # fix this later
 		address = 128 + 4 * channel
 		threshold = threshold_for_upper_null_scaler[channel] + extra_for_setting_thresholds[trigger_gain]
 		if MAX_DAC_VALUE<threshold:
@@ -1527,6 +1544,21 @@ def bump_thresholds(amount):
 			threshold = MAX_DAC_VALUE
 		string += "  " + hex(threshold, 3)
 		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [threshold], False)
+	print(string)
+
+def readout_trigger_memory():
+	bank = 4
+	NUMBER_OF_STORAGE_WINDOWS_ON_ASIC = 256
+	RATIO_OF_TRG_CLOCK_TO_SST_CLOCK = 4
+	size = NUMBER_OF_STORAGE_WINDOWS_ON_ASIC * RATIO_OF_TRG_CLOCK_TO_SST_CLOCK
+	trigger_memory = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH, size, False)
+	string = ""
+	print("trigger memory:")
+	for i in range(len(trigger_memory)):
+		if i%32==0 and i!=0:
+			print(string)
+			string = ""
+		string += " " + hex(trigger_memory[i], 2)
 	print(string)
 
 def toggle_trigger_sign_bit():
