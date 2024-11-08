@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-11-05 by mza
+// last updated 2024-11-07 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -23,7 +23,8 @@ module IRSXtest #(
 	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH) - 1,
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
-	parameter BIT_DEPTH = 8,
+	parameter HS_DAT_BIT_DEPTH = 8,
+	parameter TRG_BIT_DEPTH = 4,
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
 	parameter TRANSACTIONS_PER_DATA_WORD = 2,
@@ -101,10 +102,10 @@ module IRSXtest #(
 	wire trg_bit_clock2_raw, trg_bit_clock2;
 	wire trg_bit_strobe1;
 	wire trg_bit_strobe2;
-	wire [BIT_DEPTH-1:0] trg01_word, trg23_word, trg45_word, trg67_word;
+	wire [TRG_BIT_DEPTH-1:0] trg01_word, trg23_word, trg45_word, trg67_word;
 	BUFPLL #(
 		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
-		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+		.DIVIDE(TRG_BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
 	) trg_bufpll_inst1 (
 		.PLLIN(trg_bit_clock1_raw), // PLL Clock input
 		.GCLK(trg_word_clock), // Global Clock input
@@ -115,7 +116,7 @@ module IRSXtest #(
 	);
 	BUFPLL #(
 		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
-		.DIVIDE(BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
+		.DIVIDE(TRG_BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
 	) trg_bufpll_inst2 (
 		.PLLIN(trg_bit_clock2_raw), // PLL Clock input
 		.GCLK(trg_word_clock), // Global Clock input
@@ -124,10 +125,16 @@ module IRSXtest #(
 		.LOCK(trg_pll_is_locked_and_strobe_is_aligned2), // BUFPLL Clock and strobe locked
 		.SERDESSTROBE(trg_bit_strobe2) // Output SERDES strobe
 	);
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg01_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg01), .word_out(trg01_word));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
+	// if ISERDES_WIDTH==8:
+//	iserdes_single8_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg01_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg01), .word_out(trg01_word));
+//	iserdes_single8_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
+//	iserdes_single8_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
+//	iserdes_single8_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
+	// else:
+	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg01_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg01), .word_out(trg01_word));
+	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
+	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
+	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
 	// ----------------------------------------------------------------------
 	wire wr_dat, wr_clk;
 	OBUFDS wr_dat_obufds (.I(wr_dat), .O(wr_dat_p), .OB(wr_dat_n));
@@ -157,8 +164,7 @@ module IRSXtest #(
 	localparam PLL_OVERALL_DIVIDE = 1; // 1017.775 MHz
 	// DCM output = 1017.775 MHz (everything else is derived from this)
 	// iserdes2 bitclock is 1017.775 MHz -> word clock is 127.221875 MHz
-	localparam TRG_DIVIDE = 8; // 127.221875 MHz
-	localparam TRG_BIT_DEPTH = 8;
+	localparam TRG_DIVIDE = 12; // trg_word_clock = 84.814583 MHz; trg_bit_clock = 339.2583 MHz
 	//localparam SST_CLK_DIVIDE = 48; // 21.203646 MHz
 	localparam WR_CLK_DIVIDE = 8; // 127.221875 MHz
 	localparam WR_CLK_BIT_DEPTH = 8;
@@ -168,10 +174,10 @@ module IRSXtest #(
 	dcm_pll_pll #(
 		.DCM_PERIOD(DCM_INPUT_PERIOD), .DCM_MULTIPLY(DCM_MULTIPLY), .DCM_DIVIDE(DCM_DIVIDE),
 		.PLL_PERIOD(PLL_INPUT_PERIOD), .PLL_MULTIPLY(PLL_MULTIPLY), .PLL_OVERALL_DIVIDE(PLL_OVERALL_DIVIDE),
-		.PLL_DIVIDE0(WR_CLK_DIVIDE/WR_CLK_BIT_DEPTH), .PLL_DIVIDE1(TRG_DIVIDE/BIT_DEPTH),
+		.PLL_DIVIDE0(WR_CLK_DIVIDE/WR_CLK_BIT_DEPTH), .PLL_DIVIDE1(TRG_DIVIDE/TRG_BIT_DEPTH),
 		.PLL_DIVIDE2(WR_CLK_DIVIDE), .PLL_DIVIDE3(WR_CLK_DIVIDE),
 		.PLL_DIVIDE4(GCC_CLK_DIVIDE), .PLL_DIVIDE5(GCC_CLK_DIVIDE),
-		.PLL_DIVIDE6(HS_DAT_DIVIDE/BIT_DEPTH), .PLL_DIVIDE7(TRG_DIVIDE/BIT_DEPTH),
+		.PLL_DIVIDE6(HS_DAT_DIVIDE/HS_DAT_BIT_DEPTH), .PLL_DIVIDE7(TRG_DIVIDE/TRG_BIT_DEPTH),
 		.PLL_DIVIDE8(TRG_DIVIDE), .PLL_DIVIDE9(48),
 		.PLL_DIVIDE10(HS_CLK_DIVIDE), .PLL_DIVIDE11(HS_CLK_DIVIDE),
 		.PLL_PHASE0(0.0),  .PLL_PHASE1(0.0),
@@ -229,7 +235,7 @@ module IRSXtest #(
 	wire [BUS_WIDTH*TRANSACTIONS_PER_DATA_WORD-1:0] read_data_word [NUMBER_OF_BANKS-1:0];
 	wire [LOG2_OF_NUMBER_OF_BANKS-1:0] bank;
 	wire [NUMBER_OF_BANKS-1:0] write_strobe;
-	wire [NUMBER_OF_BANKS-1:0] read_strobe;
+//	wire [NUMBER_OF_BANKS-1:0] read_strobe;
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_read_errors;
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_write_errors;
 	wire [ERROR_COUNT_PICKOFF:0] hdrb_address_errors;
@@ -245,7 +251,7 @@ module IRSXtest #(
 		            .bus(rpi_gpio[21:6]),
 		           .read(rpi_gpio[5]),  // 0=write;    1=read
 		         .enable(rpi_gpio[4]),  // 0=inactive; 1=active
-		.write_strobe(write_strobe), .read_strobe(read_strobe), .bank(bank), .clock(word_clock), .reset(reset_word),
+		.write_strobe(write_strobe), .read_strobe(), .bank(bank), .clock(word_clock), .reset(reset_word),
 		.write_data_word(write_data_word), .read_data_word(read_data_word[bank]), .address_word_reg(address_word_full),
 		.read_errors(hdrb_read_errors), .write_errors(hdrb_write_errors), .address_errors(hdrb_address_errors)
 	);
@@ -288,25 +294,27 @@ module IRSXtest #(
 	wire [31:0] number_of_readback_errors;
 	wire [19:0] last_erroneous_readback;
 	wire [128:0] buffered_hs_data_stream;
-	wire [7:0] wr_address, wr_address_copy_on_word_clock;
+	wire [7:0] wr_address, wr_address_copy_on_word_clock, wr_address_copy_on_trg_word_clock;
 	localparam HS_DATA_INTENDED_NUMBER_OF_BITS = 25;
 	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated;
 	assign bank1[0] = { hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8_copy_on_word_clock_domain };
 	assign bank1[1] = number_of_register_transactions;
 	assign bank1[2] = number_of_readback_errors;
-	assign bank1[3][19:0] = last_erroneous_readback;
+	assign bank1[3][19:0] = last_erroneous_readback; assign bank1[3][31:20] = 0;
 	assign bank1[4] = buffered_hs_data_stream[127-:32];
 	assign bank1[5] = buffered_hs_data_stream[95-:32];
 	assign bank1[6] = buffered_hs_data_stream[63-:32];
 	assign bank1[7] = buffered_hs_data_stream[31-:32];
-	assign bank1[8][HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1:0];
+	assign bank1[8][HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1:0]; assign bank1[8][31:HS_DATA_INTENDED_NUMBER_OF_BITS] = 0;
 	wire [31:0] convert_counter, done_out_counter;
 	wire [31:0] convert_counter_copy_on_word_clock, done_out_counter_copy_on_word_clock;
 	assign bank1[9] = convert_counter_copy_on_word_clock;
 	assign bank1[10] = done_out_counter_copy_on_word_clock;
-	assign bank1[11][7:0] = wr_address_copy_on_word_clock;
+	assign bank1[11][7:0] = wr_address_copy_on_word_clock; assign bank1[11][31:8] = 0;
 	assign bank1[12] = frequency_of_montiming1;
 	assign bank1[13] = frequency_of_montiming2;
+	assign bank1[14] = 0;
+	assign bank1[15] = 0;
 	// ----------------------------------------------------------------------
 	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
 	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(word_clock),
@@ -314,6 +322,7 @@ module IRSXtest #(
 	wire clear_channel_counters = bank2[0];
 	wire force_write_registers_again = bank2[1];
 	assign should_start_wilkinson_conversion_now = bank2[2];
+	assign read_data_word[2] = 0;
 	// ----------------------------------------------------------------------
 	wire [31:0] bank3 [15:0]; // 
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank3 (.clock(word_clock), .reset(reset_word),
@@ -324,14 +333,14 @@ module IRSXtest #(
 		.data_out_b_8(bank3[8]),  .data_out_b_9(bank3[9]),  .data_out_b_a(bank3[10]), .data_out_b_b(bank3[11]),
 		.data_out_b_c(bank3[12]), .data_out_b_d(bank3[13]), .data_out_b_e(bank3[14]), .data_out_b_f(bank3[15]));
 	// ----------------------------------------------------------------------
-	wire [31:0] bank4 [15:0]; // 
-	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank4 (.clock(word_clock), .reset(reset_word),
-		.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[4]),
-		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[4]),
-		.data_out_b_0(bank4[0]),  .data_out_b_1(bank4[1]),  .data_out_b_2(bank4[2]),  .data_out_b_3(bank4[3]),
-		.data_out_b_4(bank4[4]),  .data_out_b_5(bank4[5]),  .data_out_b_6(bank4[6]),  .data_out_b_7(bank4[7]),
-		.data_out_b_8(bank4[8]),  .data_out_b_9(bank4[9]),  .data_out_b_a(bank4[10]), .data_out_b_b(bank4[11]),
-		.data_out_b_c(bank4[12]), .data_out_b_d(bank4[13]), .data_out_b_e(bank4[14]), .data_out_b_f(bank4[15]));
+	// bank4 = trigger memory
+	wire t0, t1, t2, t3, t4, t5, t6, t7;
+	irsx_trig_bit_memory_mapper #(.RATIO_OF_TRIG_WORD_CLOCK_TO_SST_CLOCK(4)) trigz (
+		.trigword_clock(trg_word_clock), .trigword_reset(trg_reset),
+		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7),
+		.sst_write_address(wr_address_copy_on_trg_word_clock),
+		.readout_clock(word_clock), .read_address(address_word_full[9:0]), .data_out(read_data_word[4][7:0]));
+	assign read_data_word[4][31:8] = 0;
 	// ----------------------------------------------------------------------
 	// bank5 = data to read out
 	wire hs_data;
@@ -339,6 +348,9 @@ module IRSXtest #(
 	wire hs_word_clock;
 	assign hs_word_clock = trg_word_clock;
 	assign read_data_word[5][31:12] = 0;
+//	wire [7:0] hs_data_offset_copy_on_hs_clock;
+//	ssynchronizer #(.WIDTH(8)) hs_data_offset_copy_on_hs_clock_sync (.clock1(word_clock), .clock2(hs_word_clock), .reset1(reset_word), .reset2(1'b0), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
+	// the following module should use word_clock for the read port and the module needs some synchronizers:
 	irsx_read_hs_data_from_storage #(.HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS), .COUNTERWORD_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) hsdo (
 		.hs_bit_clk_raw(hs_bit_clk_raw), .hs_word_clock(hs_word_clock), .input_pll_locked(third_pll_locked),
 		.hs_data_offset(hs_data_offset), .hs_data(hs_data),
@@ -353,13 +365,14 @@ module IRSXtest #(
 	clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180), .reset(1'b0), .clock_enable(regen_copy_on_hs_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
 	// ----------------------------------------------------------------------
 	wire [31:0] bank6 [15:0]; // counter and scalers
+	wire scaler_valid;
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
 		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
 		.data_in_b_4(bank6[4]),  .data_in_b_5(bank6[5]),  .data_in_b_6(bank6[6]),  .data_in_b_7(bank6[7]),
 		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
 		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
-		.write_strobe_b(1'b1));
+		.write_strobe_b(scaler_valid));
 	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
 	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
 	assign bank6[0][COUNTER_WIDTH-1:0] = c0;
@@ -370,17 +383,15 @@ module IRSXtest #(
 	assign bank6[5][COUNTER_WIDTH-1:0] = c5;
 	assign bank6[6][COUNTER_WIDTH-1:0] = c6;
 	assign bank6[7][COUNTER_WIDTH-1:0] = c7;
-	assign bank6[8][SCALER_WIDTH-1:0]  = sc0;
-	assign bank6[9][SCALER_WIDTH-1:0]  = sc1;
-	assign bank6[10][SCALER_WIDTH-1:0] = sc2;
-	assign bank6[11][SCALER_WIDTH-1:0] = sc3;
-	assign bank6[12][SCALER_WIDTH-1:0] = sc4;
-	assign bank6[13][SCALER_WIDTH-1:0] = sc5;
-	assign bank6[14][SCALER_WIDTH-1:0] = sc6;
-	assign bank6[15][SCALER_WIDTH-1:0] = sc7;
-	wire scaler_valid;
-	wire t0, t1, t2, t3, t4, t5, t6, t7;
-	irsx_scaler_counter_dual_trigger_interface #(.TRIGSTREAM_LENGTH(TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) irsx_scaler_counter (
+	assign bank6[8][SCALER_WIDTH-1:0]  = sc0; assign bank6[8][31:SCALER_WIDTH]  = 0;
+	assign bank6[9][SCALER_WIDTH-1:0]  = sc1; assign bank6[9][31:SCALER_WIDTH]  = 0;
+	assign bank6[10][SCALER_WIDTH-1:0] = sc2; assign bank6[10][31:SCALER_WIDTH] = 0;
+	assign bank6[11][SCALER_WIDTH-1:0] = sc3; assign bank6[11][31:SCALER_WIDTH] = 0;
+	assign bank6[12][SCALER_WIDTH-1:0] = sc4; assign bank6[12][31:SCALER_WIDTH] = 0;
+	assign bank6[13][SCALER_WIDTH-1:0] = sc5; assign bank6[13][31:SCALER_WIDTH] = 0;
+	assign bank6[14][SCALER_WIDTH-1:0] = sc6; assign bank6[14][31:SCALER_WIDTH] = 0;
+	assign bank6[15][SCALER_WIDTH-1:0] = sc7; assign bank6[15][31:SCALER_WIDTH] = 0;
+	irsx_scaler_counter_dual_trigger_interface #(.ISERDES_WIDTH(TRG_BIT_DEPTH), .TRIGSTREAM_LENGTH(TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) irsx_scaler_counter (
 		.clock(word_clock), .reset(reset_word), .clear_channel_counters(clear_channel_counters), .timeout(timeout), .scaler_valid(scaler_valid),
 		.iserdes_word_in0(trg01_word), .iserdes_word_in1(trg23_word), .iserdes_word_in2(trg45_word), .iserdes_word_in3(trg67_word),
 		.odd_channel_trigger_width(odd_channel_trigger_width), .even_channel_trigger_width(even_channel_trigger_width),
@@ -404,11 +415,15 @@ module IRSXtest #(
 	ssynchronizer #(.WIDTH(32)) convert_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(convert_counter), .out2(convert_counter_copy_on_word_clock));
 	ssynchronizer #(.WIDTH(32)) done_out_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(done_out_counter), .out2(done_out_counter_copy_on_word_clock));
 	// ----------------------------------------------------------------------
+	wire [7:0] start_address_copy_on_wr_clock, end_address_copy_on_wr_clock;
+	ssynchronizer #(.WIDTH(8)) start_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .reset1(reset_word), .reset2(reset_wr), .in1(start_address), .out2(start_address_copy_on_wr_clock));
+	ssynchronizer #(.WIDTH(8)) end_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .reset1(reset_word), .reset2(reset_wr), .in1(end_address), .out2(end_address_copy_on_wr_clock));
 	irsx_write_to_storage wright (
 		.wr_word_clk(wr_word_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(second_pll_locked),
-		.revo(1'b0), .wr_syncmon(wr_syncmon), .hold(1'b0), .start_address(start_address), .end_address(end_address),
+		.revo(1'b0), .wr_syncmon(wr_syncmon), .hold(1'b0), .start_address(start_address_copy_on_wr_clock), .end_address(end_address_copy_on_wr_clock),
 		.wr_clk(wr_clk), .wr_dat(wr_dat), .wr_address(wr_address));
-	ssynchronizer #(.WIDTH(8)) wr_address_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(wr_address), .out2(wr_address_copy_on_word_clock));
+	ssynchronizer #(.WIDTH(8)) wr_address_copy_on_word_clock_sync (.clock1(wr_word_clk), .clock2(word_clock), .reset1(reset_wr), .reset2(reset_word), .in1(wr_address), .out2(wr_address_copy_on_word_clock));
+	ssynchronizer #(.WIDTH(8)) wr_address_copy_on_trg_word_clock_sync (.clock1(wr_word_clk), .clock2(trg_word_clock), .reset1(reset_wr), .reset2(trg_reset), .in1(wr_address), .out2(wr_address_copy_on_trg_word_clock));
 	// ----------------------------------------------------------------------
 	//wire oddr_sstclk;
 	//clock_ODDR_out sstclk_second_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(reset), .clock_out(oddr_sstclk));
