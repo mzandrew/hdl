@@ -758,19 +758,22 @@ module RAM_s6_primitive #(
 	);
 endmodule
 
-// RAM_unidirectional  #(.DATA_WIDTH_A(32), .DATA_WIDTH_B(8), .ADDRESS_WIDTH_A(13)) myuni ( .reset(),
-//	.clock_a(), .address_a(), .data_in_a(), .write_enable_a(),
-//	.clock_b(), .address_b(), .data_out_b());
+//	RAM_unidirectional  #(.DATA_WIDTH_A(NUMBER_OF_CHANNELS), .DATA_WIDTH_B(NUMBER_OF_CHANNELS), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH), .SERIES(SERIES)) trigbits ( .reset(trigword_reset),
+//		.clock_a(trigword_clock), .address_a(write_address), .data_in_a(data_in), .write_enable_a(1'b1),
+//		.clock_b(readout_clock), .address_b(read_address), .data_out_b(data_out));
 module RAM_unidirectional #(
 	parameter SERIES = "spartan6", // "spartan6" or "7series"
 	parameter PRIMITIVE_ADDRESS_DEPTH = SERIES=="spartan6" ? 14 : 15, // each s6 BRAM is 16kbits (18kbits); each 7series BRAM is 32kbits (36kbits)
 	parameter DATA_WIDTH_A = 32, // 32; 4; 8
-	parameter ADDRESS_WIDTH_A = 14, // 14; 12; 11
-	parameter RAM_ADDRESS_WIDTH_A = PRIMITIVE_ADDRESS_DEPTH - $clog2(DATA_WIDTH_A), // 9; 12; 11
 	parameter DATA_WIDTH_B = 8, // 8; 4; 8
-	parameter ADDRESS_WIDTH_B = ADDRESS_WIDTH_A + $clog2(DATA_WIDTH_A) - $clog2(DATA_WIDTH_B), // 14 + 5 - 3 = 16; 12; 11
-	parameter RAM_ADDRESS_WIDTH_B = PRIMITIVE_ADDRESS_DEPTH - $clog2(DATA_WIDTH_B), // 11; 12; 11
-	parameter LOG2_OF_NUMBER_OF_BRAMS_NEEDED = ADDRESS_WIDTH_A + $clog2(DATA_WIDTH_A) < PRIMITIVE_ADDRESS_DEPTH ? 1 : ADDRESS_WIDTH_A + $clog2(DATA_WIDTH_A) - PRIMITIVE_ADDRESS_DEPTH,
+	parameter LOG2_OF_DATA_WIDTH_A = $clog2(DATA_WIDTH_A),
+	parameter LOG2_OF_DATA_WIDTH_B = $clog2(DATA_WIDTH_B),
+	parameter ADDRESS_WIDTH_A = 14, // 14; 12; 11
+	parameter ADDRESS_WIDTH_B = ADDRESS_WIDTH_A + LOG2_OF_DATA_WIDTH_A - LOG2_OF_DATA_WIDTH_B, // 14 + 5 - 3 = 16; 12; 11
+	parameter RAM_ADDRESS_WIDTH_A = PRIMITIVE_ADDRESS_DEPTH - LOG2_OF_DATA_WIDTH_A, // 9; 12; 11
+	parameter RAM_ADDRESS_WIDTH_B = PRIMITIVE_ADDRESS_DEPTH - LOG2_OF_DATA_WIDTH_B, // 11; 12; 11
+	parameter LOG2_OF_AMOUNT_OF_EXCESS_BRAM = ADDRESS_WIDTH_A + LOG2_OF_DATA_WIDTH_A < PRIMITIVE_ADDRESS_DEPTH ? PRIMITIVE_ADDRESS_DEPTH - ADDRESS_WIDTH_A - LOG2_OF_DATA_WIDTH_A : 0,
+	parameter LOG2_OF_NUMBER_OF_BRAMS_NEEDED = ADDRESS_WIDTH_A + LOG2_OF_DATA_WIDTH_A < PRIMITIVE_ADDRESS_DEPTH ? 0 : ADDRESS_WIDTH_A + LOG2_OF_DATA_WIDTH_A - PRIMITIVE_ADDRESS_DEPTH,
 	parameter NUMBER_OF_BRAMS_NEEDED = 1<<LOG2_OF_NUMBER_OF_BRAMS_NEEDED
 ) (
 	input reset,
@@ -786,16 +789,24 @@ module RAM_unidirectional #(
 //	wire [DATA_WIDTH_A-1:0] data_out_a_array [NUMBER_OF_BRAMS_NEEDED-1:0];
 	wire [DATA_WIDTH_B-1:0] data_out_b_array [NUMBER_OF_BRAMS_NEEDED-1:0];
 	wire [NUMBER_OF_BRAMS_NEEDED-1:0] write_enable_a_array;
+	wire [RAM_ADDRESS_WIDTH_A-1:0] extended_address_a, extended_address_b;
+	if (NUMBER_OF_BRAMS_NEEDED==1) begin
+		assign extended_address_a = { {LOG2_OF_AMOUNT_OF_EXCESS_BRAM{1'b0}}, address_a };
+		assign extended_address_b = { {LOG2_OF_AMOUNT_OF_EXCESS_BRAM{1'b0}}, address_b };
+	end else begin
+		assign extended_address_a = address_a;
+		assign extended_address_b = address_b;
+	end
 	genvar i;
 	for (i=0; i<NUMBER_OF_BRAMS_NEEDED; i=i+1) begin : mem_array
 		if (SERIES=="spartan6") begin
 			RAM_s6_primitive #(.DATA_WIDTH_A(DATA_WIDTH_A), .DATA_WIDTH_B(DATA_WIDTH_B)) mem (.reset(reset),
-				.write_clock(clock_a), .write_address(address_a[RAM_ADDRESS_WIDTH_A-1:0]), .data_in(data_in_a), .write_enable(write_enable_a_array[i]),
-				.read_clock(clock_b), .read_address(address_b[RAM_ADDRESS_WIDTH_B-1:0]), .read_enable(1'b1), .data_out(data_out_b_array[i]));
+				.write_clock(clock_a), .write_address(extended_address_a), .data_in(data_in_a), .write_enable(write_enable_a_array[i]),
+				.read_clock(clock_b), .read_address(extended_address_b), .read_enable(1'b1), .data_out(data_out_b_array[i]));
 		end else begin
 			RAM_7series_primitive #(.DATA_WIDTH_A(DATA_WIDTH_A), .DATA_WIDTH_B(DATA_WIDTH_B)) mem (.reset(reset),
-				.write_clock(clock_a), .write_address(address_a[RAM_ADDRESS_WIDTH_A-1:0]), .data_in(data_in_a), .write_enable(write_enable_a_array[i]),
-				.read_clock(clock_b), .read_address(address_b[RAM_ADDRESS_WIDTH_B-1:0]), .data_out(data_out_b_array[i]));
+				.write_clock(clock_a), .write_address(extended_address_a), .data_in(data_in_a), .write_enable(write_enable_a_array[i]),
+				.read_clock(clock_b), .read_address(extended_address_b), .data_out(data_out_b_array[i]));
 		end
 	end
 //	wire [DATA_WIDTH_A-1:0] buffered_data_out_a_0;
@@ -894,7 +905,13 @@ module RAM_unidirectional #(
 		// this case is not handled
 	end
 	initial begin
+		$display("LOG2_OF_DATA_WIDTH_A=%d", LOG2_OF_DATA_WIDTH_A);
+		$display("LOG2_OF_DATA_WIDTH_B=%d", LOG2_OF_DATA_WIDTH_B);
+		$display("RAM_ADDRESS_WIDTH_A=%d", RAM_ADDRESS_WIDTH_A);
+		$display("RAM_ADDRESS_WIDTH_B=%d", RAM_ADDRESS_WIDTH_B);
+		$display("LOG2_OF_NUMBER_OF_BRAMS_NEEDED=%d", LOG2_OF_NUMBER_OF_BRAMS_NEEDED);
 		$display("NUMBER_OF_BRAMS_NEEDED=%d", NUMBER_OF_BRAMS_NEEDED);
+		$display("LOG2_OF_AMOUNT_OF_EXCESS_BRAM=%d", LOG2_OF_AMOUNT_OF_EXCESS_BRAM);
 	end
 endmodule
 
