@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-11-07 by mza
+// last updated 2024-11-12 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -23,7 +23,6 @@ module IRSXtest #(
 	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH) - 1,
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
-	parameter HS_DAT_BIT_DEPTH = 8,
 	parameter TRG_BIT_DEPTH = 4,
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
@@ -168,8 +167,10 @@ module IRSXtest #(
 	//localparam SST_CLK_DIVIDE = 48; // 21.203646 MHz
 	localparam WR_CLK_DIVIDE = 8; // 127.221875 MHz
 	localparam WR_CLK_BIT_DEPTH = 8;
-	localparam HS_CLK_DIVIDE = 4; // ODDR clockout -> 254 MHz
-	localparam HS_DAT_DIVIDE = 8;
+	localparam HS_CLK_DIVIDE = 4; // hs_clk ODDR clockout -> 254 MHz
+	localparam HS_DAT_BIT_DEPTH = HS_CLK_DIVIDE; // hs_bit_clk_raw is 1017 MHz
+	localparam LOG2_OF_HS_DAT_BIT_DEPTH = 2; // $clog2(HS_DAT_BIT_DEPTH);
+	localparam HS_DATA_INTENDED_NUMBER_OF_BITS = 24;
 	localparam GCC_CLK_DIVIDE = 4; // 254 MHz
 	dcm_pll_pll #(
 		.DCM_PERIOD(DCM_INPUT_PERIOD), .DCM_MULTIPLY(DCM_MULTIPLY), .DCM_DIVIDE(DCM_DIVIDE),
@@ -177,7 +178,7 @@ module IRSXtest #(
 		.PLL_DIVIDE0(WR_CLK_DIVIDE/WR_CLK_BIT_DEPTH), .PLL_DIVIDE1(TRG_DIVIDE/TRG_BIT_DEPTH),
 		.PLL_DIVIDE2(WR_CLK_DIVIDE), .PLL_DIVIDE3(WR_CLK_DIVIDE),
 		.PLL_DIVIDE4(GCC_CLK_DIVIDE), .PLL_DIVIDE5(GCC_CLK_DIVIDE),
-		.PLL_DIVIDE6(HS_DAT_DIVIDE/HS_DAT_BIT_DEPTH), .PLL_DIVIDE7(TRG_DIVIDE/TRG_BIT_DEPTH),
+		.PLL_DIVIDE6(HS_CLK_DIVIDE/HS_DAT_BIT_DEPTH), .PLL_DIVIDE7(TRG_DIVIDE/TRG_BIT_DEPTH),
 		.PLL_DIVIDE8(TRG_DIVIDE), .PLL_DIVIDE9(48),
 		.PLL_DIVIDE10(HS_CLK_DIVIDE), .PLL_DIVIDE11(HS_CLK_DIVIDE),
 		.PLL_PHASE0(0.0),  .PLL_PHASE1(0.0),
@@ -224,7 +225,6 @@ module IRSXtest #(
 //	clock_ODDR_out_diff wr_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(wr_clk_p),  .clock_out_n(wr_clk_n));
 //	clock_ODDR_out_diff gcc_clk_ODDR_dummy (.clock_in_p(sstclk), .clock_in_n(sstclk180), .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
 //	clock_ODDR_out_diff hs_clk_ODDR_dummy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
-
 	// ----------------------------------------------------------------------
 	wire [7:0] status8_copy_on_word_clock_domain;
 	ssynchronizer #(.WIDTH(8)) status8_copy (.clock1(clock127), .clock2(word_clock), .reset1(reset127), .reset2(reset_word), .in1(status8), .out2(status8_copy_on_word_clock_domain));
@@ -275,7 +275,7 @@ module IRSXtest #(
 	wire [4:0] hs_data_ss_incr = bank0[7][4:0];
 	wire [4:0] hs_data_capture = bank0[8][4:0];
 	wire [31:0] timeout = bank0[9];
-	wire [6:0] hs_data_offset = bank0[10][6:0]; // 7
+	wire [LOG2_OF_HS_DAT_BIT_DEPTH-1:0] hs_data_offset = bank0[10][LOG2_OF_HS_DAT_BIT_DEPTH-1:0];
 //	wire [2:0] hs_data_ratio  = bank0[11][2:0]; // 4 (localparam is much more efficient on resources...)
 	assign regen = bank0[12][0]; // regulator enable
 	wire [7:0] min_tries = bank0[13][7:0];
@@ -293,15 +293,14 @@ module IRSXtest #(
 	wire [31:0] number_of_register_transactions;
 	wire [31:0] number_of_readback_errors;
 	wire [19:0] last_erroneous_readback;
-	wire [128:0] buffered_hs_data_stream;
+	wire [HS_DAT_BIT_DEPTH*(HS_DATA_INTENDED_NUMBER_OF_BITS+1)-1:0] buffered_hs_data_stream;
 	wire [7:0] wr_address, wr_address_copy_on_word_clock, wr_address_copy_on_trg_word_clock;
-	localparam HS_DATA_INTENDED_NUMBER_OF_BITS = 25;
 	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated;
 	assign bank1[0] = { hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8_copy_on_word_clock_domain };
 	assign bank1[1] = number_of_register_transactions;
 	assign bank1[2] = number_of_readback_errors;
 	assign bank1[3][19:0] = last_erroneous_readback; assign bank1[3][31:20] = 0;
-	assign bank1[4] = buffered_hs_data_stream[127-:32];
+	assign bank1[4] = buffered_hs_data_stream[99:96];
 	assign bank1[5] = buffered_hs_data_stream[95-:32];
 	assign bank1[6] = buffered_hs_data_stream[63-:32];
 	assign bank1[7] = buffered_hs_data_stream[31-:32];
@@ -351,13 +350,15 @@ module IRSXtest #(
 //	wire [7:0] hs_data_offset_copy_on_hs_clock;
 //	ssynchronizer #(.WIDTH(8)) hs_data_offset_copy_on_hs_clock_sync (.clock1(word_clock), .clock2(hs_word_clock), .reset1(reset_word), .reset2(1'b0), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
 	// the following module should use word_clock for the read port and the module needs some synchronizers:
-	irsx_read_hs_data_from_storage #(.HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS), .COUNTERWORD_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) hsdo (
+	wire beginning_of_hs_data;
+	irsx_read_hs_data_from_storage #(.BIT_DEPTH(HS_DAT_BIT_DEPTH), .HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS)) hsdo (
 		.hs_bit_clk_raw(hs_bit_clk_raw), .hs_word_clock(hs_word_clock), .input_pll_locked(third_pll_locked),
-		.hs_data_offset(hs_data_offset), .hs_data(hs_data),
+		.hs_data_offset(hs_data_offset), .hs_data(hs_data), .beginning_of_hs_data(beginning_of_hs_data),
 		.hs_data_ss_incr(hs_data_ss_incr), .hs_data_capture(hs_data_capture), .ss_incr(ss_incr),
 		.hs_pll_is_locked_and_strobe_is_aligned(hs_pll_is_locked_and_strobe_is_aligned),
 		.read_address(address_word_full[8:0]), .data_out(read_data_word[5][11:0]),
-		.buffered_hs_data_stream(buffered_hs_data_stream), .hs_data_word_decimated(hs_data_word_decimated));
+		.buffered_hs_data_stream(buffered_hs_data_stream),
+		.hs_data_word_decimated(hs_data_word_decimated));
 	BUFG hsraw (.I(hs_clk_raw), .O(hs_clk));
 	BUFG hs180 (.I(hs_clk180_raw), .O(hs_clk180));
 	wire regen_copy_on_hs_clk;
@@ -439,11 +440,16 @@ module IRSXtest #(
 		assign coax[1] = 0;//oddr_double_period;
 		assign coax[2] = montiming2;
 		assign coax[3] = montiming1;
-	end else if (0) begin
+	end else if (0) begin // for tuning wbiases and capture parameters
 		assign coax[0] = t0;
 		assign coax[1] = t1;
 		assign coax[2] = trg0123;
 		assign coax[3] = trg4567;
+	end else if (1) begin // to tune parameters to capture hs_data out
+		clock_ODDR_out hs_clk_ODDR_second_copy  (.clock_in_p(hs_clk),  .clock_in_n(hs_clk180), .clock_enable(regen_copy_on_hs_clk), .reset(1'b0), .clock_out(coax[0]));
+		assign coax[1] = beginning_of_hs_data;
+		assign coax[2] = ss_incr;
+		assign coax[3] = hs_data;
 	end else if (1) begin
 		//assign coax[0] = ;
 		clock_ODDR_out sstclk_ODDR_second_copy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180), .clock_enable(regen_copy_on_sstclk), .reset(1'b0), .clock_out(coax[0]));
@@ -803,7 +809,7 @@ module altheaIRSXtest #(
 	//input [2:0] rot
 //	input scl, sda,
 //	output dummy1, dummy2,
-	input button, // reset
+//	input button, // reset
 //	output other, // goes to PMOD connector
 	output [7:0] led,
 	output [3:0] coax_led

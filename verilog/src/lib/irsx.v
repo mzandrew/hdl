@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-11-07 by mza
+// last updated 2024-11-12 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -116,28 +116,29 @@ module irsx_wilkinson_convert #(
 	end
 endmodule
 
+
 module irsx_read_hs_data_from_storage #(
 	parameter TESTBENCH = 0,
 	parameter DATA_WIDTH = 12,
 	parameter LOG2_OF_DEPTH = 9, // 9 = 64 samples by 8 channels
 	parameter SERIES = "spartan6",
 	parameter BIT_DEPTH = 8,
-	parameter HS_DATA_INTENDED_NUMBER_OF_BITS = 25,
-	parameter HS_DATA_EXTRA_BITS_TO_CAPTURE = 28,
-	parameter HS_DATA_RATIO = 4,
-	parameter HS_DATA_PICKOFF = HS_DATA_INTENDED_NUMBER_OF_BITS*HS_DATA_RATIO+HS_DATA_EXTRA_BITS_TO_CAPTURE, // sampling at 1018 MHz; hs_clk is 254 MHz
-	parameter COUNTERWORD_BIT_PICKOFF = TESTBENCH ? 5 : 23
+	parameter HS_DATA_INTENDED_NUMBER_OF_BITS = 24, // this could be 24
+	parameter HS_DATA_SIZE = BIT_DEPTH*(HS_DATA_INTENDED_NUMBER_OF_BITS+1), // sampling at 1017 MHz; hs_clk is 254 MHz
+	parameter LOG2_OF_COUNTER_SIZE = $clog2(HS_DATA_SIZE/BIT_DEPTH), // 5 = clog2(100/4)
+	parameter LOG2_OF_OFFSET_SIZE = $clog2(BIT_DEPTH) // 2 = clog2(4)
 ) (
 	input hs_data,
 	input hs_bit_clk_raw,
 	input hs_word_clock,
 	input input_pll_locked,
-	input [6:0] hs_data_offset,
-	input [4:0] hs_data_ss_incr,
-	input [4:0] hs_data_capture,
+	input [LOG2_OF_COUNTER_SIZE-1:0] hs_data_ss_incr,
+	input [LOG2_OF_COUNTER_SIZE-1:0] hs_data_capture,
+	input [LOG2_OF_OFFSET_SIZE-1:0] hs_data_offset,
 	input [LOG2_OF_DEPTH-1:0] read_address,
+	output reg beginning_of_hs_data = 0, // debug output
 	output [DATA_WIDTH-1:0] data_out,
-	output reg [HS_DATA_PICKOFF:0] buffered_hs_data_stream = 0,
+	output reg [HS_DATA_SIZE-1:0] buffered_hs_data_stream = 0,
 	output reg ss_incr = 0,
 	output hs_pll_is_locked_and_strobe_is_aligned,
 	output [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated
@@ -159,35 +160,43 @@ module irsx_read_hs_data_from_storage #(
 //	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(1'b0), .pll_locked1_input(input_pll_locked), .clock1_input(word_clock), .clock2_input(hs_word_clock), .reset2_output(hs_reset));
 	// ----------------------------------------------------------------------
 	wire [BIT_DEPTH-1:0] hs_data_word;
-	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
-	reg [HS_DATA_PICKOFF:0] hs_data_stream = 0;
-	reg [4:0] hs_data_counter = 0;
+	if (BIT_DEPTH==8) begin
+		iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
+	end else begin
+		iserdes_single4_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
+	end
+	reg [HS_DATA_SIZE-1:0] hs_data_stream = 0;
+	reg [LOG2_OF_COUNTER_SIZE-1:0] hs_data_counter = 0;
 	reg [LOG2_OF_DEPTH-1:0] write_address = 0;
 	reg write_strobe = 0;
 	always @(posedge hs_word_clock) begin
 		ss_incr <= 0;
 		write_strobe <= 0;
+		beginning_of_hs_data <= 0;
 		if (hs_reset) begin
 			hs_data_stream <= 0;
 			hs_data_counter <= 0;
 			write_address <= 0;
+			buffered_hs_data_stream <= 0;
 		end else begin
 			if (hs_data_counter==hs_data_ss_incr) begin
 				ss_incr <= 1;
 			end
 			if (hs_data_counter==hs_data_capture) begin
+				beginning_of_hs_data <= 1;
 				buffered_hs_data_stream <= hs_data_stream;
 				write_strobe <= 1;
 				write_address <= write_address + 1'b1;
 			end
-			hs_data_stream <= { hs_data_stream[HS_DATA_PICKOFF-BIT_DEPTH:0], hs_data_word };
+			hs_data_stream <= { hs_data_stream[HS_DATA_SIZE-1-BIT_DEPTH:0], hs_data_word };
 			hs_data_counter <= hs_data_counter + 1'b1;
 		end
 	end
+	// spgin comes out first (spgin); real output data comes out after that (db11-db00), then the test pattern generator (tpg) data is last (dd11-dd00); see irsx schematic page 45
 	for (i=0; i<HS_DATA_INTENDED_NUMBER_OF_BITS; i=i+1) begin : hs_data_decimation
-		assign hs_data_word_decimated[i] = buffered_hs_data_stream[HS_DATA_RATIO*i+hs_data_offset];
+		assign hs_data_word_decimated[i] = buffered_hs_data_stream[BIT_DEPTH*i+hs_data_offset];
 	end
-	wire [11:0] data_12bit = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1-:12];
+	wire [11:0] data_12bit = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1-:DATA_WIDTH];
 	wire [LOG2_OF_DEPTH:0] write_address10 = { 1'b0, write_address };
 	wire [LOG2_OF_DEPTH:0] read_address10  = { 1'b0, read_address };
 	wire [15:0] data_in16 = { 4'b0, data_12bit };
@@ -196,6 +205,14 @@ module irsx_read_hs_data_from_storage #(
 	RAM_unidirectional  #(.DATA_WIDTH_A(16), .DATA_WIDTH_B(16), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH+1), .SERIES(SERIES)) chock_a_block ( .reset(hs_reset),
 		.clock_a(hs_word_clock), .address_a(write_address10), .data_in_a(data_in16), .write_enable_a(write_strobe),
 		.clock_b(hs_word_clock), .address_b(read_address10), .data_out_b(data_out16));
+	initial begin
+		$display("HS_DATA_SIZE=%d", HS_DATA_SIZE);
+		$display("LOG2_OF_COUNTER_SIZE=%d", LOG2_OF_COUNTER_SIZE);
+		$display("LOG2_OF_OFFSET_SIZE=%d", LOG2_OF_OFFSET_SIZE);
+		$display("HS_DATA_INTENDED_NUMBER_OF_BITS=%d", HS_DATA_INTENDED_NUMBER_OF_BITS);
+//		$display("HS_DATA_EXTRA_BITS_TO_CAPTURE=%d", HS_DATA_EXTRA_BITS_TO_CAPTURE);
+		$display("BIT_DEPTH=%d", BIT_DEPTH);
+	end
 endmodule
 
 module irsx_trig_bit_memory_mapper #(
