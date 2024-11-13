@@ -1,5 +1,5 @@
 // updated 2020-10-02 by mza
-// last updated 2024-04-12 by mza
+// last updated 2024-11-13 by mza
 
 `ifndef RAM8_LIB
 `define RAM8_LIB
@@ -671,8 +671,8 @@ endmodule
 module RAM_s6_primitive #(
 	parameter DATA_WIDTH_A = 16, // 8
 	parameter DATA_WIDTH_B = 16, // 8
-	parameter PRIMITIVE_DATA_WIDTH_A = DATA_WIDTH_A==32 ? 36 : DATA_WIDTH_A==16 ? 18 : DATA_WIDTH_A==8 ? 9 : DATA_WIDTH_A, // 9; maybe this should be an inequality?
-	parameter PRIMITIVE_DATA_WIDTH_B = DATA_WIDTH_B==32 ? 36 : DATA_WIDTH_B==16 ? 18 : DATA_WIDTH_B==8 ? 9 : DATA_WIDTH_B, // 9; maybe this should be an inequality?
+	parameter PRIMITIVE_DATA_WIDTH_A = DATA_WIDTH_A>=32 ? 36 : DATA_WIDTH_A>=16 ? 18 : DATA_WIDTH_A>=8 ? 9 : DATA_WIDTH_A, // 9
+	parameter PRIMITIVE_DATA_WIDTH_B = DATA_WIDTH_B>=32 ? 36 : DATA_WIDTH_B>=16 ? 18 : DATA_WIDTH_B>=8 ? 9 : DATA_WIDTH_B, // 9
 	parameter ADDRESS_DEPTH_A = `LOG2_OF_BASE_BLOCK_MEMORY_SIZE - $clog2(DATA_WIDTH_A), // 11
 	parameter ADDRESS_DEPTH_B = `LOG2_OF_BASE_BLOCK_MEMORY_SIZE - $clog2(DATA_WIDTH_B), // 11
 	parameter INIT_FILENAME = "NONE"
