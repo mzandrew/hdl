@@ -1,6 +1,6 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2022-10-19 by mza
+// last updated 2024-11-13 by mza
 
 module half_duplex_rpi_bus #(
 	parameter BUS_WIDTH = 16,
@@ -14,6 +14,7 @@ module half_duplex_rpi_bus #(
 	parameter NUMBER_OF_BANKS = 2**LOG2_OF_NUMBER_OF_BANKS,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter ERROR_COUNT_PICKOFF = 7,
+	parameter MAX_ERROR_COUNT = 2**ERROR_COUNT_PICKOFF-1,
 	parameter ANTI_META = 3, // a lot of these state machines check against something[PICKOFF:PICKOFF-1]==2'b00, so we need at least 3 here
 	parameter GAP = 0,
 	parameter EXTRA_PICKOFF = 1
@@ -160,12 +161,16 @@ module half_duplex_rpi_bus #(
 				if (wstate) begin
 					if (rstate || rword!=TRANSACTIONS_PER_DATA_WORD-1) begin
 						rstate <= 0;
-						read_errors <= read_errors + 1'b1;
+						if (read_errors<MAX_ERROR_COUNT) begin
+							read_errors <= read_errors + 1'b1;
+						end
 						rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					end
 					if (astate || aword!=TRANSACTIONS_PER_ADDRESS_WORD-1) begin
 						astate <= 0;
-						address_errors <= address_errors + 1'b1;
+						if (address_errors<MAX_ERROR_COUNT) begin
+							address_errors <= address_errors + 1'b1;
+						end
 						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 					end
 					if (wstate[1]) begin
@@ -191,12 +196,16 @@ module half_duplex_rpi_bus #(
 				if (rstate) begin
 					if (wstate || wword!=TRANSACTIONS_PER_DATA_WORD-1) begin
 						wstate <= 0;
-						write_errors <= write_errors + 1'b1;
+						if (write_errors<MAX_ERROR_COUNT) begin
+							write_errors <= write_errors + 1'b1;
+						end
 						wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					end
 					if (astate || aword!=TRANSACTIONS_PER_ADDRESS_WORD-1) begin
 						astate <= 0;
-						address_errors <= address_errors + 1'b1;
+						if (address_errors<MAX_ERROR_COUNT) begin
+							address_errors <= address_errors + 1'b1;
+						end
 						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 					end
 					if (rstate[1]) begin
@@ -215,12 +224,16 @@ module half_duplex_rpi_bus #(
 				if (astate) begin
 					if (wstate || wword!=TRANSACTIONS_PER_DATA_WORD-1) begin
 						wstate <= 0;
-						write_errors <= write_errors + 1'b1;
+						if (write_errors<MAX_ERROR_COUNT) begin
+							write_errors <= write_errors + 1'b1;
+						end
 						wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					end
 					if (rstate || rword!=TRANSACTIONS_PER_DATA_WORD-1) begin
 						rstate <= 0;
-						read_errors <= read_errors + 1'b1;
+						if (read_errors<MAX_ERROR_COUNT) begin
+							read_errors <= read_errors + 1'b1;
+						end
 						rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					end
 					if (astate[1]) begin
