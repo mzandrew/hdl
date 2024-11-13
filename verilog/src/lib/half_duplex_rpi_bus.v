@@ -14,7 +14,7 @@ module half_duplex_rpi_bus #(
 	parameter NUMBER_OF_BANKS = 2**LOG2_OF_NUMBER_OF_BANKS,
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter ERROR_COUNT_PICKOFF = 7,
-	parameter MAX_ERROR_COUNT = 2**ERROR_COUNT_PICKOFF-1,
+	parameter MAX_ERROR_COUNT = 2**(ERROR_COUNT_PICKOFF+1)-1,
 	parameter ANTI_META = 3, // a lot of these state machines check against something[PICKOFF:PICKOFF-1]==2'b00, so we need at least 3 here
 	parameter GAP = 0,
 	parameter EXTRA_PICKOFF = 1
