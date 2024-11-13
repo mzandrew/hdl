@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-11-12 by mza
+// last updated 2024-11-13 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
@@ -809,7 +809,7 @@ module altheaIRSXtest #(
 	//input [2:0] rot
 //	input scl, sda,
 //	output dummy1, dummy2,
-//	input button, // reset
+	input button, // reset
 //	output other, // goes to PMOD connector
 	output [7:0] led,
 	output [3:0] coax_led
