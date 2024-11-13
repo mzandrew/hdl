@@ -1,7 +1,10 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
 // based partly off mza-test029
-// last updated 2024-05-08 by mza
+// last updated 2024-11-13 by mza
+
+`ifndef SYNCHRONIZER_LIB
+`define SYNCHRONIZER_LIB
 
 //	pipeline_synchronizer #(.WIDTH(2), .DEPTH(3)) mysin (.clock1(), .clock2(), .reset1(), .reset2(), .in1(), .out2());
 module pipeline_synchronizer #(
@@ -15,7 +18,7 @@ module pipeline_synchronizer #(
 );
 	reg [WIDTH-1:0] intermediate1 [DEPTH-1:0];
 	reg [WIDTH-1:0] intermediate2 [DEPTH-1:0];
-	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
+	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc; // sometimes we get "WARNING:Xst:638 - in unit BLAH Conflict on KEEP property on signal BLAH/cdc and BLAH/cdc BLAH/cdc signal will be lost."
 	integer i;
 	always @(posedge clock1) begin
 		for (i=1; i<DEPTH; i=i+1) begin : pipeline1
@@ -49,42 +52,7 @@ module pipeline_synchronizer #(
 	assign out2 = intermediate2[DEPTH-1];
 endmodule
 
-//	ssynchronizer mysin (.clock1(), .clock2(), .reset1(), .reset2(), .in1(), .out2());
-module ssynchronizer #(
-	parameter WIDTH=1
-) (
-	input clock1, clock2,
-	input reset1, reset2,
-	input [WIDTH-1:0] in1,
-	output [WIDTH-1:0] out2
-);
-	reg [WIDTH-1:0] intermediate_f1;
-	reg [WIDTH-1:0] intermediate_f2;
-	reg [WIDTH-1:0] intermediate_s1;
-	reg [WIDTH-1:0] intermediate_s2;
-	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
-	always @(posedge clock1) begin
-		if (reset1) begin
-			intermediate_f1 <= 0;
-			intermediate_f2 <= 0;
-		end else begin
-			intermediate_f2 <= intermediate_f1;
-			intermediate_f1 <= in1;
-		end
-	end
-	assign cdc = intermediate_f2;
-	always @(posedge clock2) begin
-		if (reset2) begin
-			intermediate_s1 <= 0;
-			intermediate_s2 <= 0;
-		end else begin
-			intermediate_s2 <= intermediate_s1;
-			intermediate_s1 <= cdc;
-		end
-	end
-	assign out2 = intermediate_s2;
-endmodule
-
+// the following probably shouldn't be used...
 module ssynchronizer_pnp #(
 	parameter WIDTH=1
 ) (
@@ -114,6 +82,128 @@ module ssynchronizer_pnp #(
 	end
 	always @(posedge clock2 or posedge reset2) begin
 		if (reset2) begin
+			intermediate_s2 <= 0;
+		end else begin
+			intermediate_s2 <= intermediate_s1;
+		end
+	end
+	assign out2 = intermediate_s2;
+endmodule
+
+// the following probably shouldn't be used...
+module ssynchronizer_90_270 #(
+	parameter WIDTH=1
+) (
+	input clock1,
+	input clock2, clock1_90, clock1_270,
+	input reset,
+	input [WIDTH-1:0] in1,
+	output [WIDTH-1:0] out2
+);
+	reg [WIDTH-1:0] intermediate_f1;
+	reg [WIDTH-1:0] intermediate_f2;
+	reg [WIDTH-1:0] intermediate_f3;
+	reg [WIDTH-1:0] intermediate_f4;
+	reg [WIDTH-1:0] intermediate_s1;
+	reg [WIDTH-1:0] intermediate_s2;
+//	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
+	always @(posedge clock1) begin
+		if (reset) begin
+			intermediate_f1 <= 0;
+		end else begin
+			intermediate_f1 <= in1;
+		end
+	end
+	always @(posedge clock1_270) begin
+		if (reset) begin
+			intermediate_f2 <= 0;
+		end else begin
+			intermediate_f2 <= intermediate_f1;
+		end
+	end
+	always @(negedge clock1) begin
+		if (reset) begin
+			intermediate_f3 <= 0;
+		end else begin
+			intermediate_f3 <= intermediate_f2;
+		end
+	end
+	always @(posedge clock1_90) begin
+		if (reset) begin
+			intermediate_f4 <= 0;
+		end else begin
+			intermediate_f4 <= intermediate_f3;
+		end
+	end
+//	assign cdc = intermediate_f4;
+	always @(negedge clock2) begin
+		if (reset) begin
+			intermediate_s1 <= 0;
+		end else begin
+			//intermediate_s1 <= cdc;
+			intermediate_s1 <= intermediate_f4;
+		end
+	end
+	always @(posedge clock2) begin
+		if (reset) begin
+			intermediate_s2 <= 0;
+		end else begin
+			intermediate_s2 <= intermediate_s1;
+		end
+	end
+	assign out2 = intermediate_s2;
+endmodule
+
+// the following probably shouldn't be used...
+module ssynchronizer_pnppp #(
+	parameter WIDTH=1
+) (
+	input clock1, clock2,
+	input reset,
+	input [WIDTH-1:0] in1,
+	output [WIDTH-1:0] out2
+);
+	reg [WIDTH-1:0] intermediate_f1;
+	reg [WIDTH-1:0] intermediate_f2;
+	reg [WIDTH-1:0] intermediate_f3;
+	reg [WIDTH-1:0] intermediate_s1;
+	reg [WIDTH-1:0] intermediate_s2;
+	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
+//  242 pos neg neg pos pos
+//  332 pos neg neg neg pos
+// 1030 pos pos neg neg pos
+// 1759 pos neg neg pos neg
+	always @(posedge clock1) begin
+		if (reset) begin
+			intermediate_f1 <= 0;
+		end else begin
+			intermediate_f1 <= in1;
+		end
+	end
+	always @(negedge clock1) begin
+		if (reset) begin
+			intermediate_f2 <= 0;
+		end else begin
+			intermediate_f2 <= intermediate_f1;
+		end
+	end
+	always @(negedge clock1) begin
+		if (reset) begin
+			intermediate_f3 <= 0;
+		end else begin
+			intermediate_f3 <= intermediate_f2;
+		end
+	end
+	assign cdc = intermediate_f3;
+	always @(posedge clock2) begin
+		if (reset) begin
+			intermediate_s1 <= 0;
+		end else begin
+			intermediate_s1 <= cdc;
+		end
+	end
+	always @(posedge clock2) begin
+		if (reset) begin
 			intermediate_s2 <= 0;
 		end else begin
 			intermediate_s2 <= intermediate_s1;
@@ -195,12 +285,46 @@ module edge_to_pulse_tb;
 	end
 endmodule
 
-module asynchronizer (
+//	slow_asynchronizer #(.WIDTH(2), .DEPTH(3)) mysin (.clock(), .reset(), .async_in(), .sync_out());
+// this is based on pipeline_synchronizer
+module slow_asynchronizer #(
+	parameter DEPTH=2,
+	parameter WIDTH=1
+) (
+	input clock,
+	input reset,
+	input [WIDTH-1:0] async_in,
+	output [WIDTH-1:0] sync_out
+);
+	reg [WIDTH-1:0] intermediate [DEPTH-1:0];
+	(* KEEP = "TRUE" *) wire [WIDTH-1:0] async_cdc;
+	integer i;
+	always @(posedge clock) begin
+		for (i=1; i<DEPTH; i=i+1) begin : pipeline
+			if (reset) begin
+				intermediate[i] <= 0;
+			end else begin
+				intermediate[i] <= intermediate[i-1];
+			end
+		end
+		if (reset) begin
+//			intermediate <= 0;
+			intermediate[0] <= 0;
+		end else begin
+//			intermediate <= { intermediate[DEPTH-2:0], async_cdc };
+			intermediate[0] <= async_cdc;
+		end
+	end
+	assign async_cdc = async_in;
+	assign sync_out = intermediate[DEPTH-1];
+endmodule
+
+// for when the asynchronous pulse is shorter than the synchronous clock period
+module fast_asynchronizer (
 	input clock,
 	input reset,
 	input async_in,
-	output sync_out,
-	output intermediate_s1, intermediate_s2, intermediate_s3
+	output sync_out
 );
 // https://daffy1108.wordpress.com/2014/06/08/synchronizers-for-asynchronous-signals/
 	reg reg_intermediate_s1 = 0;
@@ -234,65 +358,14 @@ module asynchronizer (
 			reg_intermediate_s3 <= reg_intermediate_s2;
 		end
 	end
-	assign intermediate_s1 = reg_intermediate_s1;
-	assign intermediate_s2 = reg_intermediate_s2;
-	assign intermediate_s3 = reg_intermediate_s3;
 	assign sync_out = reg_sync_out;
 endmodule
 
-module asynchronizer_nonworking (
-	input clock,
-	input reset,
-	input async_in,
-	output sync_out,
-	output intermediate_s1, intermediate_s2, intermediate_s3
-);
-// https://daffy1108.wordpress.com/2014/06/08/synchronizers-for-asynchronous-signals/
-	reg reg_intermediate_s1 = 0;
-	reg reg_intermediate_s2 = 0;
-	reg reg_intermediate_s3 = 0;
-	reg reg_sync_out;
-//	(* KEEP = "TRUE" *) wire cdc;
-	wire randy;
-	assign randy = reset | ((~async_in) & intermediate_s3);
-//	assign randy = reset | intermediate_s2;
-	always @(posedge async_in) begin
-		reg_intermediate_s1 <= 0;
-		if (~reset) begin
-//			reg_intermediate_s1 <= 0;
-//		end else begin
-			if (async_in) begin
-				reg_intermediate_s1 <= 1;
-			end
-		end
-	end
-//	assign cdc = intermediate_s1;
-	always @(posedge clock) begin
-		reg_intermediate_s2 <= 0;
-		if (~reset) begin
-			reg_intermediate_s2 <= reg_intermediate_s1; // cdc;
-		end
-	end
-	always @(posedge clock) begin
-		reg_intermediate_s3 <= 0;
-		reg_sync_out <= 0;
-		if (~reset) begin
-			reg_sync_out <= reg_intermediate_s3;
-			reg_intermediate_s3 <= reg_intermediate_s2;
-		end
-	end
-	assign intermediate_s1 = reg_intermediate_s1;
-	assign intermediate_s2 = reg_intermediate_s2;
-	assign intermediate_s3 = reg_intermediate_s3;
-	assign sync_out = reg_sync_out;
-endmodule
-
-module asynchronizer_tb;
+module asynchronizers_tb;
 	reg clock = 0;
 	reg reset = 0;
 	reg async_in = 0;
 	wire sync_out;
-	wire intermediate_s1, intermediate_s2, intermediate_s3;
 	initial begin
 		clock <= 0;
 		reset <= 1;
@@ -300,21 +373,21 @@ module asynchronizer_tb;
 		#20
 		reset <= 0;
 		#20.25
-		async_in <= 1;
-		#6.5
-		async_in <= 0;
+		// medium pulse:
+		async_in <= 1; #6.5 async_in <= 0;
 		#20.75
-		async_in <= 1;
-		#0.75
-		async_in <= 0;
+		// short pulse:
+		async_in <= 1; #0.75 async_in <= 0;
+		#20.75
+		// long pulse:
+		async_in <= 1; #18 async_in <= 0;
 	end
 	always begin
-		#1
-		clock <= 1;
-		#1
-		clock <= 0;
+		#1 clock <= 1;
+		#1 clock <= 0;
 	end
-	asynchronizer blah (.clock(clock), .reset(reset), .async_in(async_in), .sync_out(sync_out), .intermediate_s1(intermediate_s1), .intermediate_s2(intermediate_s2), .intermediate_s3(intermediate_s3));
+	//fast_asynchronizer fast (.clock(clock), .reset(reset), .async_in(async_in), .sync_out(sync_out));
+	slow_asynchronizer #(.WIDTH(1), .DEPTH(2)) slow (.clock(clock), .reset(reset), .async_in(async_in), .sync_out(sync_out));
 endmodule
 
 // cross-clock handshake
@@ -368,55 +441,6 @@ module handshake_tb;
 	always begin
 		#9;
 		clock_b <= ~clock_b;
-	end
-endmodule
-
-//	parameter BUTTON_POLARITY = 1 // not used yet
-module old_stupid_button_debounce #(
-	parameter DEBOUNCE_CLOCK_PERIODS = 20, // typically 10-50 ms worth of clock periods
-	parameter METASTABLE_CLOCK_PERIODS = 3 // typically 2 or 3 clock periods
-) (
-	input clock,
-	input button_raw,
-	output reg button_just_went_active = 0,
-	output reg button_just_went_inactive = 0,
-	output reg button_state = 0,
-	output reg button_just_changed = 0
-);
-	reg [DEBOUNCE_CLOCK_PERIODS-1:0] button_pipeline_long = 0;
-	reg [METASTABLE_CLOCK_PERIODS-1:0] button_pipeline_short = 0;
-	reg button_state_is_stable = 0;
-	always @(posedge clock) begin
-		button_just_went_active <= 0;
-		button_just_went_inactive <= 0;
-		button_just_changed <= 0;
-		if (button_state_is_stable) begin
-			if (button_state) begin
-				if (button_pipeline_long[0]==0) begin
-					button_state <= 0;
-					button_just_went_inactive <= 1;
-					button_just_changed <= 1;
-					button_state_is_stable <= 0;
-				end
-			end else begin
-				if (button_pipeline_long[0]==1) begin
-					button_state <= 1;
-					button_just_went_active <= 1;
-					button_just_changed <= 1;
-					button_state_is_stable <= 0;
-				end
-			end
-		end else begin
-			//if (button_state) begin
-			if (button_pipeline_long==0) begin
-				button_state_is_stable <= 1;
-			end else if (button_pipeline_long=={DEBOUNCE_CLOCK_PERIODS{1'b1}}) begin
-				button_state_is_stable <= 1;
-			end else begin
-				button_state_is_stable <= 0;
-			end
-		end
-		{ button_pipeline_long, button_pipeline_short } <= { button_pipeline_long[DEBOUNCE_CLOCK_PERIODS-2:0], button_pipeline_short, button_raw };
 	end
 endmodule
 
@@ -538,4 +562,6 @@ module button_debounce_tb;
 		clock <= ~clock;
 	end
 endmodule
+
+`endif
 

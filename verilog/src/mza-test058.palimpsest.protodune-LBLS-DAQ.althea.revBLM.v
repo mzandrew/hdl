@@ -2,7 +2,7 @@
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // based on mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2024-08-14 by mza
+// last updated 2024-11-13 by mza
 
 // HDLCompiler:816 System function call int not supported
 
@@ -326,7 +326,7 @@ module LBLS12 #(
 	// ----------------------------------------------------------------------
 	wire [7:0] wa [12:1]; // word_A output from iserdes for bankA
 	wire pll_oserdes_locked_copy_on_word_clock;
-	ssynchronizer #(.WIDTH(1)) mysin (.clock1(clock100), .clock2(word_clock), .reset1(reset100), .reset2(reset_word), .in1(pll_oserdes_locked), .out2(pll_oserdes_locked_copy_on_word_clock));
+	pipeline_synchronizer #(.WIDTH(1)) mysin (.clock1(clock100), .clock2(word_clock), .reset1(reset100), .reset2(reset_word), .in1(pll_oserdes_locked), .out2(pll_oserdes_locked_copy_on_word_clock));
 	iserdes_dodecahedron_input #(
 		.BIT_DEPTH(8), .PERIOD(PERIOD), .MULTIPLY(MULTIPLY), .DIVIDE(DIVIDE), .EXTRA_DIVIDE(EXTRA_DIVIDE), .SCOPE(SCOPE), .SPLIT_BANKS(1)
 	) inputs_bankA (

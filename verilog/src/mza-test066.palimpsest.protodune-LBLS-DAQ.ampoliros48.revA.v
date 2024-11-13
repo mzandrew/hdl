@@ -1,6 +1,6 @@
 // written 2024-03-08 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-08-14 by mza
+// last updated 2024-11-13 by mza
 
 `define ampoliros48_revA
 `include "lib/duneLBLS.v"
@@ -257,7 +257,7 @@ module LBLS48 #(
 	assign inoutM[1] = trigger_active;
 	assign inoutM[2] = monitor;
 	wire pll_oserdes_locked_copy_on_word_clock;
-	ssynchronizer mysin (.clock1(clock100), .clock2(word_clock), .reset1(reset100), .reset2(reset_word), .in1(pll_oserdes_locked), .out2(pll_oserdes_locked_copy_on_word_clock));
+	pipeline_synchronizer mysin (.clock1(clock100), .clock2(word_clock), .reset1(reset100), .reset2(reset_word), .in1(pll_oserdes_locked), .out2(pll_oserdes_locked_copy_on_word_clock));
 	wire [3:0] status_resets = { ~pll_oserdes_locked_copy_on_word_clock, reset, reset100, reset_word };
 	wire [3:0] status_any = { anyA, anyB, anyC, anyD };
 	wire [3:0] status_trigger = { inR[3], inR[2], trigger_active, monitor };
