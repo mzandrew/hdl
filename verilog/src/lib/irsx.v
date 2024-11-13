@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-11-12 by mza
+// last updated 2024-11-13 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -21,6 +21,7 @@ module irsx_write_to_storage #(
 	input [7:0] start_address, end_address,
 //	output reg about_to_change_addresses = 0,
 	output wr_clk, wr_dat,
+	output wr_pll_is_locked_and_strobe_is_aligned,
 	output reg [WRITE_ADDRESS_BITS-1:0] wr_address = 0
 );
 	reg [WR_SYNCMON_PICKOFF:0] wr_syncmon_pipeline = 0;
@@ -49,7 +50,7 @@ module irsx_write_to_storage #(
 			wr_syncmon_pipeline <= { wr_syncmon_pipeline[WR_SYNCMON_PICKOFF-1:0], wr_syncmon };
 		end
 	end
-	wire wr_bit_clk, wr_bit_strobe, wr_pll_is_locked_and_strobe_is_aligned;
+	wire wr_bit_clk, wr_bit_strobe;
 	BUFPLL #(
 		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
 		.DIVIDE(WRITE_ADDRESS_BITS) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
@@ -70,7 +71,7 @@ module irsx_write_to_storage #(
 	ocyrus_single8_inner #(.BIT_RATIO(WRITE_ADDRESS_BITS), .PINTYPE("p")) wr_data_oserdes (.bit_clock(wr_bit_clk), .bit_strobe(wr_bit_strobe), .word_clock(wr_word_clk), .reset(reset), .word_in(wr_address_single_trouble), .bit_out(wr_dat));
 endmodule
 
-//	irsx_wilkinson_convert #() wilkie (.gcc_clock(), .reset(), .should_start_wilkinson_conversion_now(), .convert(), .done_out(), .done_out_buffered(), .convert_counter(), .done_out_counter());
+//	irsx_wilkinson_convert #() wilkie (.gcc_clock(), .reset(), .should_start_wilkinson_conversion_now(), .convert(), .done_out(), .convert_counter(), .done_out_counter());
 module irsx_wilkinson_convert #(
 	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 2000, // takes ~7 us with a 14k resistor and ISEL DAC set to 2200 (scope_1.png)
 	parameter LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS = $clog2(CONVERT_DURATION_IN_GCC_CLOCKS),
@@ -82,14 +83,14 @@ module irsx_wilkinson_convert #(
 	output reg [31:0] convert_counter,
 	output reg [31:0] done_out_counter,
 	output reg convert,
-	input done_out,
-	output reg done_out_buffered
+	input done_out
+//	output reg done_out_buffered
 );
 	reg [15:0] should_start_wilkinson_conversion_now_pipeline = 0;
 	reg [LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS:0] convert_duration_counter = 0;
 	reg [DONE_OUT_PIPELINE_DEPTH-1:0] done_out_pipeline = 0;
 	always @(posedge gcc_clock) begin
-		done_out_buffered <= 0;
+//		done_out_buffered <= 0;
 		convert <= 0;
 		if (reset) begin
 			convert_counter <= 0;
@@ -108,7 +109,7 @@ module irsx_wilkinson_convert #(
 			end
 			if (done_out_pipeline[DONE_OUT_PIPELINE_DEPTH-1:DONE_OUT_PIPELINE_DEPTH-2]==2'b01) begin
 				done_out_counter <= done_out_counter + 1'b1;
-				done_out_buffered <= 1'b1;
+//				done_out_buffered <= 1'b1;
 			end
 			done_out_pipeline <= { done_out_pipeline[DONE_OUT_PIPELINE_DEPTH-2:0], done_out };
 			should_start_wilkinson_conversion_now_pipeline <= { should_start_wilkinson_conversion_now_pipeline[14:0], should_start_wilkinson_conversion_now }; // this assumes gcc_clock is faster than word_clock
@@ -162,8 +163,10 @@ module irsx_read_hs_data_from_storage #(
 	wire [BIT_DEPTH-1:0] hs_data_word;
 	if (BIT_DEPTH==8) begin
 		iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
-	end else begin
+	end else if (BIT_DEPTH==4) begin
 		iserdes_single4_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
+	end else begin
+		iserdes_single3_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
 	end
 	reg [HS_DATA_SIZE-1:0] hs_data_stream = 0;
 	reg [LOG2_OF_COUNTER_SIZE-1:0] hs_data_counter = 0;
@@ -199,18 +202,14 @@ module irsx_read_hs_data_from_storage #(
 	wire [11:0] data_12bit = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1-:DATA_WIDTH];
 	wire [LOG2_OF_DEPTH:0] write_address10 = { 1'b0, write_address };
 	wire [LOG2_OF_DEPTH:0] read_address10  = { 1'b0, read_address };
-	wire [15:0] data_in16 = { 4'b0, data_12bit };
-	wire [15:0] data_out16;
-	assign data_out = data_out16[DATA_WIDTH-1:0];
-	RAM_unidirectional  #(.DATA_WIDTH_A(16), .DATA_WIDTH_B(16), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH+1), .SERIES(SERIES)) chock_a_block ( .reset(hs_reset),
-		.clock_a(hs_word_clock), .address_a(write_address10), .data_in_a(data_in16), .write_enable_a(write_strobe),
-		.clock_b(hs_word_clock), .address_b(read_address10), .data_out_b(data_out16));
+	RAM_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH+1), .SERIES(SERIES)) chock_a_block ( .reset(hs_reset),
+		.clock_a(hs_word_clock), .address_a(write_address10), .data_in_a(data_12bit), .write_enable_a(write_strobe),
+		.clock_b(hs_word_clock), .address_b(read_address10), .data_out_b(data_out));
 	initial begin
 		$display("HS_DATA_SIZE=%d", HS_DATA_SIZE);
 		$display("LOG2_OF_COUNTER_SIZE=%d", LOG2_OF_COUNTER_SIZE);
 		$display("LOG2_OF_OFFSET_SIZE=%d", LOG2_OF_OFFSET_SIZE);
 		$display("HS_DATA_INTENDED_NUMBER_OF_BITS=%d", HS_DATA_INTENDED_NUMBER_OF_BITS);
-//		$display("HS_DATA_EXTRA_BITS_TO_CAPTURE=%d", HS_DATA_EXTRA_BITS_TO_CAPTURE);
 		$display("BIT_DEPTH=%d", BIT_DEPTH);
 	end
 endmodule
