@@ -296,66 +296,84 @@ module slow_asynchronizer #(
 	input [WIDTH-1:0] async_in,
 	output [WIDTH-1:0] sync_out
 );
-	reg [WIDTH-1:0] intermediate [DEPTH-1:0];
+	reg [WIDTH-1:0] intermediate1 [DEPTH-1:0];
+	reg [WIDTH-1:0] intermediate2 [DEPTH-1:0];
 	(* KEEP = "TRUE" *) wire [WIDTH-1:0] async_cdc;
 	integer i;
 	always @(posedge clock) begin
-		for (i=1; i<DEPTH; i=i+1) begin : pipeline
+		for (i=1; i<DEPTH; i=i+1) begin : pipeline1
 			if (reset) begin
-				intermediate[i] <= 0;
+				intermediate1[i] <= 0;
 			end else begin
-				intermediate[i] <= intermediate[i-1];
+				intermediate1[i] <= intermediate1[i-1];
 			end
 		end
 		if (reset) begin
-//			intermediate <= 0;
-			intermediate[0] <= 0;
+			intermediate1[0] <= 0;
 		end else begin
-//			intermediate <= { intermediate[DEPTH-2:0], async_cdc };
-			intermediate[0] <= async_cdc;
+			intermediate1[0] <= async_in;
 		end
 	end
-	assign async_cdc = async_in;
-	assign sync_out = intermediate[DEPTH-1];
+	assign async_cdc = intermediate1[DEPTH-1];
+	always @(posedge clock) begin
+		for (i=1; i<DEPTH; i=i+1) begin : pipeline2
+			if (reset) begin
+				intermediate2[i] <= 0;
+			end else begin
+				intermediate2[i] <= intermediate2[i-1];
+			end
+		end
+		if (reset) begin
+			intermediate2[0] <= 0;
+		end else begin
+			intermediate2[0] <= async_cdc;
+		end
+	end
+	assign sync_out = intermediate2[DEPTH-1];
 endmodule
 
 // for when the asynchronous pulse is shorter than the synchronous clock period
-module fast_asynchronizer (
+module fast_asynchronizer #(
+	parameter WIDTH = 1
+) (
 	input clock,
 	input reset,
-	input async_in,
-	output sync_out
+	input [WIDTH-1:0] async_in,
+	output [WIDTH-1:0] sync_out
 );
 // https://daffy1108.wordpress.com/2014/06/08/synchronizers-for-asynchronous-signals/
-	reg reg_intermediate_s1 = 0;
-	reg reg_intermediate_s2 = 0;
-	reg reg_intermediate_s3 = 0;
-	reg reg_sync_out = 0;
-//	(* KEEP = "TRUE" *) wire cdc;
-	wire randy;
-	assign randy = reset | ((~async_in) & reg_intermediate_s3);
-	always @(posedge async_in or posedge randy) begin
-		if (randy) begin
-			reg_intermediate_s1 <= 0;
-		end else begin
-			reg_intermediate_s1 <= 1;
+	reg [WIDTH-1:0] reg_intermediate_s1;
+	reg [WIDTH-1:0] reg_intermediate_s2;
+	reg [WIDTH-1:0] reg_intermediate_s3;
+	reg [WIDTH-1:0] reg_sync_out = 0;
+//	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc;
+	wire [WIDTH-1:0] randy;
+	genvar i;
+	for (i=0; i<WIDTH; i=i+1) begin : randy_mapping
+		assign randy[i] = reset || ((~async_in[i]) && reg_intermediate_s3[i]);
+		always @(posedge async_in[i] or posedge randy[i]) begin
+			if (randy[i]) begin
+				reg_intermediate_s1[i] <= 0;
+			end else begin
+				reg_intermediate_s1[i] <= 1;
+			end
 		end
-	end
-//	assign cdc = intermediate_s1;
-	always @(posedge clock) begin
-		if (randy) begin
-			reg_intermediate_s2 <= 0;
-		end else begin
-			reg_intermediate_s2 <= reg_intermediate_s1; // cdc;
+		//assign cdc = intermediate_s1;
+		always @(posedge clock) begin
+			if (randy[i]) begin
+				reg_intermediate_s2[i] <= 0;
+			end else begin
+				reg_intermediate_s2[i] <= reg_intermediate_s1[i]; // cdc;
+			end
 		end
-	end
-	always @(posedge clock) begin
-		if (reset) begin
-			reg_intermediate_s3 <= 0;
-			reg_sync_out <= 0;
-		end else begin
-			reg_sync_out <= reg_intermediate_s3;
-			reg_intermediate_s3 <= reg_intermediate_s2;
+		always @(posedge clock) begin
+			if (reset) begin
+				reg_intermediate_s3[i] <= 0;
+				reg_sync_out[i] <= 0;
+			end else begin
+				reg_sync_out[i] <= reg_intermediate_s3[i];
+				reg_intermediate_s3[i] <= reg_intermediate_s2[i];
+			end
 		end
 	end
 	assign sync_out = reg_sync_out;
@@ -365,7 +383,7 @@ module asynchronizers_tb;
 	reg clock = 0;
 	reg reset = 0;
 	reg async_in = 0;
-	wire sync_out;
+	wire sync_out1, sync_out2;
 	initial begin
 		clock <= 0;
 		reset <= 1;
@@ -386,8 +404,8 @@ module asynchronizers_tb;
 		#1 clock <= 1;
 		#1 clock <= 0;
 	end
-	//fast_asynchronizer fast (.clock(clock), .reset(reset), .async_in(async_in), .sync_out(sync_out));
-	slow_asynchronizer #(.WIDTH(1), .DEPTH(2)) slow (.clock(clock), .reset(reset), .async_in(async_in), .sync_out(sync_out));
+	fast_asynchronizer fast (.clock(clock), .reset(reset), .async_in(async_in), .sync_out(sync_out1));
+	slow_asynchronizer #(.WIDTH(1), .DEPTH(2)) slow (.clock(clock), .reset(reset), .async_in(async_in), .sync_out(sync_out2));
 endmodule
 
 // cross-clock handshake
