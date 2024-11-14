@@ -299,34 +299,38 @@ module slow_asynchronizer #(
 	reg [WIDTH-1:0] intermediate1 [DEPTH-1:0];
 	reg [WIDTH-1:0] intermediate2 [DEPTH-1:0];
 	(* KEEP = "TRUE" *) wire [WIDTH-1:0] async_cdc;
-	integer i;
+	genvar i;
 	always @(posedge clock) begin
-		for (i=1; i<DEPTH; i=i+1) begin : pipeline1
-			if (reset) begin
-				intermediate1[i] <= 0;
-			end else begin
-				intermediate1[i] <= intermediate1[i-1];
-			end
-		end
 		if (reset) begin
 			intermediate1[0] <= 0;
 		end else begin
 			intermediate1[0] <= async_in;
 		end
 	end
+	for (i=1; i<DEPTH; i=i+1) begin : pipeline1
+		always @(posedge clock) begin
+			if (reset) begin
+				intermediate1[i] <= 0;
+			end else begin
+				intermediate1[i] <= intermediate1[i-1];
+			end
+		end
+	end
 	assign async_cdc = intermediate1[DEPTH-1];
 	always @(posedge clock) begin
-		for (i=1; i<DEPTH; i=i+1) begin : pipeline2
+		if (reset) begin
+			intermediate2[0] <= 0;
+		end else begin
+			intermediate2[0] <= async_cdc;
+		end
+	end
+	for (i=1; i<DEPTH; i=i+1) begin : pipeline2
+		always @(posedge clock) begin
 			if (reset) begin
 				intermediate2[i] <= 0;
 			end else begin
 				intermediate2[i] <= intermediate2[i-1];
 			end
-		end
-		if (reset) begin
-			intermediate2[0] <= 0;
-		end else begin
-			intermediate2[0] <= async_cdc;
 		end
 	end
 	assign sync_out = intermediate2[DEPTH-1];
