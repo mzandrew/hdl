@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-11-13 by mza
+// last updated 2024-11-15 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -67,7 +67,8 @@ module irsx_write_to_storage #(
 		wr_address[3], wr_address[3], wr_address[2], wr_address[2], wr_address[1], wr_address[1], wr_address[0], wr_address[0] };
 	wire [WRITE_ADDRESS_BITS-1:0] wr_address_single_trouble;
 	oserdes_gearbox #(.RATIO(2)) wr_dat_osgb (.word_clock(wr_word_clk), .reset(reset), .input_longword(wr_address_double_trouble), .output_shortword(wr_address_single_trouble), .start(), .finish());
-	ocyrus_single8_inner #(.BIT_RATIO(WRITE_ADDRESS_BITS), .PINTYPE("p")) wr_clk_oserdes (.bit_clock(wr_bit_clk), .bit_strobe(wr_bit_strobe), .word_clock(wr_word_clk), .reset(reset), .word_in(8'b01010101), .bit_out(wr_clk));
+	wire [7:0] wr_clk_word = 8'b01010101;
+	ocyrus_single8_inner #(.BIT_RATIO(WRITE_ADDRESS_BITS), .PINTYPE("p")) wr_clk_oserdes (.bit_clock(wr_bit_clk), .bit_strobe(wr_bit_strobe), .word_clock(wr_word_clk), .reset(reset), .word_in(wr_clk_word), .bit_out(wr_clk));
 	ocyrus_single8_inner #(.BIT_RATIO(WRITE_ADDRESS_BITS), .PINTYPE("p")) wr_data_oserdes (.bit_clock(wr_bit_clk), .bit_strobe(wr_bit_strobe), .word_clock(wr_word_clk), .reset(reset), .word_in(wr_address_single_trouble), .bit_out(wr_dat));
 endmodule
 
@@ -87,7 +88,7 @@ module irsx_wilkinson_convert #(
 //	output reg done_out_buffered
 );
 	reg [15:0] should_start_wilkinson_conversion_now_pipeline = 0;
-	reg [LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS:0] convert_duration_counter = 0;
+	reg [LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS-1:0] convert_duration_counter = 0;
 	reg [DONE_OUT_PIPELINE_DEPTH-1:0] done_out_pipeline = 0;
 	always @(posedge gcc_clock) begin
 //		done_out_buffered <= 0;
@@ -117,14 +118,13 @@ module irsx_wilkinson_convert #(
 	end
 endmodule
 
-
 module irsx_read_hs_data_from_storage #(
 	parameter TESTBENCH = 0,
 	parameter DATA_WIDTH = 12,
 	parameter LOG2_OF_DEPTH = 9, // 9 = 64 samples by 8 channels
 	parameter SERIES = "spartan6",
 	parameter BIT_DEPTH = 8,
-	parameter HS_DATA_INTENDED_NUMBER_OF_BITS = 24, // this could be 24
+	parameter HS_DATA_INTENDED_NUMBER_OF_BITS = 24,
 	parameter HS_DATA_SIZE = BIT_DEPTH*(HS_DATA_INTENDED_NUMBER_OF_BITS+1), // sampling at 1017 MHz; hs_clk is 254 MHz
 	parameter LOG2_OF_COUNTER_SIZE = $clog2(HS_DATA_SIZE/BIT_DEPTH), // 5 = clog2(100/4)
 	parameter LOG2_OF_OFFSET_SIZE = $clog2(BIT_DEPTH) // 2 = clog2(4)
@@ -132,18 +132,29 @@ module irsx_read_hs_data_from_storage #(
 	input hs_data,
 	input hs_bit_clk_raw,
 	input hs_word_clock,
+	input hs_word_reset,
 	input input_pll_locked,
 	input [LOG2_OF_COUNTER_SIZE-1:0] hs_data_ss_incr,
 	input [LOG2_OF_COUNTER_SIZE-1:0] hs_data_capture,
 	input [LOG2_OF_OFFSET_SIZE-1:0] hs_data_offset,
 	input [LOG2_OF_DEPTH-1:0] read_address,
+	output hs_clk,
 	output reg beginning_of_hs_data = 0, // debug output
+	input data_out_clock,
 	output [DATA_WIDTH-1:0] data_out,
-	output reg [HS_DATA_SIZE-1:0] buffered_hs_data_stream = 0,
+	output [HS_DATA_SIZE-1:0] buffered_hs_data_stream, // copy_on_output_clock
 	output reg ss_incr = 0,
 	output hs_pll_is_locked_and_strobe_is_aligned,
-	output [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated
+	output [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated // copy_on_output_clock
 );
+	reg [HS_DATA_SIZE-1:0] buffered_hs_data_stream_internal = 0;
+	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated_internal;
+	wire [LOG2_OF_COUNTER_SIZE-1:0] hs_data_ss_incr_copy_on_hs_clock;
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_COUNTER_SIZE)) hs_data_ss_incr_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .reset1(1'b0), .reset2(hs_word_reset), .in1(hs_data_ss_incr), .out2(hs_data_ss_incr_copy_on_hs_clock));
+	wire [LOG2_OF_COUNTER_SIZE-1:0] hs_data_capture_copy_on_hs_clock;
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_COUNTER_SIZE)) hs_data_capture_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .reset1(1'b0), .reset2(hs_word_reset), .in1(hs_data_capture), .out2(hs_data_capture_copy_on_hs_clock));
+	wire [LOG2_OF_OFFSET_SIZE-1:0] hs_data_offset_copy_on_hs_clock;
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_OFFSET_SIZE)) hs_data_offset_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .reset1(1'b0), .reset2(hs_word_reset), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
 	genvar i;
 	wire hs_bit_clk, hs_bit_strobe;
 	BUFPLL #(
@@ -157,16 +168,24 @@ module irsx_read_hs_data_from_storage #(
 		.LOCK(hs_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
 		.SERDESSTROBE(hs_bit_strobe) // Output SERDES strobe
 	);
-	wire hs_reset = 1'b0;
-//	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(1'b0), .pll_locked1_input(input_pll_locked), .clock1_input(word_clock), .clock2_input(hs_word_clock), .reset2_output(hs_reset));
+//	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(1'b0), .pll_locked1_input(input_pll_locked), .clock1_input(word_clock), .clock2_input(hs_word_clock), .reset2_output(hs_word_reset));
 	// ----------------------------------------------------------------------
 	wire [BIT_DEPTH-1:0] hs_data_word;
+	wire [BIT_DEPTH-1:0] hs_clk_word;
 	if (BIT_DEPTH==8) begin
-		iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
+		assign hs_clk_word = 8'b00001111;
+		iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
+		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
+	end else if (BIT_DEPTH==6) begin
+		assign hs_clk_word = 6'b000111;
+		iserdes_single6_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
+		ocyrus_single6_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
 	end else if (BIT_DEPTH==4) begin
-		iserdes_single4_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
+		assign hs_clk_word = 4'b0011;
+		iserdes_single4_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
 	end else begin
-		iserdes_single3_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_reset), .data_in(hs_data), .word_out(hs_data_word));
+		assign hs_clk_word = 3'b001; // this mode won't work right...
+		iserdes_single3_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
 	end
 	reg [HS_DATA_SIZE-1:0] hs_data_stream = 0;
 	reg [LOG2_OF_COUNTER_SIZE-1:0] hs_data_counter = 0;
@@ -176,18 +195,18 @@ module irsx_read_hs_data_from_storage #(
 		ss_incr <= 0;
 		write_strobe <= 0;
 		beginning_of_hs_data <= 0;
-		if (hs_reset) begin
+		if (hs_word_reset) begin
 			hs_data_stream <= 0;
 			hs_data_counter <= 0;
 			write_address <= 0;
-			buffered_hs_data_stream <= 0;
+			buffered_hs_data_stream_internal <= 0;
 		end else begin
-			if (hs_data_counter==hs_data_ss_incr) begin
+			if (hs_data_counter==hs_data_ss_incr_copy_on_hs_clock) begin
 				ss_incr <= 1;
 			end
-			if (hs_data_counter==hs_data_capture) begin
+			if (hs_data_counter==hs_data_capture_copy_on_hs_clock) begin
 				beginning_of_hs_data <= 1;
-				buffered_hs_data_stream <= hs_data_stream;
+				buffered_hs_data_stream_internal <= hs_data_stream;
 				write_strobe <= 1;
 				write_address <= write_address + 1'b1;
 			end
@@ -197,14 +216,16 @@ module irsx_read_hs_data_from_storage #(
 	end
 	// spgin comes out first (spgin); real output data comes out after that (db11-db00), then the test pattern generator (tpg) data is last (dd11-dd00); see irsx schematic page 45
 	for (i=0; i<HS_DATA_INTENDED_NUMBER_OF_BITS; i=i+1) begin : hs_data_decimation
-		assign hs_data_word_decimated[i] = buffered_hs_data_stream[BIT_DEPTH*i+hs_data_offset];
+		assign hs_data_word_decimated_internal[i] = buffered_hs_data_stream_internal[BIT_DEPTH*i+hs_data_offset_copy_on_hs_clock];
 	end
-	wire [11:0] data_12bit = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1-:DATA_WIDTH];
+	wire [11:0] data_12bit = hs_data_word_decimated_internal[HS_DATA_INTENDED_NUMBER_OF_BITS-1-:DATA_WIDTH];
 	wire [LOG2_OF_DEPTH:0] write_address10 = { 1'b0, write_address };
 	wire [LOG2_OF_DEPTH:0] read_address10  = { 1'b0, read_address };
-	RAM_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH+1), .SERIES(SERIES)) chock_a_block ( .reset(hs_reset),
+	RAM_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH+1), .SERIES(SERIES)) chock_a_block ( .reset(hs_word_reset),
 		.clock_a(hs_word_clock), .address_a(write_address10), .data_in_a(data_12bit), .write_enable_a(write_strobe),
-		.clock_b(hs_word_clock), .address_b(read_address10), .data_out_b(data_out));
+		.clock_b(data_out_clock), .address_b(read_address10), .data_out_b(data_out));
+	pipeline_synchronizer #(.WIDTH(HS_DATA_SIZE)) buffered_hs_data_stream_sync (.clock1(hs_word_clock), .clock2(data_out_clock), .reset1(hs_word_reset), .reset2(1'b0), .in1(buffered_hs_data_stream_internal), .out2(buffered_hs_data_stream));
+	pipeline_synchronizer #(.WIDTH(HS_DATA_INTENDED_NUMBER_OF_BITS)) hs_data_word_decimated_sync (.clock1(hs_word_clock), .clock2(data_out_clock), .reset1(hs_word_reset), .reset2(1'b0), .in1(hs_data_word_decimated_internal), .out2(hs_data_word_decimated));
 	initial begin
 		$display("HS_DATA_SIZE=%d", HS_DATA_SIZE);
 		$display("LOG2_OF_COUNTER_SIZE=%d", LOG2_OF_COUNTER_SIZE);
