@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-11-15 by mza
+// last updated 2024-11-18 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -29,7 +29,7 @@ module irsx_write_to_storage #(
 //		about_to_change_addresses <= 0;
 		if (reset) begin
 			wr_address <= start_address;
-			wr_syncmon_pipeline <= 0;
+//			wr_syncmon_pipeline <= 0;
 		end else begin
 			if (~hold) begin
 				if (revo) begin
@@ -76,6 +76,7 @@ endmodule
 module irsx_wilkinson_convert #(
 	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 2000, // takes ~7 us with a 14k resistor and ISEL DAC set to 2200 (scope_1.png)
 	parameter LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS = $clog2(CONVERT_DURATION_IN_GCC_CLOCKS),
+	parameter SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH = 8,
 	parameter DONE_OUT_PIPELINE_DEPTH = 8
 ) (
 	input gcc_clock, // 254 MHz
@@ -87,7 +88,7 @@ module irsx_wilkinson_convert #(
 	input done_out
 //	output reg done_out_buffered
 );
-	reg [15:0] should_start_wilkinson_conversion_now_pipeline = 0;
+	reg [SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH-1:0] should_start_wilkinson_conversion_now_pipeline = 0;
 	reg [LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS-1:0] convert_duration_counter = 0;
 	reg [DONE_OUT_PIPELINE_DEPTH-1:0] done_out_pipeline = 0;
 	always @(posedge gcc_clock) begin
@@ -96,11 +97,11 @@ module irsx_wilkinson_convert #(
 		if (reset) begin
 			convert_counter <= 0;
 			done_out_counter <= 0;
-			done_out_pipeline <= 0;
+//			done_out_pipeline <= 0;
 			convert_duration_counter <= 0;
-			should_start_wilkinson_conversion_now_pipeline <= 0;
+//			should_start_wilkinson_conversion_now_pipeline <= 0;
 		end else begin
-			if (should_start_wilkinson_conversion_now_pipeline[15:14]==2'b01) begin
+			if (should_start_wilkinson_conversion_now_pipeline[SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH-1:SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH-2]==2'b01) begin
 				convert_counter <= convert_counter + 1'b1;
 				convert_duration_counter <= CONVERT_DURATION_IN_GCC_CLOCKS;
 			end
@@ -113,7 +114,7 @@ module irsx_wilkinson_convert #(
 //				done_out_buffered <= 1'b1;
 			end
 			done_out_pipeline <= { done_out_pipeline[DONE_OUT_PIPELINE_DEPTH-2:0], done_out };
-			should_start_wilkinson_conversion_now_pipeline <= { should_start_wilkinson_conversion_now_pipeline[14:0], should_start_wilkinson_conversion_now }; // this assumes gcc_clock is faster than word_clock
+			should_start_wilkinson_conversion_now_pipeline <= { should_start_wilkinson_conversion_now_pipeline[SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH-2:0], should_start_wilkinson_conversion_now }; // this assumes gcc_clock is faster than word_clock
 		end
 	end
 endmodule
@@ -150,11 +151,11 @@ module irsx_read_hs_data_from_storage #(
 	reg [HS_DATA_SIZE-1:0] buffered_hs_data_stream_internal = 0;
 	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated_internal;
 	wire [LOG2_OF_COUNTER_SIZE-1:0] hs_data_ss_incr_copy_on_hs_clock;
-	pipeline_synchronizer #(.WIDTH(LOG2_OF_COUNTER_SIZE)) hs_data_ss_incr_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .reset1(1'b0), .reset2(hs_word_reset), .in1(hs_data_ss_incr), .out2(hs_data_ss_incr_copy_on_hs_clock));
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_COUNTER_SIZE)) hs_data_ss_incr_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .in1(hs_data_ss_incr), .out2(hs_data_ss_incr_copy_on_hs_clock));
 	wire [LOG2_OF_COUNTER_SIZE-1:0] hs_data_capture_copy_on_hs_clock;
-	pipeline_synchronizer #(.WIDTH(LOG2_OF_COUNTER_SIZE)) hs_data_capture_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .reset1(1'b0), .reset2(hs_word_reset), .in1(hs_data_capture), .out2(hs_data_capture_copy_on_hs_clock));
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_COUNTER_SIZE)) hs_data_capture_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .in1(hs_data_capture), .out2(hs_data_capture_copy_on_hs_clock));
 	wire [LOG2_OF_OFFSET_SIZE-1:0] hs_data_offset_copy_on_hs_clock;
-	pipeline_synchronizer #(.WIDTH(LOG2_OF_OFFSET_SIZE)) hs_data_offset_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .reset1(1'b0), .reset2(hs_word_reset), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_OFFSET_SIZE)) hs_data_offset_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
 	genvar i;
 	wire hs_bit_clk, hs_bit_strobe;
 	BUFPLL #(
@@ -224,8 +225,8 @@ module irsx_read_hs_data_from_storage #(
 	RAM_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH+1), .SERIES(SERIES)) chock_a_block ( .reset(hs_word_reset),
 		.clock_a(hs_word_clock), .address_a(write_address10), .data_in_a(data_12bit), .write_enable_a(write_strobe),
 		.clock_b(data_out_clock), .address_b(read_address10), .data_out_b(data_out));
-	pipeline_synchronizer #(.WIDTH(HS_DATA_SIZE)) buffered_hs_data_stream_sync (.clock1(hs_word_clock), .clock2(data_out_clock), .reset1(hs_word_reset), .reset2(1'b0), .in1(buffered_hs_data_stream_internal), .out2(buffered_hs_data_stream));
-	pipeline_synchronizer #(.WIDTH(HS_DATA_INTENDED_NUMBER_OF_BITS)) hs_data_word_decimated_sync (.clock1(hs_word_clock), .clock2(data_out_clock), .reset1(hs_word_reset), .reset2(1'b0), .in1(hs_data_word_decimated_internal), .out2(hs_data_word_decimated));
+	pipeline_synchronizer #(.WIDTH(HS_DATA_SIZE)) buffered_hs_data_stream_sync (.clock1(hs_word_clock), .clock2(data_out_clock), .in1(buffered_hs_data_stream_internal), .out2(buffered_hs_data_stream));
+	pipeline_synchronizer #(.WIDTH(HS_DATA_INTENDED_NUMBER_OF_BITS)) hs_data_word_decimated_sync (.clock1(hs_word_clock), .clock2(data_out_clock), .in1(hs_data_word_decimated_internal), .out2(hs_data_word_decimated));
 	initial begin
 		$display("HS_DATA_SIZE=%d", HS_DATA_SIZE);
 		$display("LOG2_OF_COUNTER_SIZE=%d", LOG2_OF_COUNTER_SIZE);
@@ -646,8 +647,8 @@ module irsx_register_interface #(
 			tries_remaining <= min_tries;
 			last_erroneous_readback <= 0;
 			shout_word <= 0;
-			shout_pipeline1 <= 0;
-			shout_pipeline2 <= 0;
+//			shout_pipeline1 <= 0;
+//			shout_pipeline2 <= 0;
 			forced_rewrite <= 0;
 		end else begin
 			if (force_write_registers_again) begin
