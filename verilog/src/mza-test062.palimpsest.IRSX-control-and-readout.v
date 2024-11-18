@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-11-15 by mza
+// last updated 2024-11-18 by mza
 
 // WARNING:Xst:638 - in unit altheaIRSXtest Conflict on KEEP property on signal IRSXtest/reset127_wait4pll/pipesync/cdc and IRSXtest/status12_copy/async_cdc<2> IRSXtest/status12_copy/async_cdc<2> signal will be lost.
 // filtered Xst:1710 "FF/Latch riwri_bank1/mem_0_370 (without init value) has a constant value of 0 in block altheaIRSXtest. This FF/Latch will be trimmed during the optimization process."
@@ -30,11 +30,11 @@ module IRSXtest #(
 	parameter DCM_INPUT_PERIOD = 7.861, // 127.221875 MHz
 	parameter DCM_MULTIPLY = 4, // 508.8875 MHz
 	parameter DCM_DIVIDE = 24, // 21.203646 MHz
-	// DCM output = 21.203646 MHz (SST)
+	parameter DCM_FREQUENCY = 1e9 * DCM_MULTIPLY / DCM_DIVIDE / DCM_INPUT_PERIOD, // 21.203646 MHz (SST)
 	parameter PLL_INPUT_PERIOD = DCM_INPUT_PERIOD * DCM_DIVIDE / DCM_MULTIPLY,
 	parameter PLL_MULTIPLY = 48, // 1017.775 MHz
 	parameter PLL_OVERALL_DIVIDE = 1, // 1017.775 MHz
-	// DCM output = 1017.775 MHz (everything else is derived from this)
+	parameter PLL_FREQUENCY = DCM_FREQUENCY * PLL_MULTIPLY / PLL_OVERALL_DIVIDE, // 1017.775 MHz (everything else is derived from this)
 	// ----------------------------------------------------------------------
 	parameter EXTRA_FACTOR_OF_TWO = 2,
 	parameter EYE_DIAGRAM_CAPTURE_POINTS = 3,
@@ -102,35 +102,44 @@ module IRSXtest #(
 	wire clock127, reset127;
 	// clock127 is the board-level oscillator and only needs to get to the PLL's input
 	IBUFGDS mybuf0 (.I(clock127_p), .IB(clock127_n), .O(clock127));
-	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait4pll (.reset_input(reset), .pll_locked_input(1'b1), .clock_input(clock127), .reset_output(reset127));
+	reset_wait #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait (.reset_input(reset), .clock_input(clock127), .reset_output(reset127));
 	wire all_plls_locked_clock127;
-	slow_asynchronizer all_plls_locked_synch1 (.clock(clock127), .reset(1'b0), .async_in(all_plls_locked),  .sync_out(all_plls_locked_clock127));
+	slow_asynchronizer all_plls_locked_synch1 (.clock(clock127), .async_in(all_plls_locked),  .sync_out(all_plls_locked_clock127));
 	// ----------------------------------------------------------------------
 	wire all_plls_locked_word;
-	pipeline_synchronizer all_plls_locked_synch2 (.clock1(clock127), .clock2(word_clock), .reset1(1'b0), .reset2(1'b0), .in1(all_plls_locked_clock127), .out2(all_plls_locked_word));
+	pipeline_synchronizer all_plls_locked_synch2 (.clock1(clock127), .clock2(word_clock), .in1(all_plls_locked_clock127), .out2(all_plls_locked_word));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(reset127), .pll_locked1_input(all_plls_locked_clock127), .clock1_input(clock127), .clock2_input(word_clock), .reset2_output(reset_word));
 	// ----------------------------------------------------------------------
-	wire [3:0] status4;
-	wire [7:0] status8, status8_copy_on_word_clock_domain;
+//	wire [3:0] status4;
+	reg [7:0] status8 = 0, status8_copy_on_word_clock_domain = 0;
+	reg [7:0] pll_status8_buffered = 0;
+	wire [7:0] pll_status8;
 	wire [11:0] status12, status12_copy_on_word_clock_domain;
-	if (1) begin
-		assign status8_copy_on_word_clock_domain = 0;
+	always @(posedge clock127) begin
+		pll_status8_buffered <= pll_status8;
+	end
+	always @(posedge word_clock) begin
+		status8_copy_on_word_clock_domain <= ~status8;
+		status8 <= pll_status8_buffered;
+	end
+	if (0) begin
+		//assign status8_copy_on_word_clock_domain = 0;
 		assign status12_copy_on_word_clock_domain = 0;
 	end else begin
-		slow_asynchronizer #(.WIDTH(8))  status8_copy  (.clock(word_clock), .reset(1'b0), .async_in(status8),  .sync_out(status8_copy_on_word_clock_domain));
-		slow_asynchronizer #(.WIDTH(12)) status12_copy (.clock(word_clock), .reset(1'b0), .async_in(status12), .sync_out(status12_copy_on_word_clock_domain));
+		//slow_asynchronizer #(.WIDTH(8))  status8_copy  (.clock(word_clock), .async_in(~status8),  .sync_out(status8_copy_on_word_clock_domain));
+		slow_asynchronizer #(.WIDTH(12)) status12_copy (.clock(word_clock), .async_in(status12), .sync_out(status12_copy_on_word_clock_domain));
 	end
 	assign status12[11:2] = 0;
 	// ----------------------------------------------------------------------
 	// SST is the sampling clock; each edge starts the sampling of 128 samples in the IRSX
 	// this is aligned to the accelerator clock and should have low jitter
 	// need an ODDR pair for this (2 clocks total)
-	wire sstclk_raw, sstclk180_raw, sstclk, sstclk180, reset_sst;
+	wire sstclk_raw, sstclk180_raw, sstclk, sstclk180;
 	wire regen_copy_on_sstclk;
 	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
 	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
-	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetsst_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(sstclk), .reset2_output(reset_sst));
-	pipeline_synchronizer regen_copy_sstclk (.clock1(word_clock), .clock2(sstclk), .reset1(1'b0), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_sstclk));
+	//reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetsst_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(sstclk), .reset2_output(reset_sst));
+	pipeline_synchronizer regen_copy_sstclk (.clock1(word_clock), .clock2(sstclk), .in1(regen), .out2(regen_copy_on_sstclk));
 	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
 	// ----------------------------------------------------------------------
 	// WR is the clock feeding new write addresses to the IRSX to direct the storage of analog samples
@@ -144,7 +153,7 @@ module IRSXtest #(
 	OBUFDS wr_clk_obufds (.I(wr_clk), .O(wr_clk_p), .OB(wr_clk_n));
 	OBUFDS wr_dat_obufds (.I(wr_dat), .O(wr_dat_p), .OB(wr_dat_n));
 //	wire regen_copy_on_wr_clk;
-//	pipeline_synchronizer regen_copy_wr_clk (.clock1(word_clock), .clock2(wr_word_clk), .reset1(1'b0), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_wr_clk));
+//	pipeline_synchronizer regen_copy_wr_clk (.clock1(word_clock), .clock2(wr_word_clk), .in1(regen), .out2(regen_copy_on_wr_clk));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetwr_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(wr_word_clk), .reset2_output(reset_wr));
 	wire wr_pll_is_locked_and_strobe_is_aligned;
 	// ----------------------------------------------------------------------
@@ -154,11 +163,11 @@ module IRSXtest #(
 	wire regen_copy_on_gcc_clk;
 	BUFG gccraw (.I(gcc_clk_raw), .O(gcc_clk));
 	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
-	pipeline_synchronizer regen_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .reset1(1'b0), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_gcc_clk));
+	pipeline_synchronizer regen_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .in1(regen), .out2(regen_copy_on_gcc_clk));
 	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(1'b0), .clock_enable(regen_copy_on_gcc_clk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
 	wire should_start_wilkinson_conversion_now;
 	wire should_start_wilkinson_conversion_now_copy_on_gcc_clk;
-	pipeline_synchronizer should_start_wilkinson_conversion_now_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .reset1(1'b0), .reset2(1'b0), .in1(should_start_wilkinson_conversion_now), .out2(should_start_wilkinson_conversion_now_copy_on_gcc_clk));
+	pipeline_synchronizer should_start_wilkinson_conversion_now_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .in1(should_start_wilkinson_conversion_now), .out2(should_start_wilkinson_conversion_now_copy_on_gcc_clk));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetgcc_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(gcc_clk), .reset2_output(reset_gcc));
 	// ----------------------------------------------------------------------
 	// HS is the high speed data out from the IRSX; need to find the center of the eye for this to work well
@@ -171,12 +180,12 @@ module IRSXtest #(
 	BUFG hsraw (.I(hs_word_clock_raw), .O(hs_word_clock));
 	BUFG hsraw180 (.I(hs_word_clock180_raw), .O(hs_word_clock180));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) reseths_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(hs_word_clock), .reset2_output(hs_word_reset));
+	wire regen_copy_on_hs_word_clk;
+	pipeline_synchronizer regen_copy_hs_word_clk (.clock1(word_clock), .clock2(hs_word_clock), .in1(regen), .out2(regen_copy_on_hs_word_clk));
 	if (0) begin // ODDR mode
-		wire regen_copy_on_hs_clk;
-		//slow_asynchronizer regen_copy_hs_clk (.clock(hs_clk), .reset(1'b0), .async_in(regen), .sync_out(regen_copy_on_hs_clk)); // this changes slowly/rarely from the gui or command-line, so can effectively treat regen as an asynchronous input for timing purposes
-		//fast_asynchronizer regen_copy_hs_clk (.clock(hs_clk), .reset(1'b0), .async_in(regen), .sync_out(regen_copy_on_hs_clk)); // this changes slowly/rarely from the gui or command-line, so can effectively treat regen as an asynchronous input for timing purposes
-		pipeline_synchronizer regen_copy_hs_clk (.clock1(word_clock), .clock2(hs_word_clock), .reset1(1'b0), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_hs_clk));
-		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .reset(1'b0), .clock_enable(regen_copy_on_hs_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
+		//slow_asynchronizer regen_copy_hs_clk (.clock(hs_clk), .async_in(regen), .sync_out(regen_copy_on_hs_word_clk)); // this changes slowly/rarely from the gui or command-line, so can effectively treat regen as an asynchronous input for timing purposes
+		//fast_asynchronizer regen_copy_hs_clk (.clock(hs_clk), .async_in(regen), .sync_out(regen_copy_on_hs_word_clk)); // this changes slowly/rarely from the gui or command-line, so can effectively treat regen as an asynchronous input for timing purposes
+		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .reset(1'b0), .clock_enable(regen_copy_on_hs_word_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
 	end else begin // OSERDES mode
 		wire hs_clk_OSERDES;
 		OBUFDS hs_clk_buf (.I(hs_clk_OSERDES), .O(hs_clk_p), .OB(hs_clk_n));
@@ -205,7 +214,6 @@ module IRSXtest #(
 	wire trg0123 = trg_inversion_mask[0] ^ trg01 || trg_inversion_mask[1] ^ trg23;
 	wire trg4567 = trg_inversion_mask[2] ^ trg45 || trg_inversion_mask[3] ^ trg67;
 	wire trg_pll_is_locked_and_strobe_is_aligned1, trg_pll_is_locked_and_strobe_is_aligned2;
-	wire [3:0] plls_locked_and_strobes_are_aligned = { wr_pll_is_locked_and_strobe_is_aligned, hs_pll_is_locked_and_strobe_is_aligned, trg_pll_is_locked_and_strobe_is_aligned2, trg_pll_is_locked_and_strobe_is_aligned1 };
 	wire trg_bit_clock1_raw, trg_bit_clock1;
 	wire trg_bit_clock2_raw, trg_bit_clock2;
 	wire trg_bit_strobe1, trg_bit_strobe2;
@@ -339,7 +347,7 @@ module IRSXtest #(
 	wire [HS_DAT_BIT_DEPTH*(HS_DATA_INTENDED_NUMBER_OF_BITS+1)-1:0] buffered_hs_data_stream;
 	wire [7:0] wr_address, wr_address_copy_on_word_clock, wr_address_copy_on_trg_word_clock;
 	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated;
-	assign bank1[0] = { status12_copy_on_word_clock_domain, hdrb_read_errors[ERROR_COUNT_PICKOFF:0], hdrb_write_errors[ERROR_COUNT_PICKOFF:0], hdrb_address_errors[ERROR_COUNT_PICKOFF:0], status8_copy_on_word_clock_domain };
+	assign bank1[0] = { status12_copy_on_word_clock_domain, hdrb_read_errors, hdrb_write_errors, hdrb_address_errors, status8_copy_on_word_clock_domain };
 	assign bank1[1] = number_of_register_transactions;
 	assign bank1[2] = number_of_readback_errors;
 	assign bank1[3][19:0] = last_erroneous_readback; assign bank1[3][31:20] = 0;
@@ -395,7 +403,7 @@ module IRSXtest #(
 	// bank5 = data to read out
 	assign read_data_word[5][31:12] = 0;
 //	wire [7:0] hs_data_offset_copy_on_hs_clock;
-//	pipeline_synchronizer #(.WIDTH(8)) hs_data_offset_copy_on_hs_clock_sync (.clock1(word_clock), .clock2(hs_word_clock), .reset1(1'b0), .reset2(1'b0), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
+//	pipeline_synchronizer #(.WIDTH(8)) hs_data_offset_copy_on_hs_clock_sync (.clock1(word_clock), .clock2(hs_word_clock), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
 	wire beginning_of_hs_data;
 	irsx_read_hs_data_from_storage #(.BIT_DEPTH(HS_DAT_BIT_DEPTH), .HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS)) hsdo (
 		.hs_bit_clk_raw(hs_bit_clk_raw), .hs_word_clock(hs_word_clock), .hs_word_reset(hs_word_reset), .input_pll_locked(third_pll_locked),
@@ -456,18 +464,18 @@ module IRSXtest #(
 	assign read_data_word[7][31:24] = 0;
 	// ----------------------------------------------------------------------
 	irsx_wilkinson_convert wilkie (.gcc_clock(gcc_clk), .reset(reset_gcc), .should_start_wilkinson_conversion_now(should_start_wilkinson_conversion_now_copy_on_gcc_clk), .convert(convert), .done_out(done_out), .convert_counter(convert_counter), .done_out_counter(done_out_counter));
-	pipeline_synchronizer #(.WIDTH(32)) convert_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(1'b0), .reset2(1'b0), .in1(convert_counter), .out2(convert_counter_copy_on_word_clock));
-	pipeline_synchronizer #(.WIDTH(32)) done_out_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(1'b0), .reset2(1'b0), .in1(done_out_counter), .out2(done_out_counter_copy_on_word_clock));
+	pipeline_synchronizer #(.WIDTH(32)) convert_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .in1(convert_counter), .out2(convert_counter_copy_on_word_clock));
+	pipeline_synchronizer #(.WIDTH(32)) done_out_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .in1(done_out_counter), .out2(done_out_counter_copy_on_word_clock));
 	// ----------------------------------------------------------------------
 	wire [7:0] start_address_copy_on_wr_clock, end_address_copy_on_wr_clock;
-	pipeline_synchronizer #(.WIDTH(8)) start_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .reset1(1'b0), .reset2(1'b0), .in1(start_address), .out2(start_address_copy_on_wr_clock));
-	pipeline_synchronizer #(.WIDTH(8)) end_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .reset1(1'b0), .reset2(1'b0), .in1(end_address), .out2(end_address_copy_on_wr_clock));
+	pipeline_synchronizer #(.WIDTH(8)) start_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .in1(start_address), .out2(start_address_copy_on_wr_clock));
+	pipeline_synchronizer #(.WIDTH(8)) end_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .in1(end_address), .out2(end_address_copy_on_wr_clock));
 	irsx_write_to_storage wright (
 		.wr_word_clk(wr_word_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(second_pll_locked),
 		.revo(1'b0), .wr_syncmon(wr_syncmon), .hold(1'b0), .start_address(start_address_copy_on_wr_clock), .end_address(end_address_copy_on_wr_clock),
 		.wr_clk(wr_clk), .wr_dat(wr_dat), .wr_address(wr_address), .wr_pll_is_locked_and_strobe_is_aligned(wr_pll_is_locked_and_strobe_is_aligned));
-	pipeline_synchronizer #(.WIDTH(8)) wr_address_copy_on_word_clock_sync (.clock1(wr_word_clk), .clock2(word_clock), .reset1(1'b0), .reset2(1'b0), .in1(wr_address), .out2(wr_address_copy_on_word_clock));
-	pipeline_synchronizer #(.WIDTH(8)) wr_address_copy_on_trg_word_clock_sync (.clock1(wr_word_clk), .clock2(trg_word_clock), .reset1(1'b0), .reset2(1'b0), .in1(wr_address), .out2(wr_address_copy_on_trg_word_clock));
+	pipeline_synchronizer #(.WIDTH(8)) wr_address_copy_on_word_clock_sync (.clock1(wr_word_clk), .clock2(word_clock), .in1(wr_address), .out2(wr_address_copy_on_word_clock));
+	pipeline_synchronizer #(.WIDTH(8)) wr_address_copy_on_trg_word_clock_sync (.clock1(wr_word_clk), .clock2(trg_word_clock), .in1(wr_address), .out2(wr_address_copy_on_trg_word_clock));
 	// ----------------------------------------------------------------------
 	if (0) begin
 		assign coax[0] = shout;
@@ -485,7 +493,8 @@ module IRSXtest #(
 		assign coax[2] = trg0123;
 		assign coax[3] = trg4567;
 	end else if (1) begin // to tune parameters to capture hs_data out
-		assign coax[0] = 0;
+		//assign coax[0] = 0;
+		clock_ODDR_out hs_clk_ODDR_copy (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .reset(1'b0), .clock_enable(regen_copy_on_hs_word_clk), .clock_out(coax[0]));
 		assign coax[1] = beginning_of_hs_data;
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;
@@ -506,24 +515,40 @@ module IRSXtest #(
 	assign coax[4] = convert;
 	assign coax[5] = done_out;
 	// ----------------------------------------------------------------------
-	assign status8[7] = ~first_pll_locked;
-	assign status8[6] = ~second_pll_locked;
-	assign status8[5] = ~third_pll_locked;
-	assign status8[4] = ~all_plls_locked;
-	assign status8[3:0] = ~plls_locked_and_strobes_are_aligned;
+	assign pll_status8[7] = first_pll_locked;
+	assign pll_status8[6] = second_pll_locked;
+	assign pll_status8[5] = third_pll_locked;
+	assign pll_status8[4] = all_plls_locked;
+	assign pll_status8[3] = wr_pll_is_locked_and_strobe_is_aligned;
+	assign pll_status8[2] = hs_pll_is_locked_and_strobe_is_aligned;
+	assign pll_status8[1] = trg_pll_is_locked_and_strobe_is_aligned2;
+	assign pll_status8[0] = trg_pll_is_locked_and_strobe_is_aligned1;
 	// ----------------------------------------------------------------------
-	assign status4[3] = ~first_pll_locked;
-	assign status4[2] = ~second_pll_locked;
-	assign status4[1] = ~reset127;
-	assign status4[0] = ~reset_word;
+//	assign status4[3] = ~first_pll_locked;
+//	assign status4[2] = ~second_pll_locked;
+//	assign status4[1] = ~reset127;
+//	assign status4[0] = ~reset_word;
 	// -------------------------------------
-	assign coax_led = status4;
-	assign led = status8;
+	assign coax_led = 0;
+	assign led = 0;
 	initial begin
 		#100;
 		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, BANK_ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH);
 		$display("BUS_WIDTH=%d, TRANSACTIONS_PER_DATA_WORD=%d, TRANSACTIONS_PER_ADDRESS_WORD=%d", BUS_WIDTH, TRANSACTIONS_PER_DATA_WORD, TRANSACTIONS_PER_ADDRESS_WORD);
-		$display("%d banks", NUMBER_OF_BANKS);
+		$display("NUMBER_OF_BANKS=%d", NUMBER_OF_BANKS);
+		$display("WR_DAT_BIT_DEPTH=%d", WR_DAT_BIT_DEPTH);
+		$display("WR_BIT_CLK_DIVIDE=%d", WR_BIT_CLK_DIVIDE);
+		$display("WR_WORD_CLK_DIVIDE=%d", WR_WORD_CLK_DIVIDE);
+		$display("TRG_BIT_DEPTH=%d", TRG_BIT_DEPTH);
+		$display("TRG_BIT_CLK_DIVIDE=%d", TRG_BIT_CLK_DIVIDE);
+		$display("TRG_WORD_CLK_DIVIDE=%d", TRG_WORD_CLK_DIVIDE);
+		$display("HS_DAT_BIT_DEPTH=%d", HS_DAT_BIT_DEPTH);
+		$display("HS_BIT_CLK_DIVIDE=%d", HS_BIT_CLK_DIVIDE);
+		$display("HS_WORD_CLK_DIVIDE=%d", HS_WORD_CLK_DIVIDE);
+		$display("GCC_BIT_DEPTH=%d", GCC_BIT_DEPTH);
+		$display("GCC_BIT_CLK_DIVIDE=%d", GCC_BIT_CLK_DIVIDE);
+		$display("GCC_WORD_CLK_DIVIDE=%d", GCC_WORD_CLK_DIVIDE);
+		//$display("=%d", );
 	end
 endmodule
 
