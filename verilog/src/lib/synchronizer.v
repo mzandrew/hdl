@@ -1,55 +1,40 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
 // based partly off mza-test029
-// last updated 2024-11-13 by mza
+// last updated 2024-11-18 by mza
 
 `ifndef SYNCHRONIZER_LIB
 `define SYNCHRONIZER_LIB
 
-//	pipeline_synchronizer #(.WIDTH(2), .DEPTH(3)) mysin (.clock1(), .clock2(), .reset1(), .reset2(), .in1(), .out2());
+//	pipeline_synchronizer #(.WIDTH(2), .DEPTH1(3), .DEPTH2(2)) mysin (.clock1(), .clock2(), .in1(), .out2());
+// with the resets, it had a lot of messages like: INFO:Xst:741 - HDL ADVISOR - A 4-bit shift register was found for signal <IRSXtest/wright/wr_syncmon_pipeline_3> and currently occupies 4 logic cells (2 slices). Removing the set/reset logic would take advantage of SRL32 (and derived) primitives and reduce this to 1 logic cells (1 slices). Evaluate if the set/reset can be removed for this simple shift register. The majority of simple pipeline structures do not need to be set/reset operationally.
 module pipeline_synchronizer #(
-	parameter DEPTH=2,
+	parameter DEPTH1=2,
+	parameter DEPTH2=1,
 	parameter WIDTH=1
 ) (
 	input clock1, clock2,
-	input reset1, reset2,
 	input [WIDTH-1:0] in1,
 	output [WIDTH-1:0] out2
 );
-	reg [WIDTH-1:0] intermediate1 [DEPTH-1:0];
-	reg [WIDTH-1:0] intermediate2 [DEPTH-1:0];
+	reg [WIDTH-1:0] intermediate1 [DEPTH1-1:0];
+	reg [WIDTH-1:0] intermediate2 [DEPTH2-1:0];
 	(* KEEP = "TRUE" *) wire [WIDTH-1:0] cdc; // sometimes we get "WARNING:Xst:638 - in unit BLAH Conflict on KEEP property on signal BLAH/cdc and BLAH/cdc BLAH/cdc signal will be lost."
 	integer i;
 	always @(posedge clock1) begin
-		for (i=1; i<DEPTH; i=i+1) begin : pipeline1
-			if (reset1) begin
-				intermediate1[i] <= 0;
-			end else begin
-				intermediate1[i] <= intermediate1[i-1];
-			end
+		for (i=1; i<DEPTH1; i=i+1) begin : pipeline1
+			intermediate1[i] <= intermediate1[i-1];
 		end
-		if (reset1) begin
-			intermediate1[0] <= 0;
-		end else begin
-			intermediate1[0] <= in1;
-		end
+		intermediate1[0] <= in1;
 	end
-	assign cdc = intermediate1[DEPTH-1];
+	assign cdc = intermediate1[DEPTH1-1];
 	always @(posedge clock2) begin
-		for (i=1; i<DEPTH; i=i+1) begin : pipeline2
-			if (reset2) begin
-				intermediate2[i] <= 0;
-			end else begin
-				intermediate2[i] <= intermediate2[i-1];
-			end
+		for (i=1; i<DEPTH2; i=i+1) begin : pipeline2
+			intermediate2[i] <= intermediate2[i-1];
 		end
-		if (reset2) begin
-			intermediate2[0] <= 0;
-		end else begin
-			intermediate2[0] <= cdc;
-		end
+		intermediate2[0] <= cdc;
 	end
-	assign out2 = intermediate2[DEPTH-1];
+	assign out2 = intermediate2[DEPTH2-1];
 endmodule
 
 // the following probably shouldn't be used...
@@ -285,55 +270,39 @@ module edge_to_pulse_tb;
 	end
 endmodule
 
-//	slow_asynchronizer #(.WIDTH(2), .DEPTH(3)) mysin (.clock(), .reset(), .async_in(), .sync_out());
+//	slow_asynchronizer #(.WIDTH(2), .DEPTH1(3), .DEPTH2(2)) mysin (.clock(), .async_in(), .sync_out());
 // this is based on pipeline_synchronizer
 module slow_asynchronizer #(
-	parameter DEPTH=2,
+	parameter DEPTH1=3,
+	parameter DEPTH2=2,
 	parameter WIDTH=1
 ) (
 	input clock,
-	input reset,
 	input [WIDTH-1:0] async_in,
 	output [WIDTH-1:0] sync_out
 );
-	reg [WIDTH-1:0] intermediate1 [DEPTH-1:0];
-	reg [WIDTH-1:0] intermediate2 [DEPTH-1:0];
+	reg [WIDTH-1:0] intermediate1 [DEPTH1-1:0];
+	reg [WIDTH-1:0] intermediate2 [DEPTH2-1:0];
 	(* KEEP = "TRUE" *) wire [WIDTH-1:0] async_cdc;
 	genvar i;
 	always @(posedge clock) begin
-		if (reset) begin
-			intermediate1[0] <= 0;
-		end else begin
-			intermediate1[0] <= async_in;
-		end
+		intermediate1[0] <= async_in;
 	end
-	for (i=1; i<DEPTH; i=i+1) begin : pipeline1
+	for (i=1; i<DEPTH1; i=i+1) begin : pipeline1
 		always @(posedge clock) begin
-			if (reset) begin
-				intermediate1[i] <= 0;
-			end else begin
-				intermediate1[i] <= intermediate1[i-1];
-			end
+			intermediate1[i] <= intermediate1[i-1];
 		end
 	end
-	assign async_cdc = intermediate1[DEPTH-1];
+	assign async_cdc = intermediate1[DEPTH1-1];
 	always @(posedge clock) begin
-		if (reset) begin
-			intermediate2[0] <= 0;
-		end else begin
-			intermediate2[0] <= async_cdc;
-		end
+		intermediate2[0] <= async_cdc;
 	end
-	for (i=1; i<DEPTH; i=i+1) begin : pipeline2
+	for (i=1; i<DEPTH2; i=i+1) begin : pipeline2
 		always @(posedge clock) begin
-			if (reset) begin
-				intermediate2[i] <= 0;
-			end else begin
-				intermediate2[i] <= intermediate2[i-1];
-			end
+			intermediate2[i] <= intermediate2[i-1];
 		end
 	end
-	assign sync_out = intermediate2[DEPTH-1];
+	assign sync_out = intermediate2[DEPTH2-1];
 endmodule
 
 // for when the asynchronous pulse is shorter than the synchronous clock period
@@ -409,7 +378,7 @@ module asynchronizers_tb;
 		#1 clock <= 0;
 	end
 	fast_asynchronizer fast (.clock(clock), .reset(reset), .async_in(async_in), .sync_out(sync_out1));
-	slow_asynchronizer #(.WIDTH(1), .DEPTH(2)) slow (.clock(clock), .reset(reset), .async_in(async_in), .sync_out(sync_out2));
+	slow_asynchronizer #(.WIDTH(1), .DEPTH(2)) slow (.clock(clock), .async_in(async_in), .sync_out(sync_out2));
 endmodule
 
 // cross-clock handshake
