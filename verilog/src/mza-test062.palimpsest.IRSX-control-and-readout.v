@@ -130,7 +130,7 @@ module IRSXtest #(
 	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
 	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetsst_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(sstclk), .reset2_output(reset_sst));
-	pipeline_synchronizer regen_copy_sstclk (.clock1(word_clock), .clock2(sstclk), .reset1(reset_word), .reset2(reset_sst), .in1(regen), .out2(regen_copy_on_sstclk));
+	pipeline_synchronizer regen_copy_sstclk (.clock1(word_clock), .clock2(sstclk), .reset1(1'b0), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_sstclk));
 	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
 	// ----------------------------------------------------------------------
 	// WR is the clock feeding new write addresses to the IRSX to direct the storage of analog samples
@@ -144,7 +144,7 @@ module IRSXtest #(
 	OBUFDS wr_clk_obufds (.I(wr_clk), .O(wr_clk_p), .OB(wr_clk_n));
 	OBUFDS wr_dat_obufds (.I(wr_dat), .O(wr_dat_p), .OB(wr_dat_n));
 //	wire regen_copy_on_wr_clk;
-//	pipeline_synchronizer regen_copy_wr_clk (.clock1(word_clock), .clock2(wr_word_clk), .reset1(reset_word), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_wr_clk));
+//	pipeline_synchronizer regen_copy_wr_clk (.clock1(word_clock), .clock2(wr_word_clk), .reset1(1'b0), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_wr_clk));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetwr_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(wr_word_clk), .reset2_output(reset_wr));
 	wire wr_pll_is_locked_and_strobe_is_aligned;
 	// ----------------------------------------------------------------------
@@ -154,11 +154,11 @@ module IRSXtest #(
 	wire regen_copy_on_gcc_clk;
 	BUFG gccraw (.I(gcc_clk_raw), .O(gcc_clk));
 	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
-	pipeline_synchronizer regen_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .reset1(reset_word), .reset2(reset_gcc), .in1(regen), .out2(regen_copy_on_gcc_clk));
+	pipeline_synchronizer regen_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .reset1(1'b0), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_gcc_clk));
 	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(1'b0), .clock_enable(regen_copy_on_gcc_clk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
 	wire should_start_wilkinson_conversion_now;
 	wire should_start_wilkinson_conversion_now_copy_on_gcc_clk;
-	pipeline_synchronizer should_start_wilkinson_conversion_now_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .reset1(reset_word), .reset2(reset_gcc), .in1(should_start_wilkinson_conversion_now), .out2(should_start_wilkinson_conversion_now_copy_on_gcc_clk));
+	pipeline_synchronizer should_start_wilkinson_conversion_now_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .reset1(1'b0), .reset2(1'b0), .in1(should_start_wilkinson_conversion_now), .out2(should_start_wilkinson_conversion_now_copy_on_gcc_clk));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetgcc_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(gcc_clk), .reset2_output(reset_gcc));
 	// ----------------------------------------------------------------------
 	// HS is the high speed data out from the IRSX; need to find the center of the eye for this to work well
@@ -175,7 +175,7 @@ module IRSXtest #(
 		wire regen_copy_on_hs_clk;
 		//slow_asynchronizer regen_copy_hs_clk (.clock(hs_clk), .reset(1'b0), .async_in(regen), .sync_out(regen_copy_on_hs_clk)); // this changes slowly/rarely from the gui or command-line, so can effectively treat regen as an asynchronous input for timing purposes
 		//fast_asynchronizer regen_copy_hs_clk (.clock(hs_clk), .reset(1'b0), .async_in(regen), .sync_out(regen_copy_on_hs_clk)); // this changes slowly/rarely from the gui or command-line, so can effectively treat regen as an asynchronous input for timing purposes
-		pipeline_synchronizer regen_copy_hs_clk (.clock1(word_clock), .clock2(hs_word_clock), .reset1(reset_word), .reset2(hs_word_reset), .in1(regen), .out2(regen_copy_on_hs_clk));
+		pipeline_synchronizer regen_copy_hs_clk (.clock1(word_clock), .clock2(hs_word_clock), .reset1(1'b0), .reset2(1'b0), .in1(regen), .out2(regen_copy_on_hs_clk));
 		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .reset(1'b0), .clock_enable(regen_copy_on_hs_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
 	end else begin // OSERDES mode
 		wire hs_clk_OSERDES;
@@ -395,7 +395,7 @@ module IRSXtest #(
 	// bank5 = data to read out
 	assign read_data_word[5][31:12] = 0;
 //	wire [7:0] hs_data_offset_copy_on_hs_clock;
-//	pipeline_synchronizer #(.WIDTH(8)) hs_data_offset_copy_on_hs_clock_sync (.clock1(word_clock), .clock2(hs_word_clock), .reset1(reset_word), .reset2(1'b0), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
+//	pipeline_synchronizer #(.WIDTH(8)) hs_data_offset_copy_on_hs_clock_sync (.clock1(word_clock), .clock2(hs_word_clock), .reset1(1'b0), .reset2(1'b0), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
 	wire beginning_of_hs_data;
 	irsx_read_hs_data_from_storage #(.BIT_DEPTH(HS_DAT_BIT_DEPTH), .HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS)) hsdo (
 		.hs_bit_clk_raw(hs_bit_clk_raw), .hs_word_clock(hs_word_clock), .hs_word_reset(hs_word_reset), .input_pll_locked(third_pll_locked),
@@ -456,18 +456,18 @@ module IRSXtest #(
 	assign read_data_word[7][31:24] = 0;
 	// ----------------------------------------------------------------------
 	irsx_wilkinson_convert wilkie (.gcc_clock(gcc_clk), .reset(reset_gcc), .should_start_wilkinson_conversion_now(should_start_wilkinson_conversion_now_copy_on_gcc_clk), .convert(convert), .done_out(done_out), .convert_counter(convert_counter), .done_out_counter(done_out_counter));
-	pipeline_synchronizer #(.WIDTH(32)) convert_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(convert_counter), .out2(convert_counter_copy_on_word_clock));
-	pipeline_synchronizer #(.WIDTH(32)) done_out_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(reset_gcc), .reset2(reset_word), .in1(done_out_counter), .out2(done_out_counter_copy_on_word_clock));
+	pipeline_synchronizer #(.WIDTH(32)) convert_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(1'b0), .reset2(1'b0), .in1(convert_counter), .out2(convert_counter_copy_on_word_clock));
+	pipeline_synchronizer #(.WIDTH(32)) done_out_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .reset1(1'b0), .reset2(1'b0), .in1(done_out_counter), .out2(done_out_counter_copy_on_word_clock));
 	// ----------------------------------------------------------------------
 	wire [7:0] start_address_copy_on_wr_clock, end_address_copy_on_wr_clock;
-	pipeline_synchronizer #(.WIDTH(8)) start_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .reset1(reset_word), .reset2(reset_wr), .in1(start_address), .out2(start_address_copy_on_wr_clock));
-	pipeline_synchronizer #(.WIDTH(8)) end_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .reset1(reset_word), .reset2(reset_wr), .in1(end_address), .out2(end_address_copy_on_wr_clock));
+	pipeline_synchronizer #(.WIDTH(8)) start_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .reset1(1'b0), .reset2(1'b0), .in1(start_address), .out2(start_address_copy_on_wr_clock));
+	pipeline_synchronizer #(.WIDTH(8)) end_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .reset1(1'b0), .reset2(1'b0), .in1(end_address), .out2(end_address_copy_on_wr_clock));
 	irsx_write_to_storage wright (
 		.wr_word_clk(wr_word_clk), .wr_bit_clk_raw(wr_bit_clk_raw), .reset(reset_wr), .input_pll_locked(second_pll_locked),
 		.revo(1'b0), .wr_syncmon(wr_syncmon), .hold(1'b0), .start_address(start_address_copy_on_wr_clock), .end_address(end_address_copy_on_wr_clock),
 		.wr_clk(wr_clk), .wr_dat(wr_dat), .wr_address(wr_address), .wr_pll_is_locked_and_strobe_is_aligned(wr_pll_is_locked_and_strobe_is_aligned));
-	pipeline_synchronizer #(.WIDTH(8)) wr_address_copy_on_word_clock_sync (.clock1(wr_word_clk), .clock2(word_clock), .reset1(reset_wr), .reset2(reset_word), .in1(wr_address), .out2(wr_address_copy_on_word_clock));
-	pipeline_synchronizer #(.WIDTH(8)) wr_address_copy_on_trg_word_clock_sync (.clock1(wr_word_clk), .clock2(trg_word_clock), .reset1(reset_wr), .reset2(trg_reset), .in1(wr_address), .out2(wr_address_copy_on_trg_word_clock));
+	pipeline_synchronizer #(.WIDTH(8)) wr_address_copy_on_word_clock_sync (.clock1(wr_word_clk), .clock2(word_clock), .reset1(1'b0), .reset2(1'b0), .in1(wr_address), .out2(wr_address_copy_on_word_clock));
+	pipeline_synchronizer #(.WIDTH(8)) wr_address_copy_on_trg_word_clock_sync (.clock1(wr_word_clk), .clock2(trg_word_clock), .reset1(1'b0), .reset2(1'b0), .in1(wr_address), .out2(wr_address_copy_on_trg_word_clock));
 	// ----------------------------------------------------------------------
 	if (0) begin
 		assign coax[0] = shout;
