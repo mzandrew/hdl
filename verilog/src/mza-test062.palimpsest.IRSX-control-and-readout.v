@@ -99,23 +99,23 @@ module IRSXtest #(
 	assign all_plls_locked = first_pll_locked && second_pll_locked && third_pll_locked;
 	BUFG wrd (.I(word_clock_raw), .O(word_clock));
 	// ----------------------------------------------------------------------
-	wire clock127, reset127;
-	// clock127 is the board-level oscillator and only needs to get to the PLL's input
-	IBUFGDS mybuf0 (.I(clock127_p), .IB(clock127_n), .O(clock127));
-	reset_wait #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait (.reset_input(reset), .clock_input(clock127), .reset_output(reset127));
+	wire always_clock, always_clock_reset;
+	// always_clock is the board-level oscillator and only needs to get to the PLL's input
+	IBUFGDS mybuf0 (.I(clock127_p), .IB(clock127_n), .O(always_clock));
+	reset_wait #(.COUNTER_BIT_PICKOFF(COUNTER127_BIT_PICKOFF)) reset127_wait (.reset_input(reset), .clock_input(always_clock), .reset_output(always_clock_reset));
 	wire all_plls_locked_clock127;
-	slow_asynchronizer all_plls_locked_synch1 (.clock(clock127), .async_in(all_plls_locked),  .sync_out(all_plls_locked_clock127));
+	slow_asynchronizer all_plls_locked_synch1 (.clock(always_clock), .async_in(all_plls_locked),  .sync_out(all_plls_locked_clock127));
 	// ----------------------------------------------------------------------
 	wire all_plls_locked_word;
-	pipeline_synchronizer all_plls_locked_synch2 (.clock1(clock127), .clock2(word_clock), .in1(all_plls_locked_clock127), .out2(all_plls_locked_word));
-	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(reset127), .pll_locked1_input(all_plls_locked_clock127), .clock1_input(clock127), .clock2_input(word_clock), .reset2_output(reset_word));
+	pipeline_synchronizer all_plls_locked_synch2 (.clock1(always_clock), .clock2(word_clock), .in1(all_plls_locked_clock127), .out2(all_plls_locked_word));
+	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(always_clock_reset), .pll_locked1_input(all_plls_locked_clock127), .clock1_input(always_clock), .clock2_input(word_clock), .reset2_output(reset_word));
 	// ----------------------------------------------------------------------
 //	wire [3:0] status4;
 	reg [7:0] status8 = 0, status8_copy_on_word_clock_domain = 0;
 	reg [7:0] pll_status8_buffered = 0;
 	wire [7:0] pll_status8;
 	wire [11:0] status12, status12_copy_on_word_clock_domain;
-	always @(posedge clock127) begin
+	always @(posedge always_clock) begin
 		pll_status8_buffered <= pll_status8;
 	end
 	always @(posedge word_clock) begin
@@ -268,7 +268,7 @@ module IRSXtest #(
 		.PLL_PHASE8(0.0),  .PLL_PHASE9(0.0),
 		.PLL_PHASE10(0.0), .PLL_PHASE11(180.0)
 	) my_dcm_pll (
-		.clockin(clock127), .reset(reset127),
+		.clockin(always_clock), .reset(always_clock_reset),
 		.clockintermediate(), .clockintermediate_raw(sstclk_raw),  .clockintermediate_raw180(sstclk180_raw),
 		.dcm_locked(first_pll_locked), .pll1_locked(second_pll_locked), .pll2_locked(third_pll_locked),
 		.clock0out(wr_bit_clk_raw), .clock1out(trg_bit_clock1_raw),
@@ -526,7 +526,7 @@ module IRSXtest #(
 	// ----------------------------------------------------------------------
 //	assign status4[3] = ~first_pll_locked;
 //	assign status4[2] = ~second_pll_locked;
-//	assign status4[1] = ~reset127;
+//	assign status4[1] = ~always_clock_reset;
 //	assign status4[0] = ~reset_word;
 	// -------------------------------------
 	assign coax_led = 0;
@@ -746,10 +746,10 @@ module TESTBENCH_IRSXtest_tb;
 	initial begin
 		// inject global reset
 		#300; button <= 0; #300; button <= 1;
-		#512; // wait for reset127
+		#512; // wait for always_clock_reset
 		#512; // wait for reset125
 		//#300; button <= 0; #300; button <= 1;
-		//#512; // wait for reset127
+		//#512; // wait for always_clock_reset
 		//#512; // wait for reset125
 		// test the interface
 		if (ADDRESS_AUTOINCREMENT_MODE) begin
