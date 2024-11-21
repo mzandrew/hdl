@@ -10,14 +10,10 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="28" />
+   <WVObjectSize size="41" />
    <wvobject fp_name="/sus_tb/clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock</obj_property>
       <obj_property name="ObjectShortName">clock</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sus_tb/reset" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">reset</obj_property>
-      <obj_property name="ObjectShortName">reset</obj_property>
    </wvobject>
    <wvobject fp_name="/sus_tb/receiver0_data_word" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">receiver0_data_word[17:0]</obj_property>
@@ -34,6 +30,12 @@
       <obj_property name="ObjectShortName">receiver2_data_word[17:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
+   <wvobject fp_name="divider890" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
    <wvobject fp_name="/sus_tb/mysus/tap0_0_0_0" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">tap0_0_0_0[2:0]</obj_property>
       <obj_property name="ObjectShortName">tap0_0_0_0[2:0]</obj_property>
@@ -49,22 +51,87 @@
       <obj_property name="ObjectShortName">tap2_0_0_0[2:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
+   <wvobject fp_name="divider890" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap0_0_1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap0_0_1_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap0_0_1_0[2:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap1_0_1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap1_0_1_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap1_0_1_0[2:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap2_0_1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap2_0_1_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap2_0_1_0[2:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider890" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap0_1_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap0_1_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap0_1_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap1_1_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap1_1_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap1_1_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap2_1_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap2_1_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap2_1_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider890" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap0_2_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap0_2_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap0_2_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap1_2_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap1_2_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap1_2_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap2_2_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap2_2_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap2_2_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider890" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
    <wvobject fp_name="/sus_tb/mysus/receiver0_pipeline" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">receiver0_pipeline[98:0]</obj_property>
-      <obj_property name="ObjectShortName">receiver0_pipeline[98:0]</obj_property>
+      <obj_property name="ElementShortName">receiver0_pipeline[107:0]</obj_property>
+      <obj_property name="ObjectShortName">receiver0_pipeline[107:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/sus_tb/mysus/receiver1_pipeline" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">receiver1_pipeline[98:0]</obj_property>
-      <obj_property name="ObjectShortName">receiver1_pipeline[98:0]</obj_property>
+      <obj_property name="ElementShortName">receiver1_pipeline[107:0]</obj_property>
+      <obj_property name="ObjectShortName">receiver1_pipeline[107:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/sus_tb/mysus/receiver2_pipeline" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">receiver2_pipeline[89:0]</obj_property>
-      <obj_property name="ObjectShortName">receiver2_pipeline[89:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sus_tb/grid_0_0_0" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">grid_0_0_0[8:0]</obj_property>
-      <obj_property name="ObjectShortName">grid_0_0_0[8:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <obj_property name="ElementShortName">receiver2_pipeline[98:0]</obj_property>
+      <obj_property name="ObjectShortName">receiver2_pipeline[98:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/sus_tb/mysus/grid_0_0_0" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">grid_0_0_0[8:0]</obj_property>
@@ -145,5 +212,9 @@
       <obj_property name="ElementShortName">grid_3_3_0[8:0]</obj_property>
       <obj_property name="ObjectShortName">grid_3_3_0[8:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/stim" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">stim</obj_property>
+      <obj_property name="ObjectShortName">stim</obj_property>
    </wvobject>
 </wave_config>

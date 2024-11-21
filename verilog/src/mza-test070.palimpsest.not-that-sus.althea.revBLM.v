@@ -10,8 +10,8 @@ module pipeline_correlator3 #(
 	input [WIDTH-1:0] i0, i1, i2,
 	output reg [NUMBER_OF_BITS_OF_OUTPUT-1:0] o = 0
 );
-	reg [WIDTH-1:0] i0_old0, i1_old0, i2_old0, i2_old1;
-	reg [NUMBER_OF_BITS_OF_OUTPUT-1:0] o_old1, o_old2;
+	reg [WIDTH-1:0] i0_old0 = 0, i1_old0 = 0, i2_old0 = 0, i2_old1 = 0;
+	reg [NUMBER_OF_BITS_OF_OUTPUT-1:0] o_old1 = 0, o_old2 = 0;
 	always @(posedge clock) begin
 		i0_old0 <= i0; i1_old0 <= i1; i2_old0 <= i2;
 		i2_old1 <= i2_old0;
@@ -69,7 +69,11 @@ module sus #(
 	reg [RECEIVER2_PIPELINE_LENGTH_IN_SUBWORDS*RECEIVER_SUBWORD_WIDTH-1:0] receiver2_pipeline = 0;
 	always @(posedge clock) begin
 		receiver0_pipeline <= { receiver0_pipeline[(RECEIVER0_PIPELINE_LENGTH_IN_SUBWORDS-1)*RECEIVER_SUBWORD_WIDTH-1:0], receiver0_data_word[RECEIVER_WORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH] };
+	end
+	always @(posedge clock) begin
 		receiver1_pipeline <= { receiver1_pipeline[(RECEIVER1_PIPELINE_LENGTH_IN_SUBWORDS-1)*RECEIVER_SUBWORD_WIDTH-1:0], receiver1_data_word[RECEIVER_WORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH] };
+	end
+	always @(posedge clock) begin
 		receiver2_pipeline <= { receiver2_pipeline[(RECEIVER2_PIPELINE_LENGTH_IN_SUBWORDS-1)*RECEIVER_SUBWORD_WIDTH-1:0], receiver2_data_word[RECEIVER_WORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH] };
 	end
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_0_0_0 = receiver0_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
@@ -140,36 +144,41 @@ endmodule
 
 module sus_tb;
 	reg clock = 0;
-	reg reset = 1;
 	wire [8:0] grid_0_0_0;
-	reg [17:0] receiver0_data_word = 0;
-	reg [17:0] receiver1_data_word = 0;
-	reg [17:0] receiver2_data_word = 0;
+	wire [14:0] zeroes = 0;
+	reg [2:0] r0 = 0;
+	reg [2:0] r1 = 0;
+	reg [2:0] r2 = 0;
+	wire [17:0] receiver0_data_word = { r0, zeroes };
+	wire [17:0] receiver1_data_word = { r1, zeroes };
+	wire [17:0] receiver2_data_word = { r2, zeroes };
+	reg stim = 0;
 	sus mysus (.clock(clock),
 		.receiver0_data_word(receiver0_data_word),.receiver1_data_word(receiver1_data_word), .receiver2_data_word(receiver2_data_word),
 		.grid_0_0_0(grid_0_0_0), .grid_0_1_0(), .grid_0_2_0(), .grid_0_3_0(), .grid_1_0_0(), .grid_1_1_0(), .grid_1_2_0(), .grid_1_3_0(),
 		.grid_2_0_0(), .grid_2_1_0(), .grid_2_2_0(), .grid_2_3_0(), .grid_3_0_0(), .grid_3_1_0(), .grid_3_2_0(), .grid_3_3_0());
 	always begin
-		#1; clock <= ~clock;
+		#0.5; clock <= ~clock;
 	end
 	initial begin
-		receiver0_data_word <= { 3'd1, 15'd0 };
-		receiver1_data_word <= { 3'd6, 15'd0 };
-		receiver2_data_word <= { 3'd7, 15'd0 };
-		#10; reset <= 0;
-		#250;
-		receiver0_data_word <= { 3'd3, 15'd0 };
-		receiver1_data_word <= { 3'd3, 15'd0 };
-		receiver2_data_word <= { 3'd3, 15'd0 };
-		#250;
-		receiver0_data_word <= { 3'd0, 15'd0 };
-		receiver1_data_word <= { 3'd2, 15'd0 };
-		receiver2_data_word <= { 3'd4, 15'd0 };
-		#250;
-		receiver0_data_word <= { 3'd7, 15'd0 };
-		receiver1_data_word <= { 3'd7, 15'd0 };
-		receiver2_data_word <= { 3'd7, 15'd0 };
-		#1000; $finish;
+		#24; stim<=1; #1; stim<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; #2; r0<=1; #1; r0<=0;r1<=0;r2<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_0_0_0
+		#24; stim<=1; #1; stim<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; #1; r2<=1; #1; r0<=0;r1<=0;r2<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; // grid_0_1_0
+		#24; stim<=1; #1; stim<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #2; r0<=1; #1; r0<=0;r1<=0;r2<=0; // grid_0_2_0
+		#24; stim<=1; #1; stim<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #1; r1<=1; #1; r0<=0;r1<=0;r2<=0; #2; r0<=1; #1; r0<=0;r1<=0;r2<=0; // grid_0_3_0
+		#24; stim<=1; #1; stim<=0; #0; r0<=1; r1<=1; #1; r0<=0;r1<=0;r2<=0; #3; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_1_0_0
+		#24; stim<=1; #1; stim<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; #1; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_1_1_0
+		#24; stim<=1; #1; stim<=0; #0; r1<=1; r2<=1; #1; r0<=0;r1<=0;r2<=0; #3; r0<=1; #1; r0<=0;r1<=0;r2<=0; // grid_1_2_0
+		#24; stim<=1; #1; stim<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #2; r1<=1; #1; r0<=0;r1<=0;r2<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; // grid_1_3_0
+		#24; stim<=1; #1; stim<=0; #0; r0<=1; r1<=1; #1; r0<=0;r1<=0;r2<=0; #3; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_2_0_0
+		#24; stim<=1; #1; stim<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; #1; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_2_1_0
+		#24; stim<=1; #1; stim<=0; #0; r0<=1; r2<=1; #1; r0<=0;r1<=0;r2<=0; #3; r1<=1; #1; r0<=0;r1<=0;r2<=0; // grid_2_2_0
+		#24; stim<=1; #1; stim<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #2; r0<=1; #1; r0<=0;r1<=0;r2<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; // grid_2_3_0
+		#24; stim<=1; #1; stim<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; #2; r1<=1; #1; r0<=0;r1<=0;r2<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_3_0_0
+		#24; stim<=1; #1; stim<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; #1; r2<=1; #1; r0<=0;r1<=0;r2<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; // grid_3_1_0
+		#24; stim<=1; #1; stim<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #2; r1<=1; #1; r0<=0;r1<=0;r2<=0; // grid_3_2_0
+		#24; stim<=1; #1; stim<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #1; r0<=1; #1; r0<=0;r1<=0;r2<=0; #2; r1<=1; #1; r0<=0;r1<=0;r2<=0; // grid_3_3_0
+
+		#100; $finish;
 	end
 endmodule
 
