@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-11-18 by mza
+// last updated 2024-11-21 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -598,7 +598,8 @@ module irsx_register_interface #(
 	reg [CLOCK_DIVISOR_COUNTER_PICKOFF:0] clock_divisor_counter = 0;
 	// both following addresses are 10 bits to easily address a whole single block ram
 	wire [9:0] upstream_address_10 = { 2'b00, address }; // the address from the hdrb interface that reads from and writes to the "intended_values" bram
-	reg [9:0] address_10 = 0; // the address that our state machine uses to look through the two brams to check for differences
+	reg [8:0] address_9 = 0; // the address that our state machine uses to look through the two brams to check for differences
+	wire [9:0] address_10 = { 1'b0, address_9 }; // the address that our state machine uses to look through the two brams to check for differences
 	wire [11:0] data_intended; // from "intended_values" block ram at address address_10
 	wire [11:0] data_readback; // from "actual_readback" block ram at address address_10
 	reg [11:0] data_intended_copy = 0;
@@ -634,7 +635,7 @@ module irsx_register_interface #(
 			regclr <= 1;
 			sin <= 0;
 			pclk <= 0;
-			address_10 <= 0;
+			address_9 <= 0;
 			bram_wait_state <= 2;
 			sin_counter <= 0;
 			pclk_counter <= 0;
@@ -682,10 +683,10 @@ module irsx_register_interface #(
 //							tries_remaining <= 0;
 						end
 					end else begin
-						if (address_10<=MAX_REGISTER_ADDRESS) begin
-							address_10 <= address_10 + 1'b1;
+						if (address_9<=MAX_REGISTER_ADDRESS) begin
+							address_9 <= address_9 + 1'b1;
 						end else begin
-							address_10 <= 0;
+							address_9 <= 0;
 						end
 						bram_wait_state <= 2; // after every address_10 change
 						retries_remaining <= max_retries + 1'b1;
