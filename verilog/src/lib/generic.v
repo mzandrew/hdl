@@ -1,5 +1,5 @@
 // written 2019-09-22 by mza
-// last updated 2024-10-30 by mza
+// last updated 2024-11-21 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
@@ -560,42 +560,41 @@ module clock #(
 	end
 endmodule
 
-//	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
+//	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk), .clock_in_n(sstclk180), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p), .clock_out_n(sstclk_n));
 module clock_ODDR_out_diff #(
 	parameter SERIES = "spartan6"
 ) (
 	input clock_in_n, clock_in_p,
-	input reset, clock_enable,
+	input clock_enable,
 	output clock_out_p, clock_out_n
 );
 	wire clock_out;
 	if (SERIES=="spartan6") begin
-		ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(clock_in_p), .C1(clock_in_n), .CE(clock_enable), .D0(1'b1), .D1(1'b0), .R(reset), .S(1'b0), .Q(clock_out));
+		ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(clock_in_p), .C1(clock_in_n), .CE(clock_enable), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0), .Q(clock_out));
 //	end else begin
 //		ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_clock (.C(clock), .CE(clock_enable), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_out));
 	end
 	OBUFDS obuf_clock (.I(clock_out), .O(clock_out_p), .OB(clock_out_n));
 endmodule
 
-//	clock_ODDR_out sstclk_ODDR_second_copy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180), .clock_enable(regen_copy_on_sstclk), .reset(1'b0), .clock_out(coax[0]));
+//	clock_ODDR_out sstclk_ODDR_second_copy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180), .clock_enable(regen_copy_on_sstclk), .clock_out(coax[0]));
 module clock_ODDR_out #(
 	parameter SERIES = "spartan6"
 ) (
 	input clock_in_n, clock_in_p,
-	input reset, clock_enable,
+	input clock_enable,
 	output clock_out
 );
 	if (SERIES=="spartan6") begin
-		ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(clock_in_p), .C1(clock_in_n), .CE(clock_enable), .D0(1'b1), .D1(1'b0), .R(reset), .S(1'b0), .Q(clock_out));
+		ODDR2 #(.DDR_ALIGNMENT("NONE")) oddr2_clock (.C0(clock_in_p), .C1(clock_in_n), .CE(clock_enable), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0), .Q(clock_out));
 //	end else begin
 //		ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_clock (.C(clock), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_out));
 	end
 endmodule
 
-//	ddr mario (.clock(clock), .reset(reset), .data0_in(), .data1_in(), .data_out());
+//	ddr mario (.clock(clock), .data0_in(), .data1_in(), .data_out());
 module ddr (
 	input clock,
-	input reset,
 	input data0_in, data1_in,
 	output data_out
 );
@@ -604,7 +603,7 @@ module ddr (
 	//BUFIO2 #(.DIVIDE(2), .USE_DOUBLER("FALSE"), .I_INVERT("TRUE")) b1 (.I(clock), .IOCLK(clock180), .DIVCLK(), .SERDESSTROBE());
 	assign clock0 = clock;
 	assign clock180 = ~clock;
-	ODDR2 #(.DDR_ALIGNMENT("NONE")) ddr (.C0(clock0), .C1(clock180), .CE(1'b1), .D0(data0_in), .D1(data1_in), .R(reset), .S(1'b0), .Q(data_out));
+	ODDR2 #(.DDR_ALIGNMENT("NONE")) ddr (.C0(clock0), .C1(clock180), .CE(1'b1), .D0(data0_in), .D1(data1_in), .R(1'b0), .S(1'b0), .Q(data_out));
 endmodule
 
 //	pipeline #(.WIDTH(8), .DEPTH(DELAY)) kewalos (.clock(word_clock1), .in(oserdes_word1_buffer), .out(oserdes_word1_buffer_delayed));
