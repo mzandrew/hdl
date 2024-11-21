@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-11-18 by mza
+// last updated 2024-11-21 by mza
 
 // WARNING:Xst:638 - in unit altheaIRSXtest Conflict on KEEP property on signal IRSXtest/reset127_wait4pll/pipesync/cdc and IRSXtest/status12_copy/async_cdc<2> IRSXtest/status12_copy/async_cdc<2> signal will be lost.
 // filtered Xst:1710 "FF/Latch riwri_bank1/mem_0_370 (without init value) has a constant value of 0 in block altheaIRSXtest. This FF/Latch will be trimmed during the optimization process."
@@ -49,8 +49,9 @@ module IRSXtest #(
 	parameter TRG_WORD_CLK_DIVIDE = SST_CLK_DIVIDE, // 1017/48 = 21 MHz
 	parameter TRG_BIT_CLK_DIVIDE = TRG_WORD_CLK_DIVIDE / TRG_BIT_DEPTH, // 1017/12 = 84.814583 MHz
 	parameter HS_BIT_CLK_DIVIDE = 1, // hs_bit_clk_raw: 1017/1 = 1017 MHz
-	parameter HS_DAT_BIT_DEPTH = EYE_DIAGRAM_CAPTURE_POINTS + 1, // 3 or 6 (needs approprate gearboxen)
-	parameter HS_WORD_CLK_DIVIDE = HS_BIT_CLK_DIVIDE * HS_DAT_BIT_DEPTH, // hs_clk: 1017/8 = 127 MHz; 1017/6 = 169 MHz; 1017/4 = 254 MHz; 1017/3 = 339 MHz (BRAM can only do 320 MHz...)
+	//parameter HS_DAT_BIT_DEPTH = EYE_DIAGRAM_CAPTURE_POINTS + 1, // 3 or 6 (needs approprate gearboxen)
+	parameter HS_DAT_BIT_DEPTH = 8,
+	parameter HS_WORD_CLK_DIVIDE = HS_BIT_CLK_DIVIDE * HS_DAT_BIT_DEPTH, // hs_clk: 1017/8 = 127 MHz; 1017/6 = 169 MHz; 1017/4 = 254 MHz; 1017/3 = 339 MHz (BRAM can only do 320 MHz on a spartan6...)
 	parameter GCC_BIT_DEPTH = 4,
 	parameter GCC_BIT_CLK_DIVIDE = 1, // 1017/1 = 1017 MHz
 	parameter GCC_WORD_CLK_DIVIDE = GCC_BIT_CLK_DIVIDE * GCC_BIT_DEPTH, // 1017/4 = 254 MHz
@@ -140,7 +141,7 @@ module IRSXtest #(
 	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
 	//reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetsst_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(sstclk), .reset2_output(reset_sst));
 	pipeline_synchronizer regen_copy_sstclk (.clock1(word_clock), .clock2(sstclk), .in1(regen), .out2(regen_copy_on_sstclk));
-	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk),  .clock_in_n(sstclk180),  .reset(1'b0), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p),  .clock_out_n(sstclk_n));
+	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk), .clock_in_n(sstclk180), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p), .clock_out_n(sstclk_n));
 	// ----------------------------------------------------------------------
 	// WR is the clock feeding new write addresses to the IRSX to direct the storage of analog samples
 	// each bit we give out for the WR_DAT needs a corresponding clock
@@ -164,7 +165,7 @@ module IRSXtest #(
 	BUFG gccraw (.I(gcc_clk_raw), .O(gcc_clk));
 	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
 	pipeline_synchronizer regen_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .in1(regen), .out2(regen_copy_on_gcc_clk));
-	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .reset(1'b0), .clock_enable(regen_copy_on_gcc_clk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
+	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .clock_enable(regen_copy_on_gcc_clk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
 	wire should_start_wilkinson_conversion_now;
 	wire should_start_wilkinson_conversion_now_copy_on_gcc_clk;
 	pipeline_synchronizer should_start_wilkinson_conversion_now_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .in1(should_start_wilkinson_conversion_now), .out2(should_start_wilkinson_conversion_now_copy_on_gcc_clk));
@@ -180,14 +181,14 @@ module IRSXtest #(
 	BUFG hsraw (.I(hs_word_clock_raw), .O(hs_word_clock));
 	BUFG hsraw180 (.I(hs_word_clock180_raw), .O(hs_word_clock180));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) reseths_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(hs_word_clock), .reset2_output(hs_word_reset));
-	wire regen_copy_on_hs_word_clk;
-	pipeline_synchronizer regen_copy_hs_word_clk (.clock1(word_clock), .clock2(hs_word_clock), .in1(regen), .out2(regen_copy_on_hs_word_clk));
-	if (0) begin // ODDR mode
+	wire hs_clk_OSERDES;
+//	wire regen_copy_on_hs_word_clk;
+//	pipeline_synchronizer regen_copy_hs_word_clk (.clock1(word_clock), .clock2(hs_word_clock), .in1(regen), .out2(regen_copy_on_hs_word_clk));
+	if (1) begin // ODDR mode
 		//slow_asynchronizer regen_copy_hs_clk (.clock(hs_clk), .async_in(regen), .sync_out(regen_copy_on_hs_word_clk)); // this changes slowly/rarely from the gui or command-line, so can effectively treat regen as an asynchronous input for timing purposes
 		//fast_asynchronizer regen_copy_hs_clk (.clock(hs_clk), .async_in(regen), .sync_out(regen_copy_on_hs_word_clk)); // this changes slowly/rarely from the gui or command-line, so can effectively treat regen as an asynchronous input for timing purposes
-		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .reset(1'b0), .clock_enable(regen_copy_on_hs_word_clk), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
+		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .clock_enable(1'b1), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
 	end else begin // OSERDES mode
-		wire hs_clk_OSERDES;
 		OBUFDS hs_clk_buf (.I(hs_clk_OSERDES), .O(hs_clk_p), .OB(hs_clk_n));
 	end
 	// ----------------------------------------------------------------------
@@ -246,10 +247,10 @@ module IRSXtest #(
 //	iserdes_single8_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
 //	iserdes_single8_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
 	// else:
-	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg01_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg01), .word_out(trg01_word));
-	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
-	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
-	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
+	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg01_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg01), .word_out(trg01_word));
+	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
+	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
+	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
 	// clip to here
 	// ----------------------------------------------------------------------
 	dcm_pll_pll #(
@@ -494,13 +495,13 @@ module IRSXtest #(
 		assign coax[3] = trg4567;
 	end else if (1) begin // to tune parameters to capture hs_data out
 		//assign coax[0] = 0;
-		clock_ODDR_out hs_clk_ODDR_copy (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .reset(1'b0), .clock_enable(regen_copy_on_hs_word_clk), .clock_out(coax[0]));
+		clock_ODDR_out hs_clk_ODDR_copy (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .clock_enable(1'b1), .clock_out(coax[0]));
 		assign coax[1] = beginning_of_hs_data;
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;
 	end else if (1) begin
 		//assign coax[0] = ;
-		clock_ODDR_out sstclk_ODDR_second_copy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180), .clock_enable(1'b1), .reset(1'b0), .clock_out(coax[0]));
+		clock_ODDR_out sstclk_ODDR_second_copy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180), .clock_enable(1'b1), .clock_out(coax[0]));
 		assign coax[1] = wr_syncmon;
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;

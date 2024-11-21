@@ -183,10 +183,14 @@ module irsx_read_hs_data_from_storage #(
 		ocyrus_single6_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
 	end else if (BIT_DEPTH==4) begin
 		assign hs_clk_word = 4'b0011;
-		iserdes_single4_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
-	end else begin
+		iserdes_single4_inner #(.BIT_RATIO(BIT_DEPTH)) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
+		ocyrus_single4_inner #(.BIT_RATIO(BIT_DEPTH)) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
+	end else if (BIT_DEPTH==3) begin
 		assign hs_clk_word = 3'b001; // this mode won't work right...
-		iserdes_single3_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
+		iserdes_single3_inner #(.BIT_RATIO(BIT_DEPTH)) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
+		ocyrus_single3_inner #(.BIT_RATIO(BIT_DEPTH)) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
+//	end else begin
+//		$display("BIT_DEPTH=%d but we don't handle that case!", BIT_DEPTH);
 	end
 	reg [HS_DATA_SIZE-1:0] hs_data_stream = 0;
 	reg [LOG2_OF_COUNTER_SIZE-1:0] hs_data_counter = 0;
