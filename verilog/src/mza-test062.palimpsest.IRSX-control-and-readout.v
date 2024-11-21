@@ -48,9 +48,9 @@ module IRSXtest #(
 	parameter TRG_BIT_DEPTH = 4,
 	parameter TRG_WORD_CLK_DIVIDE = SST_CLK_DIVIDE, // 1017/48 = 21 MHz
 	parameter TRG_BIT_CLK_DIVIDE = TRG_WORD_CLK_DIVIDE / TRG_BIT_DEPTH, // 1017/12 = 84.814583 MHz
-	parameter HS_BIT_CLK_DIVIDE = 3, // hs_bit_clk_raw: 1017/1 = 1017 MHz
+	parameter HS_BIT_CLK_DIVIDE = 2, // hs_bit_clk_raw: 1017/1 = 1017 MHz
 	//parameter HS_DAT_BIT_DEPTH = EYE_DIAGRAM_CAPTURE_POINTS + 1, // 3 or 6 (needs approprate gearboxen)
-	parameter HS_DAT_BIT_DEPTH = 3,
+	parameter HS_DAT_BIT_DEPTH = 6,
 	parameter HS_WORD_CLK_DIVIDE = HS_BIT_CLK_DIVIDE * HS_DAT_BIT_DEPTH, // hs_clk: 1017/8 = 127 MHz; 1017/6 = 169 MHz; 1017/4 = 254 MHz; 1017/3 = 339 MHz (BRAM can only do 320 MHz on a spartan6...)
 	parameter GCC_BIT_DEPTH = 4,
 	parameter GCC_BIT_CLK_DIVIDE = 1, // 1017/1 = 1017 MHz
@@ -495,8 +495,8 @@ module IRSXtest #(
 		assign coax[2] = trg0123;
 		assign coax[3] = trg4567;
 	end else if (1) begin // to tune parameters to capture hs_data out
-		//assign coax[0] = 0;
-		clock_ODDR_out hs_clk_ODDR_copy (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .clock_enable(1'b1), .clock_out(coax[0]));
+		assign coax[0] = 0;
+		//clock_ODDR_out hs_clk_ODDR_copy (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .clock_enable(1'b1), .clock_out(coax[0]));
 		assign coax[1] = beginning_of_hs_data;
 		assign coax[2] = ss_incr;
 		assign coax[3] = hs_data;
