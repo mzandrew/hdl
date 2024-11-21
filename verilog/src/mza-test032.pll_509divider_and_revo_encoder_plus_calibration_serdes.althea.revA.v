@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-09 by mza
 // based partly off mza-test029
-// last updated 2021-07-02 by mza
+// last updated 2024-11-21 by mza
 // this code runs on an althea connected to a RAFFERTY board
 
 // todo: auto-fallover for missing 509; and auto-fake revo when that happens
@@ -103,7 +103,7 @@ module mza_test032_pll_509divider_and_revo_encoder_plus_calibration_serdes_althe
 	// ----------------------------------------------------------------------
 	wire [3:0] revo_stream127;
 	wire revo_stream_clock127;
-	iserdes_single4 revo_iserdes (.sample_clock(clock509), .data_in(rawtrg), .reset(iserdes_reset), .word_clock(revo_stream_clock127), .word_out(revo_stream127));
+	FIXME: changed iserdes_single4 to use iserdes_single4_inner which reverses the order of the bits out iserdes_single4 revo_iserdes (.sample_clock(clock509), .data_in(rawtrg), .reset(iserdes_reset), .word_clock(revo_stream_clock127), .word_out(revo_stream127));
 //	idelay nirvana (.clock(revo_stream_clock127), .reset(iserdes_reset), .inc_not_dec(inc_not_dec), .strobe(strobe), .bit_clock(clock509), .bit_in(rawtrg), .bit_out(delayed_rawtrg), .initiate_cal(1'b0), .busy());
 	// ----------------------------------------------------------------------
 	wire rawclock127_0;
