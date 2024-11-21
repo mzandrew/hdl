@@ -149,7 +149,6 @@ module irsx_read_hs_data_from_storage #(
 	output hs_pll_is_locked_and_strobe_is_aligned,
 	output [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated // copy_on_output_clock
 );
-	reg [HS_DATA_SIZE-1:0] buffered_hs_data_stream_internal = 0;
 	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated_internal;
 	wire [LOG2_OF_COUNTER_SIZE-1:0] hs_data_ss_incr_copy_on_hs_clock;
 	pipeline_synchronizer #(.WIDTH(LOG2_OF_COUNTER_SIZE)) hs_data_ss_incr_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .in1(hs_data_ss_incr), .out2(hs_data_ss_incr_copy_on_hs_clock));
@@ -202,10 +201,13 @@ module irsx_read_hs_data_from_storage #(
 			ocyrus_single3_inner #(.BIT_RATIO(BIT_DEPTH)) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
 		end
 		iserdes_single3_inner #(.BIT_RATIO(BIT_DEPTH)) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
-//	end else begin
-//		$display("BIT_DEPTH=%d but we don't handle that case!", BIT_DEPTH);
+	end else begin
+		initial begin
+			$display("BIT_DEPTH=%d but we don't handle that case!", BIT_DEPTH);
+		end
 	end
 	reg [HS_DATA_SIZE-1:0] hs_data_stream = 0;
+	reg [HS_DATA_SIZE-1:0] buffered_hs_data_stream_internal = 0;
 	reg [LOG2_OF_COUNTER_SIZE-1:0] hs_data_counter = 0;
 	reg [LOG2_OF_DEPTH-1:0] write_address = 0;
 	reg write_strobe = 0;
