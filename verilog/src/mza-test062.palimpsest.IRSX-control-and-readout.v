@@ -56,6 +56,7 @@ module IRSXtest #(
 	parameter GCC_BIT_CLK_DIVIDE = 1, // 1017/1 = 1017 MHz
 	parameter GCC_WORD_CLK_DIVIDE = GCC_BIT_CLK_DIVIDE * GCC_BIT_DEPTH, // 1017/4 = 254 MHz
 	// ----------------------------------------------------------------------
+	parameter HS_CLK_OSERDES_MODE = 0, // ODDR mode otherwise
 	parameter LOG2_OF_HS_DAT_BIT_DEPTH = $clog2(HS_DAT_BIT_DEPTH),
 	parameter HS_DATA_INTENDED_NUMBER_OF_BITS = 24, // this is 12 bits for the real data and 12 bits for the test pattern generator (tpg)
 	// ----------------------------------------------------------------------
@@ -184,12 +185,12 @@ module IRSXtest #(
 	wire hs_clk_OSERDES;
 //	wire regen_copy_on_hs_word_clk;
 //	pipeline_synchronizer regen_copy_hs_word_clk (.clock1(word_clock), .clock2(hs_word_clock), .in1(regen), .out2(regen_copy_on_hs_word_clk));
-	if (1) begin // ODDR mode
+	if (HS_CLK_OSERDES_MODE) begin // ODDR mode
+		OBUFDS hs_clk_buf (.I(hs_clk_OSERDES), .O(hs_clk_p), .OB(hs_clk_n));
+	end else begin // OSERDES mode
 		//slow_asynchronizer regen_copy_hs_clk (.clock(hs_clk), .async_in(regen), .sync_out(regen_copy_on_hs_word_clk)); // this changes slowly/rarely from the gui or command-line, so can effectively treat regen as an asynchronous input for timing purposes
 		//fast_asynchronizer regen_copy_hs_clk (.clock(hs_clk), .async_in(regen), .sync_out(regen_copy_on_hs_word_clk)); // this changes slowly/rarely from the gui or command-line, so can effectively treat regen as an asynchronous input for timing purposes
 		clock_ODDR_out_diff hs_clk_ODDR (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .clock_enable(1'b1), .clock_out_p(hs_clk_p),  .clock_out_n(hs_clk_n));
-	end else begin // OSERDES mode
-		OBUFDS hs_clk_buf (.I(hs_clk_OSERDES), .O(hs_clk_p), .OB(hs_clk_n));
 	end
 	// ----------------------------------------------------------------------
 	// MONTIMING1 and MONTIMING2 are copies of internal timing strobes from the IRSX for debugging/troubleshooting
@@ -406,7 +407,7 @@ module IRSXtest #(
 //	wire [7:0] hs_data_offset_copy_on_hs_clock;
 //	pipeline_synchronizer #(.WIDTH(8)) hs_data_offset_copy_on_hs_clock_sync (.clock1(word_clock), .clock2(hs_word_clock), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
 	wire beginning_of_hs_data;
-	irsx_read_hs_data_from_storage #(.BIT_DEPTH(HS_DAT_BIT_DEPTH), .HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS)) hsdo (
+	irsx_read_hs_data_from_storage #(.BIT_DEPTH(HS_DAT_BIT_DEPTH), .HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS), .HS_CLK_OSERDES_MODE(HS_CLK_OSERDES_MODE)) hsdo (
 		.hs_bit_clk_raw(hs_bit_clk_raw), .hs_word_clock(hs_word_clock), .hs_word_reset(hs_word_reset), .input_pll_locked(third_pll_locked),
 		.hs_data_offset(hs_data_offset), .hs_data(hs_data), .beginning_of_hs_data(beginning_of_hs_data),
 		.hs_data_ss_incr(hs_data_ss_incr), .hs_data_capture(hs_data_capture), .ss_incr(ss_incr),

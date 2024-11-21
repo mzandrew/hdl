@@ -125,6 +125,7 @@ module irsx_read_hs_data_from_storage #(
 	parameter LOG2_OF_DEPTH = 9, // 9 = 64 samples by 8 channels
 	parameter SERIES = "spartan6",
 	parameter BIT_DEPTH = 8,
+	parameter HS_CLK_OSERDES_MODE = 0,
 	parameter HS_DATA_INTENDED_NUMBER_OF_BITS = 24,
 	parameter HS_DATA_SIZE = BIT_DEPTH*(HS_DATA_INTENDED_NUMBER_OF_BITS+1), // sampling at 1017 MHz; hs_clk is 254 MHz
 	parameter LOG2_OF_COUNTER_SIZE = $clog2(HS_DATA_SIZE/BIT_DEPTH), // 5 = clog2(100/4)
@@ -173,22 +174,34 @@ module irsx_read_hs_data_from_storage #(
 	// ----------------------------------------------------------------------
 	wire [BIT_DEPTH-1:0] hs_data_word;
 	wire [BIT_DEPTH-1:0] hs_clk_word;
+	if (~HS_CLK_OSERDES_MODE) begin
+		assign hs_clk_word = 0;
+		assign hs_clk = 0;
+	end
 	if (BIT_DEPTH==8) begin
-		assign hs_clk_word = 8'b00001111;
+		if (HS_CLK_OSERDES_MODE) begin
+			assign hs_clk_word = 8'b00001111;
+			ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
+		end
 		iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
-		ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
 	end else if (BIT_DEPTH==6) begin
-		assign hs_clk_word = 6'b000111;
+		if (HS_CLK_OSERDES_MODE) begin
+			assign hs_clk_word = 6'b000111;
+			ocyrus_single6_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
+		end
 		iserdes_single6_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
-		ocyrus_single6_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE("p")) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
 	end else if (BIT_DEPTH==4) begin
-		assign hs_clk_word = 4'b0011;
+		if (HS_CLK_OSERDES_MODE) begin
+			assign hs_clk_word = 4'b0011;
+			ocyrus_single4_inner #(.BIT_RATIO(BIT_DEPTH)) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
+		end
 		iserdes_single4_inner #(.BIT_RATIO(BIT_DEPTH)) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
-		ocyrus_single4_inner #(.BIT_RATIO(BIT_DEPTH)) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
 	end else if (BIT_DEPTH==3) begin
-		assign hs_clk_word = 3'b001; // this mode won't work right...
+		if (HS_CLK_OSERDES_MODE) begin
+			assign hs_clk_word = 3'b001; // this mode won't work right...
+			ocyrus_single3_inner #(.BIT_RATIO(BIT_DEPTH)) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
+		end
 		iserdes_single3_inner #(.BIT_RATIO(BIT_DEPTH)) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
-		ocyrus_single3_inner #(.BIT_RATIO(BIT_DEPTH)) hs_clk_oserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .word_in(hs_clk_word), .bit_out(hs_clk));
 //	end else begin
 //		$display("BIT_DEPTH=%d but we don't handle that case!", BIT_DEPTH);
 	end
