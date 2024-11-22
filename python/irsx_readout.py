@@ -4,7 +4,7 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-11-12 by mza
+# last updated 2024-11-22 by mza
 
 # todo:
 # plot thresholds (pull from protodune_readout.py)
@@ -629,13 +629,9 @@ def loop():
 			elif pygame.K_F8==event.key:
 				send_unique_test_pattern(1)
 			elif pygame.K_F9==event.key:
-				pass
-				#DAC_to_control = 0
-				#print("now controlling CMPbias")
+				digitize_some_windows_and_read_them_out()
 			elif pygame.K_F10==event.key:
-				pass
-				#DAC_to_control = 1
-				#print("now controlling ISEL")
+				readback_asic_register_values()
 			elif pygame.K_F11==event.key:
 				pass
 				#DAC_to_control = 2
@@ -1204,7 +1200,7 @@ nominal_register_values.append([196, "SSToutFB", 110, ""])
 #nominal_register_values.append([198, "spare2", ])
 #nominal_register_values.append([199, "TPG", 0x402, "test pattern generator (12bit)"])
 nominal_register_values.append([199, "TPG", default_tpg, "test pattern generator (12bit); page 40 of schematics"])
-nominal_register_values.append([200, "LD_RD_ADDR", (1<<9) | 0, "rd_ena, read address (9bit)"])
+nominal_register_values.append([200, "LD_RD_ADDR", (1<<9) | 0, "rd_ena, RD_ADDR read address (9bit)"])
 nominal_register_values.append([201, "LOAD_SS", (1<<11) | (0<<6) | 0, "ss_dir, -, -, channel (3bit), sample select (6bit); set ss_dir=0 to load from here; then set ss_dir to 1 to have it increment from there; page 46 of schematics"])
 nominal_register_values.append([202, "Jam_SS", (0<<1) | 1, "Nib ADDR (3bit), SS_ENA (must be a one to enable channel select decoder); pages 41 and 46 of schematics"])
 nominal_register_values.append([252, "CLR_Sync", 1, "WR_ADDR addr mode (no data)"])
@@ -1303,15 +1299,24 @@ def write_wbias_block_using_read_modify_write():
 	print(str(readback))
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + starting_address, readback)
 
+def readback_asic_register_values():
+	bank = 7
+	starting_address = 0
+	ending_address = 255
+	block_length = ending_address - starting_address + 1
+	#print("starting_address: " + str(starting_address))
+	#print("ending_address: " + str(ending_address))
+	#print("block_length: " + str(block_length))
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + starting_address, block_length, False)
+	for i in range(128, 255+1):
+		readback[i] &= 0xfff
+		string = ""
+		print(str(i) + " " + string + " " + hex(readback[i], 3))
+
 def write_nominal_register_values_using_read_modify_write():
 	bank = 7
 	starting_address = 0
 	ending_address = 255
-#	for i in range(len(nominal_register_values)):
-#		if starting_address<nominal_register_values[i][0]:
-#			starting_address = nominal_register_values[i][0]
-#		if nominal_register_values[i][0]<ending_address:
-#			ending_address = nominal_register_values[i][0]
 	block_length = ending_address - starting_address + 1
 	#print("starting_address: " + str(starting_address))
 	#print("ending_address: " + str(ending_address))
@@ -1347,6 +1352,36 @@ def write_some_nominal_register_values(string):
 			print(str(address) + " " + nominal_register_values[i][1] + " " + str(value))
 			althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value])
 			time.sleep(0.1)
+
+#def clear_vbiases():
+#	write_some_updated_register_values("vbias")
+
+def write_new_read_address(new_read_address):
+	if new_read_address<0:
+		new_read_address = 0
+	if 255<new_read_address:
+		new_read_address = 255
+	value = (1<<9) | new_read_address
+	print(hex(new_read_address) + ", " + hex(value))
+	bank = 7
+	for i in range(len(nominal_register_values)):
+		match = re.search("RD_ADDR", nominal_register_values[i][1])
+		if match:
+			address = nominal_register_values[i][0]
+			print(str(address) + " " + nominal_register_values[i][1] + " " + str(value))
+			althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value])
+			time.sleep(0.1)
+
+def digitize_a_range_of_windows_and_read_them_out(first, last):
+	for i in range(first, last+1):
+		write_new_read_address(i)
+		send_signal_to_start_wilkinson_conversion()
+		time.sleep(0.1)
+		read_bank5_data()
+		time.sleep(0.1)
+
+def digitize_some_windows_and_read_them_out():
+	digitize_a_range_of_windows_and_read_them_out(0, 15)
 
 reg179_names = [ "A1", "B1", "A2", "B2", "PHASE", "PHAB", "SSPin", "WR_STRB" ]
 def write_reg179(value):
