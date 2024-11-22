@@ -48,7 +48,7 @@ TRIGGER_MEMORY_PLOT_HEIGHT = 64 + 6
 
 MIDRANGE = 0xd55
 EXTRA_OFFSET = 500
-CHANNEL_OFFSET = 200
+CHANNEL_OFFSET = 50
 QUAD_CHANNEL_OFFSET = 300
 
 # the following lists of values are for the trigger_gain x1, x4 and x16 settings:
@@ -104,8 +104,8 @@ MAX_ADC = 4095
 display_precision_of_hex_counter_counts = 8
 display_precision_of_hex_scaler_counts = 4
 
-GAP_X_BETWEEN_PLOTS = 20
-GAP_Y_BETWEEN_PLOTS = 44
+GAP_X_BETWEEN_PLOTS = 10
+GAP_Y_BETWEEN_PLOTS = 33
 GAP_X_LEFT = 14
 GAP_X_RIGHT = 205
 GAP_Y_TOP = 24
@@ -262,8 +262,6 @@ def update_plot(which_plot):
 	global plots_were_updated
 	pygame.event.pump()
 	formatted_data = [ [ 0 for x in range(plot_width[which_plot]) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
-#	scale = 1.0 / MAX_ADC
-	#print(str(scale))
 	min_data_value_seen = MAX_ADC
 	max_data_value_seen = 0
 	#print_waveform_data(0)
@@ -295,9 +293,14 @@ def update_plot(which_plot):
 			#	print(str(time) + "," + str(value) + ":" + str(x) + ":" + str(formatted_data[k][x]))
 	#print("min_data_value_seen: 0x" + hex(min_data_value_seen, 3))
 	#print("max_data_value_seen: 0x" + hex(max_data_value_seen, 3))
-	for n in range(len(waveform_data[which_plot][0])):
-		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			formatted_data[k][n] = k * waveform_data[which_plot][k][n] / NUMBER_OF_CHANNELS_PER_ASIC
+	if which_plot == "trigger_memory":
+		for n in range(len(waveform_data[which_plot][0])):
+			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+				formatted_data[k][n] = k * waveform_data[which_plot][k][n] / NUMBER_OF_CHANNELS_PER_ASIC
+	else:
+		for n in range(len(waveform_data[which_plot][0])):
+			for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+				formatted_data[k][n] = k / NUMBER_OF_CHANNELS_PER_ASIC + scale[which_plot] * waveform_data[which_plot][k][n]
 	pygame.event.pump()
 	print("plotting data [" + str(which_plot) + "]...")
 	plot[which_plot].fill(black)
@@ -429,8 +432,8 @@ def setup():
 	pygame.event.pump()
 	# -----------------------------------------------------------------------------------
 	waveform_plot_width = MAX_SAMPLES_PER_WAVEFORM + 2*extra_gap_x
-	waveform_plot_height = 80 + 2*extra_gap_y
-	global plot, have_just_gathered_waveform_data, coordinates, plot_width, plot_height, waveform_data, plots_were_updated
+	waveform_plot_height = CHANNEL_OFFSET * (NUMBER_OF_CHANNELS_PER_ASIC+1) + 2*extra_gap_y
+	global plot, have_just_gathered_waveform_data, coordinates, plot_width, plot_height, waveform_data, scale, plots_were_updated
 	plot = {}
 	plot["raw_waveform"] = pygame.Surface((waveform_plot_width, waveform_plot_height))
 	plot["pedestal_waveform"] = pygame.Surface((waveform_plot_width, waveform_plot_height))
@@ -444,12 +447,14 @@ def setup():
 	plot_width = {}
 	plot_height = {}
 	waveform_data = {}
+	scale = {}
 	have_just_gathered_waveform_data = {}
 	plots_were_updated = {}
 	for which_plot in plot.keys():
 		plot_width[which_plot] = waveform_plot_width
 		plot_height[which_plot] = waveform_plot_height
 		waveform_data[which_plot] = [ [ 0 for n in range(MAX_SAMPLES_PER_WAVEFORM) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+		scale[which_plot] = 1/MAX_ADC/NUMBER_OF_CHANNELS_PER_ASIC
 		have_just_gathered_waveform_data[which_plot] = False
 		plots_were_updated[which_plot] = False
 	# -----------------------------------------------------------------------------------
@@ -457,6 +462,7 @@ def setup():
 	plot_width["trigger_memory"] = TRIGGER_MEMORY_PLOT_WIDTH
 	plot_height["trigger_memory"] = TRIGGER_MEMORY_PLOT_HEIGHT
 	waveform_data["trigger_memory"] = [ [ 0 for n in range(TRIGGER_MEMORY_READOUT_SIZE) ] for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ]
+	scale["trigger_memory"] = CHANNEL_OFFSET
 	# -----------------------------------------------------------------------------------
 	global Y_POSITION_OF_CHANNEL_NAMES
 	global Y_POSITION_OF_COUNTERS
@@ -468,7 +474,7 @@ def setup():
 	global Y_POSITION_OF_BANK5_REGISTERS
 	global Y_POSITION_OF_BANK6_REGISTERS
 	global Y_POSITION_OF_OTHER_STUFF
-	TEXT_OFFSET = 2 * (waveform_plot_height + 2*gap)
+	TEXT_OFFSET = waveform_plot_height + 4*gap + plot_height["trigger_memory"]
 	Y_POSITION_OF_CHANNEL_NAMES = TEXT_OFFSET
 	Y_POSITION_OF_COUNTERS      = TEXT_OFFSET
 	Y_POSITION_OF_SCALERS       = TEXT_OFFSET
@@ -555,9 +561,6 @@ def setup():
 def write_bootup_values():
 	print("writing bootup values...")
 	control_regulator(1)
-	#set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
-	#write_DAC_values()
-	#write_I2C_register_values()
 	write_value_to_clock_divider_for_register_transactions(0) # this must be at least 5 unless min_tries is at least 2
 	set_min_tries(2) # this must be at least 2 if clock_divider is less than 5
 	set_max_retries_for_register_transactions(5)
@@ -617,11 +620,9 @@ def loop():
 				else:
 					control_regulator(0)
 			elif pygame.K_F5==event.key:
-				#readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 				cycle_reg179()
 			elif pygame.K_F6==event.key:
 				#initiate_trigger()
-				#readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
 				#drain_fifo()
 				pass
 			elif pygame.K_F7==event.key:
@@ -935,49 +936,6 @@ def show_other_stuff():
 			other_stuff_object[i] = banks_font.render(sround(other_stuff_values[i], other_stuff_decimal_places[i]), False, white)
 			screen.blit(other_stuff_object[i], other_stuff_object[i].get_rect(center=(X_POSITION_OF_OTHER_STUFF+other_stuff_object[i].get_width()//2,Y_POSITION_OF_OTHER_STUFF+FONT_SIZE_BANKS*i)))
 
-def set_ls_i2c_mode(mode):
-	bank = 0
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [mode], False)
-
-def write_DAC_values():
-	bank = 4
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, DAC_values, False)
-
-def change_number_of_samples(value):
-	global previous_number_of_samples, number_of_samples
-	previous_number_of_samples = number_of_samples
-	print("previous_number_of_samples: " + str(previous_number_of_samples))
-	print("current number_of_samples: " + str(number_of_samples))
-	print("desired number_of_samples: " + str(value))
-	number_of_samples = value
-	if number_of_samples<0:
-		number_of_samples = 0 # 0 means 256 here
-	elif 255<number_of_samples:
-		number_of_samples = 0 # 0 means 256 here
-	write_I2C_register_values()
-	initiate_i2c_transfer()
-	return previous_number_of_samples
-
-def write_I2C_register_values():
-	SRC = I2CupAddr<<3 | LVDSB_pwr<<2 | LVDSA_pwr<<1 | SRCsel
-	I2C_register_values = [ 0, SRC, TMReg_Reset, samples_after_trigger, lookback_windows, number_of_samples ]
-	bank = 3
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, I2C_register_values, False)
-
-def change_DAC_value(delta):
-	global DAC_values
-	DAC_values[DAC_to_control] += delta
-	if DAC_values[DAC_to_control]<0:
-		DAC_values[DAC_to_control] = 0
-	elif 4095<DAC_values[DAC_to_control]:
-		DAC_values[DAC_to_control] = 4095
-	write_DAC_values()
-
-def initiate_dreset_sequence():
-	bank = 2
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [1], False)
-	print("dreset")
-
 def write_value_to_clock_divider_for_register_transactions(value=127):
 	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 0, [value])
@@ -1124,87 +1082,87 @@ def write_trigger_thresholds_read_modify_write_style(threshold):
 		readback[channel*spacing] = threshold[channel]
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + starting_address, readback)
 
-nominal_register_values = []
+nominal_register_values = [ [] for i in range(255) ]
 # these values are cribbed from asic_configuration.c which has values borrowed from config1asic_trueROI.py; enabling the DLL requires more effort
-nominal_register_values.append([128, "TRGthresh0", 0, "threshold voltage for trigger output for ch0"])
-nominal_register_values.append([132, "TRGthresh1", 0, "threshold voltage for trigger output for ch1"])
-nominal_register_values.append([136, "TRGthresh2", 0, "threshold voltage for trigger output for ch2"])
-nominal_register_values.append([140, "TRGthresh3", 0, "threshold voltage for trigger output for ch3"])
-nominal_register_values.append([144, "TRGthresh4", 0, "threshold voltage for trigger output for ch4"])
-nominal_register_values.append([148, "TRGthresh5", 0, "threshold voltage for trigger output for ch5"])
-nominal_register_values.append([152, "TRGthresh6", 0, "threshold voltage for trigger output for ch6"])
-nominal_register_values.append([156, "TRGthresh7", 0, "threshold voltage for trigger output for ch7"])
-nominal_register_values.append([129, "Trig4xVofs0", Trig4xVofs, "voltage offset for x4 trigger path for ch0"])
-nominal_register_values.append([133, "Trig4xVofs1", Trig4xVofs, "voltage offset for x4 trigger path for ch1"])
-nominal_register_values.append([137, "Trig4xVofs2", Trig4xVofs, "voltage offset for x4 trigger path for ch2"])
-nominal_register_values.append([141, "Trig4xVofs3", Trig4xVofs, "voltage offset for x4 trigger path for ch3"])
-nominal_register_values.append([145, "Trig4xVofs4", Trig4xVofs, "voltage offset for x4 trigger path for ch4"])
-nominal_register_values.append([149, "Trig4xVofs5", Trig4xVofs, "voltage offset for x4 trigger path for ch5"])
-nominal_register_values.append([153, "Trig4xVofs6", Trig4xVofs, "voltage offset for x4 trigger path for ch6"])
-nominal_register_values.append([157, "Trig4xVofs7", Trig4xVofs, "voltage offset for x4 trigger path for ch7"])
-nominal_register_values.append([130, "Trig16xVofs0", Trig16xVofs, "voltage offset for x16 trigger path for ch0 (warning: affects x4 trigger path)"])
-nominal_register_values.append([134, "Trig16xVofs1", Trig16xVofs, "voltage offset for x16 trigger path for ch1 (warning: affects x4 trigger path)"])
-nominal_register_values.append([138, "Trig16xVofs2", Trig16xVofs, "voltage offset for x16 trigger path for ch2 (warning: affects x4 trigger path)"])
-nominal_register_values.append([142, "Trig16xVofs3", Trig16xVofs, "voltage offset for x16 trigger path for ch3 (warning: affects x4 trigger path)"])
-nominal_register_values.append([146, "Trig16xVofs4", Trig16xVofs, "voltage offset for x16 trigger path for ch4 (warning: affects x4 trigger path)"])
-nominal_register_values.append([150, "Trig16xVofs5", Trig16xVofs, "voltage offset for x16 trigger path for ch5 (warning: affects x4 trigger path)"])
-nominal_register_values.append([154, "Trig16xVofs6", Trig16xVofs, "voltage offset for x16 trigger path for ch6 (warning: affects x4 trigger path)"])
-nominal_register_values.append([158, "Trig16xVofs7", Trig16xVofs, "voltage offset for x16 trigger path for ch7 (warning: affects x4 trigger path)"])
-nominal_register_values.append([131, "Wbias0", wbias_even, "width of trigger output for ch0; needs TBbias"])
-nominal_register_values.append([135, "Wbias1", wbias_odd,  "width of trigger output for ch1; needs TBbias"])
-nominal_register_values.append([139, "Wbias2", wbias_even, "width of trigger output for ch2; needs TBbias"])
-nominal_register_values.append([143, "Wbias3", wbias_odd,  "width of trigger output for ch3; needs TBbias"])
-nominal_register_values.append([147, "Wbias4", wbias_even, "width of trigger output for ch4; needs TBbias"])
-nominal_register_values.append([151, "Wbias5", wbias_odd,  "width of trigger output for ch5; needs TBbias"])
-nominal_register_values.append([155, "Wbias6", wbias_even, "width of trigger output for ch6; needs TBbias"])
-nominal_register_values.append([159, "Wbias7", wbias_odd,  "width of trigger output for ch7; needs TBbias"])
-nominal_register_values.append([160, "TBbias", 1000]) # needs ITbias - above 1100 doesn't allow for short (7.8ns)) trigger pulses
-nominal_register_values.append([161, "Vbias", 1100]) # needs ITbias - this alone draws 200mA extra
-nominal_register_values.append([162, "Vbias2", 950]) # needs ITbias - this also draws an extra ~200mA
-nominal_register_values.append([163, "ITbias", 1000])
-nominal_register_values.append([164, "dualWbias01", wbias_dual]) # needs TBbias and ITbias
-nominal_register_values.append([165, "dualWbias23", wbias_dual]) # needs TBbias and ITbias
-nominal_register_values.append([166, "dualWbias45", wbias_dual]) # needs TBbias and ITbias
-nominal_register_values.append([167, "dualWbias67", wbias_dual]) # needs TBbias and ITbias
-nominal_register_values.append([168, "reg168", (0<<9) | (0<<7) | (0<<6) | (0<<5) | (0<<4) | (1<<3) | (1<<2) | (0<<1) | 1, "spy_s2, spy_s1, spy_s0, -, OSH, spy_vs_spy, SSHSH, WR_SSEL, done_mask, trg_x1/x4, trg_x4/x16, trg_sgn"])
-nominal_register_values.append([169, "CMPbias2", 737]) # needs SBbias and DBbias
-nominal_register_values.append([170, "PUbias", 3112]) # needs SBbias and DBbias
-nominal_register_values.append([171, "CMPbias", 1000]) # needs SBbias and DBbias
-nominal_register_values.append([172, "SBbias", 1300]) # needs DBbias
-nominal_register_values.append([173, "Vdischarge", 0]) # needs DBbias
-nominal_register_values.append([174, "ISEL", 2200]) # needs DBbias
-nominal_register_values.append([175, "DBbias", 1300])
-nominal_register_values.append([176, "VtrimT", 4090]) # needs VQbuff
-#nominal_register_values.append([177, "Qbias", 1300, "set to 0 until DLL set"]) # needs VQbuff
-nominal_register_values.append([177, "Qbias", 0, "set to 0 until DLL set"]) # needs VQbuff
-nominal_register_values.append([178, "VQbuff", 1300])
-nominal_register_values.append([179, "reg179", (0<<7) | (0<<6) | (0<<5) | 0, "nCLR_PHASE, nTime1Time2 (for swapping montiming1 and montiming2), SSTSEL, -, -, montiming select (3bit): A1, B1, A2, B2, PHASE, PHAB, SSPin, WR_STRB"])
-nominal_register_values.append([180, "VadjP", 2700]) # needs VAPbuff
-nominal_register_values.append([181, "VAPbuff", 3500, "set to 0 for DLL mode"])
-nominal_register_values.append([182, "VadjN", 1530]) # needs VANbuff
-nominal_register_values.append([183, "VANbuff", 3500, "set to 0 for DLL mode"])
-nominal_register_values.append([184, "WR_SYNC_LE", 0, "leading edge"]) # this drives the wr_syncmon pin
-nominal_register_values.append([185, "WR_SYNC_TE", 30, "trailing edge"]) # this drives the wr_syncmon pin
-nominal_register_values.append([186, "SSPin_LE", 92, "leading edge"])
-nominal_register_values.append([187, "SSPin_TE", 10, "trailing edge"])
-nominal_register_values.append([188, "S1_LE", 38, "leading edge"])
-nominal_register_values.append([189, "S1_TE", 86, "trailing edge"])
-nominal_register_values.append([190, "S2_LE", 120, "leading edge"])
-nominal_register_values.append([191, "S2_TE", 20, "trailing edge"])
-nominal_register_values.append([192, "PHASE_LE", 45, "leading edge"])
-nominal_register_values.append([193, "PHASE_TE", 85, "trailing edge"])
-nominal_register_values.append([194, "WR_STRB_LE", 95, "leading edge"])
-nominal_register_values.append([195, "WR_STRB_TE", 17, "trailing edge"])
-nominal_register_values.append([196, "SSToutFB", 110, ""])
-#nominal_register_values.append([197, "spare1", ])
-#nominal_register_values.append([198, "spare2", ])
-#nominal_register_values.append([199, "TPG", 0x402, "test pattern generator (12bit)"])
-nominal_register_values.append([199, "TPG", default_tpg, "test pattern generator (12bit); page 40 of schematics"])
-nominal_register_values.append([200, "LD_RD_ADDR", (1<<9) | 0, "rd_ena, RD_ADDR read address (9bit)"])
-nominal_register_values.append([201, "LOAD_SS", (1<<11) | (0<<6) | 0, "ss_dir, -, -, channel (3bit), sample select (6bit); set ss_dir=0 to load from here; then set ss_dir to 1 to have it increment from there; page 46 of schematics"])
-nominal_register_values.append([202, "Jam_SS", (0<<1) | 1, "Nib ADDR (3bit), SS_ENA (must be a one to enable channel select decoder); pages 41 and 46 of schematics"])
-nominal_register_values.append([252, "CLR_Sync", 1, "WR_ADDR addr mode (no data)"])
-nominal_register_values.append([253, "CatchSpy", 1, "WR_ADDR addr mode (no data)"])
+nominal_register_values[128] = ("TRGthresh0", 0, "threshold voltage for trigger output for ch0")
+nominal_register_values[132] = ("TRGthresh1", 0, "threshold voltage for trigger output for ch1")
+nominal_register_values[136] = ("TRGthresh2", 0, "threshold voltage for trigger output for ch2")
+nominal_register_values[140] = ("TRGthresh3", 0, "threshold voltage for trigger output for ch3")
+nominal_register_values[144] = ("TRGthresh4", 0, "threshold voltage for trigger output for ch4")
+nominal_register_values[148] = ("TRGthresh5", 0, "threshold voltage for trigger output for ch5")
+nominal_register_values[152] = ("TRGthresh6", 0, "threshold voltage for trigger output for ch6")
+nominal_register_values[156] = ("TRGthresh7", 0, "threshold voltage for trigger output for ch7")
+nominal_register_values[129] = ("Trig4xVofs0", Trig4xVofs, "voltage offset for x4 trigger path for ch0")
+nominal_register_values[133] = ("Trig4xVofs1", Trig4xVofs, "voltage offset for x4 trigger path for ch1")
+nominal_register_values[137] = ("Trig4xVofs2", Trig4xVofs, "voltage offset for x4 trigger path for ch2")
+nominal_register_values[141] = ("Trig4xVofs3", Trig4xVofs, "voltage offset for x4 trigger path for ch3")
+nominal_register_values[145] = ("Trig4xVofs4", Trig4xVofs, "voltage offset for x4 trigger path for ch4")
+nominal_register_values[149] = ("Trig4xVofs5", Trig4xVofs, "voltage offset for x4 trigger path for ch5")
+nominal_register_values[153] = ("Trig4xVofs6", Trig4xVofs, "voltage offset for x4 trigger path for ch6")
+nominal_register_values[157] = ("Trig4xVofs7", Trig4xVofs, "voltage offset for x4 trigger path for ch7")
+nominal_register_values[130] = ("Trig16xVofs0", Trig16xVofs, "voltage offset for x16 trigger path for ch0 (warning: affects x4 trigger path)")
+nominal_register_values[134] = ("Trig16xVofs1", Trig16xVofs, "voltage offset for x16 trigger path for ch1 (warning: affects x4 trigger path)")
+nominal_register_values[138] = ("Trig16xVofs2", Trig16xVofs, "voltage offset for x16 trigger path for ch2 (warning: affects x4 trigger path)")
+nominal_register_values[142] = ("Trig16xVofs3", Trig16xVofs, "voltage offset for x16 trigger path for ch3 (warning: affects x4 trigger path)")
+nominal_register_values[146] = ("Trig16xVofs4", Trig16xVofs, "voltage offset for x16 trigger path for ch4 (warning: affects x4 trigger path)")
+nominal_register_values[150] = ("Trig16xVofs5", Trig16xVofs, "voltage offset for x16 trigger path for ch5 (warning: affects x4 trigger path)")
+nominal_register_values[154] = ("Trig16xVofs6", Trig16xVofs, "voltage offset for x16 trigger path for ch6 (warning: affects x4 trigger path)")
+nominal_register_values[158] = ("Trig16xVofs7", Trig16xVofs, "voltage offset for x16 trigger path for ch7 (warning: affects x4 trigger path)")
+nominal_register_values[131] = ("Wbias0", wbias_even, "width of trigger output for ch0; needs TBbias")
+nominal_register_values[135] = ("Wbias1", wbias_odd,  "width of trigger output for ch1; needs TBbias")
+nominal_register_values[139] = ("Wbias2", wbias_even, "width of trigger output for ch2; needs TBbias")
+nominal_register_values[143] = ("Wbias3", wbias_odd,  "width of trigger output for ch3; needs TBbias")
+nominal_register_values[147] = ("Wbias4", wbias_even, "width of trigger output for ch4; needs TBbias")
+nominal_register_values[151] = ("Wbias5", wbias_odd,  "width of trigger output for ch5; needs TBbias")
+nominal_register_values[155] = ("Wbias6", wbias_even, "width of trigger output for ch6; needs TBbias")
+nominal_register_values[159] = ("Wbias7", wbias_odd,  "width of trigger output for ch7; needs TBbias")
+nominal_register_values[160] = ("TBbias", 1000) # needs ITbias - above 1100 doesn't allow for short (7.8ns)) trigger pulses
+nominal_register_values[161] = ("Vbias", 1100) # needs ITbias - this alone draws 200mA extra
+nominal_register_values[162] = ("Vbias2", 950) # needs ITbias - this also draws an extra ~200mA
+nominal_register_values[163] = ("ITbias", 1000)
+nominal_register_values[164] = ("dualWbias01", wbias_dual) # needs TBbias and ITbias
+nominal_register_values[165] = ("dualWbias23", wbias_dual) # needs TBbias and ITbias
+nominal_register_values[166] = ("dualWbias45", wbias_dual) # needs TBbias and ITbias
+nominal_register_values[167] = ("dualWbias67", wbias_dual) # needs TBbias and ITbias
+nominal_register_values[168] = ("reg168", (0<<9) | (0<<7) | (0<<6) | (0<<5) | (0<<4) | (1<<3) | (1<<2) | (0<<1) | 1, "spy_s2, spy_s1, spy_s0, -, OSH, spy_vs_spy, SSHSH, WR_SSEL, done_mask, trg_x1/x4, trg_x4/x16, trg_sgn")
+nominal_register_values[169] = ("CMPbias2", 737) # needs SBbias and DBbias
+nominal_register_values[170] = ("PUbias", 3112) # needs SBbias and DBbias
+nominal_register_values[171] = ("CMPbias", 1000) # needs SBbias and DBbias
+nominal_register_values[172] = ("SBbias", 1300) # needs DBbias
+nominal_register_values[173] = ("Vdischarge", 0) # needs DBbias
+nominal_register_values[174] = ("ISEL", 2200) # needs DBbias
+nominal_register_values[175] = ("DBbias", 1300)
+nominal_register_values[176] = ("VtrimT", 4090) # needs VQbuff
+#nominal_register_values[177] = ("Qbias", 1300, "set to 0 until DLL set"]) # needs VQbuff
+nominal_register_values[177] = ("Qbias", 0, "set to 0 until DLL set") # needs VQbuff
+nominal_register_values[178] = ("VQbuff", 1300)
+nominal_register_values[179] = ("reg179", (0<<7) | (0<<6) | (0<<5) | 0, "nCLR_PHASE, nTime1Time2 (for swapping montiming1 and montiming2), SSTSEL, -, -, montiming select (3bit): A1, B1, A2, B2, PHASE, PHAB, SSPin, WR_STRB")
+nominal_register_values[180] = ("VadjP", 2700) # needs VAPbuff
+nominal_register_values[181] = ("VAPbuff", 3500, "set to 0 for DLL mode")
+nominal_register_values[182] = ("VadjN", 1530) # needs VANbuff
+nominal_register_values[183] = ("VANbuff", 3500, "set to 0 for DLL mode")
+nominal_register_values[184] = ("WR_SYNC_LE", 0, "leading edge") # this drives the wr_syncmon pin
+nominal_register_values[185] = ("WR_SYNC_TE", 30, "trailing edge") # this drives the wr_syncmon pin
+nominal_register_values[186] = ("SSPin_LE", 92, "leading edge")
+nominal_register_values[187] = ("SSPin_TE", 10, "trailing edge")
+nominal_register_values[188] = ("S1_LE", 38, "leading edge")
+nominal_register_values[189] = ("S1_TE", 86, "trailing edge")
+nominal_register_values[190] = ("S2_LE", 120, "leading edge")
+nominal_register_values[191] = ("S2_TE", 20, "trailing edge")
+nominal_register_values[192] = ("PHASE_LE", 45, "leading edge")
+nominal_register_values[193] = ("PHASE_TE", 85, "trailing edge")
+nominal_register_values[194] = ("WR_STRB_LE", 95, "leading edge")
+nominal_register_values[195] = ("WR_STRB_TE", 17, "trailing edge")
+nominal_register_values[196] = ("SSToutFB", 110, "")
+#nominal_register_values[197] = ("spare1", )
+#nominal_register_values[198] = ("spare2", )
+#nominal_register_values[199] = ("TPG", 0x402, "test pattern generator (12bit)")
+nominal_register_values[199] = ("TPG", default_tpg, "test pattern generator (12bit); page 40 of schematics")
+nominal_register_values[200] = ("LD_RD_ADDR", (1<<9) | 0, "rd_ena, RD_ADDR read address (9bit)")
+nominal_register_values[201] = ("LOAD_SS", (1<<11) | (0<<6) | 0, "ss_dir, -, -, channel (3bit), sample select (6bit); set ss_dir=0 to load from here; then set ss_dir to 1 to have it increment from there; page 46 of schematics")
+nominal_register_values[202] = ("Jam_SS", (0<<1) | 1, "Nib ADDR (3bit), SS_ENA (must be a one to enable channel select decoder); pages 41 and 46 of schematics")
+nominal_register_values[252] = ("CLR_Sync", 1, "WR_ADDR addr mode (no data)")
+nominal_register_values[253] = ("CatchSpy", 1, "WR_ADDR addr mode (no data)")
 
 def change_timing_register_LE_value(increment):
 	bank = 7
@@ -1308,10 +1266,14 @@ def readback_asic_register_values():
 	#print("ending_address: " + str(ending_address))
 	#print("block_length: " + str(block_length))
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + starting_address, block_length, False)
-	for i in range(128, 255+1):
-		readback[i] &= 0xfff
-		string = ""
-		print(str(i) + " " + string + " " + hex(readback[i], 3))
+	print("reg val name+description")
+	for i in range(128, 255):
+		if len(nominal_register_values[i]):
+			readback[i] &= 0xfff
+			string = nominal_register_values[i][0]
+			if 2<len(nominal_register_values[i]):
+				string += " " + nominal_register_values[i][2]
+			print(str(i) + " " + hex(readback[i], 3) + " " + string)
 
 def write_nominal_register_values_using_read_modify_write():
 	bank = 7
@@ -1325,36 +1287,35 @@ def write_nominal_register_values_using_read_modify_write():
 	for i in range(len(readback)):
 		readback[i] &= 0xfff
 	for i in range(len(nominal_register_values)):
-		address = nominal_register_values[i][0]
-		value = nominal_register_values[i][2]
-		string = nominal_register_values[i][1]
-		print(str(address) + " " + string + " " + str(value))
-		readback[address] = value
+		if len(nominal_register_values[i]):
+			string = nominal_register_values[i][0]
+			value = nominal_register_values[i][1]
+			print(str(i) + " " + string + " " + str(value))
+			readback[i] = value
 	#print(str(readback))
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + starting_address, readback)
 
-def write_nominal_register_values():
-	bank = 7
-	for i in range(len(nominal_register_values)):
-		address = nominal_register_values[i][0]
-		value = nominal_register_values[i][2]
-		print(str(address) + " " + nominal_register_values[i][1] + " " + str(value))
-		althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value])
-		time.sleep(0.01)
+#def write_nominal_register_values():
+#	bank = 7
+#	for i in range(len(nominal_register_values)):
+#		value = nominal_register_values[i][1]
+#		print(str(address) + " " + nominal_register_values[i][0] + " " + str(value))
+#	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH, values)
+#	time.sleep(0.01)
 
-def write_some_nominal_register_values(string):
-	bank = 7
-	for i in range(len(nominal_register_values)):
-		match = re.search(string, nominal_register_values[i][1])
-		if match:
-			address = nominal_register_values[i][0]
-			value = nominal_register_values[i][2]
-			print(str(address) + " " + nominal_register_values[i][1] + " " + str(value))
-			althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value])
-			time.sleep(0.1)
+#def write_some_nominal_register_values(string, value):
+#	bank = 7
+#	for i in range(len(nominal_register_values)):
+#		match = re.search(string, nominal_register_values[i][1])
+#		if match:
+#			address = nominal_register_values[i][0]
+#			value = nominal_register_values[i][2]
+#			print(str(address) + " " + nominal_register_values[i][1] + " " + str(value))
+#			althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value])
+#			time.sleep(0.1)
 
 #def clear_vbiases():
-#	write_some_updated_register_values("vbias")
+#	write_some_updated_register_values("vbias", 0)
 
 def write_new_read_address(new_read_address):
 	if new_read_address<0:
@@ -1362,26 +1323,23 @@ def write_new_read_address(new_read_address):
 	if 255<new_read_address:
 		new_read_address = 255
 	value = (1<<9) | new_read_address
-	print(hex(new_read_address) + ", " + hex(value))
+	#print(hex(new_read_address) + ", " + hex(value))
 	bank = 7
-	for i in range(len(nominal_register_values)):
-		match = re.search("RD_ADDR", nominal_register_values[i][1])
-		if match:
-			address = nominal_register_values[i][0]
-			print(str(address) + " " + nominal_register_values[i][1] + " " + str(value))
-			althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + address, [value])
-			time.sleep(0.1)
+	i = 200
+	print(str(i) + " " + hex(value, 3) + " " + nominal_register_values[i][0])
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + i, [value])
+	time.sleep(0.1)
 
 def digitize_a_range_of_windows_and_read_them_out(first, last):
 	for i in range(first, last+1):
 		write_new_read_address(i)
 		send_signal_to_start_wilkinson_conversion()
-		time.sleep(0.1)
+		time.sleep(0.2)
 		read_bank5_data()
-		time.sleep(0.1)
 
 def digitize_some_windows_and_read_them_out():
-	digitize_a_range_of_windows_and_read_them_out(0, 15)
+	#digitize_a_range_of_windows_and_read_them_out(0, 15)
+	digitize_a_range_of_windows_and_read_them_out(0, 1)
 
 reg179_names = [ "A1", "B1", "A2", "B2", "PHASE", "PHAB", "SSPin", "WR_STRB" ]
 def write_reg179(value):
@@ -1765,156 +1723,7 @@ def read_hs_data():
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 8, 1, False)
 	return readback
 
-def initiate_legacy_serial_sequence():
-	set_ls_i2c_mode(1) # ls_i2c: 0=i2c; 1=LS
-	bank = 2
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 1, [1], False)
-	print("legacy serial transfer")
-
-def initiate_i2c_transfer():
-	bank = 2
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 2, [1], False)
-	print("i2c transfer")
-
-software_trigger_number = 0
-def initiate_trigger():
-	bank = 2
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 3, [1], False)
-	global software_trigger_number
-	software_trigger_number += 1
-	print("trigger " + str(software_trigger_number))
-
-def get_fifo_empty():
-	bank = 1
-	fifo_empty, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 2, 1, False)
-	return fifo_empty
-
-def gulp(word):
-	global buffer_new, buffer_old, waveform_data, ALFA_OMGA_counter, have_just_gathered_waveform_data
-	if ALFA==word:
-		if not buffer_new[0]==ALFA:
-			print("first word of previous buffer: " + hex(buffer_new[0], 4))
-		if not buffer_new[-1]==OMGA:
-			print("last word of previous buffer: " + hex(buffer_new[-1], 4))
-		buffer_new = []
-		ALFA_OMGA_counter = 0
-	buffer_new.append(word)
-	ALFA_OMGA_counter += 1
-	if OMGA==word:
-		buffer_old = buffer_new
-		#print("len(buffer_old): " + str(len(buffer_old)))
-		if len(buffer_old)<7:
-			return
-		number_of_samples_per_waveform_from_header = (buffer_old[6]>>8) & 0xff
-		if 0==number_of_samples_per_waveform_from_header:
-			number_of_samples_per_waveform_from_header = 256
-		number_of_samples_per_waveform = (ALFA_OMGA_counter-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT)/NUMBER_OF_CHANNELS_PER_ASIC
-		if not number_of_samples_per_waveform==number_of_samples_per_waveform_from_header:
-			print("number_of_samples_per_waveform (from packet length): " + str(number_of_samples_per_waveform))
-			print("number_of_samples_per_waveform (from header): " + str(number_of_samples_per_waveform_from_header))
-			#print("corrupt packet")
-			return
-		parse_packet()
-
-def parse_packet():
-	global sampling_bank, ASICID, fine_time, coarse_time, asic_trigger_number, samples_after_trigger, lookback_samples, samples_to_read, starting_sample, missed_triggers, asic_status
-	#header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
-	#header_description_words = [ "ALFA", "IdFi", "cs43", "cs21", "tg21", "AfLo", "ReSt", "MiSt" ]
-	#header_decode_descriptions
-	sampling_bank = 0
-	if (buffer_old[1]>>8)&1:
-		sampling_bank = 1
-	ASICID =                (buffer_old[1]>>8) & 0xfe
-	fine_time =              buffer_old[1]     & 0xff
-	coarse_time =           (buffer_old[2]<<16)     | buffer_old[3]
-	asic_trigger_number =    buffer_old[4]
-	samples_after_trigger = (buffer_old[5]>>8) & 0xff
-	lookback_samples =       buffer_old[5]     & 0xff
-	samples_to_read =       (buffer_old[6]>>8) & 0xff
-	starting_sample =        buffer_old[6]     & 0xff
-	missed_triggers =       (buffer_old[7]>>8) & 0xff
-	asic_status =            buffer_old[7]     & 0xff
-	print("sampling_bank: " + str(sampling_bank))
-	print("ASICID: " + str(ASICID))
-	print("fine_time: " + str(fine_time))
-	print("coarse_time: " + str(coarse_time))
-	print("asic_trigger_number: " + str(asic_trigger_number))
-	print("samples_after_trigger: 0x" + hex(samples_after_trigger, 2))
-	print("lookback_samples: 0x" + hex(lookback_samples, 2))
-	if 0==samples_to_read:
-		samples_to_read = 0x100
-	print("samples_to_read: 0x" + hex(samples_to_read, 3))
-	print("starting_sample: " + str(starting_sample))
-	print("missed_triggers: " + str(missed_triggers))
-	print("asic_status: " + str(asic_status))
-	index = NUMBER_OF_WORDS_PER_HEADER
-#	index = 0
-#	datafile.write(hex(buffer_old[index], 4)); index += 1
-#	datafile.write(hex(buffer_old[index], 4)); index += 1
-#	datafile.write(hex(buffer_old[index], 4)); index += 1
-#	datafile.write(hex(buffer_old[index], 4)); index += 1
-#	datafile.write(hex(buffer_old[index], 4)); index += 1
-#	datafile.write(hex(buffer_old[index], 4)); index += 1
-#	datafile.write(hex(buffer_old[index], 4)); index += 1
-#	datafile.write(hex(buffer_old[index], 4)); index += 1
-	for n in range(MAX_SAMPLES_PER_WAVEFORM):
-		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			waveform_data[0][sampling_bank][k][n] = 0
-			waveform_data[1][sampling_bank][k][n] = 0
-			waveform_data[2][sampling_bank][k][n] = 0
-	for n in range(starting_sample, MAX_SAMPLES_PER_WAVEFORM):
-		#print("n:" + str(n) + " index:" + str(index) + " starting_sample: " + str(starting_sample))
-		if len(buffer_old)-NUMBER_OF_CHANNELS_PER_ASIC-NUMBER_OF_WORDS_PER_FOOTER<index:
-			break
-		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
-			waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
-			waveform_data[2][sampling_bank][k][n] = buffer_old[index] & 0xfff
-#			datafile.write(hex(buffer_old[index], 4))
-			index += 1
-	for n in range(starting_sample):
-		if len(buffer_old)-NUMBER_OF_CHANNELS_PER_ASIC-NUMBER_OF_WORDS_PER_FOOTER<index:
-			break
-		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-			waveform_data[0][sampling_bank][k][n] = buffer_old[index] & 0xfff
-			waveform_data[1][sampling_bank][k][n] = buffer_old[index] & 0xfff
-			waveform_data[2][sampling_bank][k][n] = buffer_old[index] & 0xfff
-#			datafile.write(hex(buffer_old[index], 4))
-			index += 1
-#	datafile.write(hex(buffer_old[index], 4)); index += 1
-#	datafile.write(hex(buffer_old[index], 4)); index += 1
-	#print(str(waveform_data[0][0][0]))
-	string = ""
-	for word in buffer_old:
-		string += hex(word, 4)
-	datafile.write(string)
-	datafile.write("\n")
-	datafile.flush()
-	print("wrote " + str(len(buffer_old)) + " words to file " + datafile_name)
-#	have_just_gathered_waveform_data[1][sampling_bank] = True
-#	if pedestals_have_been_taken:
-#		have_just_gathered_waveform_data[2][sampling_bank] = True
-
-def readout_some_data_from_the_fifo(number_of_words):
-	bank = 5
-	count = 0
-	for i in range(number_of_words):
-		fifo_empty = get_fifo_empty()
-		if fifo_empty:
-			break
-		fifo_data, = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, 1, False)
-		gulp(fifo_data)
-		count += 1
-	return count
-
-def drain_fifo():
-	count = 1
-	while count:
-		count = readout_some_data_from_the_fifo(number_of_words_to_read_from_the_fifo)
-
 def gather_pedestals(i):
-	#previous_number_of_samples = change_number_of_samples(256)
-	#initiate_legacy_serial_sequence()
 	global pedestal_mode, pedestal_data, pedestals_have_been_taken
 	pedestal_mode = True
 	number_of_acquisitions_so_far = [ [ 0 for k in range(NUMBER_OF_CHANNELS_PER_ASIC) ] for j in range(ROWS) ]
@@ -1979,8 +1788,6 @@ def gather_pedestals(i):
 			if not enabled_channels[k]:
 				continue
 			#print("peds for ch" + str(k) + " bank" + str(j) + ": " + str(pedestal_data[i][j][k]))
-	#change_number_of_samples(previous_number_of_samples)
-	#initiate_legacy_serial_sequence()
 
 if __name__ == "__main__":
 	datafile = open(datafile_name, "a")
@@ -1989,7 +1796,7 @@ if __name__ == "__main__":
 	#wasted_width = int(GAP_X_LEFT + GAP_X_RIGHT + (COLUMNS-1)*GAP_X_BETWEEN_PLOTS)
 	#desired_window_width = int(COLUMNS * box_dimension_x_in * scale_pixels_per_in + wasted_width)
 	SCREEN_WIDTH = 1100
-	SCREEN_HEIGHT = 600
+	SCREEN_HEIGHT = 900
 	#plots_were_updated = [ [ False for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#plot_name = [ [ "alpha" for j in range(ROWS) ] for i in range(COLUMNS) ]
 	#plot_name = [ ["pedestals(bankA)","pedestals(bankB)"], ["RAW(bankA)","RAW(bankB)"], ["pedestal subtracted(bankA)","pedestal subtracted(bankB)"] ]
