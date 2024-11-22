@@ -563,6 +563,36 @@ endmodule
 
 // --------------------------------------------------------------------------
 
+module ocyrus_single_inner #(
+	parameter BIT_RATIO = 4 // 2, 3, 4
+) (
+	input word_clock, bit_clock, bit_strobe, reset,
+	input [BIT_RATIO-1:0] word_in,
+	output bit_out
+);
+	wire [3:0] word;
+	if (BIT_RATIO==4) begin
+		assign word = word_in;
+	end else if (BIT_RATIO==3) begin
+		assign word = word_in[3:1];
+	end else if (BIT_RATIO==2) begin
+		assign word = word_in[3:2];
+	//end else begin
+		//assert
+	end
+	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
+	// want MSB of word to come out first (D1 comes out first)
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
+	         osirus_D
+	         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
+	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
+	         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(), .SHIFTOUT4(),
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+endmodule
+
 //	ocyrus_single4_inner #(.BIT_RATIO(4)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
 module ocyrus_single4_inner #(
 	parameter BIT_RATIO = 4 // how many fast_clock cycles per word_clock
@@ -571,28 +601,32 @@ module ocyrus_single4_inner #(
 	input [BIT_RATIO-1:0] word_in,
 	output bit_out
 );
-	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
-	// want MSB of word to come out first (D1 comes out first)
-	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
-	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-	         osirus_D
-	         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-	         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
-	         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(), .SHIFTOUT4(),
-	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+	ocyrus_single_inner #(.BIT_RATIO(BIT_RATIO)) OSERDES2_inst (.word_clock(word_clock), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(bit_out));
 endmodule
 
-//	ocyrus_single6_inner #(.BIT_RATIO(6)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
-module ocyrus_single6_inner #(
-	parameter PINTYPE = "p", // "p" (primary) or "n" (secondary)
-	parameter BIT_RATIO = 6 // how many fast_clock cycles per word_clock
+module ocyrus_single_cascaded_inner #(
+	parameter BIT_RATIO = 8, // 5, 6, 7, 8
+	parameter PINTYPE = "p" // "p" (primary) or "n" (secondary)
 ) (
 	input word_clock, bit_clock, bit_strobe, reset,
 	input [BIT_RATIO-1:0] word_in,
 	output bit_out
 );
+	wire [7:0] word;
+	if (BIT_RATIO==8) begin
+		assign word      = word_in;
+	end else if (BIT_RATIO==7) begin
+		assign word[6:4] = word_in[7:5];
+		assign word[3:0] = word_in[3:0];
+	end else if (BIT_RATIO==6) begin
+		assign word[5:4] = word_in[7:6];
+		assign word[3:0] = word_in[3:0];
+	end else if (BIT_RATIO==5) begin
+		assign word[4]   = word_in[7];
+		assign word[3:0] = word_in[3:0];
+	//end else begin
+		//assert
+	end
 	wire cascade_do2, cascade_to2, cascade_di2, cascade_ti2;
 	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
 	// want MSB of word to come out first (D1 comes out first; secondary oserdes goes first)
@@ -601,7 +635,7 @@ module ocyrus_single6_inner #(
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
 		         osirus_primary_D
 		         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
+		         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
 		         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2),
 		         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(),
@@ -610,7 +644,7 @@ module ocyrus_single6_inner #(
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
 		         osirus_secondary_D
 		         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[5]), .D2(word_in[4]), .D3(), .D4(),
+		         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
 		         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
 		         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
@@ -620,7 +654,7 @@ module ocyrus_single6_inner #(
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
 		         osirus_primary_D
 		         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
+		         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
 		         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2),
 		         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(),
@@ -629,12 +663,24 @@ module ocyrus_single6_inner #(
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
 		         osirus_secondary_D
 		         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[5]), .D2(word_in[4]), .D3(), .D4(),
+		         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
 		         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
 		         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
 		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	end
+endmodule
+
+//	ocyrus_single6_inner #(.BIT_RATIO(6)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
+module ocyrus_single6_inner #(
+	parameter BIT_RATIO = 6, // how many fast_clock cycles per word_clock
+	parameter PINTYPE = "p" // "p" (primary) or "n" (secondary)
+) (
+	input word_clock, bit_clock, bit_strobe, reset,
+	input [BIT_RATIO-1:0] word_in,
+	output bit_out
+);
+	ocyrus_single_cascaded_inner #(.BIT_RATIO(BIT_RATIO), .PINTYPE(PINTYPE)) OSERDES2_inst (.word_clock(word_clock), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(bit_out));
 endmodule
 
 //	ocyrus_single8_inner #(.BIT_RATIO(8)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
@@ -646,48 +692,7 @@ module ocyrus_single8_inner #(
 	input [BIT_RATIO-1:0] word_in,
 	output bit_out
 );
-	wire cascade_do2, cascade_to2, cascade_di2, cascade_ti2;
-	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
-	// want MSB of word to come out first (D1 comes out first; secondary oserdes goes first)
-	if (PINTYPE=="p") begin
-		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
-		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-		         osirus_primary_D
-		         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
-		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-		         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2),
-		         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(),
-		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
-		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-		         osirus_secondary_D
-		         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
-		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-		         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-		         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
-		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	end else begin
-		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
-		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
-		         osirus_primary_D
-		         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
-		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-		         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2),
-		         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(),
-		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
-		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
-		         osirus_secondary_D
-		         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
-		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-		         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
-		         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
-		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
-	end
+	ocyrus_single_cascaded_inner #(.BIT_RATIO(BIT_RATIO), .PINTYPE(PINTYPE)) OSERDES2_inst (.word_clock(word_clock), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(bit_out));
 endmodule
 
 module ocyrus_single8 #(
