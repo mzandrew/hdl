@@ -4,7 +4,7 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-11-08 by mza
+# last updated 2024-11-12 by mza
 
 # todo:
 # plot thresholds (pull from protodune_readout.py)
@@ -30,14 +30,14 @@ wbias_even = 1250 #  7.8 ns
 wbias_odd  = 1590 #  3.9 ns
 wbias_dual = 1130 # 12.4 to 15.4 ns (depending on timing of stimuli); but depends on above...
 wbias_bump_amount = 10
-default_expected_even_channel_trigger_width = 8
+default_expected_even_channel_trigger_width = 8 # need to re-optimize these parameters for 339 MHz
 default_expected_odd_channel_trigger_width  = 5
 default_hs_data_ss_incr = 4
-default_hs_data_capture = default_hs_data_ss_incr + 9 + 8 + 1
+default_hs_data_capture = default_hs_data_ss_incr - 2
 default_spgin = 0 # default state of hs_data stream (page 40 of schematics)
 default_scaler_timeout = 127.22e6 * gui_update_period
-default_hs_data_offset = 1
-default_hs_data_ratio = 4 # this is currently unused
+default_hs_data_offset = 4 # input capture is 128 bits, but we need 12*4 bits to get a value, so it is only meaningful to set this between 0 and 79 (128-48=80)
+default_hs_data_ratio = 3 # this is currently hardcoded in the firmware as a parameter
 default_tpg = 0xb05 # only accepts the lsb=1 after having written a 1 in that position already
 
 NUMBER_OF_STORAGE_WINDOWS_ON_ASIC = 256
@@ -600,26 +600,7 @@ def loop():
 				#gather_pedestals(1)
 			if pygame.K_ESCAPE==event.key:
 				running = False
-			elif pygame.K_b==event.key:
-				write_bootup_values()
-			elif pygame.K_1==event.key:
-				timing_register_to_control = 1
-				print("now controlling WR_SYNC")
-			elif pygame.K_2==event.key:
-				timing_register_to_control = 2
-				print("now controlling SSP_in")
-			elif pygame.K_3==event.key:
-				timing_register_to_control = 3
-				print("now controlling S1")
-			elif pygame.K_4==event.key:
-				timing_register_to_control = 4
-				print("now controlling S2")
-			elif pygame.K_5==event.key:
-				timing_register_to_control = 5
-				print("now controlling PHASE")
-			elif pygame.K_6==event.key:
-				timing_register_to_control = 6
-				print("now controlling WR_STRB")
+			# --------------------------
 			elif pygame.K_F1==event.key:
 				reprogram_fpga()
 			elif pygame.K_F2==event.key:
@@ -663,48 +644,40 @@ def loop():
 				pass
 				#DAC_to_control = 3
 				#print("now controlling DBbias")
-			elif pygame.K_c==event.key:
-				clear_channel_counters()
-			elif pygame.K_f==event.key:
-				force_register_rewrite()
+			# --------------------------
+			elif pygame.K_1==event.key:
+				timing_register_to_control = 1
+				print("now controlling WR_SYNC")
+			elif pygame.K_2==event.key:
+				timing_register_to_control = 2
+				print("now controlling SSP_in")
+			elif pygame.K_3==event.key:
+				timing_register_to_control = 3
+				print("now controlling S1")
+			elif pygame.K_4==event.key:
+				timing_register_to_control = 4
+				print("now controlling S2")
+			elif pygame.K_5==event.key:
+				timing_register_to_control = 5
+				print("now controlling PHASE")
+			elif pygame.K_6==event.key:
+				timing_register_to_control = 6
+				print("now controlling WR_STRB")
+			# --------------------------
 			elif pygame.K_q==event.key:
 				change_timing_register_LE_value(-2)
 			elif pygame.K_w==event.key:
 				change_timing_register_LE_value(+2)
-			elif pygame.K_LEFTBRACKET==event.key:
-				change_timing_register_TE_value(-2)
-			elif pygame.K_RIGHTBRACKET==event.key:
-				change_timing_register_TE_value(+2)
-			elif pygame.K_COMMA==event.key:
-				bump_thresholds(-bump_threshold_amount[trigger_gain])
-			elif pygame.K_PERIOD==event.key:
-				bump_thresholds(+bump_threshold_amount[trigger_gain])
-			elif pygame.K_u==event.key:
-				plot_trigger_memory()
-			elif pygame.K_s==event.key:
-				toggle_trigger_sign_bit()
-			elif pygame.K_a==event.key:
-				read_bank5_data()
-			elif pygame.K_g==event.key:
-				cycle_through_x1_x4_x16_trigger_gains()
-			elif pygame.K_z==event.key:
-				load_thresholds_corresponding_to_null_scaler()
 			elif pygame.K_e==event.key:
 				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
 					bump_wbias_even(-wbias_bump_amount)
 				else:
 					bump_wbias_even(+wbias_bump_amount)
-			elif pygame.K_o==event.key:
-				pygame.key.get_mods()
+			elif pygame.K_r==event.key:
 				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
-					bump_wbias_odd(-wbias_bump_amount)
+					bump_hs_data_offset(+1)
 				else:
-					bump_wbias_odd(+wbias_bump_amount)
-			elif pygame.K_d==event.key:
-				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
-					bump_wbias_dual(-wbias_bump_amount)
-				else:
-					bump_wbias_dual(+wbias_bump_amount)
+					bump_hs_data_offset(-1)
 			elif pygame.K_t==event.key:
 				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
 					bump_expected_trigger_width(+1, 0)
@@ -715,15 +688,53 @@ def loop():
 					bump_expected_trigger_width(0, +1)
 				else:
 					bump_expected_trigger_width(0, -1)
-			elif pygame.K_r==event.key:
+			elif pygame.K_u==event.key:
+				plot_trigger_memory()
+			elif pygame.K_i==event.key:
 				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
-					bump_hs_data_offset(+1)
+					bump_hs_data_capture(+1)
 				else:
-					bump_hs_data_offset(-1)
+					bump_hs_data_capture(-1)
+			elif pygame.K_o==event.key:
+				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+					bump_wbias_odd(-wbias_bump_amount)
+				else:
+					bump_wbias_odd(+wbias_bump_amount)
+			# --------------------------
+			elif pygame.K_a==event.key:
+				read_bank5_data()
+			elif pygame.K_s==event.key:
+				toggle_trigger_sign_bit()
+			elif pygame.K_d==event.key:
+				if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+					bump_wbias_dual(-wbias_bump_amount)
+				else:
+					bump_wbias_dual(+wbias_bump_amount)
+			elif pygame.K_f==event.key:
+				force_register_rewrite()
+			elif pygame.K_g==event.key:
+				cycle_through_x1_x4_x16_trigger_gains()
 			elif pygame.K_j==event.key:
 				send_signal_to_start_wilkinson_conversion()
+			# --------------------------
+			elif pygame.K_z==event.key:
+				load_thresholds_corresponding_to_null_scaler()
+			elif pygame.K_c==event.key:
+				clear_channel_counters()
+			elif pygame.K_b==event.key:
+				write_bootup_values()
 			elif pygame.K_m==event.key:
 				test_tpg_as_a_pollable_memory()
+			# --------------------------
+			elif pygame.K_LEFTBRACKET==event.key:
+				change_timing_register_TE_value(-2)
+			elif pygame.K_RIGHTBRACKET==event.key:
+				change_timing_register_TE_value(+2)
+			elif pygame.K_COMMA==event.key:
+				bump_thresholds(-bump_threshold_amount[trigger_gain])
+			elif pygame.K_PERIOD==event.key:
+				bump_thresholds(+bump_threshold_amount[trigger_gain])
+			# --------------------------
 		elif event.type == pygame.QUIT:
 			running = False
 		elif event.type == should_check_for_new_data:
@@ -829,7 +840,8 @@ def print_waveform_data(k):
 def read_bank5_data():
 	bank = 5
 	bank5_data = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 0, 512, False)
-	global waveform_data
+	#print(str(bank5_data))
+	#global waveform_data
 	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		for n in range(MAX_SAMPLES_PER_WAVEFORM):
 			waveform_data["raw_waveform"][k][n] = bank5_data[k*64+n] & 0xfff
@@ -1027,6 +1039,16 @@ def set_hs_data_values(ss_incr, capture):
 		capture = HS_MAX
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 7, [ss_incr, capture])
 
+def bump_hs_data_capture(amount):
+	bank = 0
+	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 8, 1, False)
+	capture = readback[0] + amount
+	if capture<0:
+		capture = HS_MAX
+	if HS_MAX<capture:
+		capture = 0
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 8, [capture])
+
 def set_scaler_timeout(timeout):
 	bank = 0
 	timeout = int(timeout)
@@ -1036,14 +1058,15 @@ def set_hs_data_offset_and_ratio(offset, ratio):
 	bank = 0
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 10, [offset, ratio])
 
+OFFSET_MAX = 7
 def bump_hs_data_offset(amount):
 	bank = 0
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 10, 1, False)
 	offset = readback[0] + amount
 	if offset<0:
+		offset = OFFSET_MAX
+	if OFFSET_MAX<offset:
 		offset = 0
-	if 127<offset:
-		offset = 127
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 10, [offset])
 
 def control_regulator(value=1):
@@ -1147,7 +1170,7 @@ nominal_register_values.append([164, "dualWbias01", wbias_dual]) # needs TBbias 
 nominal_register_values.append([165, "dualWbias23", wbias_dual]) # needs TBbias and ITbias
 nominal_register_values.append([166, "dualWbias45", wbias_dual]) # needs TBbias and ITbias
 nominal_register_values.append([167, "dualWbias67", wbias_dual]) # needs TBbias and ITbias
-nominal_register_values.append([168, "reg168", 0b000000000101, "spy_s2, spy_s1, spy_s0, -, OSH, spy_vs_spy, SSHSH, WR_SSEL, done_mask, trg_x1/x4, trg_x4/x16, trg_sgn"])
+nominal_register_values.append([168, "reg168", (0<<9) | (0<<7) | (0<<6) | (0<<5) | (0<<4) | (1<<3) | (1<<2) | (0<<1) | 1, "spy_s2, spy_s1, spy_s0, -, OSH, spy_vs_spy, SSHSH, WR_SSEL, done_mask, trg_x1/x4, trg_x4/x16, trg_sgn"])
 nominal_register_values.append([169, "CMPbias2", 737]) # needs SBbias and DBbias
 nominal_register_values.append([170, "PUbias", 3112]) # needs SBbias and DBbias
 nominal_register_values.append([171, "CMPbias", 1000]) # needs SBbias and DBbias
@@ -1159,7 +1182,7 @@ nominal_register_values.append([176, "VtrimT", 4090]) # needs VQbuff
 #nominal_register_values.append([177, "Qbias", 1300, "set to 0 until DLL set"]) # needs VQbuff
 nominal_register_values.append([177, "Qbias", 0, "set to 0 until DLL set"]) # needs VQbuff
 nominal_register_values.append([178, "VQbuff", 1300])
-nominal_register_values.append([179, "reg179", 0<<7 | 0<<6 | 0<<5 | 0, "nCLR_PHASE, nTime1Time2 (for swapping montiming1 and montiming2), SSTSEL, -, -, montiming select (3bit): A1, B1, A2, B2, PHASE, PHAB, SSPin, WR_STRB"])
+nominal_register_values.append([179, "reg179", (0<<7) | (0<<6) | (0<<5) | 0, "nCLR_PHASE, nTime1Time2 (for swapping montiming1 and montiming2), SSTSEL, -, -, montiming select (3bit): A1, B1, A2, B2, PHASE, PHAB, SSPin, WR_STRB"])
 nominal_register_values.append([180, "VadjP", 2700]) # needs VAPbuff
 nominal_register_values.append([181, "VAPbuff", 3500, "set to 0 for DLL mode"])
 nominal_register_values.append([182, "VadjN", 1530]) # needs VANbuff
@@ -1178,12 +1201,12 @@ nominal_register_values.append([194, "WR_STRB_LE", 95, "leading edge"])
 nominal_register_values.append([195, "WR_STRB_TE", 17, "trailing edge"])
 nominal_register_values.append([196, "SSToutFB", 110, ""])
 #nominal_register_values.append([197, "spare1", ])
-#nominal_register_values.append([198, "spart2", ])
+#nominal_register_values.append([198, "spare2", ])
 #nominal_register_values.append([199, "TPG", 0x402, "test pattern generator (12bit)"])
 nominal_register_values.append([199, "TPG", default_tpg, "test pattern generator (12bit); page 40 of schematics"])
-nominal_register_values.append([200, "LD_RD_ADDR", 1<<9 | 0, "rd_ena, read address (9bit)"])
-nominal_register_values.append([201, "LOAD_SS", 1<<11 | 0<<6 | 0, "ss_dir, -, -, channel (3bit), sample select (6bit); ss_dir=0 to load from here; then set to 1 to have it increment from there; page 46 of schematics"])
-nominal_register_values.append([202, "Jam_SS", 0<<1 | 1, "Nib ADDR (3bit), SS_ENA; page 46 of schematics"])
+nominal_register_values.append([200, "LD_RD_ADDR", (1<<9) | 0, "rd_ena, read address (9bit)"])
+nominal_register_values.append([201, "LOAD_SS", (1<<11) | (0<<6) | 0, "ss_dir, -, -, channel (3bit), sample select (6bit); set ss_dir=0 to load from here; then set ss_dir to 1 to have it increment from there; page 46 of schematics"])
+nominal_register_values.append([202, "Jam_SS", (0<<1) | 1, "Nib ADDR (3bit), SS_ENA (must be a one to enable channel select decoder); pages 41 and 46 of schematics"])
 nominal_register_values.append([252, "CLR_Sync", 1, "WR_ADDR addr mode (no data)"])
 nominal_register_values.append([253, "CatchSpy", 1, "WR_ADDR addr mode (no data)"])
 
