@@ -26,12 +26,22 @@
 
 // --------------------------------------------------------------------------
 
-module iserdes_single3_inner #(
-	parameter BIT_RATIO = 3
+module iserdes_single_inner #(
+	parameter BIT_RATIO = 4 // 2, 3, 4
 ) (
 	input reset, bit_clock, bit_strobe, word_clock, data_in,
 	output [BIT_RATIO-1:0] word_out
 );
+	wire [3:0] word;
+	if (BIT_RATIO==4) begin
+		assign word_out = word;
+	end else if (BIT_RATIO==3) begin
+		assign word_out = word[3:1];
+	end else if (BIT_RATIO==2) begin
+		assign word_out = word[3:2];
+	//end else begin
+		//assert
+	end
 	// want first bit in to be the MSB of output word (Q1 contains first bit)
 	ISERDES2 #(
 		.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
@@ -46,10 +56,10 @@ module iserdes_single3_inner #(
 		.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
 		.INCDEC(), // 1-bit output: Phase detector output
 		// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-		.Q4(), // see ug381 page 80
-		.Q3(word_out[0]),
-		.Q2(word_out[1]),
-		.Q1(word_out[2]),
+		.Q4(word[0]), // see ug381 page 80
+		.Q3(word[1]),
+		.Q2(word[2]),
+		.Q1(word[3]),
 		.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
 		.VALID(), // 1-bit output: Output status of the phase detector
 		.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
@@ -64,43 +74,168 @@ module iserdes_single3_inner #(
 	);
 endmodule
 
-//iserdes_single4_inner #(.BIT_RATIO(BIT_DEPTH)) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
+module iserdes_single3_inner #(
+	parameter BIT_RATIO = 3
+) (
+	input reset, bit_clock, bit_strobe, word_clock, data_in,
+	output [BIT_RATIO-1:0] word_out
+);
+	iserdes_single_inner #(.BIT_RATIO(BIT_RATIO)) ISERDES2_inst (.bit_clock(bit_clock), .bit_strobe(bit_strobe), .word_clock(word_clock), .reset(reset), .data_in(data_in), .word_out(word_out));
+endmodule
+
+//iserdes_single4_inner #(.BIT_RATIO(BIT_RATIO)) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
 module iserdes_single4_inner #(
 	parameter BIT_RATIO = 4
 ) (
 	input reset, bit_clock, bit_strobe, word_clock, data_in,
 	output [BIT_RATIO-1:0] word_out
 );
-	// want first bit in to be the MSB of output word (Q1 contains first bit)
-	ISERDES2 #(
-		.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
-		.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
-		.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
-		.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
-		.SERDES_MODE("NONE") // "NONE", "M*****" or "S****"
-	) ISERDES2_inst_0 (
-		.CFB0(), // 1-bit output: Clock feed-through route output
-		.CFB1(), // 1-bit output: Clock feed-through route output
-		.DFB(), // 1-bit output: Feed-through clock output
-		.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
-		.INCDEC(), // 1-bit output: Phase detector output
-		// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-		.Q4(word_out[0]), // see ug381 page 80
-		.Q3(word_out[1]),
-		.Q2(word_out[2]),
-		.Q1(word_out[3]),
-		.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
-		.VALID(), // 1-bit output: Output status of the phase detector
-		.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
-		.CE0(1'b1), // 1-bit input: Clock enable input
-		.CLK0(bit_clock), // 1-bit input: I/O clock network input
-		.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
-		.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
-		.D(data_in), // 1-bit input: Input data
-		.IOCE(bit_strobe), // 1-bit input: Data strobe input
-		.RST(reset), // 1-bit input: Asynchronous reset input
-		.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
-	);
+	iserdes_single_inner #(.BIT_RATIO(BIT_RATIO)) ISERDES2_inst (.bit_clock(bit_clock), .bit_strobe(bit_strobe), .word_clock(word_clock), .reset(reset), .data_in(data_in), .word_out(word_out));
+endmodule
+
+module iserdes_single_cascaded_inner #(
+	parameter BIT_RATIO = 8, // 5, 6, 7, 8
+	parameter PINTYPE = "p"
+) (
+	input reset, bit_clock, bit_strobe, word_clock, data_in,
+	output [BIT_RATIO-1:0] word_out
+);
+	wire [7:0] word;
+	if (BIT_RATIO==8) begin
+		assign word_out = word;
+	end else if (BIT_RATIO==7) begin
+		assign word_out[6:4] = word[7:5];
+		assign word_out[3:0] = word[3:0];
+	end else if (BIT_RATIO==6) begin
+		assign word_out[5:4] = word[7:6];
+		assign word_out[3:0] = word[3:0];
+	end else if (BIT_RATIO==5) begin
+		assign word_out[4] = word[7];
+		assign word_out[3:0] = word[3:0];
+	//end else begin
+		//assert
+	end
+	wire cascade;
+	// want first bit in to be the MSB of output word (Q1 contains first bit; secondary iserdes outputs first nybble)
+	if (PINTYPE=="p") begin
+		ISERDES2 #(
+			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
+			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
+			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
+			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
+			.SERDES_MODE("MASTER") // "NONE", "M*****" or "S****"
+		) ISERDES2_inst_0 (
+			.CFB0(), // 1-bit output: Clock feed-through route output
+			.CFB1(), // 1-bit output: Clock feed-through route output
+			.DFB(), // 1-bit output: Feed-through clock output
+			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
+			.INCDEC(), // 1-bit output: Phase detector output
+			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
+			.Q4(word[0]), // see ug381 page 80
+			.Q3(word[1]),
+			.Q2(word[2]),
+			.Q1(word[3]),
+			.SHIFTOUT(cascade), // 1-bit output: Cascade output signal for primary/secondary I/O
+			.VALID(), // 1-bit output: Output status of the phase detector
+			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
+			.CE0(1'b1), // 1-bit input: Clock enable input
+			.CLK0(bit_clock), // 1-bit input: I/O clock network input
+			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
+			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
+			.D(data_in), // 1-bit input: Input data
+			.IOCE(bit_strobe), // 1-bit input: Data strobe input
+			.RST(reset), // 1-bit input: Asynchronous reset input
+			.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
+		);
+		ISERDES2 #(
+			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
+			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
+			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
+			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
+			.SERDES_MODE("SLAVE") // "NONE", "M*****" or "S****"
+		) ISERDES2_inst_1 (
+			.CFB0(), // 1-bit output: Clock feed-through route output
+			.CFB1(), // 1-bit output: Clock feed-through route output
+			.DFB(), // 1-bit output: Feed-through clock output
+			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
+			.INCDEC(), // 1-bit output: Phase detector output
+			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
+			.Q4(word[4]), // see ug381 page 80
+			.Q3(word[5]),
+			.Q2(word[6]),
+			.Q1(word[7]),
+			.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
+			.VALID(), // 1-bit output: Output status of the phase detector
+			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
+			.CE0(1'b1), // 1-bit input: Clock enable input
+			.CLK0(bit_clock), // 1-bit input: I/O clock network input
+			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
+			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
+			.D(data_in), // 1-bit input: Input data
+			.IOCE(bit_strobe), // 1-bit input: Data strobe input
+			.RST(reset), // 1-bit input: Asynchronous reset input
+			.SHIFTIN(cascade) // 1-bit input: Cascade input signal for primary/secondary I/O
+		);
+	end else begin // not sure what needs to change here (if anything) for the "n" type...
+		ISERDES2 #(
+			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
+			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
+			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
+			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
+			.SERDES_MODE("MASTER") // "NONE", "M*****" or "S****"
+		) ISERDES2_inst_0 (
+			.CFB0(), // 1-bit output: Clock feed-through route output
+			.CFB1(), // 1-bit output: Clock feed-through route output
+			.DFB(), // 1-bit output: Feed-through clock output
+			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
+			.INCDEC(), // 1-bit output: Phase detector output
+			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
+			.Q4(word[0]), // see ug381 page 80
+			.Q3(word[1]),
+			.Q2(word[2]),
+			.Q1(word[3]),
+			.SHIFTOUT(cascade), // 1-bit output: Cascade output signal for primary/secondary I/O
+			.VALID(), // 1-bit output: Output status of the phase detector
+			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
+			.CE0(1'b1), // 1-bit input: Clock enable input
+			.CLK0(bit_clock), // 1-bit input: I/O clock network input
+			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
+			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
+			.D(data_in), // 1-bit input: Input data
+			.IOCE(bit_strobe), // 1-bit input: Data strobe input
+			.RST(reset), // 1-bit input: Asynchronous reset input
+			.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
+		);
+		ISERDES2 #(
+			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
+			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
+			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
+			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
+			.SERDES_MODE("SLAVE") // "NONE", "M*****" or "S****"
+		) ISERDES2_inst_1 (
+			.CFB0(), // 1-bit output: Clock feed-through route output
+			.CFB1(), // 1-bit output: Clock feed-through route output
+			.DFB(), // 1-bit output: Feed-through clock output
+			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
+			.INCDEC(), // 1-bit output: Phase detector output
+			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
+			.Q4(word[4]), // see ug381 page 80
+			.Q3(word[5]),
+			.Q2(word[6]),
+			.Q1(word[7]),
+			.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
+			.VALID(), // 1-bit output: Output status of the phase detector
+			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
+			.CE0(1'b1), // 1-bit input: Clock enable input
+			.CLK0(bit_clock), // 1-bit input: I/O clock network input
+			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
+			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
+			.D(data_in), // 1-bit input: Input data
+			.IOCE(bit_strobe), // 1-bit input: Data strobe input
+			.RST(reset), // 1-bit input: Asynchronous reset input
+			.SHIFTIN(cascade) // 1-bit input: Cascade input signal for primary/secondary I/O
+		);
+	end
 endmodule
 
 module iserdes_single6_inner #(
@@ -110,127 +245,7 @@ module iserdes_single6_inner #(
 	input reset, bit_clock, bit_strobe, word_clock, data_in,
 	output [BIT_RATIO-1:0] word_out
 );
-	wire cascade;
-	// want first bit in to be the MSB of output word (Q1 contains first bit; secondary iserdes outputs first nybble)
-	if (PINTYPE=="p") begin
-		ISERDES2 #(
-			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
-			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
-			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
-			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
-			.SERDES_MODE("MASTER") // "NONE", "M*****" or "S****"
-		) ISERDES2_inst_0 (
-			.CFB0(), // 1-bit output: Clock feed-through route output
-			.CFB1(), // 1-bit output: Clock feed-through route output
-			.DFB(), // 1-bit output: Feed-through clock output
-			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
-			.INCDEC(), // 1-bit output: Phase detector output
-			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(word_out[0]), // see ug381 page 80
-			.Q3(word_out[1]),
-			.Q2(word_out[2]),
-			.Q1(word_out[3]),
-			.SHIFTOUT(cascade), // 1-bit output: Cascade output signal for primary/secondary I/O
-			.VALID(), // 1-bit output: Output status of the phase detector
-			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
-			.CE0(1'b1), // 1-bit input: Clock enable input
-			.CLK0(bit_clock), // 1-bit input: I/O clock network input
-			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
-			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
-			.D(data_in), // 1-bit input: Input data
-			.IOCE(bit_strobe), // 1-bit input: Data strobe input
-			.RST(reset), // 1-bit input: Asynchronous reset input
-			.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
-		);
-		ISERDES2 #(
-			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
-			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
-			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
-			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
-			.SERDES_MODE("SLAVE") // "NONE", "M*****" or "S****"
-		) ISERDES2_inst_1 (
-			.CFB0(), // 1-bit output: Clock feed-through route output
-			.CFB1(), // 1-bit output: Clock feed-through route output
-			.DFB(), // 1-bit output: Feed-through clock output
-			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
-			.INCDEC(), // 1-bit output: Phase detector output
-			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(), // see ug381 page 80
-			.Q3(),
-			.Q2(word_out[4]),
-			.Q1(word_out[5]),
-			.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
-			.VALID(), // 1-bit output: Output status of the phase detector
-			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
-			.CE0(1'b1), // 1-bit input: Clock enable input
-			.CLK0(bit_clock), // 1-bit input: I/O clock network input
-			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
-			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
-			.D(data_in), // 1-bit input: Input data
-			.IOCE(bit_strobe), // 1-bit input: Data strobe input
-			.RST(reset), // 1-bit input: Asynchronous reset input
-			.SHIFTIN(cascade) // 1-bit input: Cascade input signal for primary/secondary I/O
-		);
-	end else begin // not sure what needs to change here (if anything) for the "n" type...
-		ISERDES2 #(
-			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
-			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
-			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
-			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
-			.SERDES_MODE("MASTER") // "NONE", "M*****" or "S****"
-		) ISERDES2_inst_0 (
-			.CFB0(), // 1-bit output: Clock feed-through route output
-			.CFB1(), // 1-bit output: Clock feed-through route output
-			.DFB(), // 1-bit output: Feed-through clock output
-			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
-			.INCDEC(), // 1-bit output: Phase detector output
-			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(word_out[0]), // see ug381 page 80
-			.Q3(word_out[1]),
-			.Q2(word_out[2]),
-			.Q1(word_out[3]),
-			.SHIFTOUT(cascade), // 1-bit output: Cascade output signal for primary/secondary I/O
-			.VALID(), // 1-bit output: Output status of the phase detector
-			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
-			.CE0(1'b1), // 1-bit input: Clock enable input
-			.CLK0(bit_clock), // 1-bit input: I/O clock network input
-			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
-			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
-			.D(data_in), // 1-bit input: Input data
-			.IOCE(bit_strobe), // 1-bit input: Data strobe input
-			.RST(reset), // 1-bit input: Asynchronous reset input
-			.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
-		);
-		ISERDES2 #(
-			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
-			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
-			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
-			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
-			.SERDES_MODE("SLAVE") // "NONE", "M*****" or "S****"
-		) ISERDES2_inst_1 (
-			.CFB0(), // 1-bit output: Clock feed-through route output
-			.CFB1(), // 1-bit output: Clock feed-through route output
-			.DFB(), // 1-bit output: Feed-through clock output
-			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
-			.INCDEC(), // 1-bit output: Phase detector output
-			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(), // see ug381 page 80
-			.Q3(),
-			.Q2(word_out[4]),
-			.Q1(word_out[5]),
-			.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
-			.VALID(), // 1-bit output: Output status of the phase detector
-			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
-			.CE0(1'b1), // 1-bit input: Clock enable input
-			.CLK0(bit_clock), // 1-bit input: I/O clock network input
-			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
-			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
-			.D(data_in), // 1-bit input: Input data
-			.IOCE(bit_strobe), // 1-bit input: Data strobe input
-			.RST(reset), // 1-bit input: Asynchronous reset input
-			.SHIFTIN(cascade) // 1-bit input: Cascade input signal for primary/secondary I/O
-		);
-	end
+	iserdes_single_cascaded_inner #(.BIT_RATIO(BIT_RATIO), .PINTYPE("p")) ISERDES2_inst (.bit_clock(bit_clock), .bit_strobe(bit_strobe), .word_clock(word_clock), .reset(reset), .data_in(data_in), .word_out(word_out));
 endmodule
 
 module iserdes_single8_inner #(
@@ -240,127 +255,7 @@ module iserdes_single8_inner #(
 	input reset, bit_clock, bit_strobe, word_clock, data_in,
 	output [BIT_RATIO-1:0] word_out
 );
-	wire cascade;
-	// want first bit in to be the MSB of output word (Q1 contains first bit; secondary iserdes outputs first nybble)
-	if (PINTYPE=="p") begin
-		ISERDES2 #(
-			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
-			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
-			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
-			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
-			.SERDES_MODE("MASTER") // "NONE", "M*****" or "S****"
-		) ISERDES2_inst_0 (
-			.CFB0(), // 1-bit output: Clock feed-through route output
-			.CFB1(), // 1-bit output: Clock feed-through route output
-			.DFB(), // 1-bit output: Feed-through clock output
-			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
-			.INCDEC(), // 1-bit output: Phase detector output
-			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(word_out[0]), // see ug381 page 80
-			.Q3(word_out[1]),
-			.Q2(word_out[2]),
-			.Q1(word_out[3]),
-			.SHIFTOUT(cascade), // 1-bit output: Cascade output signal for primary/secondary I/O
-			.VALID(), // 1-bit output: Output status of the phase detector
-			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
-			.CE0(1'b1), // 1-bit input: Clock enable input
-			.CLK0(bit_clock), // 1-bit input: I/O clock network input
-			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
-			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
-			.D(data_in), // 1-bit input: Input data
-			.IOCE(bit_strobe), // 1-bit input: Data strobe input
-			.RST(reset), // 1-bit input: Asynchronous reset input
-			.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
-		);
-		ISERDES2 #(
-			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
-			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
-			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
-			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
-			.SERDES_MODE("SLAVE") // "NONE", "M*****" or "S****"
-		) ISERDES2_inst_1 (
-			.CFB0(), // 1-bit output: Clock feed-through route output
-			.CFB1(), // 1-bit output: Clock feed-through route output
-			.DFB(), // 1-bit output: Feed-through clock output
-			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
-			.INCDEC(), // 1-bit output: Phase detector output
-			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(word_out[4]), // see ug381 page 80
-			.Q3(word_out[5]),
-			.Q2(word_out[6]),
-			.Q1(word_out[7]),
-			.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
-			.VALID(), // 1-bit output: Output status of the phase detector
-			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
-			.CE0(1'b1), // 1-bit input: Clock enable input
-			.CLK0(bit_clock), // 1-bit input: I/O clock network input
-			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
-			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
-			.D(data_in), // 1-bit input: Input data
-			.IOCE(bit_strobe), // 1-bit input: Data strobe input
-			.RST(reset), // 1-bit input: Asynchronous reset input
-			.SHIFTIN(cascade) // 1-bit input: Cascade input signal for primary/secondary I/O
-		);
-	end else begin // not sure what needs to change here (if anything) for the "n" type...
-		ISERDES2 #(
-			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
-			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
-			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
-			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
-			.SERDES_MODE("MASTER") // "NONE", "M*****" or "S****"
-		) ISERDES2_inst_0 (
-			.CFB0(), // 1-bit output: Clock feed-through route output
-			.CFB1(), // 1-bit output: Clock feed-through route output
-			.DFB(), // 1-bit output: Feed-through clock output
-			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
-			.INCDEC(), // 1-bit output: Phase detector output
-			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(word_out[0]), // see ug381 page 80
-			.Q3(word_out[1]),
-			.Q2(word_out[2]),
-			.Q1(word_out[3]),
-			.SHIFTOUT(cascade), // 1-bit output: Cascade output signal for primary/secondary I/O
-			.VALID(), // 1-bit output: Output status of the phase detector
-			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
-			.CE0(1'b1), // 1-bit input: Clock enable input
-			.CLK0(bit_clock), // 1-bit input: I/O clock network input
-			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
-			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
-			.D(data_in), // 1-bit input: Input data
-			.IOCE(bit_strobe), // 1-bit input: Data strobe input
-			.RST(reset), // 1-bit input: Asynchronous reset input
-			.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
-		);
-		ISERDES2 #(
-			.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
-			.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
-			.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
-			.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
-			.SERDES_MODE("SLAVE") // "NONE", "M*****" or "S****"
-		) ISERDES2_inst_1 (
-			.CFB0(), // 1-bit output: Clock feed-through route output
-			.CFB1(), // 1-bit output: Clock feed-through route output
-			.DFB(), // 1-bit output: Feed-through clock output
-			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
-			.INCDEC(), // 1-bit output: Phase detector output
-			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(word_out[4]), // see ug381 page 80
-			.Q3(word_out[5]),
-			.Q2(word_out[6]),
-			.Q1(word_out[7]),
-			.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
-			.VALID(), // 1-bit output: Output status of the phase detector
-			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
-			.CE0(1'b1), // 1-bit input: Clock enable input
-			.CLK0(bit_clock), // 1-bit input: I/O clock network input
-			.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
-			.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
-			.D(data_in), // 1-bit input: Input data
-			.IOCE(bit_strobe), // 1-bit input: Data strobe input
-			.RST(reset), // 1-bit input: Asynchronous reset input
-			.SHIFTIN(cascade) // 1-bit input: Cascade input signal for primary/secondary I/O
-		);
-	end
+	iserdes_single_cascaded_inner #(.BIT_RATIO(BIT_RATIO), .PINTYPE("p")) ISERDES2_inst (.bit_clock(bit_clock), .bit_strobe(bit_strobe), .word_clock(word_clock), .reset(reset), .data_in(data_in), .word_out(word_out));
 endmodule
 
 module iserdes_single4 #(

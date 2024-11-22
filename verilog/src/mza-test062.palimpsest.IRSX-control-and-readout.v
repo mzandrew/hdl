@@ -48,9 +48,9 @@ module IRSXtest #(
 	parameter TRG_BIT_DEPTH = 4,
 	parameter TRG_WORD_CLK_DIVIDE = SST_CLK_DIVIDE, // 1017/48 = 21 MHz
 	parameter TRG_BIT_CLK_DIVIDE = TRG_WORD_CLK_DIVIDE / TRG_BIT_DEPTH, // 1017/12 = 84.814583 MHz
-	parameter HS_BIT_CLK_DIVIDE = 2, // hs_bit_clk_raw: 1017/1 = 1017 MHz
+	parameter HS_BIT_CLK_DIVIDE = 1, // hs_bit_clk_raw: 1017/1 = 1017 MHz
 	//parameter HS_DAT_BIT_DEPTH = EYE_DIAGRAM_CAPTURE_POINTS + 1, // 3 or 6 (needs approprate gearboxen)
-	parameter HS_DAT_BIT_DEPTH = 6,
+	parameter HS_DAT_BIT_DEPTH = 7,
 	parameter HS_WORD_CLK_DIVIDE = HS_BIT_CLK_DIVIDE * HS_DAT_BIT_DEPTH, // hs_clk: 1017/8 = 127 MHz; 1017/6 = 169 MHz; 1017/4 = 254 MHz; 1017/3 = 339 MHz (BRAM can only do 320 MHz on a spartan6...)
 	parameter GCC_BIT_DEPTH = 4,
 	parameter GCC_BIT_CLK_DIVIDE = 1, // 1017/1 = 1017 MHz
@@ -353,8 +353,11 @@ module IRSXtest #(
 	assign bank1[1] = number_of_register_transactions;
 	assign bank1[2] = number_of_readback_errors;
 	assign bank1[3][19:0] = last_erroneous_readback; assign bank1[3][31:20] = 0;
-	if (HS_DAT_BIT_DEPTH==8 || HS_DAT_BIT_DEPTH==6) begin
+	if (5<HS_DAT_BIT_DEPTH && HS_DAT_BIT_DEPTH<9) begin
 		assign bank1[4]       = buffered_hs_data_stream[127:96];
+		assign bank1[5]       = buffered_hs_data_stream[95:64];
+	end else if (HS_DAT_BIT_DEPTH==5) begin
+		assign bank1[4][28:0] = buffered_hs_data_stream[124:96]; assign bank1[4][31:29] = 0;
 		assign bank1[5]       = buffered_hs_data_stream[95:64];
 	end else if (HS_DAT_BIT_DEPTH==4) begin
 		assign bank1[4][3:0]  = buffered_hs_data_stream[99:96]; assign bank1[4][31:4] = 0;
