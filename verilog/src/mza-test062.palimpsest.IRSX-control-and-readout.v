@@ -471,7 +471,7 @@ module IRSXtest #(
 	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c2_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c2), .out2(c2_wc));
 	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c3_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c3), .out2(c3_wc));
 	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c4_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c4), .out2(c4_wc));
-	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) _word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c5), .out2(c5_wc));
+	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c5_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c5), .out2(c5_wc));
 	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c6_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c6), .out2(c6_wc));
 	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c7_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c7), .out2(c7_wc));
 	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc0_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc0), .out2(sc0_wc));
