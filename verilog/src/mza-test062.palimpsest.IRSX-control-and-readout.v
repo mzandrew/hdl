@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-11-21 by mza
+// last updated 2024-11-22 by mza
 
 // WARNING:Xst:638 - in unit altheaIRSXtest Conflict on KEEP property on signal IRSXtest/reset127_wait4pll/pipesync/cdc and IRSXtest/status12_copy/async_cdc<2> IRSXtest/status12_copy/async_cdc<2> signal will be lost.
 // filtered Xst:1710 "FF/Latch riwri_bank1/mem_0_370 (without init value) has a constant value of 0 in block altheaIRSXtest. This FF/Latch will be trimmed during the optimization process."
@@ -22,8 +22,6 @@
 module IRSXtest #(
 	parameter TESTBENCH = 0,
 	parameter NUMBER_OF_CHANNELS = 8,
-	parameter TRIGSTREAM_LENGTH = 50,
-	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH) - 1,
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
 	// ----------------------------------------------------------------------
@@ -59,6 +57,7 @@ module IRSXtest #(
 	parameter HS_CLK_OSERDES_MODE = 0, // ODDR mode otherwise
 	parameter LOG2_OF_HS_DAT_BIT_DEPTH = $clog2(HS_DAT_BIT_DEPTH),
 	parameter HS_DATA_INTENDED_NUMBER_OF_BITS = 24, // this is 12 bits for the real data and 12 bits for the test pattern generator (tpg)
+	parameter LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH = 5, // 2**5 = 32
 	// ----------------------------------------------------------------------
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
@@ -137,12 +136,12 @@ module IRSXtest #(
 	// this is aligned to the accelerator clock and should have low jitter
 	// need an ODDR pair for this (2 clocks total)
 	wire sstclk_raw, sstclk180_raw, sstclk, sstclk180;
-	wire regen_copy_on_sstclk;
+//	wire regen_copy_on_sstclk;
 	BUFG sstraw (.I(sstclk_raw), .O(sstclk));
 	BUFG sst180 (.I(sstclk180_raw), .O(sstclk180));
 	//reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetsst_wait4pll (.reset1_input(reset_word), .pll_locked1_input(all_plls_locked_word), .clock1_input(word_clock), .clock2_input(sstclk), .reset2_output(reset_sst));
-	pipeline_synchronizer regen_copy_sstclk (.clock1(word_clock), .clock2(sstclk), .in1(regen), .out2(regen_copy_on_sstclk));
-	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk), .clock_in_n(sstclk180), .clock_enable(regen_copy_on_sstclk), .clock_out_p(sstclk_p), .clock_out_n(sstclk_n));
+//	pipeline_synchronizer regen_copy_sstclk (.clock1(word_clock), .clock2(sstclk), .in1(regen), .out2(regen_copy_on_sstclk));
+	clock_ODDR_out_diff sstclk_ODDR  (.clock_in_p(sstclk), .clock_in_n(sstclk180), .clock_enable(1'b1), .clock_out_p(sstclk_p), .clock_out_n(sstclk_n));
 	// ----------------------------------------------------------------------
 	// WR is the clock feeding new write addresses to the IRSX to direct the storage of analog samples
 	// each bit we give out for the WR_DAT needs a corresponding clock
@@ -162,11 +161,11 @@ module IRSXtest #(
 	// GCC is the Gray code clock for doing the duration timer part of the wilkinson conversion in the IRSX
 	// need an ODDR pair for this (2 clocks total)
 	wire gcc_clk_raw, gcc_clk180_raw, gcc_clk, gcc_clk180, reset_gcc;
-	wire regen_copy_on_gcc_clk;
+//	wire regen_copy_on_gcc_clk;
 	BUFG gccraw (.I(gcc_clk_raw), .O(gcc_clk));
 	BUFG gcc180 (.I(gcc_clk180_raw), .O(gcc_clk180));
-	pipeline_synchronizer regen_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .in1(regen), .out2(regen_copy_on_gcc_clk));
-	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .clock_enable(regen_copy_on_gcc_clk), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
+//	pipeline_synchronizer regen_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .in1(regen), .out2(regen_copy_on_gcc_clk));
+	clock_ODDR_out_diff gcc_clk_ODDR (.clock_in_p(gcc_clk), .clock_in_n(gcc_clk180), .clock_enable(1'b1), .clock_out_p(gcc_clk_p), .clock_out_n(gcc_clk_n));
 	wire should_start_wilkinson_conversion_now;
 	wire should_start_wilkinson_conversion_now_copy_on_gcc_clk;
 	pipeline_synchronizer should_start_wilkinson_conversion_now_copy_gcc_clk (.clock1(word_clock), .clock2(gcc_clk), .in1(should_start_wilkinson_conversion_now), .out2(should_start_wilkinson_conversion_now_copy_on_gcc_clk));
@@ -215,6 +214,7 @@ module IRSXtest #(
 	wire [3:0] trg_inversion_mask;
 	wire trg0123 = trg_inversion_mask[0] ^ trg01 || trg_inversion_mask[1] ^ trg23;
 	wire trg4567 = trg_inversion_mask[2] ^ trg45 || trg_inversion_mask[3] ^ trg67;
+	wire trgall = trg0123 || trg4567;
 	wire trg_pll_is_locked_and_strobe_is_aligned1, trg_pll_is_locked_and_strobe_is_aligned2;
 	wire trg_bit_clock1_raw, trg_bit_clock1;
 	wire trg_bit_clock2_raw, trg_bit_clock2;
@@ -322,9 +322,9 @@ module IRSXtest #(
 	wire [7:0] max_retries = bank0[1][7:0];
 	wire verify_with_shout = bank0[2][0];
 	assign spgin = bank0[3][0];
-	assign trg_inversion_mask = bank0[4][3:0];
-	wire [LOG2_OF_TRIGSTREAM_LENGTH:0] even_channel_trigger_width = bank0[5][LOG2_OF_TRIGSTREAM_LENGTH:0];
-	wire [LOG2_OF_TRIGSTREAM_LENGTH:0] odd_channel_trigger_width  = bank0[6][LOG2_OF_TRIGSTREAM_LENGTH:0];
+	assign trg_inversion_mask = bank0[4][3:0]; // should be 0xc because the trg45 p/n pair is swapped on the PCB (also trg67)
+	wire [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] dual_channel_trigger_width = bank0[5][LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0];
+	wire [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] even_channel_trigger_width = bank0[6][LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0];
 	wire [4:0] hs_data_ss_incr = bank0[7][4:0];
 	wire [4:0] hs_data_capture = bank0[8][4:0];
 	wire [31:0] timeout = bank0[9];
@@ -422,40 +422,66 @@ module IRSXtest #(
 		.hs_data_word_decimated(hs_data_word_decimated));
 	// ----------------------------------------------------------------------
 	wire [31:0] bank6 [15:0]; // counter and scalers
-	wire scaler_valid;
+	wire scaler_valid, scaler_valid_copy_on_word_clock;
+	pipeline_synchronizer scaler_valid_copy_on_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(scaler_valid), .out2(scaler_valid_copy_on_word_clock));
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank6 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[6]),
 		.data_in_b_0(bank6[0]),  .data_in_b_1(bank6[1]),  .data_in_b_2(bank6[2]),  .data_in_b_3(bank6[3]),
 		.data_in_b_4(bank6[4]),  .data_in_b_5(bank6[5]),  .data_in_b_6(bank6[6]),  .data_in_b_7(bank6[7]),
 		.data_in_b_8(bank6[8]),  .data_in_b_9(bank6[9]),  .data_in_b_a(bank6[10]), .data_in_b_b(bank6[11]),
 		.data_in_b_c(bank6[12]), .data_in_b_d(bank6[13]), .data_in_b_e(bank6[14]), .data_in_b_f(bank6[15]),
-		.write_strobe_b(scaler_valid));
+		.write_strobe_b(scaler_valid_copy_on_word_clock));
 	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
+	wire [COUNTER_WIDTH-1:0] c0_wc, c1_wc, c2_wc, c3_wc, c4_wc, c5_wc, c6_wc, c7_wc;
 	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
-	assign bank6[0][COUNTER_WIDTH-1:0] = c0;
-	assign bank6[1][COUNTER_WIDTH-1:0] = c1;
-	assign bank6[2][COUNTER_WIDTH-1:0] = c2;
-	assign bank6[3][COUNTER_WIDTH-1:0] = c3;
-	assign bank6[4][COUNTER_WIDTH-1:0] = c4;
-	assign bank6[5][COUNTER_WIDTH-1:0] = c5;
-	assign bank6[6][COUNTER_WIDTH-1:0] = c6;
-	assign bank6[7][COUNTER_WIDTH-1:0] = c7;
-	assign bank6[8][SCALER_WIDTH-1:0]  = sc0; assign bank6[8][31:SCALER_WIDTH]  = 0;
-	assign bank6[9][SCALER_WIDTH-1:0]  = sc1; assign bank6[9][31:SCALER_WIDTH]  = 0;
-	assign bank6[10][SCALER_WIDTH-1:0] = sc2; assign bank6[10][31:SCALER_WIDTH] = 0;
-	assign bank6[11][SCALER_WIDTH-1:0] = sc3; assign bank6[11][31:SCALER_WIDTH] = 0;
-	assign bank6[12][SCALER_WIDTH-1:0] = sc4; assign bank6[12][31:SCALER_WIDTH] = 0;
-	assign bank6[13][SCALER_WIDTH-1:0] = sc5; assign bank6[13][31:SCALER_WIDTH] = 0;
-	assign bank6[14][SCALER_WIDTH-1:0] = sc6; assign bank6[14][31:SCALER_WIDTH] = 0;
-	assign bank6[15][SCALER_WIDTH-1:0] = sc7; assign bank6[15][31:SCALER_WIDTH] = 0;
-	irsx_scaler_counter_dual_trigger_interface #(.ISERDES_WIDTH(TRG_BIT_DEPTH), .TRIGSTREAM_LENGTH(TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) irsx_scaler_counter (
-		.clock(word_clock), .reset(reset_word), .clear_channel_counters(clear_channel_counters), .timeout(timeout), .scaler_valid(scaler_valid),
+	wire [SCALER_WIDTH-1:0] sc0_wc, sc1_wc, sc2_wc, sc3_wc, sc4_wc, sc5_wc, sc6_wc, sc7_wc;
+	assign bank6[0][COUNTER_WIDTH-1:0] = c0_wc;
+	assign bank6[1][COUNTER_WIDTH-1:0] = c1_wc;
+	assign bank6[2][COUNTER_WIDTH-1:0] = c2_wc;
+	assign bank6[3][COUNTER_WIDTH-1:0] = c3_wc;
+	assign bank6[4][COUNTER_WIDTH-1:0] = c4_wc;
+	assign bank6[5][COUNTER_WIDTH-1:0] = c5_wc;
+	assign bank6[6][COUNTER_WIDTH-1:0] = c6_wc;
+	assign bank6[7][COUNTER_WIDTH-1:0] = c7_wc;
+	assign bank6[8][SCALER_WIDTH-1:0]  = sc0_wc; assign bank6[8][31:SCALER_WIDTH]  = 0;
+	assign bank6[9][SCALER_WIDTH-1:0]  = sc1_wc; assign bank6[9][31:SCALER_WIDTH]  = 0;
+	assign bank6[10][SCALER_WIDTH-1:0] = sc2_wc; assign bank6[10][31:SCALER_WIDTH] = 0;
+	assign bank6[11][SCALER_WIDTH-1:0] = sc3_wc; assign bank6[11][31:SCALER_WIDTH] = 0;
+	assign bank6[12][SCALER_WIDTH-1:0] = sc4_wc; assign bank6[12][31:SCALER_WIDTH] = 0;
+	assign bank6[13][SCALER_WIDTH-1:0] = sc5_wc; assign bank6[13][31:SCALER_WIDTH] = 0;
+	assign bank6[14][SCALER_WIDTH-1:0] = sc6_wc; assign bank6[14][31:SCALER_WIDTH] = 0;
+	assign bank6[15][SCALER_WIDTH-1:0] = sc7_wc; assign bank6[15][31:SCALER_WIDTH] = 0;
+	wire [31:0] timeout_copy_on_trg_word_clock;
+	wire clear_channel_counters_copy_on_trg_word_clock;
+	wire [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] even_channel_trigger_width_copy_on_trg_word_clock, dual_channel_trigger_width_copy_on_trg_word_clock;
+	pipeline_synchronizer #(.WIDTH(32)) timeout_copy_on_trg_word_clock_sync (.clock1(word_clock), .clock2(trg_word_clock), .in1(timeout), .out2(timeout_copy_on_trg_word_clock));
+	pipeline_synchronizer clear_channel_counters_copy_on_trg_word_clock_sync (.clock1(word_clock), .clock2(trg_word_clock), .in1(clear_channel_counters), .out2(clear_channel_counters_copy_on_trg_word_clock));
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH)) even_channel_trigger_width_copy_on_trg_word_clock_sync (.clock1(word_clock), .clock2(trg_word_clock), .in1(even_channel_trigger_width), .out2(even_channel_trigger_width_copy_on_trg_word_clock));
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH)) dual_channel_trigger_width_copy_on_trg_word_clock_sync (.clock1(word_clock), .clock2(trg_word_clock), .in1(dual_channel_trigger_width), .out2(dual_channel_trigger_width_copy_on_trg_word_clock));
+	irsx_scaler_counter_dual_trigger_interface #(.ISERDES_WIDTH(TRG_BIT_DEPTH), .LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH(LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) irsx_scaler_counter (
+		.clock(trg_word_clock), .reset(trg_reset), .clear_channel_counters(clear_channel_counters_copy_on_trg_word_clock), .timeout(timeout_copy_on_trg_word_clock), .scaler_valid(scaler_valid),
 //		.trigin0(trig01), .trigin1(trig23), .trigin2(trig45), .trigin3(trig67),
 		.iserdes_word_in0(trg01_word), .iserdes_word_in1(trg23_word), .iserdes_word_in2(trg45_word), .iserdes_word_in3(trg67_word),
-		.odd_channel_trigger_width(odd_channel_trigger_width), .even_channel_trigger_width(even_channel_trigger_width),
+		.even_channel_trigger_width(even_channel_trigger_width_copy_on_trg_word_clock), .dual_channel_trigger_width(dual_channel_trigger_width_copy_on_trg_word_clock),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
 		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
 		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
+	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c0_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c0), .out2(c0_wc));
+	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c1_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c1), .out2(c1_wc));
+	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c2_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c2), .out2(c2_wc));
+	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c3_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c3), .out2(c3_wc));
+	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c4_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c4), .out2(c4_wc));
+	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) _word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c5), .out2(c5_wc));
+	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c6_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c6), .out2(c6_wc));
+	pipeline_synchronizer #(.WIDTH(COUNTER_WIDTH)) c7_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(c7), .out2(c7_wc));
+	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc0_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc0), .out2(sc0_wc));
+	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc1_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc1), .out2(sc1_wc));
+	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc2_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc2), .out2(sc2_wc));
+	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc3_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc3), .out2(sc3_wc));
+	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc4_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc4), .out2(sc4_wc));
+	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc5_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc5), .out2(sc5_wc));
+	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc6_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc6), .out2(sc6_wc));
+	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc7_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc7), .out2(sc7_wc));
 	// ----------------------------------------------------------------------
 	// bank7 is the register interface
 	irsx_register_interface irsx_reg (.clock(word_clock), .reset(reset_word),
@@ -492,10 +518,10 @@ module IRSXtest #(
 		assign coax[1] = 0;//oddr_double_period;
 		assign coax[2] = montiming2;
 		assign coax[3] = montiming1;
-	end else if (0) begin // for tuning wbiases and capture parameters
-		assign coax[0] = t0;
-		assign coax[1] = t1;
-		assign coax[2] = trg0123;
+	end else if (1) begin // for tuning wbiases and trg capture parameters
+		assign coax[0] = t4;
+		assign coax[1] = t5;
+		assign coax[2] = trg45;//trg0123;
 		assign coax[3] = trg4567;
 	end else if (1) begin // to tune parameters to capture hs_data out
 		assign coax[0] = 0;
@@ -517,8 +543,10 @@ module IRSXtest #(
 	end
 	//assign coax[4] = shout;
 	//assign coax[5] = sclk;
-	assign coax[4] = convert;
-	assign coax[5] = done_out;
+	clock_ODDR_out sstclk_ODDR_second_copy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180), .clock_enable(1'b1), .clock_out(coax[4]));
+	assign coax[5] = trgall;
+//	assign coax[4] = convert;
+//	assign coax[5] = done_out;
 	// ----------------------------------------------------------------------
 	assign pll_status8[7] = first_pll_locked;
 	assign pll_status8[6] = second_pll_locked;

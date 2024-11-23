@@ -1,6 +1,6 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2024-10-28 by mza
+// last updated 2024-11-22 by mza
 
 `ifndef PLLDCM_LIB
 `define PLLDCM_LIB
@@ -233,9 +233,7 @@ module simplepll_BASE #(
 		.CLKOUT5_DIVIDE(DIVIDE5), // Division factor for CLKOUT5 (1 to 128)
 		.CLKOUT5_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT5 (0.01 to 0.99)
 		.CLKOUT5_PHASE(PHASE5), // Phase shift (degrees) for CLKOUT5 (0.0 to 360.0)
-		.COMPENSATION(COMPENSATION), // "SYSTEM_SYNCHRONOUS",
-		// "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL",
-		// "DCM2PLL", "PLL2DCM"
+		.COMPENSATION(COMPENSATION), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
 		.DIVCLK_DIVIDE(OVERALL_DIVIDE), // Division factor for all clocks (1 to 52)
 		.REF_JITTER(0.100) // Input reference jitter (0.000 to 0.999 UI%)
 	) PLL_BASE_inst (

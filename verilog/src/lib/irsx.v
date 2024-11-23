@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-11-21 by mza
+// last updated 2024-11-22 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -303,20 +303,21 @@ endmodule
 //	.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
 //	.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
 module irsx_scaler_counter_dual_trigger_interface #(
-	parameter ISERDES_WIDTH = 8,
-	parameter TRIGSTREAM_LENGTH = 50,
-	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH) - 1, // 5
-	parameter NUMBER_OF_TRIGGER_CHANNELS = 4,
-	parameter NUMBER_OF_CHANNELS = 8,
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
+	parameter ISERDES_WIDTH = 8,
+	parameter LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH = 5, // 2**5 = 32
+	parameter TRUNCATED_TRIGSTREAM_LENGTH = 2**LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH,
+	parameter TRIGSTREAM_LENGTH = TRUNCATED_TRIGSTREAM_LENGTH + ISERDES_WIDTH,
+	parameter NUMBER_OF_TRIGGER_CHANNELS = 4,
+	parameter NUMBER_OF_CHANNELS = 8,
 	parameter CLOCK_PERIODS_TO_ACCUMULATE = 2**15
 ) (
 	input clock, reset,
 	input clear_channel_counters, // also acts as a sync for the scalers
 	input [ISERDES_WIDTH-1:0] iserdes_word_in0, iserdes_word_in1, iserdes_word_in2, iserdes_word_in3,
-	input [LOG2_OF_TRIGSTREAM_LENGTH:0] even_channel_trigger_width,
-	input [LOG2_OF_TRIGSTREAM_LENGTH:0] odd_channel_trigger_width,
+	input [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] dual_channel_trigger_width,
+	input [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] even_channel_trigger_width,
 	input [31:0] timeout,
 	output reg scaler_valid = 0,
 	output [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7,
@@ -364,25 +365,23 @@ module irsx_scaler_counter_dual_trigger_interface #(
 	assign iserdes_word_in[2] = iserdes_word_in2;
 	assign iserdes_word_in[3] = iserdes_word_in3;
 	reg [TRIGSTREAM_LENGTH-1:0] trigger_stream [NUMBER_OF_TRIGGER_CHANNELS-1:0];
-	wire [TRIGSTREAM_LENGTH-1-2:0] trigger_stream_offset2 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
-	wire [TRIGSTREAM_LENGTH-1-3:0] trigger_stream_offset3 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
-	wire [TRIGSTREAM_LENGTH-1-4:0] trigger_stream_offset4 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
-	wire [TRIGSTREAM_LENGTH-1-5:0] trigger_stream_offset5 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
+	wire [TRUNCATED_TRIGSTREAM_LENGTH-1:0] trigger_stream_offset0 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
+	wire [TRUNCATED_TRIGSTREAM_LENGTH-1:0] trigger_stream_offset1 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
+	wire [TRUNCATED_TRIGSTREAM_LENGTH-1:0] trigger_stream_offset2 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
+	wire [TRUNCATED_TRIGSTREAM_LENGTH-1:0] trigger_stream_offset3 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
 	// if 4<ISERDES_WIDTH:
-//	wire [TRIGSTREAM_LENGTH-1-6:0] trigger_stream_offset6 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
-//	wire [TRIGSTREAM_LENGTH-1-7:0] trigger_stream_offset7 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
-//	wire [TRIGSTREAM_LENGTH-1-8:0] trigger_stream_offset8 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
-//	wire [TRIGSTREAM_LENGTH-1-9:0] trigger_stream_offset9 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
+	//wire [TRUNCATED_TRIGSTREAM_LENGTH-1:0] trigger_stream_offset4 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
+	//wire [TRUNCATED_TRIGSTREAM_LENGTH-1:0] trigger_stream_offset5 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
+	//wire [TRUNCATED_TRIGSTREAM_LENGTH-1:0] trigger_stream_offset6 [NUMBER_OF_TRIGGER_CHANNELS-1:0];
 	for (i=0; i<NUMBER_OF_TRIGGER_CHANNELS; i=i+1) begin : trigger_stream_offset_mapping
-		assign trigger_stream_offset2[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:2];
-		assign trigger_stream_offset3[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:3];
-		assign trigger_stream_offset4[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:4];
-		assign trigger_stream_offset5[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:5];
+		assign trigger_stream_offset0[i] = trigger_stream[i][TRUNCATED_TRIGSTREAM_LENGTH-1+0:0];
+		assign trigger_stream_offset1[i] = trigger_stream[i][TRUNCATED_TRIGSTREAM_LENGTH-1+1:1];
+		assign trigger_stream_offset2[i] = trigger_stream[i][TRUNCATED_TRIGSTREAM_LENGTH-1+2:2];
+		assign trigger_stream_offset3[i] = trigger_stream[i][TRUNCATED_TRIGSTREAM_LENGTH-1+3:3];
 	// if 4<ISERDES_WIDTH:
-//		assign trigger_stream_offset6[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:6];
-//		assign trigger_stream_offset7[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:7];
-//		assign trigger_stream_offset8[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:8];
-//		assign trigger_stream_offset9[i] = trigger_stream[i][TRIGSTREAM_LENGTH-1:9];
+	//	assign trigger_stream_offset4[i] = trigger_stream[i][TRUNCATED_TRIGSTREAM_LENGTH-1+4:4];
+	//	assign trigger_stream_offset5[i] = trigger_stream[i][TRUNCATED_TRIGSTREAM_LENGTH-1+5:5];
+	//	assign trigger_stream_offset6[i] = trigger_stream[i][TRUNCATED_TRIGSTREAM_LENGTH-1+6:6];
 	end
 	reg [NUMBER_OF_TRIGGER_CHANNELS-1:0] even_channel_hit = 0;
 	reg [NUMBER_OF_TRIGGER_CHANNELS-1:0] odd_channel_hit = 0;
@@ -390,85 +389,81 @@ module irsx_scaler_counter_dual_trigger_interface #(
 		always @(posedge clock) begin
 			even_channel_hit[i] <= 0;
 			odd_channel_hit[i] <= 0;
-			if (reset) begin
-				trigger_stream[i] <= 0;
-			end else begin
-				if (trigger_stream[i][1:0]==2'b10) begin
-					if (trigger_stream_offset2[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
-						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset2[i][odd_channel_trigger_width]) begin
-						even_channel_hit[i] <= 1'b1;
-					end else begin
-						odd_channel_hit[i] <= 1'b1;
-					end
-				end else if (trigger_stream[i][2:1]==2'b10) begin
-					if (trigger_stream_offset3[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
-						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset3[i][odd_channel_trigger_width]) begin
-						even_channel_hit[i] <= 1'b1;
-					end else begin
-						odd_channel_hit[i] <= 1'b1;
-					end
-				end else if (trigger_stream[i][3:2]==2'b10) begin
-					if (trigger_stream_offset4[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
-						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset4[i][odd_channel_trigger_width]) begin
-						even_channel_hit[i] <= 1'b1;
-					end else begin
-						odd_channel_hit[i] <= 1'b1;
-					end
-				end else if (trigger_stream[i][4:3]==2'b10) begin
-					if (trigger_stream_offset5[i][even_channel_trigger_width]) begin
-						odd_channel_hit[i] <= 1'b1;
-						even_channel_hit[i] <= 1'b1;
-					end else if (trigger_stream_offset5[i][odd_channel_trigger_width]) begin
-						even_channel_hit[i] <= 1'b1;
-					end else begin
-						odd_channel_hit[i] <= 1'b1;
-					end
-				// if 4<ISERDES_WIDTH:
-//				end else if (trigger_stream[i][5:4]==2'b10) begin
-//					if (trigger_stream_offset6[i][even_channel_trigger_width]) begin
-//						odd_channel_hit[i] <= 1'b1;
-//						even_channel_hit[i] <= 1'b1;
-//					end else if (trigger_stream_offset6[i][odd_channel_trigger_width]) begin
-//						even_channel_hit[i] <= 1'b1;
-//					end else begin
-//						odd_channel_hit[i] <= 1'b1;
-//					end
-//				end else if (trigger_stream[i][6:5]==2'b10) begin
-//					if (trigger_stream_offset7[i][even_channel_trigger_width]) begin
-//						odd_channel_hit[i] <= 1'b1;
-//						even_channel_hit[i] <= 1'b1;
-//					end else if (trigger_stream_offset7[i][odd_channel_trigger_width]) begin
-//						even_channel_hit[i] <= 1'b1;
-//					end else begin
-//						odd_channel_hit[i] <= 1'b1;
-//					end
-//				end else if (trigger_stream[i][7:6]==2'b10) begin
-//					if (trigger_stream_offset8[i][even_channel_trigger_width]) begin
-//						odd_channel_hit[i] <= 1'b1;
-//						even_channel_hit[i] <= 1'b1;
-//					end else if (trigger_stream_offset8[i][odd_channel_trigger_width]) begin
-//						even_channel_hit[i] <= 1'b1;
-//					end else begin
-//						odd_channel_hit[i] <= 1'b1;
-//					end
-//				end else if (trigger_stream[i][8:7]==2'b10) begin
-//					if (trigger_stream_offset9[i][even_channel_trigger_width]) begin
-//						odd_channel_hit[i] <= 1'b1;
-//						even_channel_hit[i] <= 1'b1;
-//					end else if (trigger_stream_offset9[i][odd_channel_trigger_width]) begin
-//						even_channel_hit[i] <= 1'b1;
-//					end else begin
-//						odd_channel_hit[i] <= 1'b1;
-//					end
+			if (trigger_stream[i][1:0]==2'b10) begin
+				if (trigger_stream_offset0[i][dual_channel_trigger_width]) begin
+					odd_channel_hit[i] <= 1'b1;
+					even_channel_hit[i] <= 1'b1;
+				end else if (trigger_stream_offset0[i][even_channel_trigger_width]) begin
+					even_channel_hit[i] <= 1'b1;
+				end else begin
+					odd_channel_hit[i] <= 1'b1;
 				end
-				trigger_stream[i] <= { trigger_stream[i][TRIGSTREAM_LENGTH-1-ISERDES_WIDTH:0], iserdes_word_in[i] };
+			end else if (trigger_stream[i][2:1]==2'b10) begin
+				if (trigger_stream_offset1[i][dual_channel_trigger_width]) begin
+					odd_channel_hit[i] <= 1'b1;
+					even_channel_hit[i] <= 1'b1;
+				end else if (trigger_stream_offset1[i][even_channel_trigger_width]) begin
+					even_channel_hit[i] <= 1'b1;
+				end else begin
+					odd_channel_hit[i] <= 1'b1;
+				end
+			end else if (trigger_stream[i][3:2]==2'b10) begin
+				if (trigger_stream_offset2[i][dual_channel_trigger_width]) begin
+					odd_channel_hit[i] <= 1'b1;
+					even_channel_hit[i] <= 1'b1;
+				end else if (trigger_stream_offset2[i][even_channel_trigger_width]) begin
+					even_channel_hit[i] <= 1'b1;
+				end else begin
+					odd_channel_hit[i] <= 1'b1;
+				end
+			end else if (trigger_stream[i][4:3]==2'b10) begin
+				if (trigger_stream_offset3[i][dual_channel_trigger_width]) begin
+					odd_channel_hit[i] <= 1'b1;
+					even_channel_hit[i] <= 1'b1;
+				end else if (trigger_stream_offset3[i][even_channel_trigger_width]) begin
+					even_channel_hit[i] <= 1'b1;
+				end else begin
+					odd_channel_hit[i] <= 1'b1;
+				end
+			// if 4<ISERDES_WIDTH:
+//			end else if (trigger_stream[i][5:4]==2'b10) begin
+//				if (trigger_stream_offset6fixme[i][dual_channel_trigger_width]) begin
+//					odd_channel_hit[i] <= 1'b1;
+//					even_channel_hit[i] <= 1'b1;
+//				end else if (trigger_stream_offset6fixme[i][even_channel_trigger_width]) begin
+//					even_channel_hit[i] <= 1'b1;
+//				end else begin
+//					odd_channel_hit[i] <= 1'b1;
+//				end
+//			end else if (trigger_stream[i][6:5]==2'b10) begin
+//				if (trigger_stream_offset7fixme[i][dual_channel_trigger_width]) begin
+//					odd_channel_hit[i] <= 1'b1;
+//					even_channel_hit[i] <= 1'b1;
+//				end else if (trigger_stream_offset7fixme[i][even_channel_trigger_width]) begin
+//					even_channel_hit[i] <= 1'b1;
+//				end else begin
+//					odd_channel_hit[i] <= 1'b1;
+//				end
+//			end else if (trigger_stream[i][7:6]==2'b10) begin
+//				if (trigger_stream_offset8fixme[i][dual_channel_trigger_width]) begin
+//					odd_channel_hit[i] <= 1'b1;
+//					even_channel_hit[i] <= 1'b1;
+//				end else if (trigger_stream_offset8fixme[i][even_channel_trigger_width]) begin
+//					even_channel_hit[i] <= 1'b1;
+//				end else begin
+//					odd_channel_hit[i] <= 1'b1;
+//				end
+//			end else if (trigger_stream[i][8:7]==2'b10) begin
+//				if (trigger_stream_offset9fixme[i][dual_channel_trigger_width]) begin
+//					odd_channel_hit[i] <= 1'b1;
+//					even_channel_hit[i] <= 1'b1;
+//				end else if (trigger_stream_offset9fixme[i][even_channel_trigger_width]) begin
+//					even_channel_hit[i] <= 1'b1;
+//				end else begin
+//					odd_channel_hit[i] <= 1'b1;
+//				end
 			end
+			trigger_stream[i] <= { trigger_stream[i][TRIGSTREAM_LENGTH-1-ISERDES_WIDTH:0], iserdes_word_in[i] };
 		end
 	end
 	assign t0 = even_channel_hit[0];
@@ -482,28 +477,29 @@ module irsx_scaler_counter_dual_trigger_interface #(
 endmodule
 
 module irsx_scaler_counter_dual_trigger_interface_tb #(
-	parameter N4UMBER_OF_TRIGGER_CHANNELS = 4,
-	parameter TRIGSTREAM_LENGTH = 40,
-	parameter LOG2_OF_TRIGSTREAM_LENGTH = $clog2(TRIGSTREAM_LENGTH) - 1,
-	parameter ACCUMULATOR_WIDTH = 4,
-	parameter RUNNING_TOTAL_WIDTH = ACCUMULATOR_WIDTH + 2,
 	parameter COUNTER_WIDTH = 8,
 	parameter SCALER_WIDTH = 4,
-	parameter CLOCK_PERIODS_TO_ACCUMULATE = 16,
+	parameter ISERDES_WIDTH = 4,
+	parameter LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH = 5, // 2**5 = 32
+	parameter TRUNCATED_TRIGSTREAM_LENGTH = 2**LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH,
+	parameter TRIGSTREAM_LENGTH = TRUNCATED_TRIGSTREAM_LENGTH + 2 * ISERDES_WIDTH,
+	parameter CLOCK_PERIODS_TO_ACCUMULATE = 16, // simulation only
+	parameter ACCUMULATOR_WIDTH = 4,
+	parameter RUNNING_TOTAL_WIDTH = ACCUMULATOR_WIDTH + 2,
 	parameter HALF_CLOCK_PERIOD = 7.861/2,
 	parameter WHOLE_CLOCK_PERIOD = 2*HALF_CLOCK_PERIOD,
 	parameter TIME_PASSES = 7*WHOLE_CLOCK_PERIOD
 ) ();
 	reg clock = 0;
 	reg reset = 1;
-	reg [7:0] pre_in0 = 0; reg [7:0] pre_in1 = 0; reg [7:0] pre_in2 = 0; reg [7:0] pre_in3 = 0;
-	reg [7:0] in0 = 0, in1 = 0, in2 = 0, in3 = 0;
+	reg [ISERDES_WIDTH-1:0] pre_in0 = 0, pre_in1 = 0, pre_in2 = 0, pre_in3 = 0;
+	reg [ISERDES_WIDTH-1:0] in0 = 0, in1 = 0, in2 = 0, in3 = 0;
 	reg clear_channel_counters = 0;
 	wire [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7;
 	wire [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7;
 	wire t0, t1, t2, t3, t4, t5, t6, t7;
-	reg [LOG2_OF_TRIGSTREAM_LENGTH:0] even_channel_trigger_width = 20;
-	reg [LOG2_OF_TRIGSTREAM_LENGTH:0] odd_channel_trigger_width = 10;
+	reg [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] dual_channel_trigger_width = 9;
+	reg [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] even_channel_trigger_width = 5;
 	reg [31:0] timeout = 25;
 	wire scaler_valid;
 	always begin
@@ -512,57 +508,35 @@ module irsx_scaler_counter_dual_trigger_interface_tb #(
 	always @(posedge clock) begin
 		in0 <= pre_in0; in1 <= pre_in1; in2 <= pre_in2; in3 <= pre_in3;
 	end
+	reg [7:0] truth = 0;
 	initial begin
 		#TIME_PASSES;
+		#TIME_PASSES;
 		reset <= 0;
-		pre_in0 <= 8'b01100110; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
-		#TIME_PASSES;
-		pre_in0 <= 8'b00000100; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
-		#TIME_PASSES;
-		pre_in0 <= 8'b00111100; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
-		#TIME_PASSES;
-		pre_in0 <= 8'b10101010; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b01010101; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
-		#TIME_PASSES;
-		pre_in0 <= 8'b01010101; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b10101010; #WHOLE_CLOCK_PERIOD; pre_in0 <= 0; #WHOLE_CLOCK_PERIOD;
 		#TIME_PASSES;
 		#TIME_PASSES;
-		#TIME_PASSES;
-		// even trigger only:
-		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b00011111; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b11111000; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
-		#TIME_PASSES;
-		#TIME_PASSES;
-		// odd trigger only:
-		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b00111111; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b11111100; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
-		#TIME_PASSES;
-		#TIME_PASSES;
-		// almost dual trigger:
-		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b00111111; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b11111100; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b00011111; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b11111000; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
+		#TIME_PASSES; pre_in0 <= 4'b0000; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b0000; #(1*WHOLE_CLOCK_PERIOD); truth <= 8'h00; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0001; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b0000; #(1*WHOLE_CLOCK_PERIOD); truth <= 8'h01; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0011; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b0000; #(1*WHOLE_CLOCK_PERIOD); truth <= 8'h02; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0111; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b0000; #(1*WHOLE_CLOCK_PERIOD); truth <= 8'h03; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0000; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(1*WHOLE_CLOCK_PERIOD); truth <= 8'h04; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0001; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(1*WHOLE_CLOCK_PERIOD); truth <= 8'h05; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0011; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(1*WHOLE_CLOCK_PERIOD); truth <= 8'h06; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0111; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(1*WHOLE_CLOCK_PERIOD); truth <= 8'h07; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0000; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(2*WHOLE_CLOCK_PERIOD); truth <= 8'h08; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0001; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(2*WHOLE_CLOCK_PERIOD); truth <= 8'h09; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0011; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(2*WHOLE_CLOCK_PERIOD); truth <= 8'h0a; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0111; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(2*WHOLE_CLOCK_PERIOD); truth <= 8'h0b; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0000; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(3*WHOLE_CLOCK_PERIOD); truth <= 8'h0c; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0001; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(3*WHOLE_CLOCK_PERIOD); truth <= 8'h0d; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0011; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(3*WHOLE_CLOCK_PERIOD); truth <= 8'h0e; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0111; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(3*WHOLE_CLOCK_PERIOD); truth <= 8'h0f; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0000; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(4*WHOLE_CLOCK_PERIOD); truth <= 8'h10; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0001; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(4*WHOLE_CLOCK_PERIOD); truth <= 8'h11; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0011; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(4*WHOLE_CLOCK_PERIOD); truth <= 8'h12; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
+		#TIME_PASSES; pre_in0 <= 4'b0111; #WHOLE_CLOCK_PERIOD; pre_in0 <= 4'b1111; #(4*WHOLE_CLOCK_PERIOD); truth <= 8'h13; pre_in0 <= 0; #(2*WHOLE_CLOCK_PERIOD);
 		#TIME_PASSES;
 		#TIME_PASSES;
-		#TIME_PASSES;
-		// dual trigger:
-		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b00111111; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b11111111; #WHOLE_CLOCK_PERIOD;
-		pre_in0 <= 8'b00000000; #WHOLE_CLOCK_PERIOD;
 		#TIME_PASSES;
 		#TIME_PASSES;
 		#TIME_PASSES;
@@ -572,10 +546,10 @@ module irsx_scaler_counter_dual_trigger_interface_tb #(
 		#TIME_PASSES;
 		$finish;
 	end
-	irsx_scaler_counter_dual_trigger_interface #(.TRIGSTREAM_LENGTH(TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
+	irsx_scaler_counter_dual_trigger_interface #(.ISERDES_WIDTH(ISERDES_WIDTH), .TRIGSTREAM_LENGTH(TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
 		.clock(clock), .reset(reset), .clear_channel_counters(clear_channel_counters), .timeout(timeout), .scaler_valid(scaler_valid),
 		.iserdes_word_in0(in0), .iserdes_word_in1(in1), .iserdes_word_in2(in2), .iserdes_word_in3(in3),
-		.odd_channel_trigger_width(odd_channel_trigger_width), .even_channel_trigger_width(even_channel_trigger_width),
+		.even_channel_trigger_width(even_channel_trigger_width), .dual_channel_trigger_width(dual_channel_trigger_width),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
 		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
 		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
