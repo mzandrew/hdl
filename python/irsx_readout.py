@@ -26,12 +26,27 @@ pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
 #print(hex(pedestal_dac_12bit_2v5,3))
 Trig4xVofs = pedestal_dac_12bit_2v5
 Trig16xVofs = pedestal_dac_12bit_2v5
-wbias_even = 1250 #  7.8 ns
-wbias_odd  = 1590 #  3.9 ns
-wbias_dual = 1130 # 12.4 to 15.4 ns (depending on timing of stimuli); but depends on above...
+# for a trigger capture bit clock of 1017 MHz:
+#wbias_odd  = 1590 #  3.9 ns
+#wbias_even = 1250 #  7.8 ns
+#wbias_dual = 1130 # 12.4 to 15.4 ns (depending on timing of stimuli); but depends on above...
+# for a trigger capture bit clock of 1017/3 = 339 MHz
+#wbias_odd  = 1250 # 12 ns
+#wbias_even = 1050 # 24 ns
+#wbias_dual = 1130 # ???
+# for a trigger capture bit clock of 1017/3 = 339 MHz
+#wbias_odd  = 1340 #  8.9 ns
+#wbias_even = 1110 # 17.8 ns
+#wbias_dual = 1010 # 35.6 ns
+# for a trigger capture bit clock of 1017/12 = 84.8 MHz
+wbias_odd  =  970 #  35.4 ns
+wbias_even =  860 #  68.8 ns
+wbias_dual =  750 #  119-138 ns
 wbias_bump_amount = 10
-default_expected_even_channel_trigger_width = 8 # need to re-optimize these parameters for 339 MHz
-default_expected_odd_channel_trigger_width  = 5
+MIN_TRIGGER_WIDTH_TO_EXPECT = 1
+MAX_TRIGGER_WIDTH_TO_EXPECT = 31
+default_expected_dual_channel_trigger_width = 8
+default_expected_even_channel_trigger_width = 5
 default_hs_data_ss_incr = 4
 default_hs_data_capture = default_hs_data_ss_incr - 2
 default_spgin = 0 # default state of hs_data stream (page 40 of schematics)
@@ -67,7 +82,8 @@ bump_threshold_amount = [ 1, 4, 16 ]
 trigger_gain_x1_upper = [ 0x7e0, 0x870, 0x9a0 ]
 trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
 
-bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "even_channel_trigger_width", "odd_channel_trigger_width", "hs_data_ss_incr", "hs_data_capture", "scaler timeout", "hs_data_offset", "hs_data_ratio", "regen", "min_tries", "start_wr_address", "end_wr_address" ]
+other_helpful_text = [ "bump wbias even (e/E)", "bump wbias odd (o/O)" ]
+bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "dual_channel_trigger_width (t/T)", "even_channel_trigger_width (y/Y)", "hs_data_ss_incr", "hs_data_capture", "scaler timeout", "hs_data_offset", "hs_data_ratio", "regen", "min_tries", "start_wr_address", "end_wr_address" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_high", "buffered_hs_data_stream_middle1", "buffered_hs_data_stream_middle0", "buffered_hs_data_stream_low", "hs_data_word_decimated", "convert_counter", "done_out_counter", "wr_address", "f_montiming1", "f_montiming2" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
@@ -123,8 +139,8 @@ FONT_SIZE_BANKS = 15
 BANKS_X_GAP = 10
 #X_POSITION_OF_TOT = 450
 X_POSITION_OF_BANK0_REGISTERS = 85
-X_POSITION_OF_BANK1_REGISTERS = 410
-X_POSITION_OF_CHANNEL_NAMES = 700
+X_POSITION_OF_BANK1_REGISTERS = X_POSITION_OF_BANK0_REGISTERS + 375
+X_POSITION_OF_CHANNEL_NAMES = X_POSITION_OF_BANK1_REGISTERS + 295
 X_POSITION_OF_COUNTERS = X_POSITION_OF_CHANNEL_NAMES + 117
 X_POSITION_OF_SCALERS = X_POSITION_OF_COUNTERS + 40
 #X_POSITION_OF_BANK4_REGISTERS = 100
@@ -436,13 +452,13 @@ def setup():
 	global plot, have_just_gathered_waveform_data, coordinates, plot_width, plot_height, waveform_data, scale, plots_were_updated
 	plot = {}
 	plot["raw_waveform"] = pygame.Surface((waveform_plot_width, waveform_plot_height))
-	plot["pedestal_waveform"] = pygame.Surface((waveform_plot_width, waveform_plot_height))
-	plot["pedestal_subtracted_waveform"] = pygame.Surface((waveform_plot_width, waveform_plot_height))
+#	plot["pedestal_waveform"] = pygame.Surface((waveform_plot_width, waveform_plot_height))
+#	plot["pedestal_subtracted_waveform"] = pygame.Surface((waveform_plot_width, waveform_plot_height))
 	plot["trigger_memory"] = pygame.Surface((TRIGGER_MEMORY_PLOT_WIDTH, TRIGGER_MEMORY_PLOT_HEIGHT))
 	coordinates = {}
 	coordinates["raw_waveform"] = [ GAP_X_LEFT+0*(waveform_plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP ]
-	coordinates["pedestal_waveform"] = [ GAP_X_LEFT+1*(waveform_plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP ]
-	coordinates["pedestal_subtracted_waveform"] = [ GAP_X_LEFT+2*(waveform_plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP ]
+#	coordinates["pedestal_waveform"] = [ GAP_X_LEFT+1*(waveform_plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP ]
+#	coordinates["pedestal_subtracted_waveform"] = [ GAP_X_LEFT+2*(waveform_plot_width+GAP_X_BETWEEN_PLOTS)-1, GAP_Y_TOP ]
 	coordinates["trigger_memory"] = [ GAP_X_LEFT, GAP_Y_TOP+1*(waveform_plot_height+GAP_Y_BETWEEN_PLOTS)-1 ]
 	plot_width = {}
 	plot_height = {}
@@ -572,7 +588,7 @@ def write_bootup_values():
 	else:
 		load_thresholds_corresponding_to_lower_null_scaler()
 	#read_modify_write_speed_test()
-	set_expected_trigger_widths(default_expected_even_channel_trigger_width, default_expected_odd_channel_trigger_width)
+	set_expected_trigger_widths(default_expected_dual_channel_trigger_width, default_expected_even_channel_trigger_width)
 	set_hs_data_values(default_hs_data_ss_incr, default_hs_data_capture)
 	set_spgin(default_spgin)
 	set_scaler_timeout(default_scaler_timeout)
@@ -958,27 +974,36 @@ def set_trg_inversion_mask(mask):
 	mask &= 0xf
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 4, [mask])
 
-def set_expected_trigger_widths(even, odd):
+def set_expected_trigger_widths(dual, even):
 	bank = 0
-	print("expected trigger widths: " + str(even) + ", " + str(odd))
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [even, odd])
+	if dual<MIN_TRIGGER_WIDTH_TO_EXPECT:
+		dual = MIN_TRIGGER_WIDTH_TO_EXPECT
+	elif MAX_TRIGGER_WIDTH_TO_EXPECT<dual:
+		dual = MAX_TRIGGER_WIDTH_TO_EXPECT
+	if even<MIN_TRIGGER_WIDTH_TO_EXPECT:
+		even = MIN_TRIGGER_WIDTH_TO_EXPECT
+	elif MAX_TRIGGER_WIDTH_TO_EXPECT<even:
+		even = MAX_TRIGGER_WIDTH_TO_EXPECT
+	print("expected trigger widths: " + str(dual) + " (dual), " + str(even) + " (even)")
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [dual, even])
 
-MAX_TRIGGER_WIDTH_TO_EXPECT = 40
-def bump_expected_trigger_width(even, odd):
+def bump_expected_trigger_width(dual, even):
 	bank = 0
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 5, 2, False)
-	readback[0] += even
-	readback[1] += odd
-	if readback[0]<0:
-		readback[0] = 0
-	elif MAX_TRIGGER_WIDTH_TO_EXPECT<readback[0]:
-		readback[0] = MAX_TRIGGER_WIDTH_TO_EXPECT
-	if readback[1]<0:
-		readback[1] = 0
-	elif MAX_TRIGGER_WIDTH_TO_EXPECT<readback[1]:
-		readback[1] = MAX_TRIGGER_WIDTH_TO_EXPECT
-	print("expected trigger widths: " + str(readback[0]) + ", " + str(readback[1]))
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, readback)
+	readback[0] &= 0xff
+	readback[1] &= 0xff
+	dual += int(readback[0])
+	even += int(readback[1])
+	if dual<MIN_TRIGGER_WIDTH_TO_EXPECT:
+		dual = MIN_TRIGGER_WIDTH_TO_EXPECT
+	elif MAX_TRIGGER_WIDTH_TO_EXPECT<dual:
+		dual = MAX_TRIGGER_WIDTH_TO_EXPECT
+	if even<MIN_TRIGGER_WIDTH_TO_EXPECT:
+		even = MIN_TRIGGER_WIDTH_TO_EXPECT
+	elif MAX_TRIGGER_WIDTH_TO_EXPECT<even:
+		even = MAX_TRIGGER_WIDTH_TO_EXPECT
+	print("expected trigger widths: " + str(dual) + " (dual), " + str(even) + " (even)")
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 5, [dual, even])
 
 HS_MAX = 31
 def set_hs_data_values(ss_incr, capture):
