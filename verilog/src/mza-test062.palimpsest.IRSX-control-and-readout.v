@@ -329,7 +329,7 @@ module IRSXtest #(
 	wire [4:0] hs_data_capture = bank0[8][4:0];
 	wire [31:0] timeout = bank0[9];
 	wire [LOG2_OF_HS_DAT_BIT_DEPTH-1:0] hs_data_offset = bank0[10][LOG2_OF_HS_DAT_BIT_DEPTH-1:0];
-//	wire [2:0] hs_data_ratio  = bank0[11][2:0]; // 4 (localparam is much more efficient on resources...)
+	wire [4:0] hs_data_counter_clear = bank0[11][4:0];
 	assign regen = bank0[12][0]; // regulator enable
 	wire [7:0] min_tries = bank0[13][7:0];
 	wire [7:0] start_address = bank0[14][7:0];
@@ -413,7 +413,7 @@ module IRSXtest #(
 	irsx_read_hs_data_from_storage #(.BIT_DEPTH(HS_DAT_BIT_DEPTH), .HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS), .HS_CLK_OSERDES_MODE(HS_CLK_OSERDES_MODE)) hsdo (
 		.hs_bit_clk_raw(hs_bit_clk_raw), .hs_word_clock(hs_word_clock), .hs_word_reset(hs_word_reset), .input_pll_locked(third_pll_locked),
 		.hs_data_offset(hs_data_offset), .hs_data(hs_data), .beginning_of_hs_data(beginning_of_hs_data), .beginning_of_hs_data_memory(beginning_of_hs_data_memory),
-		.hs_data_ss_incr(hs_data_ss_incr), .hs_data_capture(hs_data_capture), .ss_incr(ss_incr),
+		.hs_data_ss_incr(hs_data_ss_incr), .hs_data_capture(hs_data_capture), .ss_incr(ss_incr), .hs_data_counter_clear(hs_data_counter_clear),
 		.hs_clk(hs_clk_OSERDES),
 		.hs_pll_is_locked_and_strobe_is_aligned(hs_pll_is_locked_and_strobe_is_aligned),
 		.data_out_clock(word_clock),

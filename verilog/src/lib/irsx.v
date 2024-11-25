@@ -136,9 +136,10 @@ module irsx_read_hs_data_from_storage #(
 	input hs_word_clock,
 	input hs_word_reset,
 	input input_pll_locked,
-	input [LOG2_OF_COUNTER_SIZE-1:0] hs_data_ss_incr,
-	input [LOG2_OF_COUNTER_SIZE-1:0] hs_data_capture,
-	input [LOG2_OF_OFFSET_SIZE-1:0] hs_data_offset,
+	input [LOG2_OF_COUNTER_SIZE-1:0] hs_data_ss_incr, // when to tell the asic to switch to the next sample address
+	input [LOG2_OF_COUNTER_SIZE-1:0] hs_data_capture, // when to capture a copy of the long word for further processing
+	input [LOG2_OF_OFFSET_SIZE-1:0] hs_data_offset, // which bit index into the copy of the long word to interpret as real data (we chose it to be in the center of the eye diagram)
+	input [LOG2_OF_COUNTER_SIZE-1:0] hs_data_counter_clear, // when to reset the counter
 	input [LOG2_OF_DEPTH-1:0] read_address,
 	output hs_clk,
 	output reg beginning_of_hs_data_memory = 0, // debug output
@@ -233,8 +234,12 @@ module irsx_read_hs_data_from_storage #(
 			if (write_address==0) begin
 				beginning_of_hs_data_memory <= 1'b1;
 			end
+			if (hs_data_counter==hs_data_counter_clear) begin
+				hs_data_counter <= 0;
+			end else begin
+				hs_data_counter <= hs_data_counter + 1'b1;
+			end
 			hs_data_stream <= { hs_data_stream[HS_DATA_SIZE-1-BIT_DEPTH:0], hs_data_word };
-			hs_data_counter <= hs_data_counter + 1'b1;
 		end
 	end
 	// spgin comes out first (spgin); real output data comes out after that (db11-db00), then the test pattern generator (tpg) data is last (dd11-dd00); see irsx schematic page 45
