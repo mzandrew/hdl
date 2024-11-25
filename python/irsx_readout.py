@@ -4,7 +4,7 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-11-22 by mza
+# last updated 2024-11-25 by mza
 
 # todo:
 # plot thresholds (pull from protodune_readout.py)
@@ -19,7 +19,10 @@ import board, generic, ina260_adafruit, stts751
 BANK_ADDRESS_DEPTH = 13
 
 NUMBER_OF_CHANNELS_PER_ASIC = 8
-gui_update_period = 0.2 # in seconds
+gather_another_waveform_period = 1.0 # in seconds
+loop_fps = 100 # in Hz
+gui_fps = 20 # in Hz
+check_for_new_register_bank_data_period = 1/gui_fps # in seconds
 cliff = "upper"
 step_size_for_threshold_scan = 4
 pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
@@ -47,12 +50,12 @@ MIN_TRIGGER_WIDTH_TO_EXPECT = 1
 MAX_TRIGGER_WIDTH_TO_EXPECT = 31
 default_expected_dual_channel_trigger_width = 8
 default_expected_even_channel_trigger_width = 5
-default_hs_data_ss_incr = 4
-default_hs_data_capture = default_hs_data_ss_incr - 2
 default_spgin = 0 # default state of hs_data stream (page 40 of schematics)
-default_scaler_timeout = 127.22e6 * gui_update_period
-default_hs_data_offset = 4 # input capture is 128 bits, but we need 12*4 bits to get a value, so it is only meaningful to set this between 0 and 79 (128-48=80)
-default_hs_data_ratio = 3 # this is currently hardcoded in the firmware as a parameter
+default_scaler_timeout = 127.22e6 * check_for_new_register_bank_data_period
+default_hs_data_ss_incr = 4
+default_hs_data_offset = 2 # input capture is 128 bits, but we need 12*4 bits to get a value, so it is only meaningful to set this between 0 and 79 (128-48=80)
+default_hs_data_counter_clear = 11
+default_hs_data_capture = default_hs_data_counter_clear - 1
 default_tpg = 0xb05 # only accepts the lsb=1 after having written a 1 in that position already
 
 NUMBER_OF_STORAGE_WINDOWS_ON_ASIC = 256
@@ -83,7 +86,7 @@ trigger_gain_x1_upper = [ 0x7e0, 0x870, 0x9a0 ]
 trigger_gain_x1_lower = [ 0x77f, 0xa00, 0xba0 ]
 
 other_helpful_text = [ "bump wbias even (e/E)", "bump wbias odd (o/O)" ]
-bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "dual_channel_trigger_width (t/T)", "even_channel_trigger_width (y/Y)", "hs_data_ss_incr", "hs_data_capture", "scaler timeout", "hs_data_offset", "hs_data_ratio", "regen", "min_tries", "start_wr_address", "end_wr_address" ]
+bank0_register_names = [ "clk_div", "max_retries", "verify_with_shout", "spgin", "trg_inversion_mask", "dual_channel_trigger_width (t/T)", "even_channel_trigger_width (y/Y)", "hs_data_ss_incr", "hs_data_capture (i/I)", "scaler timeout", "hs_data_offset (r/R)", "hs_data_counter_clear", "regen", "min_tries", "start_wr_address", "end_wr_address" ]
 bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback errors", "last_erroneous_readback", "buffered_hs_data_stream_high", "buffered_hs_data_stream_middle1", "buffered_hs_data_stream_middle0", "buffered_hs_data_stream_low", "hs_data_word_decimated", "convert_counter", "done_out_counter", "wr_address", "f_montiming1", "f_montiming2" ]
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
@@ -567,10 +570,14 @@ def setup():
 	flip()
 	sys.stdout.flush()
 	althea.setup_half_duplex_bus("test058")
-	global should_check_for_new_data
-	should_check_for_new_data = pygame.USEREVENT + 1
-	print("gui_update_period: " + str(gui_update_period))
-	pygame.time.set_timer(should_check_for_new_data, int(gui_update_period*1000/3/2))
+	global should_check_for_new_register_bank_data
+	should_check_for_new_register_bank_data = pygame.USEREVENT + 1
+	print("check_for_new_register_bank_data_period: " + str(check_for_new_register_bank_data_period))
+	pygame.time.set_timer(should_check_for_new_register_bank_data, int(check_for_new_register_bank_data_period*1000))
+	global should_gather_another_waveform
+	should_gather_another_waveform = pygame.USEREVENT + 2
+	print("gather_another_waveform_period: " + str(gather_another_waveform_period))
+	pygame.time.set_timer(should_gather_another_waveform, int(gather_another_waveform_period*1000))
 	setup_sensors()
 	write_bootup_values()
 
@@ -592,7 +599,8 @@ def write_bootup_values():
 	set_hs_data_values(default_hs_data_ss_incr, default_hs_data_capture)
 	set_spgin(default_spgin)
 	set_scaler_timeout(default_scaler_timeout)
-	set_hs_data_offset_and_ratio(default_hs_data_offset, default_hs_data_ratio)
+	set_hs_data_offset(default_hs_data_offset)
+	set_hs_data_counter_clear(default_hs_data_counter_clear)
 	set_start_wr_address(0x00)
 	set_end_wr_address(0xff)
 
@@ -605,13 +613,13 @@ def reprogram_fpga():
 
 timing_register_to_control = 1
 def loop():
-	#pygame.time.wait(10)
-	game_clock.tick(100)
+	game_clock.tick(loop_fps)
 	global running, something_was_updated, DAC_to_control, timing_register_to_control
 	something_was_updated = True
 	#pressed_keys = pygame.key.get_pressed()
 	#pygame.event.wait()
 	import pygame.locals
+	pygame.event.pump()
 	mouse = pygame.mouse.get_pos()
 	for event in pygame.event.get():
 		if event.type == pygame.KEYDOWN:
@@ -644,15 +652,16 @@ def loop():
 			elif pygame.K_F7==event.key:
 				send_unique_test_pattern(0)
 			elif pygame.K_F8==event.key:
-				send_unique_test_pattern(1)
+				#send_unique_test_pattern(1)
+				send_unique_test_pattern(2)
 			elif pygame.K_F9==event.key:
 				digitize_some_windows_and_read_them_out()
 			elif pygame.K_F10==event.key:
 				readback_asic_register_values()
 			elif pygame.K_F11==event.key:
-				pass
-				#DAC_to_control = 2
-				#print("now controlling SBbias")
+				filename = "irsx.raw_waveform.tga"
+				print("saving raw_waveform to " + filename)
+				pygame.image.save(plot["raw_waveform"], filename)
 			elif pygame.K_F12==event.key:
 				pass
 				#DAC_to_control = 3
@@ -750,7 +759,7 @@ def loop():
 			# --------------------------
 		elif event.type == pygame.QUIT:
 			running = False
-		elif event.type == should_check_for_new_data:
+		elif event.type == should_check_for_new_register_bank_data:
 			readout_counters_and_scalers()
 			update_scalers()
 			update_counters()
@@ -761,6 +770,10 @@ def loop():
 			show_other_stuff()
 #			update_bank1_bank2_scalers()
 #			update_counters()
+		elif event.type == should_gather_another_waveform:
+			#digitize_some_windows_and_read_them_out()
+			read_bank5_data()
+			setup_to_digitize_a_window(0)
 	if not pedestal_mode:
 		global have_just_gathered_waveform_data
 #		for i in range(COLUMNS):
@@ -777,7 +790,6 @@ def blit(which_plot):
 	if plots_were_updated[which_plot]:
 		#print("blitting...")
 		screen.blit(plot[which_plot], (coordinates[which_plot][0], coordinates[which_plot][1]))
-		#pygame.image.save(plot[which_plot], "alpha.data." + str(i) + ".png")
 		pygame.event.pump()
 		plots_were_updated[which_plot] = False
 		something_was_updated = True
@@ -858,8 +870,9 @@ def read_bank5_data():
 	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
 		for n in range(MAX_SAMPLES_PER_WAVEFORM):
 			waveform_data["raw_waveform"][k][n] = bank5_data[k*64+n] & 0xfff
-	for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
-		print_waveform_data(k)
+	if 1:
+		for k in range(NUMBER_OF_CHANNELS_PER_ASIC):
+			print_waveform_data(k)
 	global have_just_gathered_waveform_data
 	have_just_gathered_waveform_data["raw_waveform"] = True
 
@@ -1033,11 +1046,15 @@ def set_scaler_timeout(timeout):
 	timeout = int(timeout)
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 9, [timeout])
 
-def set_hs_data_offset_and_ratio(offset, ratio):
+def set_hs_data_offset(offset):
 	bank = 0
-	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 10, [offset, ratio])
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 10, [offset])
 
-OFFSET_MAX = 7
+def set_hs_data_counter_clear(counter_clear):
+	bank = 0
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 11, [counter_clear])
+
+OFFSET_MAX = 7 # this depends on HS_DAT_BIT_DEPTH in the firmware
 def bump_hs_data_offset(amount):
 	bank = 0
 	readback = althea.read_data_from_pollable_memory_on_half_duplex_bus(bank * 2**BANK_ADDRESS_DEPTH + 10, 1, False)
@@ -1149,7 +1166,7 @@ nominal_register_values[164] = ("dualWbias01", wbias_dual) # needs TBbias and IT
 nominal_register_values[165] = ("dualWbias23", wbias_dual) # needs TBbias and ITbias
 nominal_register_values[166] = ("dualWbias45", wbias_dual) # needs TBbias and ITbias
 nominal_register_values[167] = ("dualWbias67", wbias_dual) # needs TBbias and ITbias
-nominal_register_values[168] = ("reg168", (0<<9) | (0<<7) | (0<<6) | (0<<5) | (0<<4) | (1<<3) | (1<<2) | (0<<1) | 1, "spy_s2, spy_s1, spy_s0, -, OSH, spy_vs_spy, SSHSH, WR_SSEL, done_mask, trg_x1/x4, trg_x4/x16, trg_sgn")
+nominal_register_values[168] = ("reg168", (0<<9) | (0<<7) | (0<<6) | (0<<5) | (1<<4) | (0<<3) | (0<<2) | (0<<1) | 1, "spy_s[2:0], -, OSH, spy_vs_spy, SSHSH, WR_SSEL, done_mask, trg_x1/x4, trg_x4/x16, trg_sgn")
 nominal_register_values[169] = ("CMPbias2", 737) # needs SBbias and DBbias
 nominal_register_values[170] = ("PUbias", 3112) # needs SBbias and DBbias
 nominal_register_values[171] = ("CMPbias", 1000) # needs SBbias and DBbias
@@ -1342,6 +1359,18 @@ def write_nominal_register_values_using_read_modify_write():
 #def clear_vbiases():
 #	write_some_updated_register_values("vbias", 0)
 
+def set_sample_select(channel_number, sample_number):
+	bank = 7
+	#nominal_register_values[201] = ("LOAD_SS", (1<<11) | (0<<6) | 0, "ss_dir, -, -, channel (3bit), sample select (6bit); set ss_dir=0 to load from here; then set ss_dir to 1 to have it increment from there; page 46 of schematics")
+	channel_number &= 0b111
+	sample_number &= 0b111111
+	ss_dir = 0
+	value = (ss_dir<<11) | (channel_number<<6) | sample_number
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 201, [value])
+	ss_dir = 1
+	value = (ss_dir<<11) | (channel_number<<6) | sample_number
+	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + 201, [value])
+
 def write_new_read_address(new_read_address):
 	if new_read_address<0:
 		new_read_address = 0
@@ -1353,18 +1382,25 @@ def write_new_read_address(new_read_address):
 	i = 200
 	print(str(i) + " " + hex(value, 3) + " " + nominal_register_values[i][0])
 	althea.write_to_half_duplex_bus_and_then_verify(bank * 2**BANK_ADDRESS_DEPTH + i, [value])
+	set_sample_select(0, 0)
 	time.sleep(0.1)
+
+def setup_to_digitize_a_window(window_number):
+	write_new_read_address(window_number)
+	send_signal_to_start_wilkinson_conversion()
 
 def digitize_a_range_of_windows_and_read_them_out(first, last):
 	for i in range(first, last+1):
 		write_new_read_address(i)
 		send_signal_to_start_wilkinson_conversion()
+		pygame.event.pump()
 		time.sleep(0.2)
 		read_bank5_data()
 
 def digitize_some_windows_and_read_them_out():
 	#digitize_a_range_of_windows_and_read_them_out(0, 15)
-	digitize_a_range_of_windows_and_read_them_out(0, 1)
+	digitize_a_range_of_windows_and_read_them_out(0, 0)
+	#digitize_a_range_of_windows_and_read_them_out(0xff, 0xff)
 
 reg179_names = [ "A1", "B1", "A2", "B2", "PHASE", "PHAB", "SSPin", "WR_STRB" ]
 def write_reg179(value):
