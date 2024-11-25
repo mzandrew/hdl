@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-11-22 by mza
+// last updated 2024-11-25 by mza
 
 // WARNING:Xst:638 - in unit altheaIRSXtest Conflict on KEEP property on signal IRSXtest/reset127_wait4pll/pipesync/cdc and IRSXtest/status12_copy/async_cdc<2> IRSXtest/status12_copy/async_cdc<2> signal will be lost.
 // filtered Xst:1710 "FF/Latch riwri_bank1/mem_0_370 (without init value) has a constant value of 0 in block altheaIRSXtest. This FF/Latch will be trimmed during the optimization process."
@@ -409,10 +409,10 @@ module IRSXtest #(
 	assign read_data_word[5][31:12] = 0;
 //	wire [7:0] hs_data_offset_copy_on_hs_clock;
 //	pipeline_synchronizer #(.WIDTH(8)) hs_data_offset_copy_on_hs_clock_sync (.clock1(word_clock), .clock2(hs_word_clock), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
-	wire beginning_of_hs_data;
+	wire beginning_of_hs_data, beginning_of_hs_data_memory;
 	irsx_read_hs_data_from_storage #(.BIT_DEPTH(HS_DAT_BIT_DEPTH), .HS_DATA_INTENDED_NUMBER_OF_BITS(HS_DATA_INTENDED_NUMBER_OF_BITS), .HS_CLK_OSERDES_MODE(HS_CLK_OSERDES_MODE)) hsdo (
 		.hs_bit_clk_raw(hs_bit_clk_raw), .hs_word_clock(hs_word_clock), .hs_word_reset(hs_word_reset), .input_pll_locked(third_pll_locked),
-		.hs_data_offset(hs_data_offset), .hs_data(hs_data), .beginning_of_hs_data(beginning_of_hs_data),
+		.hs_data_offset(hs_data_offset), .hs_data(hs_data), .beginning_of_hs_data(beginning_of_hs_data), .beginning_of_hs_data_memory(beginning_of_hs_data_memory),
 		.hs_data_ss_incr(hs_data_ss_incr), .hs_data_capture(hs_data_capture), .ss_incr(ss_incr),
 		.hs_clk(hs_clk_OSERDES),
 		.hs_pll_is_locked_and_strobe_is_aligned(hs_pll_is_locked_and_strobe_is_aligned),
@@ -518,13 +518,13 @@ module IRSXtest #(
 		assign coax[1] = 0;//oddr_double_period;
 		assign coax[2] = montiming2;
 		assign coax[3] = montiming1;
-	end else if (1) begin // for tuning wbiases and trg capture parameters
+	end else if (0) begin // for tuning wbiases and trg capture parameters
 		assign coax[0] = t4;
 		assign coax[1] = t5;
 		assign coax[2] = trg45;//trg0123;
 		assign coax[3] = trg4567;
 	end else if (1) begin // to tune parameters to capture hs_data out
-		assign coax[0] = 0;
+		assign coax[0] = beginning_of_hs_data_memory;
 		//clock_ODDR_out hs_clk_ODDR_copy (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .clock_enable(1'b1), .clock_out(coax[0]));
 		assign coax[1] = beginning_of_hs_data;
 		assign coax[2] = ss_incr;

@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-11-22 by mza
+// last updated 2024-11-25 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -141,6 +141,7 @@ module irsx_read_hs_data_from_storage #(
 	input [LOG2_OF_OFFSET_SIZE-1:0] hs_data_offset,
 	input [LOG2_OF_DEPTH-1:0] read_address,
 	output hs_clk,
+	output reg beginning_of_hs_data_memory = 0, // debug output
 	output reg beginning_of_hs_data = 0, // debug output
 	input data_out_clock,
 	output [DATA_WIDTH-1:0] data_out,
@@ -212,6 +213,7 @@ module irsx_read_hs_data_from_storage #(
 	always @(posedge hs_word_clock) begin
 		ss_incr <= 0;
 		write_strobe <= 0;
+		beginning_of_hs_data_memory <= 0;
 		beginning_of_hs_data <= 0;
 		if (hs_word_reset) begin
 			hs_data_stream <= 0;
@@ -227,6 +229,9 @@ module irsx_read_hs_data_from_storage #(
 				buffered_hs_data_stream_internal <= hs_data_stream;
 				write_strobe <= 1;
 				write_address <= write_address + 1'b1;
+			end
+			if (write_address==0) begin
+				beginning_of_hs_data_memory <= 1'b1;
 			end
 			hs_data_stream <= { hs_data_stream[HS_DATA_SIZE-1-BIT_DEPTH:0], hs_data_word };
 			hs_data_counter <= hs_data_counter + 1'b1;
