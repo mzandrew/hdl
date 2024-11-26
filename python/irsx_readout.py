@@ -53,11 +53,14 @@ default_expected_even_channel_trigger_width = 5
 default_spgin = 0 # default state of hs_data stream (page 40 of schematics)
 default_scaler_timeout = 127.22e6 * check_for_new_register_bank_data_period
 hs_data_ss_incr__for_tpg = 0
-hs_data_capture__for_tpg = 6
+hs_data_capture__for_tpg = 10
 hs_data_counter_clear__for_tpg = 2*12 - 1
 hs_data_ss_incr__for_real_data = hs_data_ss_incr__for_tpg
 hs_data_capture__for_real_data = hs_data_capture__for_tpg
 hs_data_counter_clear__for_real_data = 12 - 1
+hs_data_ss_incr__for_testing = 0
+hs_data_capture__for_testing = 1
+hs_data_counter_clear__for_testing = 30
 default_hs_data_offset = 2 # input capture is 128 bits, but we need 12*4 bits to get a value, so it is only meaningful to set this between 0 and 79 (128-48=80)
 default_tpg = 0xb05 # only accepts the lsb=1 after having written a 1 in that position already
 
@@ -599,8 +602,9 @@ def write_bootup_values():
 		load_thresholds_corresponding_to_lower_null_scaler()
 	#read_modify_write_speed_test()
 	set_expected_trigger_widths(default_expected_dual_channel_trigger_width, default_expected_even_channel_trigger_width)
-	set_hs_data_mode__real_data()
+	#set_hs_data_mode__real_data()
 	#set_hs_data_mode__tpg()
+	set_hs_data_mode__testing()
 	set_spgin(default_spgin)
 	set_scaler_timeout(default_scaler_timeout)
 	set_start_wr_address(0x00)
@@ -1076,6 +1080,11 @@ def set_hs_data_mode__tpg():
 	set_hs_data_offset(default_hs_data_offset)
 	set_hs_data_values(hs_data_ss_incr__for_tpg, hs_data_capture__for_tpg)
 	set_hs_data_counter_clear(hs_data_counter_clear__for_tpg)
+
+def set_hs_data_mode__testing():
+	set_hs_data_offset(default_hs_data_offset)
+	set_hs_data_values(hs_data_ss_incr__for_testing, hs_data_capture__for_testing)
+	set_hs_data_counter_clear(hs_data_counter_clear__for_testing)
 
 def control_regulator(value=1):
 	bank = 0
