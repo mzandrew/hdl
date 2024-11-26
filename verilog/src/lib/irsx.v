@@ -74,12 +74,15 @@ endmodule
 
 //	irsx_wilkinson_convert #() wilkie (.gcc_clock(), .reset(), .should_start_wilkinson_conversion_now(), .convert(), .done_out(), .convert_counter(), .done_out_counter());
 module irsx_wilkinson_convert #(
-	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 20, // takes ~7 us with a 14k resistor and ISEL DAC set to 2200 (scope_1.png)
+	parameter GCC_CLOCK_PERIOD_IN_NANOSECONDS = 2.95,
+	parameter RAMP_DURATION_IN_NANOSECONDS = 7000, // takes ~7 us with a 14k resistor and ISEL DAC set to 2200 (scope_1.png)
+	parameter RAMP_DURATION_IN_GCC_CLOCKS = RAMP_DURATION_IN_NANOSECONDS / GCC_CLOCK_PERIOD_IN_NANOSECONDS,
+	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 2 * RAMP_DURATION_IN_GCC_CLOCKS,
 	parameter LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS = $clog2(CONVERT_DURATION_IN_GCC_CLOCKS),
 	parameter SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH = 8,
 	parameter DONE_OUT_PIPELINE_DEPTH = 8
 ) (
-	input gcc_clock, // 254 MHz
+	input gcc_clock,
 	input reset,
 	input should_start_wilkinson_conversion_now,
 	output reg [31:0] convert_counter,
@@ -90,24 +93,27 @@ module irsx_wilkinson_convert #(
 );
 	reg [SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH-1:0] should_start_wilkinson_conversion_now_pipeline = 0;
 	reg [LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS-1:0] convert_duration_counter = 0;
+	wire [LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS-1:0] convert_duration_in_gcc_clocks = CONVERT_DURATION_IN_GCC_CLOCKS;
 	reg [DONE_OUT_PIPELINE_DEPTH-1:0] done_out_pipeline = 0;
 	always @(posedge gcc_clock) begin
 //		done_out_buffered <= 0;
-		convert <= 0;
 		if (reset) begin
+			convert <= 0;
 			convert_counter <= 0;
 			done_out_counter <= 0;
 //			done_out_pipeline <= 0;
-			convert_duration_counter <= 0;
+//			convert_duration_counter <= 0;
 //			should_start_wilkinson_conversion_now_pipeline <= 0;
 		end else begin
 			if (should_start_wilkinson_conversion_now_pipeline[SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH-1:SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH-2]==2'b01) begin
 				convert_counter <= convert_counter + 1'b1;
-				convert_duration_counter <= CONVERT_DURATION_IN_GCC_CLOCKS;
+				convert_duration_counter <= convert_duration_in_gcc_clocks;
 			end
 			if (convert_duration_counter) begin
 				convert <= 1'b1;
 				convert_duration_counter <= convert_duration_counter - 1'b1;
+			end else begin
+				convert <= 0;
 			end
 			if (done_out_pipeline[DONE_OUT_PIPELINE_DEPTH-1:DONE_OUT_PIPELINE_DEPTH-2]==2'b01) begin
 				done_out_counter <= done_out_counter + 1'b1;
@@ -116,6 +122,12 @@ module irsx_wilkinson_convert #(
 			done_out_pipeline <= { done_out_pipeline[DONE_OUT_PIPELINE_DEPTH-2:0], done_out };
 			should_start_wilkinson_conversion_now_pipeline <= { should_start_wilkinson_conversion_now_pipeline[SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH-2:0], should_start_wilkinson_conversion_now }; // this assumes gcc_clock is faster than word_clock
 		end
+	end
+	initial begin
+		$display("GCC_CLOCK_PERIOD_IN_NANOSECONDS: %d", GCC_CLOCK_PERIOD_IN_NANOSECONDS);
+		$display("RAMP_DURATION_IN_NANOSECONDS: %d", RAMP_DURATION_IN_NANOSECONDS);
+		$display("RAMP_DURATION_IN_GCC_CLOCKS: %d", RAMP_DURATION_IN_GCC_CLOCKS);
+		$display("CONVERT_DURATION_IN_GCC_CLOCKS: %d", CONVERT_DURATION_IN_GCC_CLOCKS);
 	end
 endmodule
 
