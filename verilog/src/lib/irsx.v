@@ -213,8 +213,9 @@ module irsx_read_hs_data_from_storage #(
 	reg [LOG2_OF_COUNTER_SIZE-1:0] hs_data_counter = 0;
 	reg [LOG2_OF_DEPTH-1:0] write_address = 0;
 	reg write_strobe = 0;
-	localparam SS_INCR_PIPELINE_LENGTH = 2;
-	reg [SS_INCR_PIPELINE_LENGTH-1:0] ss_incr_pipeline = 0;
+	localparam SS_INCR_PIPELINE_LENGTH = 4;
+	localparam SS_INCR_POLARITY = 1'b0;
+	reg [SS_INCR_PIPELINE_LENGTH-1:0] ss_incr_pipeline = {SS_INCR_PIPELINE_LENGTH{~SS_INCR_POLARITY}}; // a new data word starts a fixed time after the *falling* edge of ss_incr
 	always @(posedge hs_word_clock) begin
 		write_strobe <= 0;
 		beginning_of_hs_data_memory <= 0;
@@ -226,12 +227,12 @@ module irsx_read_hs_data_from_storage #(
 			buffered_hs_data_stream_internal <= 0;
 		end else begin
 			if (1<SS_INCR_PIPELINE_LENGTH) begin
-				ss_incr_pipeline <= { ss_incr_pipeline[SS_INCR_PIPELINE_LENGTH-2:0], 1'b0 };
+				ss_incr_pipeline <= { ss_incr_pipeline[SS_INCR_PIPELINE_LENGTH-2:0], ~SS_INCR_POLARITY };
 			end else begin
-				ss_incr_pipeline <= 1'b0;
+				ss_incr_pipeline <= ~SS_INCR_POLARITY;
 			end
 			if (hs_data_counter==hs_data_ss_incr_copy_on_hs_clock) begin
-				ss_incr_pipeline <= {SS_INCR_PIPELINE_LENGTH{1'b1}};
+				ss_incr_pipeline <= {SS_INCR_PIPELINE_LENGTH{SS_INCR_POLARITY}};
 			end
 			if (hs_data_counter==hs_data_capture_copy_on_hs_clock) begin
 				beginning_of_hs_data <= 1;
