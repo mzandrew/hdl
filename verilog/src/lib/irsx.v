@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-11-25 by mza
+// last updated 2024-11-26 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -147,7 +147,7 @@ module irsx_read_hs_data_from_storage #(
 	input data_out_clock,
 	output [DATA_WIDTH-1:0] data_out,
 	output [HS_DATA_SIZE-1:0] buffered_hs_data_stream, // copy_on_output_clock
-	output reg ss_incr = 0,
+	output ss_incr,
 	output hs_pll_is_locked_and_strobe_is_aligned,
 	output [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated // copy_on_output_clock
 );
@@ -158,6 +158,8 @@ module irsx_read_hs_data_from_storage #(
 	pipeline_synchronizer #(.WIDTH(LOG2_OF_COUNTER_SIZE)) hs_data_capture_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .in1(hs_data_capture), .out2(hs_data_capture_copy_on_hs_clock));
 	wire [LOG2_OF_OFFSET_SIZE-1:0] hs_data_offset_copy_on_hs_clock;
 	pipeline_synchronizer #(.WIDTH(LOG2_OF_OFFSET_SIZE)) hs_data_offset_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
+	wire [LOG2_OF_COUNTER_SIZE-1:0] hs_data_counter_clear_copy_on_hs_clock;
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_COUNTER_SIZE)) hs_data_counter_clear_copy_on_hs_clock_sync (.clock1(data_out_clock), .clock2(hs_word_clock), .in1(hs_data_counter_clear), .out2(hs_data_counter_clear_copy_on_hs_clock));
 	genvar i;
 	wire hs_bit_clk, hs_bit_strobe;
 	BUFPLL #(
@@ -211,8 +213,9 @@ module irsx_read_hs_data_from_storage #(
 	reg [LOG2_OF_COUNTER_SIZE-1:0] hs_data_counter = 0;
 	reg [LOG2_OF_DEPTH-1:0] write_address = 0;
 	reg write_strobe = 0;
+	localparam SS_INCR_PIPELINE_LENGTH = 2;
+	reg [SS_INCR_PIPELINE_LENGTH-1:0] ss_incr_pipeline = 0;
 	always @(posedge hs_word_clock) begin
-		ss_incr <= 0;
 		write_strobe <= 0;
 		beginning_of_hs_data_memory <= 0;
 		beginning_of_hs_data <= 0;
@@ -222,8 +225,13 @@ module irsx_read_hs_data_from_storage #(
 			write_address <= 0;
 			buffered_hs_data_stream_internal <= 0;
 		end else begin
+			if (1<SS_INCR_PIPELINE_LENGTH) begin
+				ss_incr_pipeline <= { ss_incr_pipeline[SS_INCR_PIPELINE_LENGTH-2:0], 1'b0 };
+			end else begin
+				ss_incr_pipeline <= 1'b0;
+			end
 			if (hs_data_counter==hs_data_ss_incr_copy_on_hs_clock) begin
-				ss_incr <= 1;
+				ss_incr_pipeline <= {SS_INCR_PIPELINE_LENGTH{1'b1}};
 			end
 			if (hs_data_counter==hs_data_capture_copy_on_hs_clock) begin
 				beginning_of_hs_data <= 1;
@@ -234,7 +242,7 @@ module irsx_read_hs_data_from_storage #(
 			if (write_address==0) begin
 				beginning_of_hs_data_memory <= 1'b1;
 			end
-			if (hs_data_counter==hs_data_counter_clear) begin
+			if (hs_data_counter==hs_data_counter_clear_copy_on_hs_clock) begin
 				hs_data_counter <= 0;
 			end else begin
 				hs_data_counter <= hs_data_counter + 1'b1;
@@ -242,6 +250,7 @@ module irsx_read_hs_data_from_storage #(
 			hs_data_stream <= { hs_data_stream[HS_DATA_SIZE-1-BIT_DEPTH:0], hs_data_word };
 		end
 	end
+	assign ss_incr = ss_incr_pipeline[SS_INCR_PIPELINE_LENGTH-1];
 	// spgin comes out first (spgin); real output data comes out after that (db11-db00), then the test pattern generator (tpg) data is last (dd11-dd00); see irsx schematic page 45
 	for (i=0; i<HS_DATA_INTENDED_NUMBER_OF_BITS; i=i+1) begin : hs_data_decimation
 		assign hs_data_word_decimated_internal[i] = buffered_hs_data_stream_internal[BIT_DEPTH*i+hs_data_offset_copy_on_hs_clock];
