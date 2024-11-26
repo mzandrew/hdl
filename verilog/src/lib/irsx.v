@@ -74,7 +74,7 @@ endmodule
 
 //	irsx_wilkinson_convert #() wilkie (.gcc_clock(), .reset(), .should_start_wilkinson_conversion_now(), .convert(), .done_out(), .convert_counter(), .done_out_counter());
 module irsx_wilkinson_convert #(
-	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 2000, // takes ~7 us with a 14k resistor and ISEL DAC set to 2200 (scope_1.png)
+	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 20, // takes ~7 us with a 14k resistor and ISEL DAC set to 2200 (scope_1.png)
 	parameter LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS = $clog2(CONVERT_DURATION_IN_GCC_CLOCKS),
 	parameter SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH = 8,
 	parameter DONE_OUT_PIPELINE_DEPTH = 8

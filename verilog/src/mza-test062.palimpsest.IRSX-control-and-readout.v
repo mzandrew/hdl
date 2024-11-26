@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-11-25 by mza
+// last updated 2024-11-26 by mza
 
 // WARNING:Xst:638 - in unit altheaIRSXtest Conflict on KEEP property on signal IRSXtest/reset127_wait4pll/pipesync/cdc and IRSXtest/status12_copy/async_cdc<2> IRSXtest/status12_copy/async_cdc<2> signal will be lost.
 // filtered Xst:1710 "FF/Latch riwri_bank1/mem_0_370 (without init value) has a constant value of 0 in block altheaIRSXtest. This FF/Latch will be trimmed during the optimization process."
@@ -50,7 +50,7 @@ module IRSXtest #(
 	//parameter HS_DAT_BIT_DEPTH = EYE_DIAGRAM_CAPTURE_POINTS + 1, // 3 or 6 (needs approprate gearboxen)
 	parameter HS_DAT_BIT_DEPTH = 4,
 	parameter HS_WORD_CLK_DIVIDE = HS_BIT_CLK_DIVIDE * HS_DAT_BIT_DEPTH, // hs_clk: 1017/8 = 127 MHz; 1017/6 = 169 MHz; 1017/4 = 254 MHz; 1017/3 = 339 MHz (BRAM can only do 320 MHz on a spartan6...)
-	parameter GCC_BIT_DEPTH = 4,
+	parameter GCC_BIT_DEPTH = 3,
 	parameter GCC_BIT_CLK_DIVIDE = 1, // 1017/1 = 1017 MHz
 	parameter GCC_WORD_CLK_DIVIDE = GCC_BIT_CLK_DIVIDE * GCC_BIT_DEPTH, // 1017/4 = 254 MHz
 	// ----------------------------------------------------------------------
