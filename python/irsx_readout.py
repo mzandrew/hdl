@@ -4,7 +4,7 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-11-25 by mza
+# last updated 2024-11-27 by mza
 
 # todo:
 # plot thresholds (pull from protodune_readout.py)
@@ -41,6 +41,10 @@ Trig16xVofs = pedestal_dac_12bit_2v5
 #wbias_odd  = 1340 #  8.9 ns
 #wbias_even = 1110 # 17.8 ns
 #wbias_dual = 1010 # 35.6 ns
+# for a trigger capture bit clock of 1017/6 = 169 MHz
+#wbias_odd  = 1230 # 12.0 ns (2 clocks)
+#wbias_even = 1040 # 24.0 ns (4 clocks)
+#wbias_dual =  940 # 74.0 ns (12 clocks)
 # for a trigger capture bit clock of 1017/12 = 84.8 MHz
 wbias_odd  =  970 #  35.4 ns
 wbias_even =  860 #  68.8 ns
@@ -48,8 +52,8 @@ wbias_dual =  750 #  119-138 ns
 wbias_bump_amount = 10
 MIN_TRIGGER_WIDTH_TO_EXPECT = 1
 MAX_TRIGGER_WIDTH_TO_EXPECT = 31
-default_expected_dual_channel_trigger_width = 8
-default_expected_even_channel_trigger_width = 5
+default_expected_dual_channel_trigger_width = 12
+default_expected_even_channel_trigger_width = 4
 default_spgin = 0 # default state of hs_data stream (page 40 of schematics)
 default_scaler_timeout = 127.22e6 * check_for_new_register_bank_data_period
 hs_data_ss_incr__for_tpg = 0
@@ -1188,12 +1192,12 @@ nominal_register_values[165] = ("dualWbias23", wbias_dual) # needs TBbias and IT
 nominal_register_values[166] = ("dualWbias45", wbias_dual) # needs TBbias and ITbias
 nominal_register_values[167] = ("dualWbias67", wbias_dual) # needs TBbias and ITbias
 nominal_register_values[168] = ("reg168", (0<<9) | (0<<7) | (0<<6) | (0<<5) | (1<<4) | (0<<3) | (0<<2) | (0<<1) | 1, "spy_s[2:0], -, OSH, spy_vs_spy, SSHSH, WR_SSEL, done_mask, trg_x1/x4, trg_x4/x16, trg_sgn")
-nominal_register_values[169] = ("CMPbias2", 737) # needs SBbias and DBbias
-nominal_register_values[170] = ("PUbias", 3112) # needs SBbias and DBbias
-nominal_register_values[171] = ("CMPbias", 1000) # needs SBbias and DBbias
+nominal_register_values[169] = ("CMPbias2", 737, "see page 138 of irsx schematic") # needs SBbias and DBbias
+nominal_register_values[170] = ("PUbias", 3112, "see page 138 of irsx schematic") # needs SBbias and DBbias
+nominal_register_values[171] = ("CMPbias", 1000, "see page 148 of irsx schematic") # needs SBbias and DBbias
 nominal_register_values[172] = ("SBbias", 1300) # needs DBbias
 nominal_register_values[173] = ("Vdischarge", 0) # needs DBbias
-nominal_register_values[174] = ("ISEL", 2200) # needs DBbias
+nominal_register_values[174] = ("ISEL", 2750) # needs DBbias; 2750=32us; 2475=12us; 2200=7us
 nominal_register_values[175] = ("DBbias", 1300)
 nominal_register_values[176] = ("VtrimT", 4090) # needs VQbuff
 #nominal_register_values[177] = ("Qbias", 1300, "set to 0 until DLL set"]) # needs VQbuff
