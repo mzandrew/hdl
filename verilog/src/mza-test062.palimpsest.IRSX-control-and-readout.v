@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-11-26 by mza
+// last updated 2024-11-27 by mza
 
 // WARNING:Xst:638 - in unit altheaIRSXtest Conflict on KEEP property on signal IRSXtest/reset127_wait4pll/pipesync/cdc and IRSXtest/status12_copy/async_cdc<2> IRSXtest/status12_copy/async_cdc<2> signal will be lost.
 // filtered Xst:1710 "FF/Latch riwri_bank1/mem_0_370 (without init value) has a constant value of 0 in block altheaIRSXtest. This FF/Latch will be trimmed during the optimization process."
@@ -25,14 +25,16 @@ module IRSXtest #(
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
 	// ----------------------------------------------------------------------
-	parameter DCM_INPUT_PERIOD = 7.861, // 127.221875 MHz
+	//parameter DCM_INPUT_FREQUENCY_IN_HZ = 127221875,
+	parameter DCM_INPUT_FREQUENCY_IN_HZ = 127210279,
+	parameter DCM_INPUT_PERIOD_IN_NS = 1e9/DCM_INPUT_FREQUENCY_IN_HZ, // 127.221875 MHz
 	parameter DCM_MULTIPLY = 4, // 508.8875 MHz
 	parameter DCM_DIVIDE = 24, // 21.203646 MHz
-	parameter DCM_FREQUENCY = 1e9 * DCM_MULTIPLY / DCM_DIVIDE / DCM_INPUT_PERIOD, // 21.203646 MHz (SST)
-	parameter PLL_INPUT_PERIOD = DCM_INPUT_PERIOD * DCM_DIVIDE / DCM_MULTIPLY,
+	parameter DCM_OUTPUT_FREQUENCY_IN_HZ = 1e9 * DCM_MULTIPLY / DCM_DIVIDE / DCM_INPUT_PERIOD_IN_NS, // 21.203646 MHz (SST)
+	parameter PLL_INPUT_PERIOD_IN_NS = DCM_INPUT_PERIOD_IN_NS * DCM_DIVIDE / DCM_MULTIPLY,
 	parameter PLL_MULTIPLY = 48, // 1017.775 MHz
 	parameter PLL_OVERALL_DIVIDE = 1, // 1017.775 MHz
-	parameter PLL_FREQUENCY = DCM_FREQUENCY * PLL_MULTIPLY / PLL_OVERALL_DIVIDE, // 1017.775 MHz (everything else is derived from this)
+	parameter PLL_FREQUENCY_IN_HZ = DCM_OUTPUT_FREQUENCY_IN_HZ * PLL_MULTIPLY / PLL_OVERALL_DIVIDE, // 1017.775 MHz (everything else is derived from this)
 	// ----------------------------------------------------------------------
 	parameter EXTRA_FACTOR_OF_TWO = 2,
 	parameter EYE_DIAGRAM_CAPTURE_POINTS = 3,
@@ -40,19 +42,32 @@ module IRSXtest #(
 	parameter WORD_CLOCK_DIVIDE = 8, //  1017.775/8 = 127.221875 MHz
 	// ----------------------------------------------------------------------
 	parameter SST_CLK_DIVIDE = 48, // 1017/48 = 21.203646 MHz
-	parameter WR_DAT_BIT_DEPTH = 8,
-	parameter WR_BIT_CLK_DIVIDE = SST_CLK_DIVIDE / WR_DAT_BIT_DEPTH / EXTRA_FACTOR_OF_TWO, // 1017/3 = 339 MHz (EXTRA_FACTOR_OF_TWO because it's twice the speed that's strictly needed so we can oserdes the wr_clk out of phase with the wr_dat edges; could alternately use an ODDR with bits inverted to get the same effect)
-	parameter WR_WORD_CLK_DIVIDE = WR_BIT_CLK_DIVIDE * WR_DAT_BIT_DEPTH, // 1017/3/8 = 42 MHz
+	parameter SST_FREQUENCY_IN_MHZ = DCM_OUTPUT_FREQUENCY_IN_HZ / 1e6,
+	// ----------------------------------------------------------------------
 	parameter TRG_BIT_DEPTH = 4,
 	parameter TRG_WORD_CLK_DIVIDE = SST_CLK_DIVIDE, // 1017/48 = 21 MHz
 	parameter TRG_BIT_CLK_DIVIDE = TRG_WORD_CLK_DIVIDE / TRG_BIT_DEPTH, // 1017/12 = 84.814583 MHz
+	parameter TRG_BIT_FREQUENCY_IN_MHZ = PLL_FREQUENCY_IN_HZ / TRG_BIT_CLK_DIVIDE / 1e6,
+	parameter TRG_WORD_FREQUENCY_IN_MHZ = PLL_FREQUENCY_IN_HZ / TRG_WORD_CLK_DIVIDE / 1e6,
+	// ----------------------------------------------------------------------
+	parameter WR_DAT_BIT_DEPTH = 8,
+	parameter WR_BIT_CLK_DIVIDE = SST_CLK_DIVIDE / WR_DAT_BIT_DEPTH / EXTRA_FACTOR_OF_TWO, // 1017/3 = 339 MHz (EXTRA_FACTOR_OF_TWO because it's twice the speed that's strictly needed so we can oserdes the wr_clk out of phase with the wr_dat edges; could alternately use an ODDR with bits inverted to get the same effect)
+	parameter WR_WORD_CLK_DIVIDE = WR_BIT_CLK_DIVIDE * WR_DAT_BIT_DEPTH, // 1017/3/8 = 42 MHz
+	parameter WR_BIT_FREQUENCY_IN_MHZ = PLL_FREQUENCY_IN_HZ / WR_BIT_CLK_DIVIDE / 1e6,
+	parameter WR_WORD_FREQUENCY_IN_MHZ = PLL_FREQUENCY_IN_HZ / WR_WORD_CLK_DIVIDE / 1e6,
+	// ----------------------------------------------------------------------
+	parameter GCC_BIT_DEPTH = 4,
+	parameter GCC_BIT_CLK_DIVIDE = 2, // 1017/2 = 509 MHz
+	parameter GCC_WORD_CLK_DIVIDE = GCC_BIT_CLK_DIVIDE * GCC_BIT_DEPTH, // 1017/8 = 127 MHz
+	parameter GCC_BIT_FREQUENCY_IN_MHZ = PLL_FREQUENCY_IN_HZ / GCC_BIT_CLK_DIVIDE / 1e6,
+	parameter GCC_WORD_FREQUENCY_IN_MHZ = PLL_FREQUENCY_IN_HZ / GCC_WORD_CLK_DIVIDE / 1e6,
+	// ----------------------------------------------------------------------
 	parameter HS_BIT_CLK_DIVIDE = 1, // hs_bit_clk_raw: 1017/1 = 1017 MHz
 	//parameter HS_DAT_BIT_DEPTH = EYE_DIAGRAM_CAPTURE_POINTS + 1, // 3 or 6 (needs approprate gearboxen)
 	parameter HS_DAT_BIT_DEPTH = 4,
 	parameter HS_WORD_CLK_DIVIDE = HS_BIT_CLK_DIVIDE * HS_DAT_BIT_DEPTH, // hs_clk: 1017/8 = 127 MHz; 1017/6 = 169 MHz; 1017/4 = 254 MHz; 1017/3 = 339 MHz (BRAM can only do 320 MHz on a spartan6...)
-	parameter GCC_BIT_DEPTH = 3,
-	parameter GCC_BIT_CLK_DIVIDE = 1, // 1017/1 = 1017 MHz
-	parameter GCC_WORD_CLK_DIVIDE = GCC_BIT_CLK_DIVIDE * GCC_BIT_DEPTH, // 1017/4 = 254 MHz
+	parameter HS_BIT_FREQUENCY_IN_MHZ = PLL_FREQUENCY_IN_HZ / HS_BIT_CLK_DIVIDE / 1e6,
+	parameter HS_WORD_FREQUENCY_IN_MHZ = PLL_FREQUENCY_IN_HZ / HS_WORD_CLK_DIVIDE / 1e6,
 	// ----------------------------------------------------------------------
 	parameter HS_CLK_OSERDES_MODE = 0, // ODDR mode otherwise
 	parameter LOG2_OF_HS_DAT_BIT_DEPTH = $clog2(HS_DAT_BIT_DEPTH),
@@ -255,8 +270,8 @@ module IRSXtest #(
 	// clip to here
 	// ----------------------------------------------------------------------
 	dcm_pll_pll #(
-		.DCM_PERIOD(DCM_INPUT_PERIOD), .DCM_MULTIPLY(DCM_MULTIPLY), .DCM_DIVIDE(DCM_DIVIDE),
-		.PLL_PERIOD(PLL_INPUT_PERIOD), .PLL_MULTIPLY(PLL_MULTIPLY), .PLL_OVERALL_DIVIDE(PLL_OVERALL_DIVIDE),
+		.DCM_PERIOD(DCM_INPUT_PERIOD_IN_NS), .DCM_MULTIPLY(DCM_MULTIPLY), .DCM_DIVIDE(DCM_DIVIDE),
+		.PLL_PERIOD(PLL_INPUT_PERIOD_IN_NS), .PLL_MULTIPLY(PLL_MULTIPLY), .PLL_OVERALL_DIVIDE(PLL_OVERALL_DIVIDE),
 		.PLL_DIVIDE0(WR_BIT_CLK_DIVIDE), .PLL_DIVIDE1(TRG_BIT_CLK_DIVIDE),
 		.PLL_DIVIDE2(WR_WORD_CLK_DIVIDE), .PLL_DIVIDE3(48),
 		.PLL_DIVIDE4(GCC_WORD_CLK_DIVIDE), .PLL_DIVIDE5(GCC_WORD_CLK_DIVIDE),
@@ -518,7 +533,7 @@ module IRSXtest #(
 		assign coax[1] = 0;//oddr_double_period;
 		assign coax[2] = montiming2;
 		assign coax[3] = montiming1;
-	end else if (0) begin // for tuning wbiases and trg capture parameters
+	end else if (1) begin // for tuning wbiases and trg capture parameters
 		assign coax[0] = t4;
 		assign coax[1] = t5;
 		assign coax[2] = trg45;//trg0123;
@@ -581,6 +596,15 @@ module IRSXtest #(
 		$display("GCC_BIT_DEPTH=%d", GCC_BIT_DEPTH);
 		$display("GCC_BIT_CLK_DIVIDE=%d", GCC_BIT_CLK_DIVIDE);
 		$display("GCC_WORD_CLK_DIVIDE=%d", GCC_WORD_CLK_DIVIDE);
+		$display("TRG_BIT_FREQUENCY_IN_MHZ=%f", TRG_BIT_FREQUENCY_IN_MHZ);
+		$display("TRG_WORD_FREQUENCY_IN_MHZ=%f", TRG_WORD_FREQUENCY_IN_MHZ);
+		$display("SST_FREQUENCY_IN_MHZ=%f", SST_FREQUENCY_IN_MHZ);
+		$display("WR_BIT_FREQUENCY_IN_MHZ=%f", WR_BIT_FREQUENCY_IN_MHZ);
+		$display("WR_WORD_FREQUENCY_IN_MHZ=%f", WR_WORD_FREQUENCY_IN_MHZ);
+		$display("GCC_BIT_FREQUENCY_IN_MHZ=%f", GCC_BIT_FREQUENCY_IN_MHZ);
+		$display("GCC_WORD_FREQUENCY_IN_MHZ=%f", GCC_WORD_FREQUENCY_IN_MHZ);
+		$display("HS_BIT_FREQUENCY_IN_MHZ=%f", HS_BIT_FREQUENCY_IN_MHZ);
+		$display("HS_WORD_FREQUENCY_IN_MHZ=%f", HS_WORD_FREQUENCY_IN_MHZ);
 		//$display("=%d", );
 	end
 endmodule

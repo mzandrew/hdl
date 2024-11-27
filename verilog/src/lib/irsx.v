@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-11-26 by mza
+// last updated 2024-11-27 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -74,11 +74,12 @@ endmodule
 
 //	irsx_wilkinson_convert #() wilkie (.gcc_clock(), .reset(), .should_start_wilkinson_conversion_now(), .convert(), .done_out(), .convert_counter(), .done_out_counter());
 module irsx_wilkinson_convert #(
-	parameter GCC_CLOCK_PERIOD_IN_NANOSECONDS = 2.95,
-	parameter RAMP_DURATION_IN_NANOSECONDS = 7000, // takes ~7 us with a 14k resistor and ISEL DAC set to 2200 (scope_1.png)
-	parameter RAMP_DURATION_IN_GCC_CLOCKS = RAMP_DURATION_IN_NANOSECONDS / GCC_CLOCK_PERIOD_IN_NANOSECONDS,
-	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 2 * RAMP_DURATION_IN_GCC_CLOCKS,
-	parameter LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS = $clog2(CONVERT_DURATION_IN_GCC_CLOCKS),
+//	parameter GCC_CLOCK_PERIOD_IN_NANOSECONDS = 2.95,
+//	parameter RAMP_DURATION_IN_NANOSECONDS = 7000, // takes ~7 us with a 14k resistor and ISEL DAC set to 2200 (scope_1.png)
+//	parameter RAMP_DURATION_IN_GCC_CLOCKS = RAMP_DURATION_IN_NANOSECONDS / GCC_CLOCK_PERIOD_IN_NANOSECONDS,
+//	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 2 * RAMP_DURATION_IN_GCC_CLOCKS,
+	parameter LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS = 12,
+	parameter CONVERT_DURATION_IN_GCC_CLOCKS = 2**LOG_BASE2_OF_CONVERT_DURATION_IN_GCC_CLOCKS - 1,
 	parameter SHOULD_START_WILKINSON_CONVERSION_NOW_PIPELINE_DEPTH = 8,
 	parameter DONE_OUT_PIPELINE_DEPTH = 8
 ) (
@@ -124,9 +125,9 @@ module irsx_wilkinson_convert #(
 		end
 	end
 	initial begin
-		$display("GCC_CLOCK_PERIOD_IN_NANOSECONDS: %d", GCC_CLOCK_PERIOD_IN_NANOSECONDS);
-		$display("RAMP_DURATION_IN_NANOSECONDS: %d", RAMP_DURATION_IN_NANOSECONDS);
-		$display("RAMP_DURATION_IN_GCC_CLOCKS: %d", RAMP_DURATION_IN_GCC_CLOCKS);
+//		$display("GCC_CLOCK_PERIOD_IN_NANOSECONDS: %d", GCC_CLOCK_PERIOD_IN_NANOSECONDS);
+//		$display("RAMP_DURATION_IN_NANOSECONDS: %d", RAMP_DURATION_IN_NANOSECONDS);
+//		$display("RAMP_DURATION_IN_GCC_CLOCKS: %d", RAMP_DURATION_IN_GCC_CLOCKS);
 		$display("CONVERT_DURATION_IN_GCC_CLOCKS: %d", CONVERT_DURATION_IN_GCC_CLOCKS);
 	end
 endmodule
