@@ -25,8 +25,8 @@ module IRSXtest #(
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
 	// ----------------------------------------------------------------------
-	//parameter DCM_INPUT_FREQUENCY_IN_HZ = 127221875,
-	parameter DCM_INPUT_FREQUENCY_IN_HZ = 127210279,
+	//parameter DCM_INPUT_FREQUENCY_IN_HZ = 127221875, // right
+	parameter DCM_INPUT_FREQUENCY_IN_HZ = 127210279, // wrong, but avoids warnings about not matching period in ucf
 	parameter DCM_INPUT_PERIOD_IN_NS = 1e9/DCM_INPUT_FREQUENCY_IN_HZ, // 127.221875 MHz
 	parameter DCM_MULTIPLY = 4, // 508.8875 MHz
 	parameter DCM_DIVIDE = 24, // 21.203646 MHz
@@ -44,11 +44,15 @@ module IRSXtest #(
 	parameter SST_CLK_DIVIDE = 48, // 1017/48 = 21.203646 MHz
 	parameter SST_FREQUENCY_IN_MHZ = DCM_OUTPUT_FREQUENCY_IN_HZ / 1e6,
 	// ----------------------------------------------------------------------
-	parameter TRG_BIT_DEPTH = 4,
+	parameter TRG_BIT_DEPTH = 8,
 	parameter TRG_WORD_CLK_DIVIDE = SST_CLK_DIVIDE, // 1017/48 = 21 MHz
 	parameter TRG_BIT_CLK_DIVIDE = TRG_WORD_CLK_DIVIDE / TRG_BIT_DEPTH, // 1017/12 = 84.814583 MHz
+//	parameter TRG_BIT_DEPTH = 6,
+//	parameter TRG_BIT_CLK_DIVIDE = 1, // 1017/12 = 84.814583 MHz
+//	parameter TRG_WORD_CLK_DIVIDE = TRG_BIT_CLK_DIVIDE * TRG_BIT_DEPTH, // 1017/48 = 21 MHz
 	parameter TRG_BIT_FREQUENCY_IN_MHZ = PLL_FREQUENCY_IN_HZ / TRG_BIT_CLK_DIVIDE / 1e6,
 	parameter TRG_WORD_FREQUENCY_IN_MHZ = PLL_FREQUENCY_IN_HZ / TRG_WORD_CLK_DIVIDE / 1e6,
+	parameter LOG2_OF_RATIO_OF_TRIG_WORD_CLOCK_TO_SST_CLOCK = $clog2(SST_CLK_DIVIDE / TRG_WORD_CLK_DIVIDE),
 	// ----------------------------------------------------------------------
 	parameter WR_DAT_BIT_DEPTH = 8,
 	parameter WR_BIT_CLK_DIVIDE = SST_CLK_DIVIDE / WR_DAT_BIT_DEPTH / EXTRA_FACTOR_OF_TWO, // 1017/3 = 339 MHz (EXTRA_FACTOR_OF_TWO because it's twice the speed that's strictly needed so we can oserdes the wr_clk out of phase with the wr_dat edges; could alternately use an ODDR with bits inverted to get the same effect)
@@ -73,6 +77,7 @@ module IRSXtest #(
 	parameter LOG2_OF_HS_DAT_BIT_DEPTH = $clog2(HS_DAT_BIT_DEPTH),
 	parameter HS_DATA_INTENDED_NUMBER_OF_BITS = 24, // this is 12 bits for the real data and 12 bits for the test pattern generator (tpg)
 	parameter LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH = 5, // 2**5 = 32
+	parameter LOG2_OF_NUMBER_OF_STORAGE_WINDOWS_ON_ASIC = 8,
 	// ----------------------------------------------------------------------
 	parameter BUS_WIDTH = 16,
 	parameter LOG2_OF_BUS_WIDTH = $clog2(BUS_WIDTH),
@@ -257,16 +262,17 @@ module IRSXtest #(
 		.LOCK(trg_pll_is_locked_and_strobe_is_aligned2), // BUFPLL Clock and strobe locked
 		.SERDESSTROBE(trg_bit_strobe2) // Output SERDES strobe
 	);
-	// if TRG_BIT_DEPTH==8:
-//	iserdes_single8_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg01_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg01), .word_out(trg01_word));
-//	iserdes_single8_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
-//	iserdes_single8_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
-//	iserdes_single8_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
-	// else:
-	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg01_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg01), .word_out(trg01_word));
-	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
-	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
-	iserdes_single4_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
+	if (4<TRG_BIT_DEPTH) begin
+		iserdes_single_cascaded_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg01_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg01), .word_out(trg01_word));
+		iserdes_single_cascaded_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
+		iserdes_single_cascaded_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
+		iserdes_single_cascaded_inner #(.BIT_RATIO(TRG_BIT_DEPTH), .PINTYPE("p")) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
+	end else begin
+		iserdes_single_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg01_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg01), .word_out(trg01_word));
+		iserdes_single_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg23_iserdes (.bit_clock(trg_bit_clock1), .bit_strobe(trg_bit_strobe1), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg23), .word_out(trg23_word));
+		iserdes_single_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg45_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg45), .word_out(trg45_word));
+		iserdes_single_inner #(.BIT_RATIO(TRG_BIT_DEPTH)) trg67_iserdes (.bit_clock(trg_bit_clock2), .bit_strobe(trg_bit_strobe2), .word_clock(trg_word_clock), .reset(trg_reset), .data_in(trg67), .word_out(trg67_word));
+	end
 	// clip to here
 	// ----------------------------------------------------------------------
 	dcm_pll_pll #(
@@ -413,11 +419,11 @@ module IRSXtest #(
 	// ----------------------------------------------------------------------
 	// bank4 = trigger memory
 	wire t0, t1, t2, t3, t4, t5, t6, t7;
-	irsx_trig_bit_memory_mapper #(.RATIO_OF_TRIG_WORD_CLOCK_TO_SST_CLOCK(4)) trigz (
+	irsx_trig_bit_memory_mapper #(.LOG2_OF_RATIO_OF_TRIG_WORD_CLOCK_TO_SST_CLOCK(LOG2_OF_RATIO_OF_TRIG_WORD_CLOCK_TO_SST_CLOCK)) trigz (
 		.trigword_clock(trg_word_clock), .trigword_reset(trg_reset),
 		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7),
 		.sst_write_address(wr_address_copy_on_trg_word_clock),
-		.readout_clock(word_clock), .read_address(address_word_full[9:0]), .data_out(read_data_word[4][7:0]));
+		.readout_clock(word_clock), .read_address(address_word_full[LOG2_OF_NUMBER_OF_STORAGE_WINDOWS_ON_ASIC+LOG2_OF_RATIO_OF_TRIG_WORD_CLOCK_TO_SST_CLOCK-1:0]), .data_out(read_data_word[4][7:0]));
 	assign read_data_word[4][31:8] = 0;
 	// ----------------------------------------------------------------------
 	// bank5 = data to read out
