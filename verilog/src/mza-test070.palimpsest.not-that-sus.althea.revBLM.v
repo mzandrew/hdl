@@ -152,7 +152,7 @@ module sus_tb #(
 		#0.5; clock <= ~clock;
 	end
 	integer i;
-	always @(negedge clock) begin
+	always @(posedge clock) begin
 		for (i=1; i<=PIPELINE_PICKOFF; i=i+1) begin
 			r0[i] <= r0[i-1];
 			r1[i] <= r1[i-1];
@@ -168,31 +168,8 @@ module sus_tb #(
 			r1[i] <= 0;
 			r2[i] <= 0;
 		end
-		#(2*PIPELINE_PICKOFF);
-		reset <= 0;
-		#20; stim<=1; #1; stim<=0; #0;
-		// grid_0_0_0 peaks at 18 here:
-		r0[07] <= waveform_a[6];
-		r0[08] <= waveform_a[5];
-		r0[09] <= waveform_a[4];
-		r0[10] <= waveform_a[3];
-		r0[11] <= waveform_a[2];
-		r0[12] <= waveform_a[1];
-		r0[13] <= waveform_a[0];
-		r1[10] <= waveform_b[6];
-		r1[11] <= waveform_b[5];
-		r1[12] <= waveform_b[4];
-		r1[13] <= waveform_b[3];
-		r1[14] <= waveform_b[2];
-		r1[15] <= waveform_b[1];
-		r1[16] <= waveform_b[0];
-		r2[07] <= waveform_c[6];
-		r2[08] <= waveform_c[5];
-		r2[09] <= waveform_c[4];
-		r2[10] <= waveform_c[3];
-		r2[11] <= waveform_c[2];
-		r2[12] <= waveform_c[1];
-		r2[13] <= waveform_c[0];
+		#(2*PIPELINE_PICKOFF); reset <= 0;
+		#100; stim<=1; #1; stim<=0; #1; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[ 7+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[10+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[ 7+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_0_0_0 peaks at 18
 		#100; $finish;
 	end
 endmodule
