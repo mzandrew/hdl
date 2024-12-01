@@ -1,5 +1,5 @@
 // generated 2024-11-20 by https://github.com/mzandrew/bin/blob/master/physics/not_that_sus.py
-// last updated 2024-11-21 by mza
+// last updated 2024-11-30 by mza
 
 module pipeline_correlator3 #(
 	parameter WIDTH = 3,
@@ -54,15 +54,15 @@ endmodule
 
 module sus #(
 	parameter RECEIVER_SUBWORD_WIDTH = 3,
-	parameter RECEIVER0_PIPELINE_LENGTH_IN_SUBWORDS = 12*RECEIVER_SUBWORD_WIDTH,
-	parameter RECEIVER1_PIPELINE_LENGTH_IN_SUBWORDS = 12*RECEIVER_SUBWORD_WIDTH,
-	parameter RECEIVER2_PIPELINE_LENGTH_IN_SUBWORDS = 11*RECEIVER_SUBWORD_WIDTH,
+	parameter RECEIVER0_PIPELINE_LENGTH_IN_SUBWORDS = 10*RECEIVER_SUBWORD_WIDTH,
+	parameter RECEIVER1_PIPELINE_LENGTH_IN_SUBWORDS = 10*RECEIVER_SUBWORD_WIDTH,
+	parameter RECEIVER2_PIPELINE_LENGTH_IN_SUBWORDS = 8*RECEIVER_SUBWORD_WIDTH,
 	parameter RECEIVER_WORD_WIDTH = 18,
 	parameter NUMBER_OF_BITS_OF_OUTPUT = 9
 ) (
 	input clock,
 	input [RECEIVER_WORD_WIDTH-1:0] receiver0_data_word, receiver1_data_word, receiver2_data_word,
-	output [NUMBER_OF_BITS_OF_OUTPUT-1:0] grid_0_0_0, grid_0_1_0, grid_0_2_0, grid_0_3_0, grid_1_0_0, grid_1_1_0, grid_1_2_0, grid_1_3_0, grid_2_0_0, grid_2_1_0, grid_2_2_0, grid_2_3_0, grid_3_0_0, grid_3_1_0, grid_3_2_0, grid_3_3_0
+	output [NUMBER_OF_BITS_OF_OUTPUT-1:0] grid_0_0_0, grid_0_1_0, grid_0_2_0, grid_1_0_0, grid_1_1_0, grid_1_2_0, grid_2_0_0, grid_2_1_0, grid_2_2_0, grid_3_0_0, grid_3_1_0, grid_3_2_0
 );
 	reg [RECEIVER0_PIPELINE_LENGTH_IN_SUBWORDS*RECEIVER_SUBWORD_WIDTH-1:0] receiver0_pipeline = 0;
 	reg [RECEIVER1_PIPELINE_LENGTH_IN_SUBWORDS*RECEIVER_SUBWORD_WIDTH-1:0] receiver1_pipeline = 0;
@@ -76,108 +76,123 @@ module sus #(
 	always @(posedge clock) begin
 		receiver2_pipeline <= { receiver2_pipeline[(RECEIVER2_PIPELINE_LENGTH_IN_SUBWORDS-1)*RECEIVER_SUBWORD_WIDTH-1:0], receiver2_data_word[RECEIVER_WORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH] };
 	end
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_0_0_0 = receiver0_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_0_0_0 = receiver1_pipeline[12*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_0_0_0 = receiver2_pipeline[8*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_0_0_0 = receiver0_pipeline[7*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_0_0_0 = receiver1_pipeline[10*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_0_0_0 = receiver2_pipeline[7*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_0_0_0 (.clock(clock), .i0(tap0_0_0_0), .i1(tap1_0_0_0), .i2(tap2_0_0_0), .o(grid_0_0_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_0_1_0 = receiver0_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_0_1_0 = receiver0_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_0_1_0 = receiver1_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_0_1_0 = receiver2_pipeline[7*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_0_1_0 (.clock(clock), .i0(tap0_0_1_0), .i1(tap1_0_1_0), .i2(tap2_0_1_0), .o(grid_0_1_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_0_2_0 = receiver0_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_0_2_0 = receiver0_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_0_2_0 = receiver1_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_0_2_0 = receiver2_pipeline[8*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_0_2_0 (.clock(clock), .i0(tap0_0_2_0), .i1(tap1_0_2_0), .i2(tap2_0_2_0), .o(grid_0_2_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_0_3_0 = receiver0_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_0_3_0 = receiver1_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_0_3_0 = receiver2_pipeline[11*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_0_3_0 (.clock(clock), .i0(tap0_0_3_0), .i1(tap1_0_3_0), .i2(tap2_0_3_0), .o(grid_0_3_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_1_0_0 = receiver0_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_1_0_0 = receiver1_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_1_0_0 = receiver2_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_1_0_0 = receiver0_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_1_0_0 = receiver1_pipeline[7*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_1_0_0 = receiver2_pipeline[4*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_1_0_0 (.clock(clock), .i0(tap0_1_0_0), .i1(tap1_1_0_0), .i2(tap2_1_0_0), .o(grid_1_0_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_1_1_0 = receiver0_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_1_1_0 = receiver1_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_1_1_0 = receiver0_pipeline[2*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_1_1_0 = receiver1_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_1_1_0 = receiver2_pipeline[3*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_1_1_0 (.clock(clock), .i0(tap0_1_1_0), .i1(tap1_1_1_0), .i2(tap2_1_1_0), .o(grid_1_1_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_1_2_0 = receiver0_pipeline[1*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_1_2_0 = receiver1_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_1_2_0 = receiver2_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_1_2_0 = receiver0_pipeline[4*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_1_2_0 = receiver1_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_1_2_0 = receiver2_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_1_2_0 (.clock(clock), .i0(tap0_1_2_0), .i1(tap1_1_2_0), .i2(tap2_1_2_0), .o(grid_1_2_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_1_3_0 = receiver0_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_1_3_0 = receiver1_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_1_3_0 = receiver2_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_1_3_0 (.clock(clock), .i0(tap0_1_3_0), .i1(tap1_1_3_0), .i2(tap2_1_3_0), .o(grid_1_3_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_2_0_0 = receiver0_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_2_0_0 = receiver1_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_2_0_0 = receiver2_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_2_0_0 = receiver0_pipeline[7*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_2_0_0 = receiver1_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_2_0_0 = receiver2_pipeline[4*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_2_0_0 (.clock(clock), .i0(tap0_2_0_0), .i1(tap1_2_0_0), .i2(tap2_2_0_0), .o(grid_2_0_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_2_1_0 = receiver0_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_2_1_0 = receiver1_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_2_1_0 = receiver0_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_2_1_0 = receiver1_pipeline[2*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_2_1_0 = receiver2_pipeline[3*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_2_1_0 (.clock(clock), .i0(tap0_2_1_0), .i1(tap1_2_1_0), .i2(tap2_2_1_0), .o(grid_2_1_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_2_2_0 = receiver0_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_2_2_0 = receiver1_pipeline[1*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_2_2_0 = receiver2_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_2_2_0 = receiver0_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_2_2_0 = receiver1_pipeline[4*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_2_2_0 = receiver2_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_2_2_0 (.clock(clock), .i0(tap0_2_2_0), .i1(tap1_2_2_0), .i2(tap2_2_2_0), .o(grid_2_2_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_2_3_0 = receiver0_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_2_3_0 = receiver1_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_2_3_0 = receiver2_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_2_3_0 (.clock(clock), .i0(tap0_2_3_0), .i1(tap1_2_3_0), .i2(tap2_2_3_0), .o(grid_2_3_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_3_0_0 = receiver0_pipeline[12*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_3_0_0 = receiver1_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_3_0_0 = receiver2_pipeline[8*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_3_0_0 = receiver0_pipeline[10*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_3_0_0 = receiver1_pipeline[7*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_3_0_0 = receiver2_pipeline[7*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_3_0_0 (.clock(clock), .i0(tap0_3_0_0), .i1(tap1_3_0_0), .i2(tap2_3_0_0), .o(grid_3_0_0));
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_3_1_0 = receiver0_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_3_1_0 = receiver1_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_3_1_0 = receiver1_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_3_1_0 = receiver2_pipeline[7*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_3_1_0 (.clock(clock), .i0(tap0_3_1_0), .i1(tap1_3_1_0), .i2(tap2_3_1_0), .o(grid_3_1_0));
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_3_2_0 = receiver0_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_3_2_0 = receiver1_pipeline[5*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
+	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_3_2_0 = receiver1_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_3_2_0 = receiver2_pipeline[8*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
 	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_3_2_0 (.clock(clock), .i0(tap0_3_2_0), .i1(tap1_3_2_0), .i2(tap2_3_2_0), .o(grid_3_2_0));
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap0_3_3_0 = receiver0_pipeline[9*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap1_3_3_0 = receiver1_pipeline[6*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	wire [RECEIVER_SUBWORD_WIDTH-1:0] tap2_3_3_0 = receiver2_pipeline[11*RECEIVER_SUBWORD_WIDTH-1-:RECEIVER_SUBWORD_WIDTH];
-	correlator3 #(.WIDTH(RECEIVER_SUBWORD_WIDTH)) correlator_3_3_0 (.clock(clock), .i0(tap0_3_3_0), .i1(tap1_3_3_0), .i2(tap2_3_3_0), .o(grid_3_3_0));
 endmodule
 
-module sus_tb;
+module sus_tb #(
+	parameter NUMBER_OF_BITS_OF_OUTPUT = 9,
+	parameter WAVEFORM_LENGTH = 7,
+	parameter PIPELINE_PICKOFF = 43
+);
 	reg clock = 0;
-	wire [8:0] grid_0_0_0;
+	reg reset = 1;
+	wire [NUMBER_OF_BITS_OF_OUTPUT-1:0] grid_0_0_0, grid_0_1_0, grid_0_2_0, grid_1_0_0, grid_1_1_0, grid_1_2_0, grid_2_0_0, grid_2_1_0, grid_2_2_0, grid_3_0_0, grid_3_1_0, grid_3_2_0;
 	wire [14:0] zeroes = 0;
-	reg [2:0] r0 = 0;
-	reg [2:0] r1 = 0;
-	reg [2:0] r2 = 0;
-	wire [17:0] receiver0_data_word = { r0, zeroes };
-	wire [17:0] receiver1_data_word = { r1, zeroes };
-	wire [17:0] receiver2_data_word = { r2, zeroes };
+	reg [2:0] r0 [PIPELINE_PICKOFF:0];
+	reg [2:0] r1 [PIPELINE_PICKOFF:0];
+	reg [2:0] r2 [PIPELINE_PICKOFF:0];
+	wire [17:0] receiver0_data_word = { r0[PIPELINE_PICKOFF], zeroes };
+	wire [17:0] receiver1_data_word = { r1[PIPELINE_PICKOFF], zeroes };
+	wire [17:0] receiver2_data_word = { r2[PIPELINE_PICKOFF], zeroes };
 	reg stim = 0;
+	wire [2:0] waveform_a [WAVEFORM_LENGTH-1:0] = { 3'd0, 3'd1, 3'd2, 3'd3, 3'd2, 3'd1, 3'd0 }; // triangle 3
+	wire [2:0] waveform_b [WAVEFORM_LENGTH-1:0] = { 3'd0, 3'd0, 3'd1, 3'd2, 3'd1, 3'd0, 3'd0 }; // triangle 2
+	wire [2:0] waveform_c [WAVEFORM_LENGTH-1:0] = { 3'd0, 3'd0, 3'd2, 3'd3, 3'd2, 3'd0, 3'd0 }; // truncated triangle 3
 	sus mysus (.clock(clock),
 		.receiver0_data_word(receiver0_data_word),.receiver1_data_word(receiver1_data_word), .receiver2_data_word(receiver2_data_word),
-		.grid_0_0_0(grid_0_0_0), .grid_0_1_0(), .grid_0_2_0(), .grid_0_3_0(), .grid_1_0_0(), .grid_1_1_0(), .grid_1_2_0(), .grid_1_3_0(),
-		.grid_2_0_0(), .grid_2_1_0(), .grid_2_2_0(), .grid_2_3_0(), .grid_3_0_0(), .grid_3_1_0(), .grid_3_2_0(), .grid_3_3_0());
+		.grid_0_0_0(grid_0_0_0), .grid_0_1_0(grid_0_1_0), .grid_0_2_0(grid_0_2_0), .grid_1_0_0(grid_1_0_0), .grid_1_1_0(grid_1_1_0), .grid_1_2_0(grid_1_2_0), .grid_2_0_0(grid_2_0_0), .grid_2_1_0(grid_2_1_0), .grid_2_2_0(grid_2_2_0), .grid_3_0_0(grid_3_0_0), .grid_3_1_0(grid_3_1_0), .grid_3_2_0(grid_3_2_0));
 	always begin
 		#0.5; clock <= ~clock;
 	end
+	integer i;
+	always @(negedge clock) begin
+		for (i=1; i<=PIPELINE_PICKOFF; i=i+1) begin
+			r0[i] <= r0[i-1];
+			r1[i] <= r1[i-1];
+			r2[i] <= r2[i-1];
+		end
+		r0[0] <= 0;
+		r1[0] <= 0;
+		r2[0] <= 0;
+	end
 	initial begin
-		#24; stim<=1; #1; stim<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; #2; r0<=1; #1; r0<=0;r1<=0;r2<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_0_0_0
-		#24; stim<=1; #1; stim<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; #1; r2<=1; #1; r0<=0;r1<=0;r2<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; // grid_0_1_0
-		#24; stim<=1; #1; stim<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #2; r0<=1; #1; r0<=0;r1<=0;r2<=0; // grid_0_2_0
-		#24; stim<=1; #1; stim<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #1; r1<=1; #1; r0<=0;r1<=0;r2<=0; #2; r0<=1; #1; r0<=0;r1<=0;r2<=0; // grid_0_3_0
-		#24; stim<=1; #1; stim<=0; #0; r0<=1; r1<=1; #1; r0<=0;r1<=0;r2<=0; #3; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_1_0_0
-		#24; stim<=1; #1; stim<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; #1; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_1_1_0
-		#24; stim<=1; #1; stim<=0; #0; r1<=1; r2<=1; #1; r0<=0;r1<=0;r2<=0; #3; r0<=1; #1; r0<=0;r1<=0;r2<=0; // grid_1_2_0
-		#24; stim<=1; #1; stim<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #2; r1<=1; #1; r0<=0;r1<=0;r2<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; // grid_1_3_0
-		#24; stim<=1; #1; stim<=0; #0; r0<=1; r1<=1; #1; r0<=0;r1<=0;r2<=0; #3; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_2_0_0
-		#24; stim<=1; #1; stim<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; #1; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_2_1_0
-		#24; stim<=1; #1; stim<=0; #0; r0<=1; r2<=1; #1; r0<=0;r1<=0;r2<=0; #3; r1<=1; #1; r0<=0;r1<=0;r2<=0; // grid_2_2_0
-		#24; stim<=1; #1; stim<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #2; r0<=1; #1; r0<=0;r1<=0;r2<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; // grid_2_3_0
-		#24; stim<=1; #1; stim<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; #2; r1<=1; #1; r0<=0;r1<=0;r2<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; // grid_3_0_0
-		#24; stim<=1; #1; stim<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; #1; r2<=1; #1; r0<=0;r1<=0;r2<=0; #0; r1<=1; #1; r0<=0;r1<=0;r2<=0; // grid_3_1_0
-		#24; stim<=1; #1; stim<=0; #0; r0<=1; #1; r0<=0;r1<=0;r2<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #2; r1<=1; #1; r0<=0;r1<=0;r2<=0; // grid_3_2_0
-		#24; stim<=1; #1; stim<=0; #0; r2<=1; #1; r0<=0;r1<=0;r2<=0; #1; r0<=1; #1; r0<=0;r1<=0;r2<=0; #2; r1<=1; #1; r0<=0;r1<=0;r2<=0; // grid_3_3_0
-
+		for (i=0; i<=PIPELINE_PICKOFF; i=i+1) begin
+			r0[i] <= 0;
+			r1[i] <= 0;
+			r2[i] <= 0;
+		end
+		#(2*PIPELINE_PICKOFF);
+		reset <= 0;
+		#20; stim<=1; #1; stim<=0; #0;
+		// grid_0_0_0 peaks at 18 here:
+		r0[07] <= waveform_a[6];
+		r0[08] <= waveform_a[5];
+		r0[09] <= waveform_a[4];
+		r0[10] <= waveform_a[3];
+		r0[11] <= waveform_a[2];
+		r0[12] <= waveform_a[1];
+		r0[13] <= waveform_a[0];
+		r1[10] <= waveform_b[6];
+		r1[11] <= waveform_b[5];
+		r1[12] <= waveform_b[4];
+		r1[13] <= waveform_b[3];
+		r1[14] <= waveform_b[2];
+		r1[15] <= waveform_b[1];
+		r1[16] <= waveform_b[0];
+		r2[07] <= waveform_c[6];
+		r2[08] <= waveform_c[5];
+		r2[09] <= waveform_c[4];
+		r2[10] <= waveform_c[3];
+		r2[11] <= waveform_c[2];
+		r2[12] <= waveform_c[1];
+		r2[13] <= waveform_c[0];
 		#100; $finish;
 	end
 endmodule
