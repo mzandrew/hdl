@@ -1,5 +1,5 @@
 // generated 2024-11-20 by https://github.com/mzandrew/bin/blob/master/physics/not_that_sus.py
-// last updated 2024-11-30 by mza
+// last updated 2024-12-01 by mza
 
 module pipeline_correlator3 #(
 	parameter WIDTH = 3,
@@ -127,12 +127,14 @@ module sus #(
 endmodule
 
 module sus_tb #(
+	parameter PERIOD = 1.0,
+	parameter P = PERIOD,
+	parameter HALF_PERIOD = PERIOD/2,
 	parameter NUMBER_OF_BITS_OF_OUTPUT = 9,
 	parameter WAVEFORM_LENGTH = 7,
-	parameter PIPELINE_PICKOFF = 43
+	parameter PIPELINE_PICKOFF = 20
 );
 	reg clock = 0;
-	reg reset = 1;
 	wire [NUMBER_OF_BITS_OF_OUTPUT-1:0] grid_0_0_0, grid_0_1_0, grid_0_2_0, grid_1_0_0, grid_1_1_0, grid_1_2_0, grid_2_0_0, grid_2_1_0, grid_2_2_0, grid_3_0_0, grid_3_1_0, grid_3_2_0;
 	wire [14:0] zeroes = 0;
 	reg [2:0] r0 [PIPELINE_PICKOFF:0];
@@ -141,12 +143,12 @@ module sus_tb #(
 	wire [17:0] receiver0_data_word = { r0[PIPELINE_PICKOFF], zeroes };
 	wire [17:0] receiver1_data_word = { r1[PIPELINE_PICKOFF], zeroes };
 	wire [17:0] receiver2_data_word = { r2[PIPELINE_PICKOFF], zeroes };
-	reg stim = 0;
 	wire [2:0] waveform_a [WAVEFORM_LENGTH-1:0] = { 3'd0, 3'd1, 3'd2, 3'd3, 3'd2, 3'd1, 3'd0 }; // triangle 3
 	wire [2:0] waveform_b [WAVEFORM_LENGTH-1:0] = { 3'd0, 3'd0, 3'd1, 3'd2, 3'd1, 3'd0, 3'd0 }; // triangle 2
 	wire [2:0] waveform_c [WAVEFORM_LENGTH-1:0] = { 3'd0, 3'd0, 3'd2, 3'd3, 3'd2, 3'd0, 3'd0 }; // truncated triangle 3
+	reg stim = 0;
 	sus mysus (.clock(clock),
-		.receiver0_data_word(receiver0_data_word),.receiver1_data_word(receiver1_data_word), .receiver2_data_word(receiver2_data_word),
+		.receiver0_data_word(receiver0_data_word), .receiver1_data_word(receiver1_data_word), .receiver2_data_word(receiver2_data_word),
 		.grid_0_0_0(grid_0_0_0), .grid_0_1_0(grid_0_1_0), .grid_0_2_0(grid_0_2_0), .grid_1_0_0(grid_1_0_0), .grid_1_1_0(grid_1_1_0), .grid_1_2_0(grid_1_2_0), .grid_2_0_0(grid_2_0_0), .grid_2_1_0(grid_2_1_0), .grid_2_2_0(grid_2_2_0), .grid_3_0_0(grid_3_0_0), .grid_3_1_0(grid_3_1_0), .grid_3_2_0(grid_3_2_0));
 	always begin
 		#0.5; clock <= ~clock;
@@ -168,8 +170,18 @@ module sus_tb #(
 			r1[i] <= 0;
 			r2[i] <= 0;
 		end
-		#(2*PIPELINE_PICKOFF); reset <= 0;
-		#100; stim<=1; #1; stim<=0; #1; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[ 7+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[10+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[ 7+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_0_0_0 peaks at 18
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[7+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[10+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[7+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_0_0_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[5+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[9+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[7+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_0_1_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[6+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[9+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[8+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_0_2_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[6+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[7+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[4+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_1_0_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[2+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[5+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[3+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_1_1_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[4+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[6+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[6+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_1_2_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[7+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[6+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[4+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_2_0_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[5+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[2+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[3+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_2_1_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[6+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[4+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[6+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_2_2_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[10+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[7+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[7+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_3_0_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[9+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[5+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[7+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_3_1_0
+		#(40*P); stim<=1; #P; stim<=0; #P; for (i=0; i<WAVEFORM_LENGTH; i=i+1) begin r0[9+i] <= waveform_a[WAVEFORM_LENGTH-i-1]; r1[6+i] <= waveform_b[WAVEFORM_LENGTH-i-1]; r2[8+i] <= waveform_c[WAVEFORM_LENGTH-i-1]; end // grid_3_2_0
 		#100; $finish;
 	end
 endmodule
