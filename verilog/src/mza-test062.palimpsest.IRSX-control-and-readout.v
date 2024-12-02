@@ -46,7 +46,7 @@ module IRSXtest #(
 	// ----------------------------------------------------------------------
 	parameter TRG_BIT_DEPTH = 8,
 	parameter TRG_WORD_CLK_DIVIDE = SST_CLK_DIVIDE, // 1017/48 = 21 MHz
-	parameter TRG_BIT_CLK_DIVIDE = TRG_WORD_CLK_DIVIDE / TRG_BIT_DEPTH, // 1017/12 = 84.814583 MHz
+	parameter TRG_BIT_CLK_DIVIDE = TRG_WORD_CLK_DIVIDE / TRG_BIT_DEPTH, // 1017/12 = 84.814583 MHz; 1017/6 = 169 MHz
 //	parameter TRG_BIT_DEPTH = 6,
 //	parameter TRG_BIT_CLK_DIVIDE = 1, // 1017/12 = 84.814583 MHz
 //	parameter TRG_WORD_CLK_DIVIDE = TRG_BIT_CLK_DIVIDE * TRG_BIT_DEPTH, // 1017/48 = 21 MHz
