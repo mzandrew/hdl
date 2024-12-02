@@ -344,7 +344,7 @@ module irsx_scaler_counter_dual_trigger_interface #(
 	parameter TRIG_PATTERN_NUMBER_OF_TRAILING_ZEROES = 2,
 	parameter TRIG_PATTERN = { {TRIG_PATTERN_NUMBER_OF_LEADING_ONES{1'b1}}, {TRIG_PATTERN_NUMBER_OF_TRAILING_ZEROES{1'b0}} }, // 2'b10 or 4'b1100 (etc)
 	parameter TRIG_PATTERN_LENGTH = TRIG_PATTERN_NUMBER_OF_LEADING_ONES + TRIG_PATTERN_NUMBER_OF_TRAILING_ZEROES,
-	parameter TRIGSTREAM_LENGTH = TRUNCATED_TRIGSTREAM_LENGTH + TRIG_PATTERN_LENGTH + ISERDES_WIDTH,
+	parameter TRIGSTREAM_LENGTH = TRUNCATED_TRIGSTREAM_LENGTH + TRIG_PATTERN_LENGTH + ISERDES_WIDTH + ISERDES_WIDTH, // second +ISERDES_WIDTH is to get further away from a metastability situation
 	parameter OFFSET_TRIGSTREAM_LENGTH = TRUNCATED_TRIGSTREAM_LENGTH + TRIG_PATTERN_NUMBER_OF_LEADING_ONES + 1, // the +1 here is needed to capture one zero so that dual_channel_trigger_width/even_channel_trigger_width are counting actual ones
 	parameter CLOCK_PERIODS_TO_ACCUMULATE = 2**15
 ) (
