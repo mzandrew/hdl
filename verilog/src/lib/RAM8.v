@@ -1,5 +1,5 @@
 // updated 2020-10-02 by mza
-// last updated 2024-11-21 by mza
+// last updated 2024-12-03 by mza
 
 `ifndef RAM8_LIB
 `define RAM8_LIB
@@ -10,13 +10,13 @@
 `include "generic.v"
 
 module memory_bank_interface_with_pulse_outputs #(
-	parameter ADDR_WIDTH = 4,
-	parameter NUMBER_OF_ADDRESSES = 1<<ADDR_WIDTH
+	parameter NUMBER_OF_PULSE_OUTPUTS_NEEDED = 16,
+	parameter ADDR_WIDTH = $clog2(NUMBER_OF_PULSE_OUTPUTS_NEEDED)
 ) (
 	input clock,
 	input [ADDR_WIDTH-1:0] address,
 	input strobe,
-	output reg [NUMBER_OF_ADDRESSES-1:0] pulse_out = 0
+	output reg [NUMBER_OF_PULSE_OUTPUTS_NEEDED-1:0] pulse_out = 0
 );
 	always @(posedge clock) begin
 		pulse_out <= 0;

@@ -427,9 +427,10 @@ module IRSXtest #(
 	assign bank1[14] = 0;
 	assign bank1[15] = 0;
 	// ----------------------------------------------------------------------
-	wire [15:0] bank2; // things that just need a pulse for 1 clock cycle
-	memory_bank_interface_with_pulse_outputs #(.ADDR_WIDTH(4)) pulsed_things_bank2 (.clock(word_clock),
-		.address(address_word_full[3:0]), .strobe(write_strobe[2]), .pulse_out(bank2));
+	localparam NUMBER_OF_PULSE_OUTPUTS_NEEDED = 3;
+	wire [NUMBER_OF_PULSE_OUTPUTS_NEEDED-1:0] bank2; // things that just need a pulse for 1 clock cycle
+	memory_bank_interface_with_pulse_outputs #(.NUMBER_OF_PULSE_OUTPUTS_NEEDED(NUMBER_OF_PULSE_OUTPUTS_NEEDED)) pulsed_things_bank2 (.clock(word_clock),
+		.address(address_word_full[1:0]), .strobe(write_strobe[2]), .pulse_out(bank2));
 	wire clear_channel_counters = bank2[0];
 	wire force_write_registers_again = bank2[1];
 	assign should_start_wilkinson_conversion_now = bank2[2];
