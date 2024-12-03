@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2024-11-21 by mza
+// last updated 2024-12-03 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -2111,24 +2111,24 @@ module oserdes_gearbox #(
 	parameter BIT_DEPTH = 8
 ) (
 	input word_clock, reset,
-	output reg start = 0,
-	output reg finish = 0,
+//	output reg start = 0,
+//	output reg finish = 0,
 	input [BIT_DEPTH*RATIO-1:0] input_longword,
 	output [BIT_DEPTH-1:0] output_shortword
 );
 	reg [LOG2_OF_RATIO-1:0] select = 0;
 	always @(posedge word_clock) begin
-		start <= 0;
-		finish <= 0;
+//		start <= 0;
+//		finish <= 0;
 		if (reset) begin
 			select <= 0;
 		end else begin
 			select <= select - 1'b1;
 			if (select==1) begin
-				finish <= 1'b1;
+//				finish <= 1'b1;
 			end else if (select==0) begin
 				select <= RATIO - 1'b1;
-				start <= 1'b1;
+//				start <= 1'b1;
 			end
 		end
 	end
@@ -2142,7 +2142,7 @@ module oserdes_gearbox_tb ();
 	reg reset = 1;
 	reg [23:0] longword = 0;
 	wire [7:0] shortword;
-	wire start, finish;
+//	wire start, finish;
 	always begin
 		#HALF_PERIOD_OF_CLOCK;
 		word_clock <= ~word_clock;
@@ -2152,7 +2152,8 @@ module oserdes_gearbox_tb ();
 		#WAIT_A_WHILE;
 		reset <= 0;
 	end
-	oserdes_gearbox #(.RATIO(3)) osgb (.word_clock(word_clock), .reset(reset), .input_longword(longword), .output_shortword(shortword), .start(start), .finish(finish));
+	oserdes_gearbox #(.RATIO(3)) osgb (.word_clock(word_clock), .reset(reset), .input_longword(longword), .output_shortword(shortword));
+	//, .start(start), .finish(finish)
 endmodule
 
 // --------------------------------------------------------------------------
