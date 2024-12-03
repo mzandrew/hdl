@@ -24,20 +24,8 @@
       <obj_property name="ObjectShortName">clear_channel_counters</obj_property>
    </wvobject>
    <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/in0" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">in0[3:0]</obj_property>
-      <obj_property name="ObjectShortName">in0[3:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/trigger_stream" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">trigger_stream[3:0,39:0]</obj_property>
-      <obj_property name="ObjectShortName">trigger_stream[3:0,39:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/even_channel_hit" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">even_channel_hit[3:0]</obj_property>
-      <obj_property name="ObjectShortName">even_channel_hit[3:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/odd_channel_hit" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">odd_channel_hit[3:0]</obj_property>
-      <obj_property name="ObjectShortName">odd_channel_hit[3:0]</obj_property>
+      <obj_property name="ElementShortName">in0[7:0]</obj_property>
+      <obj_property name="ObjectShortName">in0[7:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/t" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">t[7:0]</obj_property>
@@ -85,8 +73,20 @@
       <obj_property name="ObjectShortName">truth[7:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/trigger_stream[0]" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">[0,39:0]</obj_property>
-      <obj_property name="ObjectShortName">trigger_stream[0,39:0]</obj_property>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/even_channel_hit0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">even_channel_hit0[7:0]</obj_property>
+      <obj_property name="ObjectShortName">even_channel_hit0[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/odd_channel_hit0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">odd_channel_hit0[7:0]</obj_property>
+      <obj_property name="ObjectShortName">odd_channel_hit0[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/trigger_stream_trgch0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">trigger_stream_trgch0[51:0]</obj_property>
+      <obj_property name="ObjectShortName">trigger_stream_trgch0[51:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/trigger_stream_offset_trgch0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">trigger_stream_offset_trgch0[7:0,34:0]</obj_property>
+      <obj_property name="ObjectShortName">trigger_stream_offset_trgch0[7:0,34:0]</obj_property>
    </wvobject>
 </wave_config>
