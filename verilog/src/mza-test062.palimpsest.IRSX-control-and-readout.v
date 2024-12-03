@@ -232,14 +232,27 @@ module IRSXtest #(
 	wire trg_reset = 0;
 	// clip from here and shove into trg module
 	wire [3:0] trg_inversion_mask;
-	wire trg0123 = trg_inversion_mask[0] ^ trg01 || trg_inversion_mask[1] ^ trg23;
-	wire trg4567 = trg_inversion_mask[2] ^ trg45 || trg_inversion_mask[3] ^ trg67;
+	wire [3:0] trg_inversion_mask_copy_on_trg_word_clock;
+	pipeline_synchronizer #(.WIDTH(4)) trg_inversion_mask_copy_on_trg_word_clock_sync (.clock1(word_clock), .clock2(trg_word_clock), .in1(trg_inversion_mask), .out2(trg_inversion_mask_copy_on_trg_word_clock));
+	wire trg01_i = trg_inversion_mask_copy_on_trg_word_clock[0] ^ trg01;
+	wire trg23_i = trg_inversion_mask_copy_on_trg_word_clock[1] ^ trg23;
+	wire trg45_i = trg_inversion_mask_copy_on_trg_word_clock[2] ^ trg45;
+	wire trg67_i = trg_inversion_mask_copy_on_trg_word_clock[3] ^ trg67;
+	wire trg0123 = trg01_i || trg23_i;
+	wire trg4567 = trg45_i || trg67_i;
 	wire trgall = trg0123 || trg4567;
 	wire trg_pll_is_locked_and_strobe_is_aligned1, trg_pll_is_locked_and_strobe_is_aligned2;
 	wire trg_bit_clock1_raw, trg_bit_clock1;
 	wire trg_bit_clock2_raw, trg_bit_clock2;
 	wire trg_bit_strobe1, trg_bit_strobe2;
 	wire [TRG_BIT_DEPTH-1:0] trg01_word, trg23_word, trg45_word, trg67_word;
+	reg [TRG_BIT_DEPTH-1:0] trg01_i_word, trg23_i_word, trg45_i_word, trg67_i_word; // potentially inverted versions of above
+	always @(posedge trg_word_clock) begin
+		trg01_i_word <= trg01_word ^ {TRG_BIT_DEPTH{trg_inversion_mask_copy_on_trg_word_clock[0]}};
+		trg23_i_word <= trg23_word ^ {TRG_BIT_DEPTH{trg_inversion_mask_copy_on_trg_word_clock[1]}};
+		trg45_i_word <= trg45_word ^ {TRG_BIT_DEPTH{trg_inversion_mask_copy_on_trg_word_clock[2]}};
+		trg67_i_word <= trg67_word ^ {TRG_BIT_DEPTH{trg_inversion_mask_copy_on_trg_word_clock[3]}};
+	end
 	BUFPLL #(
 		.ENABLE_SYNC("TRUE"), // synchronizes strobe to gclk input
 		.DIVIDE(TRG_BIT_DEPTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
@@ -368,27 +381,36 @@ module IRSXtest #(
 	wire [31:0] number_of_readback_errors;
 	wire [19:0] last_erroneous_readback;
 	wire [HS_DAT_BIT_DEPTH*(HS_DATA_INTENDED_NUMBER_OF_BITS+1)-1:0] buffered_hs_data_stream;
+	localparam TRIGSTREAM_LENGTH = 52;
+	wire [TRIGSTREAM_LENGTH-1:0] buffered_trigger_stream_ch45;
 	wire [7:0] wr_address, wr_address_copy_on_word_clock, wr_address_copy_on_trg_word_clock;
 	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated;
 	assign bank1[0] = { status12_copy_on_word_clock_domain, hdrb_read_errors, hdrb_write_errors, hdrb_address_errors, status8_copy_on_word_clock_domain };
 	assign bank1[1] = number_of_register_transactions;
 	assign bank1[2] = number_of_readback_errors;
 	assign bank1[3][19:0] = last_erroneous_readback; assign bank1[3][31:20] = 0;
-	if (5<HS_DAT_BIT_DEPTH && HS_DAT_BIT_DEPTH<9) begin
-		assign bank1[4]       = buffered_hs_data_stream[127:96];
-		assign bank1[5]       = buffered_hs_data_stream[95:64];
-	end else if (HS_DAT_BIT_DEPTH==5) begin
-		assign bank1[4][28:0] = buffered_hs_data_stream[124:96]; assign bank1[4][31:29] = 0;
-		assign bank1[5]       = buffered_hs_data_stream[95:64];
-	end else if (HS_DAT_BIT_DEPTH==4) begin
-		assign bank1[4][3:0]  = buffered_hs_data_stream[99:96]; assign bank1[4][31:4] = 0;
-		assign bank1[5]       = buffered_hs_data_stream[95:64];
-	end else if (HS_DAT_BIT_DEPTH==3) begin
-		assign bank1[4]       = 0;
-		assign bank1[5][10:0] = buffered_hs_data_stream[74:64]; assign bank1[5][31:11] = 0;
+	if (0) begin
+		if (5<HS_DAT_BIT_DEPTH && HS_DAT_BIT_DEPTH<9) begin
+			assign bank1[4]       = buffered_hs_data_stream[127:96];
+			assign bank1[5]       = buffered_hs_data_stream[95:64];
+		end else if (HS_DAT_BIT_DEPTH==5) begin
+			assign bank1[4][28:0] = buffered_hs_data_stream[124:96]; assign bank1[4][31:29] = 0;
+			assign bank1[5]       = buffered_hs_data_stream[95:64];
+		end else if (HS_DAT_BIT_DEPTH==4) begin
+			assign bank1[4][3:0]  = buffered_hs_data_stream[99:96]; assign bank1[4][31:4] = 0;
+			assign bank1[5]       = buffered_hs_data_stream[95:64];
+		end else if (HS_DAT_BIT_DEPTH==3) begin
+			assign bank1[4]       = 0;
+			assign bank1[5][10:0] = buffered_hs_data_stream[74:64]; assign bank1[5][31:11] = 0;
+		end
+		assign bank1[6] = buffered_hs_data_stream[63:32];
+		assign bank1[7] = buffered_hs_data_stream[31:0];
+	end else begin
+		assign bank1[4] = 0;
+		assign bank1[5] = 0;
+		assign bank1[6] = buffered_trigger_stream_ch45[TRIGSTREAM_LENGTH-1:32];
+		assign bank1[7] = buffered_trigger_stream_ch45[31:0];
 	end
-	assign bank1[6] = buffered_hs_data_stream[63:32];
-	assign bank1[7] = buffered_hs_data_stream[31:0];
 	assign bank1[8][HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1:0]; assign bank1[8][31:HS_DATA_INTENDED_NUMBER_OF_BITS] = 0;
 	wire [31:0] convert_counter, done_out_counter;
 	wire [31:0] convert_counter_copy_on_word_clock, done_out_counter_copy_on_word_clock;
@@ -439,7 +461,7 @@ module IRSXtest #(
 		.hs_pll_is_locked_and_strobe_is_aligned(hs_pll_is_locked_and_strobe_is_aligned),
 		.data_out_clock(word_clock),
 		.read_address(address_word_full[8:0]), .data_out(read_data_word[5][11:0]),
-		.buffered_hs_data_stream(buffered_hs_data_stream),
+		//.buffered_hs_data_stream(buffered_hs_data_stream),
 		.hs_data_word_decimated(hs_data_word_decimated));
 	// ----------------------------------------------------------------------
 	wire [31:0] bank6 [15:0]; // counter and scalers
@@ -482,7 +504,8 @@ module IRSXtest #(
 	irsx_scaler_counter_dual_trigger_interface #(.ISERDES_WIDTH(TRG_BIT_DEPTH), .LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH(LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) irsx_scaler_counter (
 		.clock(trg_word_clock), .reset(trg_reset), .clear_channel_counters(clear_channel_counters_copy_on_trg_word_clock), .timeout(timeout_copy_on_trg_word_clock), .scaler_valid(scaler_valid),
 //		.trigin0(trig01), .trigin1(trig23), .trigin2(trig45), .trigin3(trig67),
-		.iserdes_word_in0(trg01_word), .iserdes_word_in1(trg23_word), .iserdes_word_in2(trg45_word), .iserdes_word_in3(trg67_word),
+		.buffered_trigger_stream_ch45(buffered_trigger_stream_ch45),
+		.iserdes_word_in0(trg01_i_word), .iserdes_word_in1(trg23_i_word), .iserdes_word_in2(trg45_i_word), .iserdes_word_in3(trg67_i_word),
 		.even_channel_trigger_width(even_channel_trigger_width_copy_on_trg_word_clock), .dual_channel_trigger_width(dual_channel_trigger_width_copy_on_trg_word_clock),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
 		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
@@ -543,7 +566,8 @@ module IRSXtest #(
 		assign coax[0] = t4;
 		assign coax[1] = t5;
 		assign coax[2] = trg45;//trg0123;
-		assign coax[3] = trg4567;
+		//assign coax[3] = trg4567;
+		assign coax[3] = trg45_i;
 	end else if (1) begin // to tune parameters to capture hs_data out
 		assign coax[0] = beginning_of_hs_data_memory;
 		//clock_ODDR_out hs_clk_ODDR_copy (.clock_in_p(hs_word_clock),  .clock_in_n(hs_word_clock180), .clock_enable(1'b1), .clock_out(coax[0]));

@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="18" />
+   <WVObjectSize size="19" />
    <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock</obj_property>
       <obj_property name="ObjectShortName">clock</obj_property>
@@ -88,5 +88,9 @@
    <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/trigger_stream_offset_trgch0" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">trigger_stream_offset_trgch0[7:0,34:0]</obj_property>
       <obj_property name="ObjectShortName">trigger_stream_offset_trgch0[7:0,34:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/irsx_scaler_counter_dual_trigger_interface_tb/irsx_scaler_counter/buffered_trigger_stream_ch45" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">buffered_trigger_stream_ch45[51:0]</obj_property>
+      <obj_property name="ObjectShortName">buffered_trigger_stream_ch45[51:0]</obj_property>
    </wvobject>
 </wave_config>

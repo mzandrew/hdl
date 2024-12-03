@@ -1,5 +1,5 @@
 // written 2023-10-09 by mza
-// last updated 2024-12-02 by mza
+// last updated 2024-12-03 by mza
 
 `ifndef IRSX_LIB
 `define IRSX_LIB
@@ -159,7 +159,7 @@ module irsx_read_hs_data_from_storage #(
 	output reg beginning_of_hs_data = 0, // debug output
 	input data_out_clock,
 	output [DATA_WIDTH-1:0] data_out,
-	output [HS_DATA_SIZE-1:0] buffered_hs_data_stream, // copy_on_output_clock
+//	output [HS_DATA_SIZE-1:0] buffered_hs_data_stream, // copy_on_output_clock
 	output ss_incr,
 	output hs_pll_is_locked_and_strobe_is_aligned,
 	output [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated // copy_on_output_clock
@@ -275,7 +275,7 @@ module irsx_read_hs_data_from_storage #(
 	RAM_unidirectional  #(.DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH), .ADDRESS_WIDTH_A(LOG2_OF_DEPTH+1), .SERIES(SERIES)) chock_a_block ( .reset(hs_word_reset),
 		.clock_a(hs_word_clock), .address_a(write_address10), .data_in_a(data_12bit), .write_enable_a(write_strobe),
 		.clock_b(data_out_clock), .address_b(read_address10), .data_out_b(data_out));
-	pipeline_synchronizer #(.WIDTH(HS_DATA_SIZE)) buffered_hs_data_stream_sync (.clock1(hs_word_clock), .clock2(data_out_clock), .in1(buffered_hs_data_stream_internal), .out2(buffered_hs_data_stream));
+//	pipeline_synchronizer #(.WIDTH(HS_DATA_SIZE)) buffered_hs_data_stream_sync (.clock1(hs_word_clock), .clock2(data_out_clock), .in1(buffered_hs_data_stream_internal), .out2(buffered_hs_data_stream));
 	pipeline_synchronizer #(.WIDTH(HS_DATA_INTENDED_NUMBER_OF_BITS)) hs_data_word_decimated_sync (.clock1(hs_word_clock), .clock2(data_out_clock), .in1(hs_data_word_decimated_internal), .out2(hs_data_word_decimated));
 	initial begin
 		$display("HS_DATA_SIZE=%d", HS_DATA_SIZE);
@@ -355,6 +355,7 @@ module irsx_scaler_counter_dual_trigger_interface #(
 	input [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] dual_channel_trigger_width,
 	input [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] even_channel_trigger_width,
 	input [31:0] timeout,
+	output reg [TRIGSTREAM_LENGTH-1:0] buffered_trigger_stream_ch45 = 0,
 	output reg scaler_valid = 0,
 	output [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7,
 	output [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7,
@@ -435,6 +436,9 @@ module irsx_scaler_counter_dual_trigger_interface #(
 				end
 			end
 			if (trigger_stream_trgch2[TRIG_PATTERN_LENGTH-1+j+METASTABILITY_LENGTH-:TRIG_PATTERN_LENGTH]==TRIG_PATTERN) begin
+				if (j==0) begin
+					buffered_trigger_stream_ch45 <= trigger_stream_trgch2;
+				end
 				if (trigger_stream_offset_trgch2[j][dual_channel_trigger_width]) begin
 					odd_channel_hit2[j] <= 1'b1;
 					even_channel_hit2[j] <= 1'b1;
@@ -454,11 +458,13 @@ module irsx_scaler_counter_dual_trigger_interface #(
 					odd_channel_hit3[j] <= 1'b1;
 				end
 			end
-			trigger_stream_trgch0 <= { trigger_stream_trgch0[TRIGSTREAM_LENGTH-ISERDES_WIDTH-1:0], iserdes_word_in0 };
-			trigger_stream_trgch1 <= { trigger_stream_trgch1[TRIGSTREAM_LENGTH-ISERDES_WIDTH-1:0], iserdes_word_in1 };
-			trigger_stream_trgch2 <= { trigger_stream_trgch2[TRIGSTREAM_LENGTH-ISERDES_WIDTH-1:0], iserdes_word_in2 };
-			trigger_stream_trgch3 <= { trigger_stream_trgch3[TRIGSTREAM_LENGTH-ISERDES_WIDTH-1:0], iserdes_word_in3 };
 		end
+	end
+	always @(posedge clock) begin
+		trigger_stream_trgch0 <= { trigger_stream_trgch0[TRIGSTREAM_LENGTH-ISERDES_WIDTH-1:0], iserdes_word_in0 };
+		trigger_stream_trgch1 <= { trigger_stream_trgch1[TRIGSTREAM_LENGTH-ISERDES_WIDTH-1:0], iserdes_word_in1 };
+		trigger_stream_trgch2 <= { trigger_stream_trgch2[TRIGSTREAM_LENGTH-ISERDES_WIDTH-1:0], iserdes_word_in2 };
+		trigger_stream_trgch3 <= { trigger_stream_trgch3[TRIGSTREAM_LENGTH-ISERDES_WIDTH-1:0], iserdes_word_in3 };
 	end
 	assign t0 = |even_channel_hit0;
 	assign t2 = |even_channel_hit1;
@@ -477,6 +483,7 @@ module irsx_scaler_counter_dual_trigger_interface_tb #(
 	parameter LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH = 5, // 2**5 = 32
 	parameter TRUNCATED_TRIGSTREAM_LENGTH = 2**LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH,
 	parameter CLOCK_PERIODS_TO_ACCUMULATE = 16, // simulation only
+	parameter TRIGSTREAM_LENGTH = 52,
 	parameter HALF_CLOCK_PERIOD = 7.861/2,
 	parameter WHOLE_CLOCK_PERIOD = 2*HALF_CLOCK_PERIOD,
 	parameter TIME_PASSES = 7*WHOLE_CLOCK_PERIOD
@@ -517,6 +524,7 @@ module irsx_scaler_counter_dual_trigger_interface_tb #(
 		#TIME_PASSES;
 		#TIME_PASSES;
 		#TIME_PASSES;
+		in <= zeroes;
 		#TIME_PASSES;
 		#TIME_PASSES;
 		clear_channel_counters <= 1'b1; #WHOLE_CLOCK_PERIOD; clear_channel_counters <= 0;
@@ -524,10 +532,12 @@ module irsx_scaler_counter_dual_trigger_interface_tb #(
 		#TIME_PASSES;
 		$finish;
 	end
+	wire [TRIGSTREAM_LENGTH-1:0] buffered_trigger_stream_ch45;
 	irsx_scaler_counter_dual_trigger_interface #(.ISERDES_WIDTH(ISERDES_WIDTH), .TRUNCATED_TRIGSTREAM_LENGTH(TRUNCATED_TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
 		.clock(clock), .reset(reset), .clear_channel_counters(clear_channel_counters), .timeout(timeout), .scaler_valid(scaler_valid),
 		.iserdes_word_in0(in0), .iserdes_word_in1(in1), .iserdes_word_in2(in2), .iserdes_word_in3(in3),
 		.even_channel_trigger_width(even_channel_trigger_width), .dual_channel_trigger_width(dual_channel_trigger_width),
+		.buffered_trigger_stream_ch45(buffered_trigger_stream_ch45),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
 		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
 		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));
