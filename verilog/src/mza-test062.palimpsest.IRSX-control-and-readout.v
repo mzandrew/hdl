@@ -436,6 +436,7 @@ module IRSXtest #(
 	assign should_start_wilkinson_conversion_now = bank2[2];
 	assign read_data_word[2] = 0;
 	// ----------------------------------------------------------------------
+/*
 	wire [31:0] bank3 [15:0]; // 
 	RAM_inferred_with_register_outputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwro_bank3 (.clock(word_clock), .reset(reset_word),
 		.waddress_a(address_word_full[3:0]), .data_in_a(write_data_word), .write_strobe_a(write_strobe[3]),
@@ -444,6 +445,8 @@ module IRSXtest #(
 		.data_out_b_4(bank3[4]),  .data_out_b_5(bank3[5]),  .data_out_b_6(bank3[6]),  .data_out_b_7(bank3[7]),
 		.data_out_b_8(bank3[8]),  .data_out_b_9(bank3[9]),  .data_out_b_a(bank3[10]), .data_out_b_b(bank3[11]),
 		.data_out_b_c(bank3[12]), .data_out_b_d(bank3[13]), .data_out_b_e(bank3[14]), .data_out_b_f(bank3[15]));
+*/
+	assign read_data_word[3] = 0;
 	// ----------------------------------------------------------------------
 	// bank4 = trigger memory
 	wire t0, t1, t2, t3, t4, t5, t6, t7;
