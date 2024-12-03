@@ -345,7 +345,7 @@ module irsx_scaler_counter_dual_trigger_interface #(
 	parameter TRIG_PATTERN = { {TRIG_PATTERN_NUMBER_OF_LEADING_ONES{1'b1}}, {TRIG_PATTERN_NUMBER_OF_TRAILING_ZEROES{1'b0}} }, // 2'b10 or 4'b1100 (etc)
 	parameter TRIG_PATTERN_LENGTH = TRIG_PATTERN_NUMBER_OF_LEADING_ONES + TRIG_PATTERN_NUMBER_OF_TRAILING_ZEROES,
 	parameter METASTABILITY_LENGTH = ISERDES_WIDTH,
-	parameter TRIGSTREAM_LENGTH = TRUNCATED_TRIGSTREAM_LENGTH + TRIG_PATTERN_LENGTH + ISERDES_WIDTH + METASTABILITY_LENGTH,
+	parameter TRIGSTREAM_LENGTH = ISERDES_WIDTH + TRUNCATED_TRIGSTREAM_LENGTH + TRIG_PATTERN_NUMBER_OF_TRAILING_ZEROES - 1 + METASTABILITY_LENGTH,
 	parameter OFFSET_TRIGSTREAM_LENGTH = TRUNCATED_TRIGSTREAM_LENGTH,
 	parameter CLOCK_PERIODS_TO_ACCUMULATE = 2**15
 ) (
@@ -402,10 +402,10 @@ module irsx_scaler_counter_dual_trigger_interface #(
 	wire [OFFSET_TRIGSTREAM_LENGTH-1:0] trigger_stream_offset_trgch2 [ISERDES_WIDTH-1:0];
 	wire [OFFSET_TRIGSTREAM_LENGTH-1:0] trigger_stream_offset_trgch3 [ISERDES_WIDTH-1:0];
 	for (j=0; j<ISERDES_WIDTH; j=j+1) begin : trigger_stream_offset_mapping
-		assign trigger_stream_offset_trgch0[j] = trigger_stream_trgch0[TRIGSTREAM_LENGTH-1-ISERDES_WIDTH+j-TRIG_PATTERN_NUMBER_OF_LEADING_ONES-1-:OFFSET_TRIGSTREAM_LENGTH];
-		assign trigger_stream_offset_trgch1[j] = trigger_stream_trgch1[TRIGSTREAM_LENGTH-1-ISERDES_WIDTH+j-TRIG_PATTERN_NUMBER_OF_LEADING_ONES-1-:OFFSET_TRIGSTREAM_LENGTH];
-		assign trigger_stream_offset_trgch2[j] = trigger_stream_trgch2[TRIGSTREAM_LENGTH-1-ISERDES_WIDTH+j-TRIG_PATTERN_NUMBER_OF_LEADING_ONES-1-:OFFSET_TRIGSTREAM_LENGTH];
-		assign trigger_stream_offset_trgch3[j] = trigger_stream_trgch3[TRIGSTREAM_LENGTH-1-ISERDES_WIDTH+j-TRIG_PATTERN_NUMBER_OF_LEADING_ONES-1-:OFFSET_TRIGSTREAM_LENGTH];
+		assign trigger_stream_offset_trgch0[j] = trigger_stream_trgch0[TRIGSTREAM_LENGTH-1-ISERDES_WIDTH+j-:OFFSET_TRIGSTREAM_LENGTH];
+		assign trigger_stream_offset_trgch1[j] = trigger_stream_trgch1[TRIGSTREAM_LENGTH-1-ISERDES_WIDTH+j-:OFFSET_TRIGSTREAM_LENGTH];
+		assign trigger_stream_offset_trgch2[j] = trigger_stream_trgch2[TRIGSTREAM_LENGTH-1-ISERDES_WIDTH+j-:OFFSET_TRIGSTREAM_LENGTH];
+		assign trigger_stream_offset_trgch3[j] = trigger_stream_trgch3[TRIGSTREAM_LENGTH-1-ISERDES_WIDTH+j-:OFFSET_TRIGSTREAM_LENGTH];
 	end
 	reg [ISERDES_WIDTH-1:0] even_channel_hit0 = 0, even_channel_hit1 = 0, even_channel_hit2 = 0, even_channel_hit3 = 0;
 	reg [ISERDES_WIDTH-1:0] odd_channel_hit0 = 0, odd_channel_hit1 = 0, odd_channel_hit2 = 0, odd_channel_hit3 = 0;

@@ -381,7 +381,7 @@ module IRSXtest #(
 	wire [31:0] number_of_readback_errors;
 	wire [19:0] last_erroneous_readback;
 	wire [HS_DAT_BIT_DEPTH*(HS_DATA_INTENDED_NUMBER_OF_BITS+1)-1:0] buffered_hs_data_stream;
-	localparam TRIGSTREAM_LENGTH = 52;
+	localparam TRIGSTREAM_LENGTH = 49;
 	wire [TRIGSTREAM_LENGTH-1:0] buffered_trigger_stream_ch45;
 	wire [7:0] wr_address, wr_address_copy_on_word_clock, wr_address_copy_on_trg_word_clock;
 	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated;
@@ -408,7 +408,7 @@ module IRSXtest #(
 	end else begin
 		assign bank1[4] = 0;
 		assign bank1[5] = 0;
-		assign bank1[6] = buffered_trigger_stream_ch45[TRIGSTREAM_LENGTH-1:32];
+		assign bank1[6] = buffered_trigger_stream_ch45[TRIGSTREAM_LENGTH-1:32]; assign bank1[6][31:TRIGSTREAM_LENGTH-32] = 0;
 		assign bank1[7] = buffered_trigger_stream_ch45[31:0];
 	end
 	assign bank1[8][HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1:0]; assign bank1[8][31:HS_DATA_INTENDED_NUMBER_OF_BITS] = 0;
