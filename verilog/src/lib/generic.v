@@ -1,15 +1,15 @@
 // written 2019-09-22 by mza
-// last updated 2024-11-21 by mza
+// last updated 2024-12-03 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
 module counter_level #(
 	parameter POLARITY = 1,
-	parameter LOG2_OF_WIDTH = 32
+	parameter WIDTH = 32
 ) (
 	input clock, reset, in,
-	output reg [LOG2_OF_WIDTH-1:0] counter = 0
+	output reg [WIDTH-1:0] counter = 0
 );
 	always @(posedge clock) begin
 		if (reset) begin
@@ -25,10 +25,10 @@ endmodule
 module counter_edge #(
 	parameter POLARITY = 1, // 1 means 0-to-1 transition
 	parameter PIPELINE_PICKOFF = 4,
-	parameter LOG2_OF_WIDTH = 32
+	parameter WIDTH = 32
 ) (
 	input clock, reset, in,
-	output reg [LOG2_OF_WIDTH-1:0] counter = 0
+	output reg [WIDTH-1:0] counter = 0
 );
 	reg [PIPELINE_PICKOFF:0] pipeline = 0;
 	always @(posedge clock) begin
