@@ -355,7 +355,7 @@ module irsx_scaler_counter_dual_trigger_interface #(
 	input [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] dual_channel_trigger_width,
 	input [LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH-1:0] even_channel_trigger_width,
 	input [31:0] timeout,
-	output reg [TRIGSTREAM_LENGTH-1:0] buffered_trigger_stream_ch45 = 0,
+//	output reg [TRIGSTREAM_LENGTH-1:0] buffered_trigger_stream_ch45 = 0,
 	output reg scaler_valid = 0,
 	output [SCALER_WIDTH-1:0] sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7,
 	output [COUNTER_WIDTH-1:0] c0, c1, c2, c3, c4, c5, c6, c7,
@@ -436,9 +436,9 @@ module irsx_scaler_counter_dual_trigger_interface #(
 				end
 			end
 			if (trigger_stream_trgch2[TRIG_PATTERN_LENGTH-1+j+METASTABILITY_LENGTH-:TRIG_PATTERN_LENGTH]==TRIG_PATTERN) begin
-				if (j==0) begin
-					buffered_trigger_stream_ch45 <= trigger_stream_trgch2;
-				end
+//				if (j==0) begin
+//					buffered_trigger_stream_ch45 <= trigger_stream_trgch2;
+//				end
 				if (trigger_stream_offset_trgch2[j][dual_channel_trigger_width]) begin
 					odd_channel_hit2[j] <= 1'b1;
 					even_channel_hit2[j] <= 1'b1;
@@ -532,12 +532,12 @@ module irsx_scaler_counter_dual_trigger_interface_tb #(
 		#TIME_PASSES;
 		$finish;
 	end
-	wire [TRIGSTREAM_LENGTH-1:0] buffered_trigger_stream_ch45;
+//	wire [TRIGSTREAM_LENGTH-1:0] buffered_trigger_stream_ch45;
 	irsx_scaler_counter_dual_trigger_interface #(.ISERDES_WIDTH(ISERDES_WIDTH), .TRUNCATED_TRIGSTREAM_LENGTH(TRUNCATED_TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH), .CLOCK_PERIODS_TO_ACCUMULATE(CLOCK_PERIODS_TO_ACCUMULATE)) irsx_scaler_counter (
 		.clock(clock), .reset(reset), .clear_channel_counters(clear_channel_counters), .timeout(timeout), .scaler_valid(scaler_valid),
 		.iserdes_word_in0(in0), .iserdes_word_in1(in1), .iserdes_word_in2(in2), .iserdes_word_in3(in3),
 		.even_channel_trigger_width(even_channel_trigger_width), .dual_channel_trigger_width(dual_channel_trigger_width),
-		.buffered_trigger_stream_ch45(buffered_trigger_stream_ch45),
+//		.buffered_trigger_stream_ch45(buffered_trigger_stream_ch45),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
 		.c0(c0), .c1(c1), .c2(c2), .c3(c3), .c4(c4), .c5(c5), .c6(c6), .c7(c7),
 		.t0(t0), .t1(t1), .t2(t2), .t3(t3), .t4(t4), .t5(t5), .t6(t6), .t7(t7));

@@ -405,11 +405,16 @@ module IRSXtest #(
 		end
 		assign bank1[6] = buffered_hs_data_stream[63:32];
 		assign bank1[7] = buffered_hs_data_stream[31:0];
-	end else begin
+	end else if (0) begin
 		assign bank1[4] = 0;
 		assign bank1[5] = 0;
 		assign bank1[6] = buffered_trigger_stream_ch45[TRIGSTREAM_LENGTH-1:32]; assign bank1[6][31:TRIGSTREAM_LENGTH-32] = 0;
 		assign bank1[7] = buffered_trigger_stream_ch45[31:0];
+	end else begin
+		assign bank1[4] = 0;
+		assign bank1[5] = 0;
+		assign bank1[6] = 0;
+		assign bank1[7] = 0;
 	end
 	assign bank1[8][HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1:0]; assign bank1[8][31:HS_DATA_INTENDED_NUMBER_OF_BITS] = 0;
 	wire [31:0] convert_counter, done_out_counter;
@@ -504,7 +509,7 @@ module IRSXtest #(
 	irsx_scaler_counter_dual_trigger_interface #(.ISERDES_WIDTH(TRG_BIT_DEPTH), .LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH(LOG2_OF_TRUNCATED_TRIGSTREAM_LENGTH), .COUNTER_WIDTH(COUNTER_WIDTH), .SCALER_WIDTH(SCALER_WIDTH)) irsx_scaler_counter (
 		.clock(trg_word_clock), .reset(trg_reset), .clear_channel_counters(clear_channel_counters_copy_on_trg_word_clock), .timeout(timeout_copy_on_trg_word_clock), .scaler_valid(scaler_valid),
 //		.trigin0(trig01), .trigin1(trig23), .trigin2(trig45), .trigin3(trig67),
-		.buffered_trigger_stream_ch45(buffered_trigger_stream_ch45),
+//		.buffered_trigger_stream_ch45(buffered_trigger_stream_ch45),
 		.iserdes_word_in0(trg01_i_word), .iserdes_word_in1(trg23_i_word), .iserdes_word_in2(trg45_i_word), .iserdes_word_in3(trg67_i_word),
 		.even_channel_trigger_width(even_channel_trigger_width_copy_on_trg_word_clock), .dual_channel_trigger_width(dual_channel_trigger_width_copy_on_trg_word_clock),
 		.sc0(sc0), .sc1(sc1), .sc2(sc2), .sc3(sc3), .sc4(sc4), .sc5(sc5), .sc6(sc6), .sc7(sc7),
