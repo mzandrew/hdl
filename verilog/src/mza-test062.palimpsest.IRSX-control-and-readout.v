@@ -221,7 +221,7 @@ module IRSXtest #(
 	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(17)) m2 (.reference_clock(word_clock), .unknown_clock(montiming2), .frequency_of_unknown_clock(frequency_of_montiming2), .valid(status12[1]));
 	// ----------------------------------------------------------------------
 	// TRG is for capturing the trigger bits streaming from the IRSX
-	// it is convenient if this is captured on a multiple of SST so the downstream processing knows precisely where to look in the window
+	// it is convenient if this is captured on a multiple of SST so the downstream processing knows precisely where to look in the readout window
 	wire trg_word_clock_raw, trg_word_clock;
 	BUFG trgraw (.I(trg_word_clock_raw), .O(trg_word_clock));
 	wire trg01, trg23, trg45, trg67;
