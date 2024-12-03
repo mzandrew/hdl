@@ -370,6 +370,7 @@ module IRSXtest #(
 	wire [7:0] end_address   = bank0[15][7:0];
 	// ----------------------------------------------------------------------
 	wire [31:0] bank1 [15:0]; // status
+	wire [4:0] bank1_w_strobe_counter, bank3_w_strobe_counter, bank4_w_strobe_counter, bank5_w_strobe_counter, bank6_w_strobe_counter;
 	RAM_inferred_with_register_inputs #(.ADDR_WIDTH(4), .DATA_WIDTH(32)) riwri_bank1 (.clock(word_clock),
 		.raddress_a(address_word_full[3:0]), .data_out_a(read_data_word[1]),
 		.data_in_b_0(bank1[0]),  .data_in_b_1(bank1[1]),  .data_in_b_2(bank1[2]),  .data_in_b_3(bank1[3]),
@@ -380,7 +381,7 @@ module IRSXtest #(
 	wire [31:0] number_of_register_transactions;
 	wire [31:0] number_of_readback_errors;
 	wire [19:0] last_erroneous_readback;
-	wire [HS_DAT_BIT_DEPTH*(HS_DATA_INTENDED_NUMBER_OF_BITS+1)-1:0] buffered_hs_data_stream;
+	wire [HS_DAT_BIT_DEPTH*HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] buffered_hs_data_stream;
 	localparam TRIGSTREAM_LENGTH = 49;
 	wire [TRIGSTREAM_LENGTH-1:0] buffered_trigger_stream_ch45;
 	wire [7:0] wr_address, wr_address_copy_on_word_clock, wr_address_copy_on_trg_word_clock;
@@ -389,19 +390,19 @@ module IRSXtest #(
 	assign bank1[1] = number_of_register_transactions;
 	assign bank1[2] = number_of_readback_errors;
 	assign bank1[3][19:0] = last_erroneous_readback; assign bank1[3][31:20] = 0;
-	if (0) begin
-		if (5<HS_DAT_BIT_DEPTH && HS_DAT_BIT_DEPTH<9) begin
+	if (1) begin
+		if (6<HS_DAT_BIT_DEPTH && HS_DAT_BIT_DEPTH<9) begin
 			assign bank1[4]       = buffered_hs_data_stream[127:96];
 			assign bank1[5]       = buffered_hs_data_stream[95:64];
 		end else if (HS_DAT_BIT_DEPTH==5) begin
-			assign bank1[4][28:0] = buffered_hs_data_stream[124:96]; assign bank1[4][31:29] = 0;
+			assign bank1[4][23:0] = buffered_hs_data_stream[119:96]; assign bank1[4][31:24] = 0;
 			assign bank1[5]       = buffered_hs_data_stream[95:64];
 		end else if (HS_DAT_BIT_DEPTH==4) begin
-			assign bank1[4][3:0]  = buffered_hs_data_stream[99:96]; assign bank1[4][31:4] = 0;
+			assign bank1[4]       = 0;
 			assign bank1[5]       = buffered_hs_data_stream[95:64];
 		end else if (HS_DAT_BIT_DEPTH==3) begin
 			assign bank1[4]       = 0;
-			assign bank1[5][10:0] = buffered_hs_data_stream[74:64]; assign bank1[5][31:11] = 0;
+			assign bank1[5][7:0] = buffered_hs_data_stream[71:64]; assign bank1[5][31:8] = 0;
 		end
 		assign bank1[6] = buffered_hs_data_stream[63:32];
 		assign bank1[7] = buffered_hs_data_stream[31:0];
@@ -425,7 +426,8 @@ module IRSXtest #(
 	assign bank1[12] = frequency_of_montiming1;
 	assign bank1[13] = frequency_of_montiming2;
 	assign bank1[14] = 0;
-	assign bank1[15] = 0;
+	assign bank1[15][24:0] = { bank6_w_strobe_counter, bank5_w_strobe_counter, bank4_w_strobe_counter, bank3_w_strobe_counter, bank1_w_strobe_counter }; assign bank1[15][31:25] = 0;
+	counter_level #(.WIDTH(5)) bank1_w_strobe_counter_thing (.clock(word_clock), .reset(reset_word), .in(write_strobe[1]), .counter(bank1_w_strobe_counter));
 	// ----------------------------------------------------------------------
 	localparam NUMBER_OF_PULSE_OUTPUTS_NEEDED = 3;
 	wire [NUMBER_OF_PULSE_OUTPUTS_NEEDED-1:0] bank2; // things that just need a pulse for 1 clock cycle
@@ -447,6 +449,7 @@ module IRSXtest #(
 		.data_out_b_c(bank3[12]), .data_out_b_d(bank3[13]), .data_out_b_e(bank3[14]), .data_out_b_f(bank3[15]));
 */
 	assign read_data_word[3] = 0;
+	counter_level #(.WIDTH(5)) bank3_w_strobe_counter_thing (.clock(word_clock), .reset(reset_word), .in(write_strobe[3]), .counter(bank3_w_strobe_counter));
 	// ----------------------------------------------------------------------
 	// bank4 = trigger memory
 	wire t0, t1, t2, t3, t4, t5, t6, t7;
@@ -456,6 +459,7 @@ module IRSXtest #(
 		.sst_write_address(wr_address_copy_on_trg_word_clock),
 		.readout_clock(word_clock), .read_address(address_word_full[LOG2_OF_NUMBER_OF_STORAGE_WINDOWS_ON_ASIC+LOG2_OF_RATIO_OF_TRIG_WORD_CLOCK_TO_SST_CLOCK-1:0]), .data_out(read_data_word[4][7:0]));
 	assign read_data_word[4][31:8] = 0;
+	counter_level #(.WIDTH(5)) bank4_w_strobe_counter_thing (.clock(word_clock), .reset(reset_word), .in(write_strobe[4]), .counter(bank4_w_strobe_counter));
 	// ----------------------------------------------------------------------
 	// bank5 = data to read out
 	assign read_data_word[5][31:12] = 0;
@@ -470,8 +474,9 @@ module IRSXtest #(
 		.hs_pll_is_locked_and_strobe_is_aligned(hs_pll_is_locked_and_strobe_is_aligned),
 		.data_out_clock(word_clock),
 		.read_address(address_word_full[8:0]), .data_out(read_data_word[5][11:0]),
-		//.buffered_hs_data_stream(buffered_hs_data_stream),
+		.buffered_hs_data_stream(buffered_hs_data_stream),
 		.hs_data_word_decimated(hs_data_word_decimated));
+	counter_level #(.WIDTH(5)) bank5_w_strobe_counter_thing (.clock(word_clock), .reset(reset_word), .in(write_strobe[5]), .counter(bank5_w_strobe_counter));
 	// ----------------------------------------------------------------------
 	wire [31:0] bank6 [15:0]; // counter and scalers
 	wire scaler_valid, scaler_valid_copy_on_word_clock;
@@ -535,6 +540,7 @@ module IRSXtest #(
 	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc5_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc5), .out2(sc5_wc));
 	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc6_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc6), .out2(sc6_wc));
 	pipeline_synchronizer #(.WIDTH(SCALER_WIDTH)) sc7_word_clock_sync (.clock1(trg_word_clock), .clock2(word_clock), .in1(sc7), .out2(sc7_wc));
+	counter_level #(.WIDTH(5)) bank6_w_strobe_counter_thing (.clock(word_clock), .reset(reset_word), .in(write_strobe[6]), .counter(bank6_w_strobe_counter));
 	// ----------------------------------------------------------------------
 	// bank7 is the register interface
 	irsx_register_interface irsx_reg (.clock(word_clock), .reset(reset_word),
