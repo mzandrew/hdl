@@ -212,8 +212,8 @@ module IRSXtest #(
 	IBUFDS montiming1_buf (.I(montiming1_p), .IB(montiming1_n), .O(montiming1));
 	wire [31:0] frequency_of_montiming1, frequency_of_montiming2;
 	localparam FREQUENCY_OF_WORD_CLOCK = 127221875;
-	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(17)) m1 (.reference_clock(word_clock), .unknown_clock(montiming1), .frequency_of_unknown_clock(frequency_of_montiming1), .valid(status4[0]));
-	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(17)) m2 (.reference_clock(word_clock), .unknown_clock(montiming2), .frequency_of_unknown_clock(frequency_of_montiming2), .valid(status4[1]));
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(17)) m1_fc (.reference_clock(word_clock), .unknown_clock(montiming1), .frequency_of_unknown_clock(frequency_of_montiming1), .valid(status4[0]));
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(17)) m2_fc (.reference_clock(word_clock), .unknown_clock(montiming2), .frequency_of_unknown_clock(frequency_of_montiming2), .valid(status4[1]));
 	// ----------------------------------------------------------------------
 	// TRG is for capturing the trigger bits streaming from the IRSX
 	// it is convenient if this is captured on a multiple of SST so the downstream processing knows precisely where to look in the readout window
@@ -420,7 +420,10 @@ module IRSXtest #(
 	assign bank1[11][7:0] = wr_address_copy_on_word_clock; assign bank1[11][31:8] = 0;
 	assign bank1[12] = frequency_of_montiming1;
 	assign bank1[13] = frequency_of_montiming2;
-	assign bank1[14] = 0;
+	wire [7:0] montiming1_duty_cycle_per0xffage, montiming1_duty_cycle_per0xffage_copy_on_word_clock;
+	duty_cycle m1_dc (.clock(hs_word_clock), .signal_in(montiming1), .duty_cycle_per0xffage(montiming1_duty_cycle_per0xffage), .valid());
+	pipeline_synchronizer #(.WIDTH(8)) montiming1_duty_cycle_per0xffage_copy_on_word_clock_sync (.clock1(hs_word_clock), .clock2(word_clock), .in1(montiming1_duty_cycle_per0xffage), .out2(montiming1_duty_cycle_per0xffage_copy_on_word_clock));
+	assign bank1[14][7:0] = montiming1_duty_cycle_per0xffage_copy_on_word_clock; assign bank1[14][31:8] = 0;
 	assign bank1[15][24:0] = { bank6_w_strobe_counter, bank5_w_strobe_counter, bank4_w_strobe_counter, bank3_w_strobe_counter, bank1_w_strobe_counter }; assign bank1[15][31:25] = 0;
 	counter_level #(.WIDTH(5)) bank1_w_strobe_counter_thing (.clock(word_clock), .reset(reset_word), .in(write_strobe[1]), .counter(bank1_w_strobe_counter));
 	// ----------------------------------------------------------------------

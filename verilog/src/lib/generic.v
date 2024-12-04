@@ -4,9 +4,10 @@
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
+// outputs n ~256ths (per-0xff-age) instead of n ~100ths (per-cent-age)
 module duty_cycle #(
 	parameter POLARITY = 1'b1,
-	parameter N = 1024,
+	parameter N = 256,
 	parameter log_base_2_of_N = $clog2(N),
 	parameter PATTERN_LENGTH = 4,
 	parameter PATTERN_GOING_ACTIVE = { ~POLARITY, ~POLARITY, POLARITY, POLARITY },
@@ -16,7 +17,7 @@ module duty_cycle #(
 ) (
 	input clock, signal_in,
 	output reg valid = 0,
-	output reg [log_base_2_of_N-1:0] duty_cycle_percentage = 0
+	output reg [log_base_2_of_N-1:0] duty_cycle_per0xffage = 0
 );
 	reg [PIPELINE_PICKOFF:0] signal_pipeline;
 	reg mode = 0;
@@ -24,14 +25,13 @@ module duty_cycle #(
 	reg [log_base_2_of_N-1:0] always_counter = 1'b1;
 	always @(posedge clock) begin
 		valid <= 0;
-		signal_pipeline <= { signal_pipeline[PIPELINE_PICKOFF-1:0], signal_in };
 		if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_ACTIVE) begin
 			mode <= 1'b1;
 		end else if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_INACTIVE) begin
 			mode <= 1'b0;
-			duty_cycle_percentage <= 100 * active_counter / always_counter;
+			duty_cycle_per0xffage <= { active_counter, 8'd0 } / always_counter;
 			valid <= 1'b1;
-			active_counter <= 0;
+			active_counter <= 1'b1;
 			always_counter <= 1'b1;
 		end else begin
 			always_counter <= always_counter + 1'b1;
@@ -39,6 +39,7 @@ module duty_cycle #(
 				active_counter <= active_counter + 1'b1;
 			end
 		end
+		signal_pipeline <= { signal_pipeline[PIPELINE_PICKOFF-1:0], signal_in };
 	end
 endmodule
 
@@ -60,20 +61,30 @@ module duty_cycle_tb #(
 		signal <= waveform[counter];
 		counter <= counter + 1'b1;
 	end
-	reg [6:0] truth = 0;
-	wire [6:0] duty_cycle_percentage;
+	reg [7:0] truth = 0;
+	wire [7:0] duty_cycle_per0xffage;
 	initial begin
-		#(100*CLOCK_PERIOD);
-		#CLOCK_PERIOD;
-		truth <= 12; waveform <= { {24{1'b0}}, { 31{1'b1}}, {201{1'b0}} }; #WAIT_PERIOD;
-		truth <= 23; waveform <= { {24{1'b0}}, { 59{1'b1}}, {173{1'b0}} }; #WAIT_PERIOD;
-		truth <= 34; waveform <= { {24{1'b0}}, { 87{1'b1}}, {145{1'b0}} }; #WAIT_PERIOD;
-		truth <= 45; waveform <= { {24{1'b0}}, {115{1'b1}}, {117{1'b0}} }; #WAIT_PERIOD;
-		truth <= 56; waveform <= { {24{1'b0}}, {143{1'b1}}, { 89{1'b0}} }; #WAIT_PERIOD;
-		truth <= 67; waveform <= { {24{1'b0}}, {172{1'b1}}, { 60{1'b0}} }; #WAIT_PERIOD;
+		#((WAVEFORM_LENGTH+1)*CLOCK_PERIOD);
+		truth <= 8'h10; waveform <= { {8'h08{1'b0}}, {8'h10{1'b1}}, {8'he8{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'h20; waveform <= { {8'h08{1'b0}}, {8'h20{1'b1}}, {8'hd8{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'h30; waveform <= { {8'h08{1'b0}}, {8'h30{1'b1}}, {8'hc8{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'h40; waveform <= { {8'h08{1'b0}}, {8'h40{1'b1}}, {8'hb8{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'h50; waveform <= { {8'h08{1'b0}}, {8'h50{1'b1}}, {8'ha8{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'h60; waveform <= { {8'h08{1'b0}}, {8'h60{1'b1}}, {8'h98{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'h69; waveform <= { {8'h04{1'b0}}, {8'h69{1'b1}}, {8'h93{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'h70; waveform <= { {8'h08{1'b0}}, {8'h70{1'b1}}, {8'h88{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'h80; waveform <= { {8'h08{1'b0}}, {8'h80{1'b1}}, {8'h78{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'h90; waveform <= { {8'h08{1'b0}}, {8'h90{1'b1}}, {8'h68{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'ha0; waveform <= { {8'h08{1'b0}}, {8'ha0{1'b1}}, {8'h58{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'hb0; waveform <= { {8'h08{1'b0}}, {8'hb0{1'b1}}, {8'h48{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'hc0; waveform <= { {8'h08{1'b0}}, {8'hc0{1'b1}}, {8'h38{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'hd0; waveform <= { {8'h08{1'b0}}, {8'hd0{1'b1}}, {8'h28{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'he0; waveform <= { {8'h08{1'b0}}, {8'he0{1'b1}}, {8'h18{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'hf0; waveform <= { {8'h08{1'b0}}, {8'hf0{1'b1}}, {8'h08{1'b0}} }; #WAIT_PERIOD;
+		truth <= 8'hfd; waveform <= { {8'h01{1'b0}}, {8'hfd{1'b1}}, {8'h01{1'b0}} }; #WAIT_PERIOD;
 		#(100*CLOCK_PERIOD); $finish;
 	end
-	duty_cycle mdc (.clock(clock), .signal_in(signal), .duty_cycle_percentage(duty_cycle_percentage));
+	duty_cycle mdc (.clock(clock), .signal_in(signal), .duty_cycle_per0xffage(duty_cycle_per0xffage), .valid());
 endmodule
 
 module counter_level #(
