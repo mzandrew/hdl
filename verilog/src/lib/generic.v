@@ -23,17 +23,31 @@ module duty_cycle #(
 	reg mode = 0;
 	reg [log_base_2_of_N-1:0] active_counter = 0;
 	reg [log_base_2_of_N-1:0] always_counter = 1'b1;
+	reg [2*log_base_2_of_N-1:0] numerator = 0;
+	reg [log_base_2_of_N-1:0] denominator = 0, accumulator = 0;
 	always @(posedge clock) begin
 		valid <= 0;
 		if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_ACTIVE) begin
 			mode <= 1'b1;
 		end else if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_INACTIVE) begin
 			mode <= 1'b0;
-			duty_cycle_per0xffage <= { active_counter, 8'd0 } / always_counter;
-			valid <= 1'b1;
+			//duty_cycle_per0xffage <= { active_counter, 8'd0 } / always_counter;
+			numerator <= { active_counter, 8'd0 };
+			denominator <= always_counter;
+			accumulator <= 0;
 			active_counter <= 1'b1;
 			always_counter <= 1'b1;
 		end else begin
+			if (0<denominator) begin
+				if (denominator<numerator) begin
+					numerator <= numerator - denominator;
+					accumulator <= accumulator + 1'b1;
+				end else begin
+					denominator <= 0;
+					duty_cycle_per0xffage <= accumulator;
+					valid <= 1'b1;
+				end
+			end
 			always_counter <= always_counter + 1'b1;
 			if (mode) begin
 				active_counter <= active_counter + 1'b1;
@@ -64,7 +78,7 @@ module duty_cycle_tb #(
 	reg [7:0] truth = 0;
 	wire [7:0] duty_cycle_per0xffage;
 	initial begin
-		#((WAVEFORM_LENGTH+1)*CLOCK_PERIOD);
+		#(WAVEFORM_LENGTH*CLOCK_PERIOD);
 		truth <= 8'h10; waveform <= { {8'h08{1'b0}}, {8'h10{1'b1}}, {8'he8{1'b0}} }; #WAIT_PERIOD;
 		truth <= 8'h20; waveform <= { {8'h08{1'b0}}, {8'h20{1'b1}}, {8'hd8{1'b0}} }; #WAIT_PERIOD;
 		truth <= 8'h30; waveform <= { {8'h08{1'b0}}, {8'h30{1'b1}}, {8'hc8{1'b0}} }; #WAIT_PERIOD;
