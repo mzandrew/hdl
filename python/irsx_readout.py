@@ -4,12 +4,22 @@
 # based on alpha_readout.py
 # based on protodune_LBLS_readout.py
 # with help from https://realpython.com/pygame-a-primer/#displays-and-surfaces
-# last updated 2024-11-27 by mza
+# last updated 2024-12-04 by mza
 
 # todo:
 # plot thresholds (pull from protodune_readout.py)
 # plot waveforms (pull from alpha_readout.py)
 # plot trigger memory
+
+# options:
+gather_another_waveform_period = 1.0 # in seconds
+loop_fps = 100 # in Hz
+gui_fps = 20 # in Hz
+check_for_new_register_bank_data_period = 1/gui_fps # in seconds
+cliff = "upper"
+step_size_for_threshold_scan = 4
+default_start_wr_address = 0x00
+default_end_wr_address = 0x00
 
 from generic import * # hex, eng
 import althea
@@ -19,12 +29,6 @@ import board, generic, ina260_adafruit, stts751
 BANK_ADDRESS_DEPTH = 13
 
 NUMBER_OF_CHANNELS_PER_ASIC = 8
-gather_another_waveform_period = 1.0 # in seconds
-loop_fps = 100 # in Hz
-gui_fps = 20 # in Hz
-check_for_new_register_bank_data_period = 1/gui_fps # in seconds
-cliff = "upper"
-step_size_for_threshold_scan = 4
 pedestal_dac_12bit_2v5 = int(4096*1.21/2.5)
 #print(hex(pedestal_dac_12bit_2v5,3))
 Trig4xVofs = pedestal_dac_12bit_2v5
@@ -42,18 +46,21 @@ Trig16xVofs = pedestal_dac_12bit_2v5
 #wbias_even = 1110 # 17.8 ns
 #wbias_dual = 1010 # 35.6 ns
 # for a trigger capture bit clock of 1017/6 = 169 MHz
-#wbias_odd  = 1230 # 12.0 ns (2 clocks)
-#wbias_even = 1040 # 24.0 ns (4 clocks)
-#wbias_dual =  940 # 74.0 ns (12 clocks)
+#wbias_odd  = 1230 # 12.0 ns (2 bit times)
+#wbias_even = 1040 # 24.0 ns (4 bit times)
+#wbias_dual =  940 # 74.0 ns (12 bit times)
+wbias_odd  = 1110 # 18.0 ns (3 bit times)
+wbias_even =  950 # 36.0 ns (6 bit times)
+wbias_dual =  790 # 93.0 ns (?? bit times)
 # for a trigger capture bit clock of 1017/12 = 84.8 MHz
-wbias_odd  =  970 #  35.4 ns
-wbias_even =  860 #  68.8 ns
-wbias_dual =  750 #  119-138 ns
+#wbias_odd  =  970 #  35.4 ns
+#wbias_even =  860 #  68.8 ns
+#wbias_dual =  750 #  119-138 ns
 wbias_bump_amount = 10
 MIN_TRIGGER_WIDTH_TO_EXPECT = 1
 MAX_TRIGGER_WIDTH_TO_EXPECT = 31
-default_expected_dual_channel_trigger_width = 12
-default_expected_even_channel_trigger_width = 4
+default_expected_dual_channel_trigger_width = 11
+default_expected_even_channel_trigger_width = 5
 default_spgin = 0 # default state of hs_data stream (page 40 of schematics)
 default_scaler_timeout = 127.22e6 * check_for_new_register_bank_data_period
 hs_data_ss_incr__for_tpg = 0
@@ -101,7 +108,7 @@ bank1_register_names = [ "hdrb errors, status8", "reg transactions", "readback e
 bank4_register_names = [ "CMPbias", "ISEL", "SBbias", "DBbias" ]
 bank5_register_names = [ "ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7" ]
 bank6_register_names = [ "bank0 read strobe count", "bank1 read strobe count", "bank2 read strobe count", "bank3 read strobe count", "bank4 read strobe count", "bank5 read strobe count", "bank6 read strobe count", "bank7 read strobe count", "bank0 write strobe count", "bank1 write strobe count", "bank2 write strobe count", "bank3 write strobe count", "bank4 write strobe count", "bank5 write strobe count", "bank6 write strobe count", "bank7 write strobe count" ]
-other_stuff_names = [ "current (mA)", "voltage (V)", "temp (C)" ]
+other_stuff_names = [ "current (mA)", "voltage (V)", "temp (C)", "wbias_odd", "wbias_even", "wbias_dual" ]
 #header_description_bytes = [ "AL", "FA", "ASICID", "finetime", "coarse4", "coarse3", "coarse2", "coarse1", "trigger2", "trigger1", "aftertrigger", "lookback", "samplestoread", "startingsample", "missedtriggers", "status" ]
 #header_decode_descriptions = [ "ASICID", "bank", "fine time", "coarse time", "trigger#", "samples after trigger", "lookback samples", "samples to read", "starting sample", "missed triggers", "status" ]
 CMPbias = 0x1e8
@@ -219,13 +226,6 @@ scaler_values_seen = set()
 pedestal_mode = False
 DAC_to_control = 0
 
-buffer_new = [ 0 for z in range(number_of_words_to_read_from_the_fifo) ]
-buffer_old = [ 0 for z in range(number_of_words_to_read_from_the_fifo) ]
-ALFA_OMGA_counter = 0
-NUMBER_OF_WORDS_PER_HEADER = 8
-NUMBER_OF_WORDS_PER_FOOTER = 2
-NUMBER_OF_EXTRA_WORDS_PER_ALFA_OMGA_READOUT = NUMBER_OF_WORDS_PER_HEADER + NUMBER_OF_WORDS_PER_FOOTER
-starting_sample = 0
 pedestals_have_been_taken = False
 
 # when run as a systemd service, it gets sent a SIGHUP upon pygame.init(), hence this dummy signal handler
@@ -611,8 +611,8 @@ def write_bootup_values():
 	set_hs_data_mode__testing()
 	set_spgin(default_spgin)
 	set_scaler_timeout(default_scaler_timeout)
-	set_start_wr_address(0x00)
-	set_end_wr_address(0xff)
+	set_start_wr_address(default_start_wr_address)
+	set_end_wr_address(default_end_wr_address)
 
 import subprocess
 def reprogram_fpga():
@@ -961,8 +961,8 @@ def update_bank6_registers():
 def show_other_stuff():
 	read_ammeter()
 	read_temperature_sensor()
-	other_stuff_values = [ current_mA, voltage_V, temp_C ]
-	other_stuff_decimal_places = [ 1, 3, 1 ]
+	other_stuff_values = [ current_mA, voltage_V, temp_C, wbias_odd, wbias_even, wbias_dual ]
+	other_stuff_decimal_places = [ 1, 3, 1, 0, 0, 0 ]
 	if should_show_other_stuff:
 		for i in range(len(other_stuff_names)):
 			try:
