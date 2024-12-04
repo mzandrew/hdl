@@ -1,8 +1,80 @@
 // written 2019-09-22 by mza
-// last updated 2024-12-03 by mza
+// last updated 2024-12-04 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
+
+module duty_cycle #(
+	parameter POLARITY = 1'b1,
+	parameter N = 1024,
+	parameter log_base_2_of_N = $clog2(N),
+	parameter PATTERN_LENGTH = 4,
+	parameter PATTERN_GOING_ACTIVE = { ~POLARITY, ~POLARITY, POLARITY, POLARITY },
+	parameter PATTERN_GOING_INACTIVE = { POLARITY, POLARITY, ~POLARITY, ~POLARITY },
+	parameter METASTABILITY_DELAY = 3,
+	parameter PIPELINE_PICKOFF = PATTERN_LENGTH + METASTABILITY_DELAY
+) (
+	input clock, signal_in,
+	output reg valid = 0,
+	output reg [log_base_2_of_N-1:0] duty_cycle_percentage = 0
+);
+	reg [PIPELINE_PICKOFF:0] signal_pipeline;
+	reg mode = 0;
+	reg [log_base_2_of_N-1:0] active_counter = 0;
+	reg [log_base_2_of_N-1:0] always_counter = 1'b1;
+	always @(posedge clock) begin
+		valid <= 0;
+		signal_pipeline <= { signal_pipeline[PIPELINE_PICKOFF-1:0], signal_in };
+		if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_ACTIVE) begin
+			mode <= 1'b1;
+		end else if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_INACTIVE) begin
+			mode <= 1'b0;
+			duty_cycle_percentage <= 100 * active_counter / always_counter;
+			valid <= 1'b1;
+			active_counter <= 0;
+			always_counter <= 1'b1;
+		end else begin
+			always_counter <= always_counter + 1'b1;
+			if (mode) begin
+				active_counter <= active_counter + 1'b1;
+			end
+		end
+	end
+endmodule
+
+module duty_cycle_tb #(
+	parameter CLOCK_PERIOD = 1.0,
+	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2,
+	parameter WAVEFORM_LENGTH = 256,
+	parameter LOG2_OF_WAVEFORM_LENGTH = $clog2(WAVEFORM_LENGTH),
+	parameter WAIT_PERIOD = 3.7 * WAVEFORM_LENGTH * CLOCK_PERIOD
+);
+	reg clock = 0;
+	always begin
+		clock <= ~clock; #HALF_CLOCK_PERIOD;
+	end
+	reg signal = 0;
+	reg [LOG2_OF_WAVEFORM_LENGTH-1:0] counter = 0;
+	reg [WAVEFORM_LENGTH-1:0] waveform = 0;
+	always @(posedge clock) begin
+		signal <= waveform[counter];
+		counter <= counter + 1'b1;
+	end
+	reg [6:0] truth = 0;
+	wire [6:0] duty_cycle_percentage;
+	initial begin
+		#(100*CLOCK_PERIOD);
+		#CLOCK_PERIOD;
+		truth <= 12; waveform <= { {24{1'b0}}, { 31{1'b1}}, {201{1'b0}} }; #WAIT_PERIOD;
+		truth <= 23; waveform <= { {24{1'b0}}, { 59{1'b1}}, {173{1'b0}} }; #WAIT_PERIOD;
+		truth <= 34; waveform <= { {24{1'b0}}, { 87{1'b1}}, {145{1'b0}} }; #WAIT_PERIOD;
+		truth <= 45; waveform <= { {24{1'b0}}, {115{1'b1}}, {117{1'b0}} }; #WAIT_PERIOD;
+		truth <= 56; waveform <= { {24{1'b0}}, {143{1'b1}}, { 89{1'b0}} }; #WAIT_PERIOD;
+		truth <= 67; waveform <= { {24{1'b0}}, {172{1'b1}}, { 60{1'b0}} }; #WAIT_PERIOD;
+		#(100*CLOCK_PERIOD); $finish;
+	end
+	duty_cycle mdc (.clock(clock), .signal_in(signal), .duty_cycle_percentage(duty_cycle_percentage));
+endmodule
 
 module counter_level #(
 	parameter POLARITY = 1,
