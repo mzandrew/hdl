@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-12-03 by mza
+// last updated 2024-12-04 by mza
 
 // WARNING:Xst:638 - in unit altheaIRSXtest Conflict on KEEP property on signal IRSXtest/reset127_wait4pll/pipesync/cdc and IRSXtest/status12_copy/async_cdc<2> IRSXtest/status12_copy/async_cdc<2> signal will be lost.
 // filtered Xst:1710 "FF/Latch riwri_bank1/mem_0_370 (without init value) has a constant value of 0 in block altheaIRSXtest. This FF/Latch will be trimmed during the optimization process."
@@ -566,11 +566,12 @@ module IRSXtest #(
 		assign coax[1] = pclk;
 		assign coax[2] = sclk;
 		assign coax[3] = sin;
-	end else if (0) begin
-		assign coax[0] = wr_syncmon;
-		assign coax[1] = 0;//oddr_double_period;
-		assign coax[2] = montiming2;
-		assign coax[3] = montiming1;
+	end else if (1) begin
+		assign coax[0] = montiming1;
+		assign coax[1] = montiming2;
+		clock_ODDR_out sstclk_ODDR_second_copy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180), .clock_enable(1'b1), .clock_out(coax[2]));
+//		assign coax[2] = 0;
+		assign coax[3] = wr_syncmon;
 	end else if (1) begin // for tuning wbiases and trg capture parameters
 		assign coax[0] = t4;
 		assign coax[1] = t5;
@@ -597,9 +598,8 @@ module IRSXtest #(
 	end
 	//assign coax[4] = shout;
 	//assign coax[5] = sclk;
-	clock_ODDR_out sstclk_ODDR_second_copy  (.clock_in_p(sstclk),  .clock_in_n(sstclk180), .clock_enable(1'b1), .clock_out(coax[4]));
 	assign coax[5] = trgall;
-//	assign coax[4] = convert;
+	assign coax[4] = convert;
 //	assign coax[5] = done_out;
 	// ----------------------------------------------------------------------
 	assign pll_status8[7] = first_pll_locked;

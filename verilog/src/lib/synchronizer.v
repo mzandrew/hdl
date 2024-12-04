@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // written 2019-09-22 by mza
 // based partly off mza-test029
-// last updated 2024-11-18 by mza
+// last updated 2024-12-03 by mza
 
 `ifndef SYNCHRONIZER_LIB
 `define SYNCHRONIZER_LIB
@@ -272,6 +272,7 @@ endmodule
 
 //	slow_asynchronizer #(.WIDTH(2), .DEPTH1(3), .DEPTH2(2)) mysin (.clock(), .async_in(), .sync_out());
 // this is based on pipeline_synchronizer
+// maybe try (* ASYNC_REG = "TRUE" *) on intermediate1 or 2 ?
 module slow_asynchronizer #(
 	parameter DEPTH1=3,
 	parameter DEPTH2=2,
