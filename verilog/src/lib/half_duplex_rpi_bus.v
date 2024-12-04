@@ -1,6 +1,12 @@
 // written 2021-03-17 by mza
 // based on mza-test047.simple-parallel-interface-and-pollable-memory.althea.revBL.v
-// last updated 2024-11-13 by mza
+// last updated 2024-12-03 by mza
+
+`ifndef HALF_DUPLEX_RPI_BUS_LIB
+`define HALF_DUPLEX_RPI_BUS_LIB
+
+// WARNING:Xst:1293 - FF/Latch <IRSXtest/hdrb/aword_-1> has a constant value of 0 in block <altheaIRSXtest>. This FF/Latch will be trimmed during the optimization process.
+// WARNING:Xst:1293 - FF/Latch <IRSXtest/hdrb/aword_0> has a constant value of 0 in block <altheaIRSXtest>. This FF/Latch will be trimmed during the optimization process.
 
 module half_duplex_rpi_bus #(
 	parameter BUS_WIDTH = 16,
@@ -15,9 +21,14 @@ module half_duplex_rpi_bus #(
 	parameter ADDRESS_AUTOINCREMENT_MODE = 1,
 	parameter ERROR_COUNT_PICKOFF = 7,
 	parameter MAX_ERROR_COUNT = 2**(ERROR_COUNT_PICKOFF+1)-1,
-	parameter ANTI_META = 3, // a lot of these state machines check against something[PICKOFF:PICKOFF-1]==2'b00, so we need at least 3 here
-	parameter GAP = 0,
-	parameter EXTRA_PICKOFF = 1
+	parameter ANTI_META                        = 3, // a lot of these state machines check against something[PICKOFF:PICKOFF-1]==2'b00, so we need at least 3 here
+	parameter GAP                              = 0,
+	parameter EXTRA_PICKOFF                    = 1,
+	parameter OTHER_PICKOFF                    = ANTI_META + EXTRA_PICKOFF,
+	parameter ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + GAP,
+	parameter REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF,
+	parameter READ_PIPELINE_PICKOFF            = OTHER_PICKOFF,
+	parameter BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF
 ) (
 	input clock,
 	input reset,
@@ -36,11 +47,6 @@ module half_duplex_rpi_bus #(
 	output reg [ERROR_COUNT_PICKOFF:0] address_errors = 0,
 	output [LOG2_OF_NUMBER_OF_BANKS-1:0] bank
 );
-	localparam OTHER_PICKOFF                    = ANTI_META + EXTRA_PICKOFF;
-	localparam ENABLE_PIPELINE_PICKOFF          = OTHER_PICKOFF + GAP;
-	localparam REGISTER_SELECT_PIPELINE_PICKOFF = OTHER_PICKOFF;
-	localparam READ_PIPELINE_PICKOFF            = OTHER_PICKOFF;
-	localparam BUS_PIPELINE_PICKOFF             = OTHER_PICKOFF;
 	genvar i;
 	integer j;
 	reg pre_ack_valid = 0;
@@ -54,7 +60,9 @@ module half_duplex_rpi_bus #(
 	for (i=0; i<TRANSACTIONS_PER_ADDRESS_WORD; i=i+1) begin : address_array
 		assign address_word[(i+1)*BUS_WIDTH-1:i*BUS_WIDTH] = address[i];
 	end
-	reg [LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD-1:0] aword = TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+//	if (1<TRANSACTIONS_PER_ADDRESS_WORD) begin
+		reg [LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD-1:0] aword = TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+//	end
 	assign bank = address_word_reg[BUS_WIDTH*TRANSACTIONS_PER_ADDRESS_WORD-1 -: LOG2_OF_NUMBER_OF_BANKS];
 	reg [1:0] wstate = 0;
 	//wire [TRANSACTIONS_PER_DATA_WORD*BUS_WIDTH-1:0] write_data_word;
@@ -109,7 +117,9 @@ module half_duplex_rpi_bus #(
 			for (j=0; j<TRANSACTIONS_PER_ADDRESS_WORD; j=j+1) begin : address_clear
 				address[j] <= 0;
 			end
-			aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+			if (1<TRANSACTIONS_PER_ADDRESS_WORD) begin
+				aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+			end
 			wstate <= 0;
 			for (j=0; j<TRANSACTIONS_PER_DATA_WORD; j=j+1) begin : write_data_clear
 				write_data[j] <= 0;
@@ -147,7 +157,11 @@ module half_duplex_rpi_bus #(
 						if (astate[1]==0) begin
 							if (astate[0]==0) begin
 								astate[0] <= 1;
-								address[aword] <= bus_pipeline[BUS_PIPELINE_PICKOFF];
+								if (1<TRANSACTIONS_PER_ADDRESS_WORD) begin
+									address[aword] <= bus_pipeline[BUS_PIPELINE_PICKOFF];
+								end else begin
+									address[0] <= bus_pipeline[BUS_PIPELINE_PICKOFF];
+								end
 							end
 						end
 					end
@@ -166,12 +180,21 @@ module half_duplex_rpi_bus #(
 						end
 						rword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					end
-					if (astate || aword!=TRANSACTIONS_PER_ADDRESS_WORD-1) begin
-						astate <= 0;
-						if (address_errors<MAX_ERROR_COUNT) begin
-							address_errors <= address_errors + 1'b1;
+					if (1<TRANSACTIONS_PER_ADDRESS_WORD) begin
+						if (astate || aword!=TRANSACTIONS_PER_ADDRESS_WORD-1) begin
+							astate <= 0;
+							if (address_errors<MAX_ERROR_COUNT) begin
+								address_errors <= address_errors + 1'b1;
+							end
+							aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 						end
-						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+					end else begin
+						if (astate) begin
+							astate <= 0;
+							if (address_errors<MAX_ERROR_COUNT) begin
+								address_errors <= address_errors + 1'b1;
+							end
+						end
 					end
 					if (wstate[1]) begin
 						ready_for_new_read_data_word <= 1;
@@ -201,12 +224,21 @@ module half_duplex_rpi_bus #(
 						end
 						wword <= TRANSACTIONS_PER_DATA_WORD-1; // most significant halfword first
 					end
-					if (astate || aword!=TRANSACTIONS_PER_ADDRESS_WORD-1) begin
-						astate <= 0;
-						if (address_errors<MAX_ERROR_COUNT) begin
-							address_errors <= address_errors + 1'b1;
+					if (1<TRANSACTIONS_PER_ADDRESS_WORD) begin
+						if (astate || aword!=TRANSACTIONS_PER_ADDRESS_WORD-1) begin
+							astate <= 0;
+							if (address_errors<MAX_ERROR_COUNT) begin
+								address_errors <= address_errors + 1'b1;
+							end
+							aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
 						end
-						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+					end else begin
+						if (astate) begin
+							astate <= 0;
+							if (address_errors<MAX_ERROR_COUNT) begin
+								address_errors <= address_errors + 1'b1;
+							end
+						end
 					end
 					if (rstate[1]) begin
 						ready_for_new_read_data_word <= 1;
@@ -239,12 +271,18 @@ module half_duplex_rpi_bus #(
 					if (astate[1]) begin
 						ready_for_new_read_data_word <= 1;
 						astate <= 0;
-						aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+						if (1<TRANSACTIONS_PER_ADDRESS_WORD) begin
+							aword <= TRANSACTIONS_PER_ADDRESS_WORD-1; // most significant halfword first
+						end
 						address_word_reg <= address_word;
 					end else begin
 						astate[0] <= 0;
-						if (|aword) begin
-							aword <= aword - 1'b1;
+						if (1<TRANSACTIONS_PER_ADDRESS_WORD) begin
+							if (|aword) begin
+								aword <= aword - 1'b1;
+							end else begin
+								astate[1] <= 1;
+							end
 						end else begin
 							astate[1] <= 1;
 						end
@@ -268,5 +306,29 @@ module half_duplex_rpi_bus #(
 	end
 	assign ack_valid = pre_ack_valid;
 	bus_entry_3state #(.WIDTH(BUS_WIDTH)) my3sbe (.I(pre_bus), .O(bus), .T(read)); // we are peripheral
+	initial begin
+		$display("BUS_WIDTH=%d", BUS_WIDTH);
+		$display("LOG2_OF_BUS_WIDTH=%d", LOG2_OF_BUS_WIDTH);
+		$display("TRANSACTIONS_PER_DATA_WORD=%d", TRANSACTIONS_PER_DATA_WORD);
+		$display("LOG2_OF_TRANSACTIONS_PER_DATA_WORD=%d", LOG2_OF_TRANSACTIONS_PER_DATA_WORD);
+		$display("TRANSACTIONS_PER_ADDRESS_WORD=%d", TRANSACTIONS_PER_ADDRESS_WORD);
+		$display("LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD=%d", LOG2_OF_TRANSACTIONS_PER_ADDRESS_WORD);
+		$display("BANK_ADDRESS_DEPTH=%d", BANK_ADDRESS_DEPTH);
+		$display("LOG2_OF_NUMBER_OF_BANKS=%d", LOG2_OF_NUMBER_OF_BANKS);
+		$display("NUMBER_OF_BANKS=%d", NUMBER_OF_BANKS);
+		$display("ADDRESS_AUTOINCREMENT_MODE=%d", ADDRESS_AUTOINCREMENT_MODE);
+		$display("ERROR_COUNT_PICKOFF=%d", ERROR_COUNT_PICKOFF);
+		$display("MAX_ERROR_COUNT=%d", MAX_ERROR_COUNT);
+		$display("ANTI_META=%d", ANTI_META);
+		$display("GAP=%d", GAP);
+		$display("EXTRA_PICKOFF=%d", EXTRA_PICKOFF);
+		$display("OTHER_PICKOFF=%d", OTHER_PICKOFF);
+		$display("ENABLE_PIPELINE_PICKOFF=%d", ENABLE_PIPELINE_PICKOFF);
+		$display("REGISTER_SELECT_PIPELINE_PICKOFF=%d", REGISTER_SELECT_PIPELINE_PICKOFF);
+		$display("READ_PIPELINE_PICKOFF=%d", READ_PIPELINE_PICKOFF);
+		$display("BUS_PIPELINE_PICKOFF=%d", BUS_PIPELINE_PICKOFF);
+	end
 endmodule
+
+`endif
 
