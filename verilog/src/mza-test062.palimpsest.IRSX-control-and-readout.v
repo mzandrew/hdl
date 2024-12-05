@@ -24,7 +24,7 @@ module IRSXtest #(
 	parameter NUMBER_OF_CHANNELS = 8,
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
-	parameter LOG2_OF_DUTY_CYCLE_N = 8,
+	parameter LOG2_OF_DUTY_CYCLE_N = 4,
 	parameter DUTY_CYCLE_N = 2**LOG2_OF_DUTY_CYCLE_N,
 	// ----------------------------------------------------------------------
 	//parameter DCM_INPUT_FREQUENCY_IN_HZ = 127221875, // right
@@ -106,6 +106,7 @@ module IRSXtest #(
 	input shout, done_out, wr_syncmon, montiming2,
 	input data_p, data_n, trg01_p, trg01_n, trg23_p, trg23_n, trg45_p, trg45_n, trg67_p, trg67_n, montiming1_p, montiming1_n,
 //	output other,
+	output bithole,
 	output regen, // regulator enable
 	output [7:0] led,
 	output [3:0] coax_led
@@ -416,18 +417,22 @@ module IRSXtest #(
 	end
 	assign bank1[8][HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] = hs_data_word_decimated[HS_DATA_INTENDED_NUMBER_OF_BITS-1:0]; assign bank1[8][31:HS_DATA_INTENDED_NUMBER_OF_BITS] = 0;
 	wire [31:0] convert_counter, done_out_counter;
-	wire [31:0] convert_counter_copy_on_word_clock, done_out_counter_copy_on_word_clock;
+	wire [31:0] convert_counter_copy_on_word_clock;//, done_out_counter_copy_on_word_clock;
 	assign bank1[9] = convert_counter_copy_on_word_clock;
-	assign bank1[10] = done_out_counter_copy_on_word_clock;
+	assign bank1[10][24:0] = { bank6_w_strobe_counter, bank5_w_strobe_counter, bank4_w_strobe_counter, bank3_w_strobe_counter, bank1_w_strobe_counter }; assign bank1[10][31:25] = 0;
+	counter_level #(.WIDTH(5)) bank1_w_strobe_counter_thing (.clock(word_clock), .reset(reset_word), .in(write_strobe[1]), .counter(bank1_w_strobe_counter));
 	assign bank1[11][7:0] = wr_address_copy_on_word_clock; assign bank1[11][31:8] = 0;
 	assign bank1[12] = frequency_of_montiming1;
 	assign bank1[13] = frequency_of_montiming2;
+	wire m1_dc_valid, m2_dc_valid;
 	wire [LOG2_OF_DUTY_CYCLE_N-1:0] montiming1_duty_cycle_perHEXage, montiming1_duty_cycle_perHEXage_copy_on_word_clock;
-	duty_cycle #(.N(DUTY_CYCLE_N)) m1_dc (.clock(hs_word_clock), .signal_in(montiming1), .duty_cycle_perHEXage(montiming1_duty_cycle_perHEXage), .valid());
+	duty_cycle #(.N(DUTY_CYCLE_N)) m1_dc (.clock(hs_word_clock), .signal_in(montiming1), .duty_cycle_perHEXage(montiming1_duty_cycle_perHEXage), .valid(m1_dc_valid));
 	pipeline_synchronizer #(.WIDTH(LOG2_OF_DUTY_CYCLE_N)) montiming1_duty_cycle_perHEXage_copy_on_word_clock_sync (.clock1(hs_word_clock), .clock2(word_clock), .in1(montiming1_duty_cycle_perHEXage), .out2(montiming1_duty_cycle_perHEXage_copy_on_word_clock));
 	assign bank1[14][LOG2_OF_DUTY_CYCLE_N-1:0] = montiming1_duty_cycle_perHEXage_copy_on_word_clock; assign bank1[14][31:LOG2_OF_DUTY_CYCLE_N] = 0;
-	assign bank1[15][24:0] = { bank6_w_strobe_counter, bank5_w_strobe_counter, bank4_w_strobe_counter, bank3_w_strobe_counter, bank1_w_strobe_counter }; assign bank1[15][31:25] = 0;
-	counter_level #(.WIDTH(5)) bank1_w_strobe_counter_thing (.clock(word_clock), .reset(reset_word), .in(write_strobe[1]), .counter(bank1_w_strobe_counter));
+	wire [LOG2_OF_DUTY_CYCLE_N-1:0] montiming2_duty_cycle_perHEXage, montiming2_duty_cycle_perHEXage_copy_on_word_clock;
+	duty_cycle #(.N(DUTY_CYCLE_N)) m2_dc (.clock(hs_word_clock), .signal_in(montiming2), .duty_cycle_perHEXage(montiming2_duty_cycle_perHEXage), .valid(m2_dc_valid));
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_DUTY_CYCLE_N)) montiming2_duty_cycle_perHEXage_copy_on_word_clock_sync (.clock1(hs_word_clock), .clock2(word_clock), .in1(montiming2_duty_cycle_perHEXage), .out2(montiming2_duty_cycle_perHEXage_copy_on_word_clock));
+	assign bank1[15][LOG2_OF_DUTY_CYCLE_N-1:0] = montiming2_duty_cycle_perHEXage_copy_on_word_clock; assign bank1[15][31:LOG2_OF_DUTY_CYCLE_N] = 0;
 	// ----------------------------------------------------------------------
 	localparam NUMBER_OF_PULSE_OUTPUTS_NEEDED = 3;
 	wire [NUMBER_OF_PULSE_OUTPUTS_NEEDED-1:0] bank2; // things that just need a pulse for 1 clock cycle
@@ -554,7 +559,7 @@ module IRSXtest #(
 	// ----------------------------------------------------------------------
 	irsx_wilkinson_convert wilkie (.gcc_clock(gcc_clk), .reset(reset_gcc), .should_start_wilkinson_conversion_now(should_start_wilkinson_conversion_now_copy_on_gcc_clk), .convert(convert), .done_out(done_out), .convert_counter(convert_counter), .done_out_counter(done_out_counter));
 	pipeline_synchronizer #(.WIDTH(32)) convert_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .in1(convert_counter), .out2(convert_counter_copy_on_word_clock));
-	pipeline_synchronizer #(.WIDTH(32)) done_out_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .in1(done_out_counter), .out2(done_out_counter_copy_on_word_clock));
+//	pipeline_synchronizer #(.WIDTH(32)) done_out_counter_copy_on_word_clock_sync (.clock1(gcc_clk), .clock2(word_clock), .in1(done_out_counter), .out2(done_out_counter_copy_on_word_clock));
 	// ----------------------------------------------------------------------
 	wire [7:0] start_address_copy_on_wr_clock, end_address_copy_on_wr_clock;
 	pipeline_synchronizer #(.WIDTH(8)) start_address_copy_on_wr_clock_sync (.clock1(word_clock), .clock2(wr_word_clk), .in1(start_address), .out2(start_address_copy_on_wr_clock));
@@ -618,6 +623,7 @@ module IRSXtest #(
 	// ----------------------------------------------------------------------
 	assign coax_led = 0;
 	assign led = 0;
+	assign bithole = |done_out_counter || m1_dc_valid || m2_dc_valid;
 	initial begin
 		#100;
 		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, BANK_ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH);
@@ -970,6 +976,7 @@ module altheaIRSXtest #(
 //	output dummy1, dummy2,
 	input button, // reset
 //	output other, // goes to PMOD connector
+	output bithole,
 	output [7:0] led,
 	output [3:0] coax_led
 );
@@ -1019,6 +1026,7 @@ module altheaIRSXtest #(
 //		.rot(rot),
 //		.other(other),
 		.led(led),
+		.bithole(bithole),
 		.coax_led(coax_led)
 	);
 endmodule
