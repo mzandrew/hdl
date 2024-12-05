@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="13" />
+   <WVObjectSize size="12" />
    <wvobject fp_name="/duty_cycle_tb/clock" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clock</obj_property>
       <obj_property name="ObjectShortName">clock</obj_property>
@@ -20,22 +20,37 @@
       <obj_property name="ObjectShortName">signal</obj_property>
    </wvobject>
    <wvobject fp_name="/duty_cycle_tb/waveform" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">waveform[255:0]</obj_property>
-      <obj_property name="ObjectShortName">waveform[255:0]</obj_property>
+      <obj_property name="ElementShortName">waveform[63:0]</obj_property>
+      <obj_property name="ObjectShortName">waveform[63:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/duty_cycle_tb/counter" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">counter[7:0]</obj_property>
-      <obj_property name="ObjectShortName">counter[7:0]</obj_property>
+      <obj_property name="ElementShortName">counter[5:0]</obj_property>
+      <obj_property name="ObjectShortName">counter[5:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/duty_cycle_tb/mdc/always_counter" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">always_counter[7:0]</obj_property>
-      <obj_property name="ObjectShortName">always_counter[7:0]</obj_property>
+      <obj_property name="ElementShortName">always_counter[5:0]</obj_property>
+      <obj_property name="ObjectShortName">always_counter[5:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/duty_cycle_tb/mdc/active_counter" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">active_counter[7:0]</obj_property>
-      <obj_property name="ObjectShortName">active_counter[7:0]</obj_property>
+      <obj_property name="ElementShortName">active_counter[5:0]</obj_property>
+      <obj_property name="ObjectShortName">active_counter[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/mdc/numerator" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">numerator[13:0]</obj_property>
+      <obj_property name="ObjectShortName">numerator[13:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/mdc/denominator" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">denominator[5:0]</obj_property>
+      <obj_property name="ObjectShortName">denominator[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/mdc/accumulator" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">accumulator[5:0]</obj_property>
+      <obj_property name="ObjectShortName">accumulator[5:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/duty_cycle_tb/mdc/valid" type="logic" db_ref_id="1">
@@ -43,33 +58,13 @@
       <obj_property name="ObjectShortName">valid</obj_property>
    </wvobject>
    <wvobject fp_name="/duty_cycle_tb/truth" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">truth[7:0]</obj_property>
-      <obj_property name="ObjectShortName">truth[7:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/duty_cycle_tb/duty_cycle_per0xffage" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">duty_cycle_per0xffage[7:0]</obj_property>
-      <obj_property name="ObjectShortName">duty_cycle_per0xffage[7:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/duty_cycle_tb/mdc/numerator" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">numerator[15:0]</obj_property>
-      <obj_property name="ObjectShortName">numerator[15:0]</obj_property>
+      <obj_property name="ElementShortName">truth[31:0]</obj_property>
+      <obj_property name="ObjectShortName">truth[31:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/duty_cycle_tb/mdc/denominator" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">denominator[7:0]</obj_property>
-      <obj_property name="ObjectShortName">denominator[7:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/duty_cycle_tb/mdc/accumulator" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">accumulator[7:0]</obj_property>
-      <obj_property name="ObjectShortName">accumulator[7:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/duty_cycle_tb/mdc/factor" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">factor[7:0]</obj_property>
-      <obj_property name="ObjectShortName">factor[7:0]</obj_property>
+   <wvobject fp_name="/duty_cycle_tb/duty_cycle_perHEXage" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">duty_cycle_perHEXage[5:0]</obj_property>
+      <obj_property name="ObjectShortName">duty_cycle_perHEXage[5:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 </wave_config>

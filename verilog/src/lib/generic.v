@@ -1,17 +1,16 @@
 // written 2019-09-22 by mza
-// last updated 2024-12-04 by mza
+// last updated 2024-12-05 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
-// outputs n ~256ths (per-0xff-age) instead of n ~100ths (per-cent-age)
+// outputs n ~16th or ~256ths (per-HEX-age) instead of n ~100ths (per-CENT-age)
 module duty_cycle #(
 	parameter POLARITY = 1'b1,
 	parameter N = 256,
 	parameter LOG_BASE_2_OF_N = $clog2(N),
-	parameter MAX_ALWAYS_COUNTER = 2**LOG_BASE_2_OF_N - 1,
-	parameter LOG2_OF_PRIME_VALUE = 3,
-	parameter PRIME_VALUE = { 1'b1, {LOG2_OF_PRIME_VALUE{1'b0}} },
+	parameter MAX_COUNTER = {LOG_BASE_2_OF_N{1'b1}},
+	parameter LOG2_OF_PRIME_VALUE = 0,
 	parameter PATTERN_LENGTH = 4,
 	parameter PATTERN_GOING_ACTIVE = { ~POLARITY, ~POLARITY, POLARITY, POLARITY },
 	parameter PATTERN_GOING_INACTIVE = { POLARITY, POLARITY, ~POLARITY, ~POLARITY },
@@ -20,16 +19,16 @@ module duty_cycle #(
 ) (
 	input clock, signal_in,
 	output reg valid = 0,
-	output [LOG_BASE_2_OF_N-1:0] duty_cycle_per0xffage
+	output [LOG_BASE_2_OF_N-1:0] duty_cycle_perHEXage
 );
-	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE:0] duty_cycle_per0xffage_internal = 0;
-	assign duty_cycle_per0xffage = { duty_cycle_per0xffage_internal, {LOG2_OF_PRIME_VALUE{1'b0}} };
+	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE:0] duty_cycle_perHEXage_internal = 0;
+	assign duty_cycle_perHEXage = { duty_cycle_perHEXage_internal, {LOG2_OF_PRIME_VALUE{1'b0}} };
 	reg [PIPELINE_PICKOFF:0] signal_pipeline;
 	reg mode = 0;
 	reg [LOG_BASE_2_OF_N-1:0] active_counter = 0;
 	reg [LOG_BASE_2_OF_N-1:0] always_counter = 1'b1;
 	reg [LOG_BASE_2_OF_N-1:0] denominator = 0;
-	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE+8:0] numerator = 0;
+	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE+LOG_BASE_2_OF_N:0] numerator = 0;
 	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE:0] accumulator = 0;
 	always @(posedge clock) begin
 		valid <= 0;
@@ -37,7 +36,7 @@ module duty_cycle #(
 			mode <= 1'b1;
 		end else if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_INACTIVE) begin
 			mode <= 1'b0;
-			numerator <= { active_counter, {8-LOG2_OF_PRIME_VALUE{1'b0}} };
+			numerator <= { active_counter, {LOG_BASE_2_OF_N-LOG2_OF_PRIME_VALUE{1'b0}} };
 			denominator <= always_counter;
 			accumulator <= 0;
 			active_counter <= 1'b1;
@@ -49,15 +48,31 @@ module duty_cycle #(
 					accumulator <= accumulator + 1'b1;
 				end else begin
 					denominator <= 0;
-					duty_cycle_per0xffage_internal <= accumulator;
+					duty_cycle_perHEXage_internal <= accumulator;
 					valid <= 1'b1;
 				end
 			end
-			if (always_counter<MAX_ALWAYS_COUNTER) begin
+			if (always_counter<MAX_COUNTER) begin
 				always_counter <= always_counter + 1'b1;
 			end
-			if (mode) begin
-				active_counter <= active_counter + 1'b1;
+			if (mode) begin // signal active
+				if (active_counter<MAX_COUNTER) begin
+					active_counter <= active_counter + 1'b1;
+				end else begin // active_counter==MAX_COUNTER
+					denominator <= 0;
+					duty_cycle_perHEXage_internal <= MAX_COUNTER;
+					valid <= 1'b1;
+					active_counter <= 1'b1;
+					always_counter <= 1'b1;
+				end
+			end else begin // signal inactive
+				if (always_counter==MAX_COUNTER) begin
+					denominator <= 0;
+					duty_cycle_perHEXage_internal <= 0;
+					valid <= 1'b1;
+					active_counter <= 1'b1;
+					always_counter <= 1'b1;
+				end
 			end
 		end
 		signal_pipeline <= { signal_pipeline[PIPELINE_PICKOFF-1:0], signal_in };
@@ -67,45 +82,45 @@ endmodule
 module duty_cycle_tb #(
 	parameter CLOCK_PERIOD = 1.0,
 	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2,
-	parameter WAVEFORM_LENGTH = 256,
+	parameter N = 16,
+	parameter LOG_BASE_2_OF_N = $clog2(N),
+	parameter STEP = 4,
+	parameter WAVEFORM_LENGTH = N,
 	parameter LOG2_OF_WAVEFORM_LENGTH = $clog2(WAVEFORM_LENGTH),
-	parameter WAIT_PERIOD = 3.7 * WAVEFORM_LENGTH * CLOCK_PERIOD
+	parameter WAIT_PERIOD = 7.1 * WAVEFORM_LENGTH * CLOCK_PERIOD
 );
 	reg clock = 0;
 	always begin
 		clock <= ~clock; #HALF_CLOCK_PERIOD;
 	end
 	reg signal = 0;
-	reg [LOG2_OF_WAVEFORM_LENGTH-1:0] counter = 0;
 	reg [WAVEFORM_LENGTH-1:0] waveform = 0;
+	reg [LOG2_OF_WAVEFORM_LENGTH-1:0] counter = 0;
 	always @(posedge clock) begin
 		signal <= waveform[counter];
 		counter <= counter + 1'b1;
 	end
-	reg [7:0] truth = 0;
-	wire [7:0] duty_cycle_per0xffage;
+	wire [LOG_BASE_2_OF_N-1:0] duty_cycle_perHEXage;
+	wire valid;
+	integer j, truth = 0;
 	initial begin
-		#(WAVEFORM_LENGTH*CLOCK_PERIOD);
-		truth <= 8'h10; waveform <= { {8'h08{1'b0}}, {8'h10{1'b1}}, {8'he8{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'h20; waveform <= { {8'h08{1'b0}}, {8'h20{1'b1}}, {8'hd8{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'h30; waveform <= { {8'h08{1'b0}}, {8'h30{1'b1}}, {8'hc8{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'h40; waveform <= { {8'h08{1'b0}}, {8'h40{1'b1}}, {8'hb8{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'h50; waveform <= { {8'h08{1'b0}}, {8'h50{1'b1}}, {8'ha8{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'h60; waveform <= { {8'h08{1'b0}}, {8'h60{1'b1}}, {8'h98{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'h69; waveform <= { {8'h04{1'b0}}, {8'h69{1'b1}}, {8'h93{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'h70; waveform <= { {8'h08{1'b0}}, {8'h70{1'b1}}, {8'h88{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'h80; waveform <= { {8'h08{1'b0}}, {8'h80{1'b1}}, {8'h78{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'h90; waveform <= { {8'h08{1'b0}}, {8'h90{1'b1}}, {8'h68{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'ha0; waveform <= { {8'h08{1'b0}}, {8'ha0{1'b1}}, {8'h58{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'hb0; waveform <= { {8'h08{1'b0}}, {8'hb0{1'b1}}, {8'h48{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'hc0; waveform <= { {8'h08{1'b0}}, {8'hc0{1'b1}}, {8'h38{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'hd0; waveform <= { {8'h08{1'b0}}, {8'hd0{1'b1}}, {8'h28{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'he0; waveform <= { {8'h08{1'b0}}, {8'he0{1'b1}}, {8'h18{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'hf0; waveform <= { {8'h08{1'b0}}, {8'hf0{1'b1}}, {8'h08{1'b0}} }; #WAIT_PERIOD;
-		truth <= 8'hfd; waveform <= { {8'h01{1'b0}}, {8'hfd{1'b1}}, {8'h01{1'b0}} }; #WAIT_PERIOD;
-		#(100*CLOCK_PERIOD); $finish;
+		#WAIT_PERIOD;
+		for (truth=0; truth<=N; truth=truth+STEP) begin
+			for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
+			for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+			#WAIT_PERIOD;
+		end;
+		#WAIT_PERIOD;
+		truth = 13;
+		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
+		for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+		#WAIT_PERIOD;
+		truth = 0;
+		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
+		for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+		#WAIT_PERIOD; $finish;
 	end
-	duty_cycle mdc (.clock(clock), .signal_in(signal), .duty_cycle_per0xffage(duty_cycle_per0xffage), .valid());
+	duty_cycle #(.N(N)) mdc (.clock(clock), .signal_in(signal), .duty_cycle_perHEXage(duty_cycle_perHEXage), .valid(valid));
 endmodule
 
 module counter_level #(

@@ -1,6 +1,6 @@
 // written 2023-10-09 by mza
 // based on mza-test058.palimpsest.protodune-LBLS-DAQ.althea.revBLM.v
-// last updated 2024-12-04 by mza
+// last updated 2024-12-05 by mza
 
 // WARNING:Xst:638 - in unit altheaIRSXtest Conflict on KEEP property on signal IRSXtest/reset127_wait4pll/pipesync/cdc and IRSXtest/status12_copy/async_cdc<2> IRSXtest/status12_copy/async_cdc<2> signal will be lost.
 // filtered Xst:1710 "FF/Latch riwri_bank1/mem_0_370 (without init value) has a constant value of 0 in block altheaIRSXtest. This FF/Latch will be trimmed during the optimization process."
@@ -24,6 +24,8 @@ module IRSXtest #(
 	parameter NUMBER_OF_CHANNELS = 8,
 	parameter COUNTER_WIDTH = 32,
 	parameter SCALER_WIDTH = 16,
+	parameter LOG2_OF_DUTY_CYCLE_N = 8,
+	parameter DUTY_CYCLE_N = 2**LOG2_OF_DUTY_CYCLE_N,
 	// ----------------------------------------------------------------------
 	//parameter DCM_INPUT_FREQUENCY_IN_HZ = 127221875, // right
 	parameter DCM_INPUT_FREQUENCY_IN_HZ = 127210279, // wrong, but avoids warnings about not matching period in ucf
@@ -420,10 +422,10 @@ module IRSXtest #(
 	assign bank1[11][7:0] = wr_address_copy_on_word_clock; assign bank1[11][31:8] = 0;
 	assign bank1[12] = frequency_of_montiming1;
 	assign bank1[13] = frequency_of_montiming2;
-	wire [7:0] montiming1_duty_cycle_per0xffage, montiming1_duty_cycle_per0xffage_copy_on_word_clock;
-	duty_cycle m1_dc (.clock(hs_word_clock), .signal_in(montiming1), .duty_cycle_per0xffage(montiming1_duty_cycle_per0xffage), .valid());
-	pipeline_synchronizer #(.WIDTH(8)) montiming1_duty_cycle_per0xffage_copy_on_word_clock_sync (.clock1(hs_word_clock), .clock2(word_clock), .in1(montiming1_duty_cycle_per0xffage), .out2(montiming1_duty_cycle_per0xffage_copy_on_word_clock));
-	assign bank1[14][7:0] = montiming1_duty_cycle_per0xffage_copy_on_word_clock; assign bank1[14][31:8] = 0;
+	wire [LOG2_OF_DUTY_CYCLE_N-1:0] montiming1_duty_cycle_perHEXage, montiming1_duty_cycle_perHEXage_copy_on_word_clock;
+	duty_cycle #(.N(DUTY_CYCLE_N)) m1_dc (.clock(hs_word_clock), .signal_in(montiming1), .duty_cycle_perHEXage(montiming1_duty_cycle_perHEXage), .valid());
+	pipeline_synchronizer #(.WIDTH(LOG2_OF_DUTY_CYCLE_N)) montiming1_duty_cycle_perHEXage_copy_on_word_clock_sync (.clock1(hs_word_clock), .clock2(word_clock), .in1(montiming1_duty_cycle_perHEXage), .out2(montiming1_duty_cycle_perHEXage_copy_on_word_clock));
+	assign bank1[14][LOG2_OF_DUTY_CYCLE_N-1:0] = montiming1_duty_cycle_perHEXage_copy_on_word_clock; assign bank1[14][31:LOG2_OF_DUTY_CYCLE_N] = 0;
 	assign bank1[15][24:0] = { bank6_w_strobe_counter, bank5_w_strobe_counter, bank4_w_strobe_counter, bank3_w_strobe_counter, bank1_w_strobe_counter }; assign bank1[15][31:25] = 0;
 	counter_level #(.WIDTH(5)) bank1_w_strobe_counter_thing (.clock(word_clock), .reset(reset_word), .in(write_strobe[1]), .counter(bank1_w_strobe_counter));
 	// ----------------------------------------------------------------------
