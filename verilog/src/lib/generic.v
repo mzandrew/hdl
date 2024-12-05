@@ -20,34 +20,36 @@ module duty_cycle #(
 ) (
 	input clock, signal_in,
 	output reg valid = 0,
-	output reg [LOG_BASE_2_OF_N-1:0] duty_cycle_per0xffage = 0
+	output [LOG_BASE_2_OF_N-1:0] duty_cycle_per0xffage
 );
+	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE:0] duty_cycle_per0xffage_internal = 0;
+	assign duty_cycle_per0xffage = { duty_cycle_per0xffage_internal, {LOG2_OF_PRIME_VALUE{1'b0}} };
 	reg [PIPELINE_PICKOFF:0] signal_pipeline;
 	reg mode = 0;
 	reg [LOG_BASE_2_OF_N-1:0] active_counter = 0;
 	reg [LOG_BASE_2_OF_N-1:0] always_counter = 1'b1;
-	reg [2*LOG_BASE_2_OF_N-1:0] numerator = 0;
-	reg [LOG_BASE_2_OF_N-1:0] denominator = 0, accumulator = 0;
-	wire [LOG_BASE_2_OF_N-1+LOG2_OF_PRIME_VALUE:0] denominator_prime = { denominator, {LOG2_OF_PRIME_VALUE{1'b0}} };
+	reg [LOG_BASE_2_OF_N-1:0] denominator = 0;
+	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE+8:0] numerator = 0;
+	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE:0] accumulator = 0;
 	always @(posedge clock) begin
 		valid <= 0;
 		if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_ACTIVE) begin
 			mode <= 1'b1;
 		end else if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_INACTIVE) begin
 			mode <= 1'b0;
-			numerator <= { active_counter, 8'd0 };
+			numerator <= { active_counter, {8-LOG2_OF_PRIME_VALUE{1'b0}} };
 			denominator <= always_counter;
 			accumulator <= 0;
 			active_counter <= 1'b1;
 			always_counter <= 1'b1;
 		end else begin
 			if (0<denominator) begin
-				if (denominator_prime<numerator) begin
-					numerator <= numerator - denominator_prime;
-					accumulator <= accumulator + PRIME_VALUE;
+				if (denominator<numerator) begin
+					numerator <= numerator - denominator;
+					accumulator <= accumulator + 1'b1;
 				end else begin
 					denominator <= 0;
-					duty_cycle_per0xffage <= accumulator;
+					duty_cycle_per0xffage_internal <= accumulator;
 					valid <= 1'b1;
 				end
 			end
