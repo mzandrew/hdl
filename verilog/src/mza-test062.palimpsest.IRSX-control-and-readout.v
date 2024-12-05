@@ -134,7 +134,6 @@ module IRSXtest #(
 	pipeline_synchronizer all_plls_locked_synch2 (.clock1(always_clock), .clock2(word_clock), .in1(all_plls_locked_clock127), .out2(all_plls_locked_word));
 	reset_wait4pll_synchronized #(.COUNTER_BIT_PICKOFF(COUNTERWORD_BIT_PICKOFF)) resetword_wait4pll (.reset1_input(always_clock_reset), .pll_locked1_input(all_plls_locked_clock127), .clock1_input(always_clock), .clock2_input(word_clock), .reset2_output(reset_word));
 	// ----------------------------------------------------------------------
-	wire [3:0] status4, status4_copy_on_word_clock_domain;
 	reg [7:0] status8 = 0, status8_copy_on_word_clock_domain = 0;
 	reg [7:0] pll_status8_buffered = 0;
 	wire [7:0] pll_status8;
@@ -145,10 +144,6 @@ module IRSXtest #(
 		status8_copy_on_word_clock_domain <= ~status8;
 		status8 <= pll_status8_buffered;
 	end
-	slow_asynchronizer #(.WIDTH(4)) status4_copy (.clock(word_clock), .async_in(status4), .sync_out(status4_copy_on_word_clock_domain));
-	wire beginning_of_hs_data, beginning_of_hs_data_memory;
-	assign status4[2] = beginning_of_hs_data;
-	assign status4[3] = beginning_of_hs_data_memory;
 	// ----------------------------------------------------------------------
 	// SST is the sampling clock; each edge starts the sampling of 128 samples in the IRSX
 	// this is aligned to the accelerator clock and should have low jitter
@@ -215,8 +210,9 @@ module IRSXtest #(
 	IBUFDS montiming1_buf (.I(montiming1_p), .IB(montiming1_n), .O(montiming1));
 	wire [31:0] frequency_of_montiming1, frequency_of_montiming2;
 	localparam FREQUENCY_OF_WORD_CLOCK = 127221875;
-	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(17)) m1_fc (.reference_clock(word_clock), .unknown_clock(montiming1), .frequency_of_unknown_clock(frequency_of_montiming1), .valid(status4[0]));
-	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(17)) m2_fc (.reference_clock(word_clock), .unknown_clock(montiming2), .frequency_of_unknown_clock(frequency_of_montiming2), .valid(status4[1]));
+	wire m1_fc_valid, m2_fc_valid;
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(17)) m1_fc (.reference_clock(word_clock), .unknown_clock(montiming1), .frequency_of_unknown_clock(frequency_of_montiming1), .valid(m1_fc_valid));
+	frequency_counter #(.FREQUENCY_OF_REFERENCE_CLOCK(FREQUENCY_OF_WORD_CLOCK), .N(1000), .LOG2_OF_DIVIDE_RATIO(17)) m2_fc (.reference_clock(word_clock), .unknown_clock(montiming2), .frequency_of_unknown_clock(frequency_of_montiming2), .valid(m2_fc_valid));
 	// ----------------------------------------------------------------------
 	// TRG is for capturing the trigger bits streaming from the IRSX
 	// it is convenient if this is captured on a multiple of SST so the downstream processing knows precisely where to look in the readout window
@@ -384,7 +380,7 @@ module IRSXtest #(
 	wire [TRIGSTREAM_LENGTH-1:0] buffered_trigger_stream_ch45;
 	wire [7:0] wr_address, wr_address_copy_on_word_clock, wr_address_copy_on_trg_word_clock;
 	wire [HS_DATA_INTENDED_NUMBER_OF_BITS-1:0] hs_data_word_decimated;
-	assign bank1[0] = { 8'd0, status4_copy_on_word_clock_domain, hdrb_read_errors, hdrb_write_errors, hdrb_address_errors, status8_copy_on_word_clock_domain };
+	assign bank1[0] = { 12'd0, hdrb_read_errors, hdrb_write_errors, hdrb_address_errors, status8_copy_on_word_clock_domain };
 	assign bank1[1] = number_of_register_transactions;
 	assign bank1[2] = number_of_readback_errors;
 	assign bank1[3][19:0] = last_erroneous_readback; assign bank1[3][31:20] = 0;
@@ -467,6 +463,7 @@ module IRSXtest #(
 	counter_level #(.WIDTH(5)) bank4_w_strobe_counter_thing (.clock(word_clock), .reset(reset_word), .in(write_strobe[4]), .counter(bank4_w_strobe_counter));
 	// ----------------------------------------------------------------------
 	// bank5 = data to read out
+	wire beginning_of_hs_data, beginning_of_hs_data_memory;
 	assign read_data_word[5][31:12] = 0;
 //	wire [7:0] hs_data_offset_copy_on_hs_clock;
 //	pipeline_synchronizer #(.WIDTH(8)) hs_data_offset_copy_on_hs_clock_sync (.clock1(word_clock), .clock2(hs_word_clock), .in1(hs_data_offset), .out2(hs_data_offset_copy_on_hs_clock));
@@ -623,7 +620,10 @@ module IRSXtest #(
 	// ----------------------------------------------------------------------
 	assign coax_led = 0;
 	assign led = 0;
-	assign bithole = |done_out_counter || m1_dc_valid || m2_dc_valid;
+	wire junk_strobes = |bank6_w_strobe_counter || |bank5_w_strobe_counter || |bank4_w_strobe_counter || |bank3_w_strobe_counter || |bank1_w_strobe_counter;
+	wire valids = m1_fc_valid || m2_fc_valid;
+	wire other_statuses = beginning_of_hs_data | beginning_of_hs_data_memory;
+	assign bithole = |done_out_counter || m1_dc_valid || m2_dc_valid || junk_strobes || valids || other_statuses;
 	initial begin
 		#100;
 		$display("%d = %d + %d + %d - %d", ADDRESS_DEPTH_OSERDES, BANK_ADDRESS_DEPTH, LOG2_OF_BUS_WIDTH, LOG2_OF_TRANSACTIONS_PER_DATA_WORD, LOG2_OF_OSERDES_EXTENDED_DATA_WIDTH);
