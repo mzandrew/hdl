@@ -25,6 +25,7 @@ module duty_cycle #(
 	reg [log_base_2_of_N-1:0] always_counter = 1'b1;
 	reg [2*log_base_2_of_N-1:0] numerator = 0;
 	reg [log_base_2_of_N-1:0] denominator = 0, accumulator = 0;
+	reg [log_base_2_of_N-1+3:0] denominator8 = 0;
 	always @(posedge clock) begin
 		valid <= 0;
 		if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_ACTIVE) begin
@@ -34,12 +35,16 @@ module duty_cycle #(
 			//duty_cycle_per0xffage <= { active_counter, 8'd0 } / always_counter;
 			numerator <= { active_counter, 8'd0 };
 			denominator <= always_counter;
+			denominator8 <= { always_counter, 3'd0 };
 			accumulator <= 0;
 			active_counter <= 1'b1;
 			always_counter <= 1'b1;
 		end else begin
 			if (0<denominator) begin
-				if (denominator<numerator) begin
+				if (denominator8<numerator) begin
+					numerator <= numerator - denominator8;
+					accumulator <= accumulator + 4'd8;
+				end else if (denominator<numerator) begin
 					numerator <= numerator - denominator;
 					accumulator <= accumulator + 1'b1;
 				end else begin
