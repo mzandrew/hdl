@@ -4,6 +4,47 @@
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
+// picks every RATIOth bit from in
+module decimator #(
+	parameter WIDTH = 8,
+	parameter RATIO = 3
+) (
+	input clock,
+	input [WIDTH*RATIO-1:0] in,
+	output reg [WIDTH-1:0] out = 0
+);
+	integer i;
+	always @(posedge clock) begin
+		for (i=0; i<WIDTH; i=i+1) begin
+			out[i] <= in[RATIO*i];
+		end
+	end
+endmodule
+
+module decimator_tb #(
+	parameter CLOCK_PERIOD = 1.0,
+	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2
+) ();
+	reg clock = 0;
+	always begin
+		clock <= ~clock; #HALF_CLOCK_PERIOD;
+	end
+	reg [31:0] in = 0;
+	initial begin
+		#(4*CLOCK_PERIOD);
+		in <= 32'hf0f0f0f0; #CLOCK_PERIOD; in <= 0; #CLOCK_PERIOD;
+		in <= 32'h0f0f0f0f; #CLOCK_PERIOD; in <= 0; #CLOCK_PERIOD;
+		in <= 32'h00ff00ff; #CLOCK_PERIOD; in <= 0; #CLOCK_PERIOD;
+		in <= 32'h0bdb0a5a; #CLOCK_PERIOD; in <= 0; #CLOCK_PERIOD;
+		#(4*CLOCK_PERIOD);
+		$finish;
+	end
+	wire [7:0] out_8_3;
+	wire [7:0] out_8_4;
+	decimator #(.WIDTH(8), .RATIO(3)) d_8_3 (.clock(clock), .in(in[23:0]), .out(out_8_3));
+	decimator #(.WIDTH(8), .RATIO(4)) d_8_4 (.clock(clock), .in(in), .out(out_8_4));
+endmodule
+
 // gearbox_pipeline #(.WIDTH(WIDTH), .RATIO(RATIO), .EXTRA_DELAY(2)) gp (.clock(clock), .valid(valid), .in(in), .out(out));
 // this module will gladly overwrite data if the valid signal is not active every RATIO clock cycles
 module gearbox_pipeline #(
