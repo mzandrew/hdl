@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2024-12-03 by mza
+// last updated 2024-12-11 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -2117,6 +2117,7 @@ module oserdes_gearbox #(
 	output [BIT_DEPTH-1:0] output_shortword
 );
 	reg [LOG2_OF_RATIO-1:0] select = 0;
+	wire [LOG2_OF_RATIO-1:0] ratio_minus_one = RATIO - 1'b1;
 	always @(posedge word_clock) begin
 //		start <= 0;
 //		finish <= 0;
@@ -2127,7 +2128,7 @@ module oserdes_gearbox #(
 			if (select==1) begin
 //				finish <= 1'b1;
 			end else if (select==0) begin
-				select <= RATIO - 1'b1;
+				select <= ratio_minus_one;
 //				start <= 1'b1;
 			end
 		end
@@ -2170,6 +2171,7 @@ module iserdes_gearbox #(
 	output reg [BIT_DEPTH*RATIO-1:0] output_longword = 0
 );
 	reg [LOG2_OF_RATIO-1:0] select = 0;
+	wire [LOG2_OF_RATIO-1:0] ratio_minus_one = RATIO - 1'b1;
 	reg [BIT_DEPTH*RATIO-1:0] longword = 0;
 	reg valid_on_next_cycle = 0;
 	always @(posedge word_clock) begin
@@ -2182,9 +2184,9 @@ module iserdes_gearbox #(
 		end else begin
 			select <= select - 1'b1;
 			if (sync) begin
-				select <= RATIO - 1'b1;
+				select <= ratio_minus_one;
 			end else if (select==0) begin
-				select <= RATIO - 1'b1;
+				select <= ratio_minus_one;
 				valid_on_next_cycle <= 1'b1;
 			end
 			if (valid_on_next_cycle) begin
