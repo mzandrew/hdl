@@ -1098,34 +1098,38 @@ module bitslip_tb #(
 	always begin
 		clock <= ~clock; #HALF_CLOCK_PERIOD;
 	end
-	reg [31:0] in = 0;
-	reg [7:0] bitslip = 0;
+	reg [31:0] pre_in = 0, in = 0;
+	reg [7:0] pre_bitslip = 0, bitslip = 0;
+	always @(posedge clock) begin
+		in <= pre_in;
+		bitslip <= pre_bitslip;
+	end
 	initial begin
-		#(2*CLOCK_PERIOD); #HALF_CLOCK_PERIOD;
-		in <= 32'h76543210; bitslip <= 8'h0;  #(4*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'h1;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'h2;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'h3;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'h4;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'h5;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'h6;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'h7;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'h8;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'h9;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'ha;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'hb;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'hc;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'hd;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'he;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'hf;  #(1*CLOCK_PERIOD);
-		in <= 32'h76543210; bitslip <= 8'h10; #(1*CLOCK_PERIOD); // this output should be different for bs16/out16 below
 		#(2*CLOCK_PERIOD);
-		in <= 32'h0f0f0f0f; bitslip <= 8'd0;  #(1*CLOCK_PERIOD);
-		in <= 32'h0f0f0f0f; bitslip <= 8'd4;  #(1*CLOCK_PERIOD);
-		in <= 32'h0f0f0f0f; bitslip <= 8'd8;  #(1*CLOCK_PERIOD);
-		in <= 32'h0f0f0f0f; bitslip <= 8'd12; #(1*CLOCK_PERIOD);
-		in <= 32'h00ff00ff; bitslip <= 8'd8;  #(1*CLOCK_PERIOD);
-		in <= 32'h0bdb0a5a; bitslip <= 8'd16; #(1*CLOCK_PERIOD); // this output should be different for bs16/out16 below
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h0;  #(4*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h1;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h2;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h3;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h4;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h5;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h6;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h7;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h8;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h9;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'ha;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'hb;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'hc;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'hd;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'he;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'hf;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h76543210; pre_bitslip <= 8'h10; #(1*CLOCK_PERIOD); // this output should be different for bs16/out16 below
+		#(2*CLOCK_PERIOD);
+		pre_in <= 32'h0f0f0f0f; pre_bitslip <= 8'd0;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h0f0f0f0f; pre_bitslip <= 8'd4;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h0f0f0f0f; pre_bitslip <= 8'd8;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h0f0f0f0f; pre_bitslip <= 8'd12; #(1*CLOCK_PERIOD);
+		pre_in <= 32'h00ff00ff; pre_bitslip <= 8'd8;  #(1*CLOCK_PERIOD);
+		pre_in <= 32'h0bdb0a5a; pre_bitslip <= 8'd16; #(1*CLOCK_PERIOD); // this output should be different for bs16/out16 below
 		#(2*CLOCK_PERIOD);
 		$finish;
 	end
