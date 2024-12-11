@@ -199,7 +199,7 @@ module pipeline_gearbox_tb #(
 endmodule
 
 // outputs n ~16th or ~256ths (per-HEX-age) instead of n ~100ths (per-CENT-age)
-module duty_cycle #(
+module duty_cycle_nw #(
 	parameter ISERDES_WIDTH = 1,
 	parameter LOG2_OF_ISERDES_WIDTH = $clog2(ISERDES_WIDTH),
 	parameter RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH = 4,
@@ -277,7 +277,7 @@ module duty_cycle #(
 	end
 endmodule
 
-module duty_cycle_tb #(
+module duty_cycle_nw_tb #(
 	parameter CLOCK_PERIOD = 1.0,
 	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2,
 	parameter N = 16,
@@ -344,9 +344,128 @@ module duty_cycle_tb #(
 		for (j=truth; j<W; j=j+1) begin waveform[j] <= 1'b0; end;
 		#WAIT_PERIOD; $finish;
 	end
-	duty_cycle #(.N(N), .ISERDES_WIDTH(1), .RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH(2)) mdc_single_1_2 (.clock(clock), .signal_in(signal), .duty_cycle_perHEXage(duty_cycle_perHEXage_single_1_2), .valid(valid_single_1_2));
-	duty_cycle #(.N(N), .ISERDES_WIDTH(4), .RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH(2)) mdc_iserdes4_8 (.clock(clock_word4), .signal_in(signal_word4), .duty_cycle_perHEXage(duty_cycle_perHEXage_iserdes_4_8), .valid(valid_iserdes_4_8));
-	duty_cycle #(.N(N), .ISERDES_WIDTH(3), .RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH(2)) mdc_iserdes3_5 (.clock(clock_word3), .signal_in(signal_word3), .duty_cycle_perHEXage(duty_cycle_perHEXage_iserdes_3_5), .valid(valid_iserdes_3_5));
+	duty_cycle_nw #(.N(N), .ISERDES_WIDTH(1), .RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH(2)) mdc_single_1_2 (.clock(clock), .signal_in(signal), .duty_cycle_perHEXage(duty_cycle_perHEXage_single_1_2), .valid(valid_single_1_2));
+	duty_cycle_nw #(.N(N), .ISERDES_WIDTH(4), .RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH(2)) mdc_iserdes4_8 (.clock(clock_word4), .signal_in(signal_word4), .duty_cycle_perHEXage(duty_cycle_perHEXage_iserdes_4_8), .valid(valid_iserdes_4_8));
+	duty_cycle_nw #(.N(N), .ISERDES_WIDTH(3), .RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH(2)) mdc_iserdes3_5 (.clock(clock_word3), .signal_in(signal_word3), .duty_cycle_perHEXage(duty_cycle_perHEXage_iserdes_3_5), .valid(valid_iserdes_3_5));
+endmodule
+
+// outputs n ~16th or ~256ths (per-HEX-age) instead of n ~100ths (per-CENT-age)
+module duty_cycle #(
+	parameter POLARITY = 1'b1,
+	parameter N = 256,
+	parameter LOG_BASE_2_OF_N = $clog2(N),
+	parameter MAX_COUNTER = {LOG_BASE_2_OF_N{1'b1}},
+	parameter LOG2_OF_PRIME_VALUE = 0,
+	parameter PATTERN_LENGTH = 4,
+	parameter PATTERN_GOING_ACTIVE = { ~POLARITY, ~POLARITY, POLARITY, POLARITY },
+	parameter PATTERN_GOING_INACTIVE = { POLARITY, POLARITY, ~POLARITY, ~POLARITY },
+	parameter METASTABILITY_DELAY = 3,
+	parameter PIPELINE_PICKOFF = PATTERN_LENGTH + METASTABILITY_DELAY
+) (
+	input clock, signal_in,
+	output reg valid = 0,
+	output [LOG_BASE_2_OF_N-1:0] duty_cycle_perHEXage
+);
+	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE:0] duty_cycle_perHEXage_internal = 0;
+	assign duty_cycle_perHEXage = { duty_cycle_perHEXage_internal, {LOG2_OF_PRIME_VALUE{1'b0}} };
+	reg [PIPELINE_PICKOFF:0] signal_pipeline;
+	reg mode = 0;
+	reg [LOG_BASE_2_OF_N-1:0] active_counter = 0;
+	reg [LOG_BASE_2_OF_N-1:0] always_counter = 1'b1;
+	reg [LOG_BASE_2_OF_N-1:0] denominator = 0;
+	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE+LOG_BASE_2_OF_N:0] numerator = 0;
+	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE:0] accumulator = 0;
+	always @(posedge clock) begin
+		valid <= 0;
+		if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_ACTIVE) begin
+			mode <= 1'b1;
+		end else if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_INACTIVE) begin
+			mode <= 1'b0;
+			numerator <= { active_counter, {LOG_BASE_2_OF_N-LOG2_OF_PRIME_VALUE{1'b0}} };
+			denominator <= always_counter;
+			accumulator <= 0;
+			active_counter <= 1'b1;
+			always_counter <= 1'b1;
+		end else begin
+			if (0<denominator) begin
+				if (denominator<numerator) begin
+					numerator <= numerator - denominator;
+					accumulator <= accumulator + 1'b1;
+				end else begin
+					denominator <= 0;
+					duty_cycle_perHEXage_internal <= accumulator;
+					valid <= 1'b1;
+				end
+			end
+			if (always_counter<MAX_COUNTER) begin
+				always_counter <= always_counter + 1'b1;
+			end
+			if (mode) begin // signal active
+				if (active_counter<MAX_COUNTER) begin
+					active_counter <= active_counter + 1'b1;
+				end else begin // active_counter==MAX_COUNTER
+					denominator <= 0;
+					duty_cycle_perHEXage_internal <= MAX_COUNTER;
+					valid <= 1'b1;
+					active_counter <= 1'b1;
+					always_counter <= 1'b1;
+				end
+			end else begin // signal inactive
+				if (always_counter==MAX_COUNTER) begin
+					denominator <= 0;
+					duty_cycle_perHEXage_internal <= 0;
+					valid <= 1'b1;
+					active_counter <= 1'b1;
+					always_counter <= 1'b1;
+				end
+			end
+		end
+		signal_pipeline <= { signal_pipeline[PIPELINE_PICKOFF-1:0], signal_in };
+	end
+endmodule
+
+module duty_cycle_tb #(
+	parameter CLOCK_PERIOD = 1.0,
+	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2,
+	parameter N = 16,
+	parameter LOG_BASE_2_OF_N = $clog2(N),
+	parameter STEP = 4,
+	parameter WAVEFORM_LENGTH = N,
+	parameter LOG2_OF_WAVEFORM_LENGTH = $clog2(WAVEFORM_LENGTH),
+	parameter WAIT_PERIOD = 7.1 * WAVEFORM_LENGTH * CLOCK_PERIOD
+);
+	reg clock = 0;
+	always begin
+		clock <= ~clock; #HALF_CLOCK_PERIOD;
+	end
+	reg signal = 0;
+	reg [WAVEFORM_LENGTH-1:0] waveform = 0;
+	reg [LOG2_OF_WAVEFORM_LENGTH-1:0] counter = 0;
+	always @(posedge clock) begin
+		signal <= waveform[counter];
+		counter <= counter + 1'b1;
+	end
+	wire [LOG_BASE_2_OF_N-1:0] duty_cycle_perHEXage;
+	wire valid;
+	integer j, truth = 0;
+	initial begin
+		#WAIT_PERIOD;
+		for (truth=0; truth<=N; truth=truth+STEP) begin
+			for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
+			for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+			#WAIT_PERIOD;
+		end;
+		#WAIT_PERIOD;
+		truth = 13;
+		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
+		for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+		#WAIT_PERIOD;
+		truth = 0;
+		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
+		for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+		#WAIT_PERIOD; $finish;
+	end
+	duty_cycle #(.N(N)) mdc (.clock(clock), .signal_in(signal), .duty_cycle_perHEXage(duty_cycle_perHEXage), .valid(valid));
 endmodule
 
 module counter_level #(

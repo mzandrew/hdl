@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/duty_cycle_nw_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="duty_cycle_nw_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="48" />
+   <wvobject fp_name="/duty_cycle_nw_tb/waveform" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">waveform[0:22]</obj_property>
+      <obj_property name="ObjectShortName">waveform[0:22]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">counter[3:0]</obj_property>
+      <obj_property name="ObjectShortName">counter[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider86" type="divider">
+      <obj_property name="label">clocks</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider64" type="divider">
+      <obj_property name="label">signal</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/signal" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">signal</obj_property>
+      <obj_property name="ObjectShortName">signal</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/signal_word4" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">signal_word4[3:0]</obj_property>
+      <obj_property name="ObjectShortName">signal_word4[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/signal_word3" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">signal_word3[2:0]</obj_property>
+      <obj_property name="ObjectShortName">signal_word3[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_single_1_2/signal_pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">signal_pipeline[5:0]</obj_property>
+      <obj_property name="ObjectShortName">signal_pipeline[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/signal_pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">signal_pipeline[35:0]</obj_property>
+      <obj_property name="ObjectShortName">signal_pipeline[35:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/signal_pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">signal_pipeline[21:0]</obj_property>
+      <obj_property name="ObjectShortName">signal_pipeline[21:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_single_1_2/signal_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">signal_word[1:0]</obj_property>
+      <obj_property name="ObjectShortName">signal_word[1:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/signal_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">signal_word[7:0]</obj_property>
+      <obj_property name="ObjectShortName">signal_word[7:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/signal_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">signal_word[5:0]</obj_property>
+      <obj_property name="ObjectShortName">signal_word[5:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_single_1_2/iserdes_amount" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">iserdes_amount[0:0]</obj_property>
+      <obj_property name="ObjectShortName">iserdes_amount[0:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/iserdes_amount" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">iserdes_amount[2:0]</obj_property>
+      <obj_property name="ObjectShortName">iserdes_amount[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/iserdes_amount" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">iserdes_amount[2:0]</obj_property>
+      <obj_property name="ObjectShortName">iserdes_amount[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_single_1_2/examination_amount" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">examination_amount[1:0]</obj_property>
+      <obj_property name="ObjectShortName">examination_amount[1:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/examination_amount" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">examination_amount[3:0]</obj_property>
+      <obj_property name="ObjectShortName">examination_amount[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/examination_amount" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">examination_amount[3:0]</obj_property>
+      <obj_property name="ObjectShortName">examination_amount[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_single_1_2/new_bits_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">new_bits_counter[3:0]</obj_property>
+      <obj_property name="ObjectShortName">new_bits_counter[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/new_bits_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">new_bits_counter[6:0]</obj_property>
+      <obj_property name="ObjectShortName">new_bits_counter[6:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/new_bits_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">new_bits_counter[5:0]</obj_property>
+      <obj_property name="ObjectShortName">new_bits_counter[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider65" type="divider">
+      <obj_property name="label">partial count</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_single_1_2/count_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">count_word[1:0]</obj_property>
+      <obj_property name="ObjectShortName">count_word[1:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/count_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">count_word[3:0]</obj_property>
+      <obj_property name="ObjectShortName">count_word[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/count_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">count_word[3:0]</obj_property>
+      <obj_property name="ObjectShortName">count_word[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_single_1_2/always_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">always_counter[4:0]</obj_property>
+      <obj_property name="ObjectShortName">always_counter[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/always_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">always_counter[6:0]</obj_property>
+      <obj_property name="ObjectShortName">always_counter[6:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/always_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">always_counter[6:0]</obj_property>
+      <obj_property name="ObjectShortName">always_counter[6:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_single_1_2/active_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">active_counter[4:0]</obj_property>
+      <obj_property name="ObjectShortName">active_counter[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/active_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">active_counter[6:0]</obj_property>
+      <obj_property name="ObjectShortName">active_counter[6:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/active_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">active_counter[6:0]</obj_property>
+      <obj_property name="ObjectShortName">active_counter[6:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider66" type="divider">
+      <obj_property name="label">accumulation of count</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_single_1_2/accumulator" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">accumulator[3:0]</obj_property>
+      <obj_property name="ObjectShortName">accumulator[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/accumulator" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">accumulator[3:0]</obj_property>
+      <obj_property name="ObjectShortName">accumulator[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/accumulator" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">accumulator[3:0]</obj_property>
+      <obj_property name="ObjectShortName">accumulator[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider68" type="divider">
+      <obj_property name="label">calculation of result</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider69" type="divider">
+      <obj_property name="label">result</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/truth" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">truth[31:0]</obj_property>
+      <obj_property name="ObjectShortName">truth[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_single_1_2/duty_cycle_perHEXage_internal" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">duty_cycle_perHEXage_internal[3:0]</obj_property>
+      <obj_property name="ObjectShortName">duty_cycle_perHEXage_internal[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/valid_single_1_2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">valid_single_1_2</obj_property>
+      <obj_property name="ObjectShortName">valid_single_1_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes4_8/duty_cycle_perHEXage_internal" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">duty_cycle_perHEXage_internal[3:0]</obj_property>
+      <obj_property name="ObjectShortName">duty_cycle_perHEXage_internal[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/valid_iserdes_4_8" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">valid_iserdes_4_8</obj_property>
+      <obj_property name="ObjectShortName">valid_iserdes_4_8</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/mdc_iserdes3_5/duty_cycle_perHEXage_internal" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">duty_cycle_perHEXage_internal[3:0]</obj_property>
+      <obj_property name="ObjectShortName">duty_cycle_perHEXage_internal[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_nw_tb/valid_iserdes_3_5" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">valid_iserdes_3_5</obj_property>
+      <obj_property name="ObjectShortName">valid_iserdes_3_5</obj_property>
+   </wvobject>
+</wave_config>
