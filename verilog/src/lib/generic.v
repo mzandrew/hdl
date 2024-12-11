@@ -4,7 +4,87 @@
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
-// pipeline_gearbox #(.WIDTH(WIDTH), .RATIO(RATIO), .EXTRA_DELAY(3)) pg (.clock(clock), .in(in), .out(out));
+module gearbox_pipeline #(
+	parameter WIDTH = 8,
+	parameter LOG2_OF_WIDTH = $clog2(WIDTH),
+	parameter RATIO = 3,
+	parameter LOG2_OF_RATIO = $clog2(RATIO),
+	parameter RATIO_TIMES_WIDTH = RATIO * WIDTH,
+	parameter LOG2_OF_RATIO_TIMES_WIDTH = $clog2(RATIO_TIMES_WIDTH),
+	parameter RATIO_MINUS_ONE_TIMES_WIDTH = (RATIO-1)*WIDTH,
+	parameter EXTRA_DELAY = 4,
+	parameter AMOUNT = RATIO + EXTRA_DELAY + 1,
+//	parameter LOG2_OF_AMOUNT = $clog2(AMOUNT),
+	parameter PIPELINE_PICKOFF = WIDTH * AMOUNT - 1,
+	parameter LOG2_OF_PIPELINE_PICKOFF = $clog2(PIPELINE_PICKOFF)
+) (
+	input clock,
+	input valid,
+	input [WIDTH*RATIO-1:0] in,
+	output reg [WIDTH-1:0] out = 0
+);
+	reg [LOG2_OF_PIPELINE_PICKOFF:0] counter = 0;
+	reg [PIPELINE_PICKOFF:0] pipeline = 0;
+	wire [LOG2_OF_RATIO_TIMES_WIDTH-1:0] amount = RATIO_TIMES_WIDTH;
+	wire [LOG2_OF_WIDTH:0] width = WIDTH;
+	wire [LOG2_OF_PIPELINE_PICKOFF:0] pipeline_pickoff = PIPELINE_PICKOFF;
+	always @(posedge clock) begin
+		out <= pipeline[PIPELINE_PICKOFF-:WIDTH];
+		if (counter==amount) begin
+			counter <= 0;
+		end else begin
+			counter <= counter + width;
+		end
+		if (valid) begin
+//			pipeline <= { pipeline[PIPELINE_PICKOFF-WIDTH:(RATIO-1)*WIDTH], in };
+			pipeline <= { pipeline[PIPELINE_PICKOFF-WIDTH:RATIO_MINUS_ONE_TIMES_WIDTH], in };
+		end else begin
+			pipeline <= { pipeline[PIPELINE_PICKOFF-WIDTH:0], {WIDTH{1'b0}} };
+		end
+	end
+endmodule
+
+module gearbox_pipeline_tb #(
+	parameter CLOCK_PERIOD = 1.0,
+	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2,
+	parameter WIDTH = 4,
+	parameter RATIO = 2,
+	parameter EXTRA_DELAY = 0
+) ();
+	reg clock = 0;
+	always begin
+		clock <= ~clock; #HALF_CLOCK_PERIOD;
+	end
+	reg [WIDTH*RATIO-1:0] in = 0;
+	wire [WIDTH-1:0] out;
+	reg valid = 0;
+	initial begin
+		#(4*CLOCK_PERIOD);
+		in <= 8'h00; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h01; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h02; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h04; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h08; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h10; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h20; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h40; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h80; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h00; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h00; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h0f; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'hf0; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h00; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'ha5; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h5a; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		in <= 8'h00; valid <= 1'b1; #CLOCK_PERIOD; valid <= 1'b0; #((RATIO-1)*CLOCK_PERIOD);
+		#(3*EXTRA_DELAY*CLOCK_PERIOD);
+		#(4*CLOCK_PERIOD);
+		$finish;
+	end
+	gearbox_pipeline #(.WIDTH(WIDTH), .RATIO(RATIO), .EXTRA_DELAY(EXTRA_DELAY)) gp (.clock(clock), .valid(valid), .in(in), .out(out));
+endmodule
+
+// pipeline_gearbox #(.WIDTH(WIDTH), .RATIO(RATIO), .EXTRA_DELAY(3)) pg (.clock(clock), .in(in), .out(out), .valid(valid));
 module pipeline_gearbox #(
 	parameter WIDTH = 8,
 	parameter RATIO = 3,
@@ -21,13 +101,13 @@ module pipeline_gearbox #(
 	output reg valid = 0
 );
 	reg [LOG2_OF_PIPELINE_PICKOFF:0] counter = 0;
-	wire [LOG2_OF_RATIO-1:0] ratio = RATIO - 1'b1;
+	wire [LOG2_OF_RATIO-1:0] ratio_minus_one = RATIO - 1'b1;
 	wire [LOG2_OF_AMOUNT-1:0] amount = AMOUNT;
 	reg [PIPELINE_PICKOFF:0] pipeline = 0;
 	always @(posedge clock) begin
 		valid <= 1'b0;
 		if (counter==amount) begin
-			counter <= counter - ratio;
+			counter <= counter - ratio_minus_one;
 			out <= pipeline[PIPELINE_PICKOFF-:WIDTH*RATIO];
 			valid <= 1'b1;
 		end else begin
@@ -50,6 +130,7 @@ module pipeline_gearbox_tb #(
 	end
 	reg [WIDTH-1:0] in = 0;
 	wire [WIDTH*RATIO-1:0] out;
+	wire valid;
 	initial begin
 		#(4*CLOCK_PERIOD);
 		in <= 8'h00; #CLOCK_PERIOD;
@@ -73,7 +154,7 @@ module pipeline_gearbox_tb #(
 		#(4*CLOCK_PERIOD);
 		$finish;
 	end
-	pipeline_gearbox #(.WIDTH(WIDTH), .RATIO(RATIO), .EXTRA_DELAY(EXTRA_DELAY)) bob (.clock(clock), .in(in), .out(out));
+	pipeline_gearbox #(.WIDTH(WIDTH), .RATIO(RATIO), .EXTRA_DELAY(EXTRA_DELAY)) bob (.clock(clock), .in(in), .out(out), .valid(valid));
 endmodule
 
 // outputs n ~16th or ~256ths (per-HEX-age) instead of n ~100ths (per-CENT-age)
