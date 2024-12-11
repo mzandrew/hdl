@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/bitslip_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="bitslip_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="16" />
+   <wvobject fp_name="/bitslip_tb/in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">in[31:0]</obj_property>
+      <obj_property name="ObjectShortName">in[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider18" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/bs16/pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pipeline[79:0]</obj_property>
+      <obj_property name="ObjectShortName">pipeline[79:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/bs32/pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pipeline[95:0]</obj_property>
+      <obj_property name="ObjectShortName">pipeline[95:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/bs64/pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pipeline[127:0]</obj_property>
+      <obj_property name="ObjectShortName">pipeline[127:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider15" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/bs16/offset_pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">offset_pipeline[0:47]</obj_property>
+      <obj_property name="ObjectShortName">offset_pipeline[0:47]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/bs32/offset_pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">offset_pipeline[0:63]</obj_property>
+      <obj_property name="ObjectShortName">offset_pipeline[0:63]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/bs64/offset_pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">offset_pipeline[0:95]</obj_property>
+      <obj_property name="ObjectShortName">offset_pipeline[0:95]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider16" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/bitslip" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bitslip[7:0]</obj_property>
+      <obj_property name="ObjectShortName">bitslip[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider17" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/out16" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">out16[31:0]</obj_property>
+      <obj_property name="ObjectShortName">out16[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/out32" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">out32[31:0]</obj_property>
+      <obj_property name="ObjectShortName">out32[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/bitslip_tb/out64" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">out64[31:0]</obj_property>
+      <obj_property name="ObjectShortName">out64[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>

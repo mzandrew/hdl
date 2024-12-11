@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/decimator_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="decimator_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="4" />
+   <wvobject fp_name="/decimator_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/decimator_tb/in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">in[31:0]</obj_property>
+      <obj_property name="ObjectShortName">in[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/decimator_tb/out_8_3" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">out_8_3[7:0]</obj_property>
+      <obj_property name="ObjectShortName">out_8_3[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/decimator_tb/out_8_4" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">out_8_4[7:0]</obj_property>
+      <obj_property name="ObjectShortName">out_8_4[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>

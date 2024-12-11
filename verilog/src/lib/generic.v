@@ -1056,19 +1056,66 @@ endmodule
 
 module bitslip #(
 	parameter WIDTH = 8,
-	parameter LOG2_WIDTH = $clog2(WIDTH)
+	parameter LOG2_WIDTH = $clog2(WIDTH),
+	parameter MAX_BITSLIP = WIDTH,
+	parameter LOG2_OF_MAX_BITSLIP = $clog2(MAX_BITSLIP),
+	parameter PIPELINE_PICKOFF = WIDTH + MAX_BITSLIP - 1
 ) (
 	input clock,
 	input [WIDTH-1:0] data_in,
-	input [LOG2_WIDTH-1:0] bitslip,
-	output reg [WIDTH-1:0] data_out = 0
+	input [LOG2_OF_MAX_BITSLIP-1:0] bitslip,
+	output [WIDTH-1:0] data_out
 );
-	reg [2*WIDTH-1:0] long;
-	wire [LOG2_WIDTH:0] width = WIDTH;
+	reg [PIPELINE_PICKOFF:0] pipeline = 0;
 	always @(posedge clock) begin
-		data_out <= long[width+bitslip-:WIDTH];
-		long <= { long[WIDTH-1:0], data_in };
+		pipeline <= { pipeline[PIPELINE_PICKOFF-WIDTH:0], data_in };
 	end
+	assign data_out = pipeline[bitslip+:WIDTH];
+endmodule
+
+module bitslip_tb #(
+	parameter CLOCK_PERIOD = 1.0,
+	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2
+) ();
+	reg clock = 0;
+	always begin
+		clock <= ~clock; #HALF_CLOCK_PERIOD;
+	end
+	reg [31:0] in = 0;
+	reg [7:0] bitslip = 0;
+	initial begin
+		#(2*CLOCK_PERIOD); #HALF_CLOCK_PERIOD;
+		in <= 32'h76543210; bitslip <= 8'h0;  #(4*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'h1;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'h2;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'h3;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'h4;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'h5;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'h6;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'h7;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'h8;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'h9;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'ha;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'hb;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'hc;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'hd;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'he;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'hf;  #(1*CLOCK_PERIOD);
+		in <= 32'h76543210; bitslip <= 8'h10; #(1*CLOCK_PERIOD); // this output should be different for bs16/out16 below
+		#(2*CLOCK_PERIOD);
+		in <= 32'h0f0f0f0f; bitslip <= 8'd0;  #(1*CLOCK_PERIOD);
+		in <= 32'h0f0f0f0f; bitslip <= 8'd4;  #(1*CLOCK_PERIOD);
+		in <= 32'h0f0f0f0f; bitslip <= 8'd8;  #(1*CLOCK_PERIOD);
+		in <= 32'h0f0f0f0f; bitslip <= 8'd12; #(1*CLOCK_PERIOD);
+		in <= 32'h00ff00ff; bitslip <= 8'd8;  #(1*CLOCK_PERIOD);
+		in <= 32'h0bdb0a5a; bitslip <= 8'd16; #(1*CLOCK_PERIOD); // this output should be different for bs16/out16 below
+		#(2*CLOCK_PERIOD);
+		$finish;
+	end
+	wire [31:0] out16, out32, out64;
+	bitslip #(.WIDTH(32), .MAX_BITSLIP(16)) bs16 (.clock(clock), .data_in(in), .bitslip(bitslip[3:0]), .data_out(out16));
+	bitslip #(.WIDTH(32)                  ) bs32 (.clock(clock), .data_in(in), .bitslip(bitslip[4:0]), .data_out(out32));
+	bitslip #(.WIDTH(32), .MAX_BITSLIP(64)) bs64 (.clock(clock), .data_in(in), .bitslip(bitslip[5:0]), .data_out(out64));
 endmodule
 
 //	count_ones #(.WIDTH(8)) myco (.clock(), .data_in(), .count_out());

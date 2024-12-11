@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/gearbox_pipeline_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="gearbox_pipeline_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="7" />
+   <wvobject fp_name="/gearbox_pipeline_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/gearbox_pipeline_tb/in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">in[7:0]</obj_property>
+      <obj_property name="ObjectShortName">in[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/gearbox_pipeline_tb/valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">valid</obj_property>
+      <obj_property name="ObjectShortName">valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/gearbox_pipeline_tb/WIDTH" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">WIDTH[31:0]</obj_property>
+      <obj_property name="ObjectShortName">WIDTH[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/gearbox_pipeline_tb/RATIO" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">RATIO[31:0]</obj_property>
+      <obj_property name="ObjectShortName">RATIO[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/gearbox_pipeline_tb/EXTRA_DELAY" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">EXTRA_DELAY[31:0]</obj_property>
+      <obj_property name="ObjectShortName">EXTRA_DELAY[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/gearbox_pipeline_tb/out" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">out[3:0]</obj_property>
+      <obj_property name="ObjectShortName">out[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>
