@@ -1054,6 +1054,23 @@ module resync #(
 	end
 endmodule
 
+module fixed_bitslip #(
+	parameter WIDTH = 8,
+	parameter LOG2_WIDTH = $clog2(WIDTH),
+	parameter BITSLIP = 0,
+	parameter PIPELINE_PICKOFF = WIDTH + BITSLIP - 1
+) (
+	input clock,
+	input [WIDTH-1:0] data_in,
+	output [WIDTH-1:0] data_out
+);
+	reg [PIPELINE_PICKOFF:0] pipeline = 0;
+	always @(posedge clock) begin
+		pipeline <= { pipeline[PIPELINE_PICKOFF-WIDTH:0], data_in };
+	end
+	assign data_out = pipeline[BITSLIP+:WIDTH];
+endmodule
+
 module bitslip #(
 	parameter WIDTH = 8,
 	parameter LOG2_WIDTH = $clog2(WIDTH),
@@ -1112,10 +1129,11 @@ module bitslip_tb #(
 		#(2*CLOCK_PERIOD);
 		$finish;
 	end
-	wire [31:0] out16, out32, out64;
+	wire [31:0] out16, out32, out64, out;
 	bitslip #(.WIDTH(32), .MAX_BITSLIP(16)) bs16 (.clock(clock), .data_in(in), .bitslip(bitslip[3:0]), .data_out(out16));
 	bitslip #(.WIDTH(32)                  ) bs32 (.clock(clock), .data_in(in), .bitslip(bitslip[4:0]), .data_out(out32));
 	bitslip #(.WIDTH(32), .MAX_BITSLIP(64)) bs64 (.clock(clock), .data_in(in), .bitslip(bitslip[5:0]), .data_out(out64));
+	fixed_bitslip #(.WIDTH(32), .BITSLIP(12)) fbs (.clock(clock), .data_in(in), .data_out(out));
 endmodule
 
 //	count_ones #(.WIDTH(8)) myco (.clock(), .data_in(), .count_out());
