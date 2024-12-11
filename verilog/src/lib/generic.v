@@ -1,8 +1,80 @@
 // written 2019-09-22 by mza
-// last updated 2024-12-10 by mza
+// last updated 2024-12-11 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
+
+// pipeline_gearbox #(.WIDTH(WIDTH), .RATIO(RATIO), .EXTRA_DELAY(3)) pg (.clock(clock), .in(in), .out(out));
+module pipeline_gearbox #(
+	parameter WIDTH = 8,
+	parameter RATIO = 3,
+	parameter LOG2_OF_RATIO = $clog2(RATIO),
+	parameter EXTRA_DELAY = 4,
+	parameter AMOUNT = RATIO + EXTRA_DELAY,
+	parameter LOG2_OF_AMOUNT = $clog2(AMOUNT),
+	parameter PIPELINE_PICKOFF = WIDTH * AMOUNT - 1,
+	parameter LOG2_OF_PIPELINE_PICKOFF = $clog2(PIPELINE_PICKOFF)
+) (
+	input clock,
+	input [WIDTH-1:0] in,
+	output reg [WIDTH*RATIO-1:0] out = 0,
+	output reg valid = 0
+);
+	reg [LOG2_OF_PIPELINE_PICKOFF:0] counter = 0;
+	wire [LOG2_OF_RATIO-1:0] ratio = RATIO - 1'b1;
+	wire [LOG2_OF_AMOUNT-1:0] amount = AMOUNT;
+	reg [PIPELINE_PICKOFF:0] pipeline = 0;
+	always @(posedge clock) begin
+		valid <= 1'b0;
+		if (counter==amount) begin
+			counter <= counter - ratio;
+			out <= pipeline[PIPELINE_PICKOFF-:WIDTH*RATIO];
+			valid <= 1'b1;
+		end else begin
+			counter <= counter + 1'b1;
+		end
+		pipeline <= { pipeline[PIPELINE_PICKOFF-WIDTH:0], in };
+	end
+endmodule
+
+module pipeline_gearbox_tb #(
+	parameter CLOCK_PERIOD = 1.0,
+	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2,
+	parameter WIDTH = 8,
+	parameter RATIO = 3,
+	parameter EXTRA_DELAY = 0
+) ();
+	reg clock = 0;
+	always begin
+		clock <= ~clock; #HALF_CLOCK_PERIOD;
+	end
+	reg [WIDTH-1:0] in = 0;
+	wire [WIDTH*RATIO-1:0] out;
+	initial begin
+		#(4*CLOCK_PERIOD);
+		in <= 8'h00; #CLOCK_PERIOD;
+		in <= 8'h01; #CLOCK_PERIOD;
+		in <= 8'h02; #CLOCK_PERIOD;
+		in <= 8'h04; #CLOCK_PERIOD;
+		in <= 8'h08; #CLOCK_PERIOD;
+		in <= 8'h10; #CLOCK_PERIOD;
+		in <= 8'h20; #CLOCK_PERIOD;
+		in <= 8'h40; #CLOCK_PERIOD;
+		in <= 8'h80; #CLOCK_PERIOD;
+		in <= 8'h00; #CLOCK_PERIOD;
+		in <= 8'h00; #CLOCK_PERIOD;
+		in <= 8'h0f; #CLOCK_PERIOD;
+		in <= 8'hf0; #CLOCK_PERIOD;
+		in <= 8'h00; #CLOCK_PERIOD;
+		in <= 8'ha5; #CLOCK_PERIOD;
+		in <= 8'h5a; #CLOCK_PERIOD;
+		in <= 8'h00; #CLOCK_PERIOD;
+		#(3*EXTRA_DELAY*CLOCK_PERIOD);
+		#(4*CLOCK_PERIOD);
+		$finish;
+	end
+	pipeline_gearbox #(.WIDTH(WIDTH), .RATIO(RATIO), .EXTRA_DELAY(EXTRA_DELAY)) bob (.clock(clock), .in(in), .out(out));
+endmodule
 
 // outputs n ~16th or ~256ths (per-HEX-age) instead of n ~100ths (per-CENT-age)
 module duty_cycle #(
