@@ -1,81 +1,85 @@
 // written 2019-09-22 by mza
-// last updated 2024-12-05 by mza
+// last updated 2024-12-10 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
 // outputs n ~16th or ~256ths (per-HEX-age) instead of n ~100ths (per-CENT-age)
 module duty_cycle #(
+	parameter ISERDES_WIDTH = 1,
+	parameter LOG2_OF_ISERDES_WIDTH = $clog2(ISERDES_WIDTH),
+	parameter RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH = 4,
+	parameter EXAMINATION_WIDTH = RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH * ISERDES_WIDTH,
+	parameter LOG2_OF_EXAMINATION_WIDTH = $clog2(EXAMINATION_WIDTH),
+	parameter BIGGER_OF_ISERDES_WIDTH_OR_EXAMINATION_WIDTH = ISERDES_WIDTH<EXAMINATION_WIDTH ? EXAMINATION_WIDTH : ISERDES_WIDTH,
+	parameter BIGGER_OF_LOG2_OF_ISERDES_WIDTH_OR_LOG2_OF_EXAMINATION_WIDTH = LOG2_OF_ISERDES_WIDTH<LOG2_OF_EXAMINATION_WIDTH ? LOG2_OF_EXAMINATION_WIDTH : LOG2_OF_ISERDES_WIDTH,
 	parameter POLARITY = 1'b1,
 	parameter N = 256,
-	parameter LOG_BASE_2_OF_N = $clog2(N),
-	parameter MAX_COUNTER = {LOG_BASE_2_OF_N{1'b1}},
+	parameter LOG2_OF_N = $clog2(N),
+	parameter MAX_COUNTER = {LOG2_OF_N{1'b1}},
 	parameter LOG2_OF_PRIME_VALUE = 0,
-	parameter PATTERN_LENGTH = 4,
-	parameter PATTERN_GOING_ACTIVE = { ~POLARITY, ~POLARITY, POLARITY, POLARITY },
-	parameter PATTERN_GOING_INACTIVE = { POLARITY, POLARITY, ~POLARITY, ~POLARITY },
 	parameter METASTABILITY_DELAY = 3,
-	parameter PIPELINE_PICKOFF = PATTERN_LENGTH + METASTABILITY_DELAY
+	parameter PIPELINE_PICKOFF = EXAMINATION_WIDTH * ISERDES_WIDTH + METASTABILITY_DELAY,
+	parameter LOG2_OF_PIPELINE_PICKOFF = $clog2(PIPELINE_PICKOFF)
 ) (
-	input clock, signal_in,
+	input clock,
+	input [ISERDES_WIDTH-1:0] signal_in,
 	output reg valid = 0,
-	output [LOG_BASE_2_OF_N-1:0] duty_cycle_perHEXage
+	output [LOG2_OF_N-1:0] duty_cycle_perHEXage
 );
-	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE:0] duty_cycle_perHEXage_internal = 0;
+	reg [LOG2_OF_N-1-LOG2_OF_PRIME_VALUE:0] duty_cycle_perHEXage_internal = 0;
 	assign duty_cycle_perHEXage = { duty_cycle_perHEXage_internal, {LOG2_OF_PRIME_VALUE{1'b0}} };
 	reg [PIPELINE_PICKOFF:0] signal_pipeline;
-	reg mode = 0;
-	reg [LOG_BASE_2_OF_N-1:0] active_counter = 0;
-	reg [LOG_BASE_2_OF_N-1:0] always_counter = 1'b1;
-	reg [LOG_BASE_2_OF_N-1:0] denominator = 0;
-	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE+LOG_BASE_2_OF_N:0] numerator = 0;
-	reg [LOG_BASE_2_OF_N-1-LOG2_OF_PRIME_VALUE:0] accumulator = 0;
+	wire [EXAMINATION_WIDTH-1:0] signal_word = signal_pipeline[PIPELINE_PICKOFF-:EXAMINATION_WIDTH];
+	wire [LOG2_OF_ISERDES_WIDTH:0] iserdes_amount = ISERDES_WIDTH;
+	wire [LOG2_OF_EXAMINATION_WIDTH:0] examination_amount = EXAMINATION_WIDTH;
+	wire [LOG2_OF_ISERDES_WIDTH+LOG2_OF_EXAMINATION_WIDTH:0] amount = ISERDES_WIDTH * EXAMINATION_WIDTH;
+	reg [LOG2_OF_PIPELINE_PICKOFF:0] new_bits_counter = 0;
+	wire [LOG2_OF_EXAMINATION_WIDTH:0] count_word;
+	count_ones #(.WIDTH(EXAMINATION_WIDTH)) myco (.clock(clock), .data_in(signal_word), .count_out(count_word));
+	reg [LOG2_OF_N-1:0] accumulator = 0;
+	reg [LOG2_OF_N-1+LOG2_OF_EXAMINATION_WIDTH:0] always_counter = 0;
+	reg [LOG2_OF_N-1+LOG2_OF_EXAMINATION_WIDTH:0] active_counter = 0;
+	reg [LOG2_OF_N-1+LOG2_OF_EXAMINATION_WIDTH:0] denominator = 0;
+	reg [LOG2_OF_N-1+LOG2_OF_EXAMINATION_WIDTH-LOG2_OF_PRIME_VALUE+LOG2_OF_N:0] numerator = 0;
 	always @(posedge clock) begin
-		valid <= 0;
-		if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_ACTIVE) begin
-			mode <= 1'b1;
-		end else if (signal_pipeline[PIPELINE_PICKOFF-:PATTERN_LENGTH]==PATTERN_GOING_INACTIVE) begin
-			mode <= 1'b0;
-			numerator <= { active_counter, {LOG_BASE_2_OF_N-LOG2_OF_PRIME_VALUE{1'b0}} };
-			denominator <= always_counter;
-			accumulator <= 0;
-			active_counter <= 1'b1;
-			always_counter <= 1'b1;
+		valid <= 1'b0;
+		if (new_bits_counter==amount) begin
+			always_counter <= always_counter + examination_amount;
+			if (count_word) begin
+				active_counter <= active_counter + count_word;
+			end else begin
+				numerator <= { active_counter, {LOG2_OF_N-LOG2_OF_PRIME_VALUE{1'b0}} };
+				denominator <= always_counter;
+				accumulator <= 0;
+				active_counter <= 0;
+				always_counter <= 0;
+			end
+			new_bits_counter <= new_bits_counter + iserdes_amount - examination_amount;
 		end else begin
-			if (0<denominator) begin
-				if (denominator<numerator) begin
-					numerator <= numerator - denominator;
-					accumulator <= accumulator + 1'b1;
-				end else begin
-					denominator <= 0;
-					duty_cycle_perHEXage_internal <= accumulator;
-					valid <= 1'b1;
-				end
-			end
-			if (always_counter<MAX_COUNTER) begin
-				always_counter <= always_counter + 1'b1;
-			end
-			if (mode) begin // signal active
-				if (active_counter<MAX_COUNTER) begin
-					active_counter <= active_counter + 1'b1;
-				end else begin // active_counter==MAX_COUNTER
-					denominator <= 0;
-					duty_cycle_perHEXage_internal <= MAX_COUNTER;
-					valid <= 1'b1;
-					active_counter <= 1'b1;
-					always_counter <= 1'b1;
-				end
-			end else begin // signal inactive
-				if (always_counter==MAX_COUNTER) begin
-					denominator <= 0;
-					duty_cycle_perHEXage_internal <= 0;
-					valid <= 1'b1;
-					active_counter <= 1'b1;
-					always_counter <= 1'b1;
-				end
+			new_bits_counter <= new_bits_counter + iserdes_amount;
+		end
+		if (0<denominator) begin
+			if (denominator<numerator) begin
+				numerator <= numerator - denominator;
+				accumulator <= accumulator + 1'b1;
+			end else begin
+				denominator <= 0;
+				duty_cycle_perHEXage_internal <= accumulator;
+				valid <= 1'b1;
 			end
 		end
-		signal_pipeline <= { signal_pipeline[PIPELINE_PICKOFF-1:0], signal_in };
+		signal_pipeline <= { signal_pipeline[PIPELINE_PICKOFF-ISERDES_WIDTH:0], signal_in };
+	end
+	initial begin
+		$display("ISERDES_WIDTH=%d", ISERDES_WIDTH);
+		$display("LOG2_OF_ISERDES_WIDTH=%d", LOG2_OF_ISERDES_WIDTH);
+		$display("N=%d", N);
+		$display("LOG2_OF_N=%d", LOG2_OF_N);
+		$display("EXAMINATION_WIDTH=%d", EXAMINATION_WIDTH);
+		$display("LOG2_OF_EXAMINATION_WIDTH=%d", LOG2_OF_EXAMINATION_WIDTH);
+		$display("BIGGER_OF_ISERDES_WIDTH_OR_EXAMINATION_WIDTH=%d", BIGGER_OF_ISERDES_WIDTH_OR_EXAMINATION_WIDTH);
+		$display("BIGGER_OF_LOG2_OF_ISERDES_WIDTH_OR_LOG2_OF_EXAMINATION_WIDTH=%d", BIGGER_OF_LOG2_OF_ISERDES_WIDTH_OR_LOG2_OF_EXAMINATION_WIDTH);
 	end
 endmodule
 
@@ -83,44 +87,72 @@ module duty_cycle_tb #(
 	parameter CLOCK_PERIOD = 1.0,
 	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2,
 	parameter N = 16,
-	parameter LOG_BASE_2_OF_N = $clog2(N),
-	parameter STEP = 4,
-	parameter WAVEFORM_LENGTH = N,
-	parameter LOG2_OF_WAVEFORM_LENGTH = $clog2(WAVEFORM_LENGTH),
+	parameter LOG2_OF_N = $clog2(N),
+	parameter STEP = 1,
+	parameter WAVEFORM_LENGTH = N + 7,
+	parameter W = WAVEFORM_LENGTH,
 	parameter WAIT_PERIOD = 7.1 * WAVEFORM_LENGTH * CLOCK_PERIOD
 );
-	reg clock = 0;
+	reg clock = 0, clock_word4 = 0, clock_word3 = 0;
 	always begin
 		clock <= ~clock; #HALF_CLOCK_PERIOD;
 	end
+	always begin
+		clock_word4 <= ~clock_word4; #(HALF_CLOCK_PERIOD*4);
+	end
+	always begin
+		clock_word3 <= ~clock_word3; #(HALF_CLOCK_PERIOD*3);
+	end
+	reg [0:WAVEFORM_LENGTH-1] waveform = 0;
+	reg [LOG2_OF_N-1:0] counter = 0;
+	reg [LOG2_OF_N-1:0] counter4 = 0;
+	reg [LOG2_OF_N-1:0] counter3 = 0;
 	reg signal = 0;
-	reg [WAVEFORM_LENGTH-1:0] waveform = 0;
-	reg [LOG2_OF_WAVEFORM_LENGTH-1:0] counter = 0;
+	reg [4-1:0] signal_word4 = 0;
+	reg [3-1:0] signal_word3 = 0;
 	always @(posedge clock) begin
 		signal <= waveform[counter];
 		counter <= counter + 1'b1;
 	end
-	wire [LOG_BASE_2_OF_N-1:0] duty_cycle_perHEXage;
-	wire valid;
+	always @(posedge clock_word4) begin
+		signal_word4 <= waveform[counter4+:4];
+		if (counter4<N-4) begin
+			counter4 <= counter4 + 3'd4;
+		end else begin
+			counter4 <= 0;
+		end
+	end
+	always @(posedge clock_word3) begin
+		signal_word3 <= waveform[counter3+:3];
+		if (counter3<N-3) begin
+			counter3 <= counter3 + 2'd3;
+		end else begin
+			counter3 <= 0;
+		end
+	end
+	wire [LOG2_OF_N-1:0] duty_cycle_perHEXage_iserdes_1_2, duty_cycle_perHEXage_single_4_8, duty_cycle_perHEXage_single_3_5;
+	wire valid_single_1_2, valid_iserdes_4_8, valid_iserdes_3_5;
 	integer j, truth = 0;
 	initial begin
 		#WAIT_PERIOD;
-		for (truth=0; truth<=N; truth=truth+STEP) begin
+		for (truth=0; truth<=W; truth=truth+STEP) begin
 			for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
-			for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+			for (j=truth; j<W; j=j+1) begin waveform[j] <= 1'b0; end;
 			#WAIT_PERIOD;
 		end;
 		#WAIT_PERIOD;
 		truth = 13;
 		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
-		for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+		for (j=truth; j<W; j=j+1) begin waveform[j] <= 1'b0; end;
 		#WAIT_PERIOD;
 		truth = 0;
 		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
-		for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+		for (j=truth; j<W; j=j+1) begin waveform[j] <= 1'b0; end;
 		#WAIT_PERIOD; $finish;
 	end
-	duty_cycle #(.N(N)) mdc (.clock(clock), .signal_in(signal), .duty_cycle_perHEXage(duty_cycle_perHEXage), .valid(valid));
+	duty_cycle #(.N(N), .ISERDES_WIDTH(1), .RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH(2)) mdc_single_1_2 (.clock(clock), .signal_in(signal), .duty_cycle_perHEXage(duty_cycle_perHEXage_single_1_2), .valid(valid_single_1_2));
+	duty_cycle #(.N(N), .ISERDES_WIDTH(4), .RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH(2)) mdc_iserdes4_8 (.clock(clock_word4), .signal_in(signal_word4), .duty_cycle_perHEXage(duty_cycle_perHEXage_iserdes_4_8), .valid(valid_iserdes_4_8));
+	duty_cycle #(.N(N), .ISERDES_WIDTH(3), .RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH(2)) mdc_iserdes3_5 (.clock(clock_word3), .signal_in(signal_word3), .duty_cycle_perHEXage(duty_cycle_perHEXage_iserdes_3_5), .valid(valid_iserdes_3_5));
 endmodule
 
 module counter_level #(
@@ -844,6 +876,7 @@ module bitslip #(
 	end
 endmodule
 
+//	count_ones #(.WIDTH(8)) myco (.clock(), .data_in(), .count_out());
 module count_ones #(
 	parameter WIDTH = 8,
 	parameter LOG2_WIDTH = $clog2(WIDTH)
@@ -855,6 +888,20 @@ module count_ones #(
 	always @(posedge clock) begin
 		if (8==WIDTH) begin
 			count_out <= data_in[7] + data_in[6] + data_in[5] + data_in[4] + data_in[3] + data_in[2] + data_in[1] + data_in[0];
+		end else if (7==WIDTH) begin
+			count_out <= data_in[6] + data_in[5] + data_in[4] + data_in[3] + data_in[2] + data_in[1] + data_in[0];
+		end else if (6==WIDTH) begin
+			count_out <= data_in[5] + data_in[4] + data_in[3] + data_in[2] + data_in[1] + data_in[0];
+		end else if (5==WIDTH) begin
+			count_out <= data_in[4] + data_in[3] + data_in[2] + data_in[1] + data_in[0];
+		end else if (4==WIDTH) begin
+			count_out <= data_in[3] + data_in[2] + data_in[1] + data_in[0];
+		end else if (3==WIDTH) begin
+			count_out <= data_in[2] + data_in[1] + data_in[0];
+		end else if (2==WIDTH) begin
+			count_out <= data_in[1] + data_in[0];
+		end else if (1==WIDTH) begin
+			count_out <= data_in[0];
 		end
 	end
 endmodule
