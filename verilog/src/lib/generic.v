@@ -1064,8 +1064,9 @@ module bitslip #(
 	output reg [WIDTH-1:0] data_out = 0
 );
 	reg [2*WIDTH-1:0] long;
+	wire [LOG2_WIDTH:0] width = WIDTH;
 	always @(posedge clock) begin
-		data_out <= long[WIDTH+bitslip -: WIDTH];
+		data_out <= long[width+bitslip-:WIDTH];
 		long <= { long[WIDTH-1:0], data_in };
 	end
 endmodule
