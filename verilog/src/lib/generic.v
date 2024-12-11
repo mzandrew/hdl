@@ -4,6 +4,8 @@
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
+// gearbox_pipeline #(.WIDTH(WIDTH), .RATIO(RATIO), .EXTRA_DELAY(2)) gp (.clock(clock), .valid(valid), .in(in), .out(out));
+// this module will gladly overwrite data if the valid signal is not active every RATIO clock cycles
 module gearbox_pipeline #(
 	parameter WIDTH = 8,
 	parameter LOG2_OF_WIDTH = $clog2(WIDTH),
@@ -14,7 +16,6 @@ module gearbox_pipeline #(
 	parameter RATIO_MINUS_ONE_TIMES_WIDTH = (RATIO-1)*WIDTH,
 	parameter EXTRA_DELAY = 4,
 	parameter AMOUNT = RATIO + EXTRA_DELAY + 1,
-//	parameter LOG2_OF_AMOUNT = $clog2(AMOUNT),
 	parameter PIPELINE_PICKOFF = WIDTH * AMOUNT - 1,
 	parameter LOG2_OF_PIPELINE_PICKOFF = $clog2(PIPELINE_PICKOFF)
 ) (
@@ -36,7 +37,6 @@ module gearbox_pipeline #(
 			counter <= counter + width;
 		end
 		if (valid) begin
-//			pipeline <= { pipeline[PIPELINE_PICKOFF-WIDTH:(RATIO-1)*WIDTH], in };
 			pipeline <= { pipeline[PIPELINE_PICKOFF-WIDTH:RATIO_MINUS_ONE_TIMES_WIDTH], in };
 		end else begin
 			pipeline <= { pipeline[PIPELINE_PICKOFF-WIDTH:0], {WIDTH{1'b0}} };
