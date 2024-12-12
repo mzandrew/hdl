@@ -1,6 +1,6 @@
 // written 2019-08-14 by mza
 // taken from info in ug382/ug615/ds162
-// last updated 2024-11-22 by mza
+// last updated 2024-12-12 by mza
 
 `ifndef PLLDCM_LIB
 `define PLLDCM_LIB
@@ -110,6 +110,21 @@ module simplepll_ADV_2DCM #(
 endmodule
 
 //simplepll_ADV #(.OVERALL_DIVIDE(1), .MULTIPLY(10), .DIVIDE(4), .PERIOD(20.0)) mypll (.clockin(clock50), .reset(reset), .clockout(clock), .locked()); // 50->125
+//	simplepll_ADV #(
+//		.PERIOD(PLLPERIOD), .OVERALL_DIVIDE(OVERALL_PLLDIVIDE), .MULTIPLY(PLLMULTIPLY), .DIVIDE(PLLDIVIDE),
+//		.DIVIDE0(WORD_CLOCK_DIVIDE), .DIVIDE1(BIT_CLOCK_DIVIDE),
+//		.DIVIDE2(SAMPLE_CLOCK_DIVIDE), .DIVIDE3(1),
+//		.DIVIDE4(1), .DIVIDE5(1),
+//		.PHASE0(0.0),  .PHASE1(0.0),
+//		.PHASE2(0.0),  .PHASE3(0.0),
+//		.PHASE4(0.0),  .PHASE5(0.0)
+//	) mypll (
+//		.clockin(clock_in),
+//		.reset(reset),
+//		.clock0out(raw_word_clock), .clock1out(bit_clock),
+//		.clock2out(raw_sample_clock), .clock3out(),
+//		.clock4out(), .clock5out(),
+//		.locked(pll_is_locked));
 module simplepll_ADV #(
 	parameter OVERALL_DIVIDE = 1,
 	parameter MULTIPLY = 4,
@@ -328,39 +343,38 @@ module simpledcm_SP #(
 //	wire clockfb_out;
 //	BUFG mybufg (.I(clockfb_out), .O(clockfb_in));
 	DCM_SP #(
-		.CLKDV_DIVIDE(ALT_CLOCKOUT_DIVIDE), // Divide by: 1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5
-		// 7.0,7.5,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0 or 16.0
-		.CLKFX_DIVIDE(DIVIDE), // Can be any integer from 1 to 32
-		.CLKFX_MULTIPLY(MULTIPLY), // Can be any integer from 2 to 32
-		.CLKIN_DIVIDE_BY_2(CLKIN_DIVIDE_BY_2), // TRUE/FALSE to enable CLKIN divide by two feature
 		.CLKIN_PERIOD(PERIOD), // Specify period of input clock
-		.CLKOUT_PHASE_SHIFT("NONE"), // Specify phase shift of NONE, FIXED or VARIABLE
+		.CLKIN_DIVIDE_BY_2(CLKIN_DIVIDE_BY_2), // TRUE/FALSE to enable CLKIN divide by two feature
 		.CLK_FEEDBACK("1X"), // Specify clock feedback of NONE, 1X or 2X
+		.CLKFX_MULTIPLY(MULTIPLY), // Can be any integer from 2 to 32
+		.CLKFX_DIVIDE(DIVIDE), // Can be any integer from 1 to 32
+		.CLKOUT_PHASE_SHIFT("NONE"), // Specify phase shift of NONE, FIXED or VARIABLE
 		.DESKEW_ADJUST("SYSTEM_SYNCHRONOUS"), // SOURCE_SYNCHRONOUS, SYSTEM_SYNCHRONOUS or
 		// an integer from 0 to 15
 		.DLL_FREQUENCY_MODE("LOW"), // HIGH or LOW frequency mode for DLL
 		.DUTY_CYCLE_CORRECTION("TRUE"), // Duty cycle correction, TRUE or FALSE
 		.PHASE_SHIFT(0), // Amount of fixed phase shift from -255 to 255
-		.STARTUP_WAIT("FALSE") // Delay configuration DONE until DCM LOCK, TRUE/FALSE
+		.STARTUP_WAIT("FALSE"), // Delay configuration DONE until DCM LOCK, TRUE/FALSE
+		.CLKDV_DIVIDE(ALT_CLOCKOUT_DIVIDE) // Divide by: 1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0 or 16.0
 	) DCM_SP_inst (
+		.CLKIN(clockin), // Clock input (from IBUFG, BUFG or DCM)
+		.CLKFB(fb), // DCM clock feedback
+		.CLKFX(clockout), // DCM CLK synthesis out (M/D)
+		.CLKFX180(clockout180), // 180 degree CLK synthesis out
 		.CLK0(fb), // 0 degree DCM CLK output
+		.CLK90(), // 90 degree DCM CLK output
 		.CLK180(), // 180 degree DCM CLK output
 		.CLK270(), // 270 degree DCM CLK output
 		.CLK2X(), // 2X DCM CLK output
 		.CLK2X180(), // 2X, 180 degree DCM CLK out
-		.CLK90(), // 90 degree DCM CLK output
-		.CLKDV(alt_clockout), // Divided DCM CLK out (CLKDV_DIVIDE)
-		.CLKFX(clockout), // DCM CLK synthesis out (M/D)
-		.CLKFX180(clockout180), // 180 degree CLK synthesis out
-		.LOCKED(locked), // DCM LOCK status output
 		.PSDONE(), // Dynamic phase adjust done output
 		.STATUS(), // 8-bit DCM status bits output
-		.CLKFB(fb), // DCM clock feedback
-		.CLKIN(clockin), // Clock input (from IBUFG, BUFG or DCM)
 		.PSCLK(1'b0), // Dynamic phase adjust clock input
 		.PSEN(1'b0), // Dynamic phase adjust enable input
 		.PSINCDEC(1'b0), // Dynamic phase adjust increment/decrement
 		.DSSEN(1'b0), // missing constraint in ug615
+		.CLKDV(alt_clockout), // Divided DCM CLK out (CLKDV_DIVIDE)
+		.LOCKED(locked), // DCM LOCK status output
 		.RST(reset) // DCM asynchronous reset input
 	);
 endmodule
