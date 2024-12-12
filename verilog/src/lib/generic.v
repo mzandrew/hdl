@@ -1,8 +1,103 @@
 // written 2019-09-22 by mza
-// last updated 2024-12-11 by mza
+// last updated 2024-12-12 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
+
+// specified for LOG2_OF_DEPTH in range [1,4]
+module boxcar #(
+	parameter WIDTH = 8,
+	parameter LOG2_OF_DEPTH = 2,
+	parameter DEPTH = 2**LOG2_OF_DEPTH,
+	parameter ACCUMULATOR_PICKOFF = WIDTH + LOG2_OF_DEPTH - 1
+) (
+	input clock,
+	input [WIDTH-1:0] in,
+	input write_strobe,
+	output [WIDTH-1:0] out
+);
+	reg [WIDTH-1:0] mem [DEPTH-1:0];
+	reg [LOG2_OF_DEPTH-1:0] counter = 0;
+	reg [ACCUMULATOR_PICKOFF:0] accumulator = 0;
+	always @(posedge clock) begin
+		if (write_strobe) begin
+			mem[counter] <= in;
+			counter <= counter + 1'b1;
+		end
+		if (DEPTH==16) begin
+			accumulator <= mem[0] + mem[1] + mem[2] + mem[3] + mem[4] + mem[5] + mem[6] + mem[7] + mem[8] + mem[9] + mem[10] + mem[11] + mem[12] + mem[13] + mem[14] + mem[15];
+		end else if (DEPTH==8) begin
+			accumulator <= mem[0] + mem[1] + mem[2] + mem[3] + mem[4] + mem[5] + mem[6] + mem[7];
+		end else if (DEPTH==4) begin
+			accumulator <= mem[0] + mem[1] + mem[2] + mem[3];
+		end else if (DEPTH==2) begin
+			accumulator <= mem[0] + mem[1];
+		end else begin
+			accumulator <= mem[0];
+		end
+	end
+	assign out = accumulator[ACCUMULATOR_PICKOFF-:WIDTH];
+endmodule
+
+module boxcar_tb #(
+	parameter CLOCK_PERIOD = 1.0,
+	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2,
+	parameter WIDTH = 8,
+	parameter LOG2_OF_DEPTH = 2
+) ();
+	reg clock = 0;
+	always begin
+		clock <= ~clock; #HALF_CLOCK_PERIOD;
+	end
+	reg [WIDTH-1:0] pre_in = 0, in = 0;
+	reg pre_write_strobe = 0, write_strobe = 0;
+	always @(posedge clock) begin
+		in <= pre_in; write_strobe <= pre_write_strobe;
+	end
+	initial begin
+		#(4*CLOCK_PERIOD);
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h40; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h80; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'hc0; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		pre_in <= 8'h00; #CLOCK_PERIOD; pre_write_strobe <= 1; #CLOCK_PERIOD; pre_write_strobe <= 0; #CLOCK_PERIOD;
+		#(4*CLOCK_PERIOD);
+		$finish;
+	end
+	wire [WIDTH-1:0] out;
+	boxcar #(.WIDTH(WIDTH), .LOG2_OF_DEPTH(LOG2_OF_DEPTH)) bc (.clock(clock), .write_strobe(write_strobe), .in(in), .out(out));
+endmodule
 
 // picks every RATIOth bit from in
 module decimator #(
