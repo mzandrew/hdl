@@ -4,6 +4,86 @@
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
 
+module histogram8 #(
+	parameter LOG2_OF_MAX_VALUE = 4,
+	parameter NUMBER_OF_BINS = 8
+) (
+	input clock, clear,
+	input [NUMBER_OF_BINS-1:0] increment_bin,
+	output [LOG2_OF_MAX_VALUE-1:0] bin_count0, bin_count1, bin_count2, bin_count3, bin_count4, bin_count5, bin_count6, bin_count7
+);
+	reg [LOG2_OF_MAX_VALUE-1:0] bin_count [NUMBER_OF_BINS-1:0];
+	integer i;
+	always @(posedge clock) begin
+		for (i=0; i<NUMBER_OF_BINS; i=i+1) begin
+			if (clear) begin
+				bin_count[i] <= 0;
+			end else begin
+				if (increment_bin[i]) begin
+					bin_count[i] <= bin_count[i] + 1'b1;
+				end
+			end
+		end
+	end
+	assign bin_count0 = bin_count[0];
+	assign bin_count1 = bin_count[1];
+	assign bin_count2 = bin_count[2];
+	assign bin_count3 = bin_count[3];
+	assign bin_count4 = bin_count[4];
+	assign bin_count5 = bin_count[5];
+	assign bin_count6 = bin_count[6];
+	assign bin_count7 = bin_count[7];
+endmodule
+
+module histogram8_tb #(
+	parameter CLOCK_PERIOD = 1.0,
+	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2,
+	parameter LOG2_OF_MAX_VALUE = 7,
+	parameter NUMBER_OF_BINS = 8
+) ();
+	reg clock = 0;
+	always begin
+		clock <= ~clock; #HALF_CLOCK_PERIOD;
+	end
+	reg [NUMBER_OF_BINS-1:0] pre_pulse = 0, pulse = 0;
+	always @(posedge clock) begin
+		pulse <= pre_pulse; clear <= pre_clear;
+	end
+	reg pre_clear = 0, clear = 0;
+	initial begin
+		#(4*CLOCK_PERIOD);
+		pre_clear <= 1'b1; #CLOCK_PERIOD; pre_clear <= 1'b0; #CLOCK_PERIOD;
+		#(4*CLOCK_PERIOD);
+		pre_pulse <= 8'b00000000; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b10101010; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b01010101; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b10101010; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b01010101; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b00000000; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b11111111; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b11111111; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b11111111; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b00000000; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_clear <= 1'b1; #CLOCK_PERIOD; pre_clear <= 1'b0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b00000000; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b11001100; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b00110011; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b11111111; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b00000000; #CLOCK_PERIOD; pre_pulse <= 0; #CLOCK_PERIOD;
+		pre_clear <= 1'b1; #CLOCK_PERIOD; pre_clear <= 1'b0; #CLOCK_PERIOD;
+		pre_pulse <= 8'b10101010; #(117*CLOCK_PERIOD);
+		pre_pulse <= 8'b01010101; #(117*CLOCK_PERIOD);
+		pre_pulse <= 8'b00000000;
+		#(4*CLOCK_PERIOD);
+		$finish;
+	end
+	wire [LOG2_OF_MAX_VALUE-1:0] bin_count [NUMBER_OF_BINS-1:0];
+	histogram8 #(.NUMBER_OF_BINS(NUMBER_OF_BINS), .LOG2_OF_MAX_VALUE(LOG2_OF_MAX_VALUE)) h (.clock(clock), .clear(clear),
+		.increment_bin(pulse),
+		.bin_count0(bin_count[0]), .bin_count1(bin_count[1]), .bin_count2(bin_count[2]), .bin_count3(bin_count[3]),
+		.bin_count4(bin_count[4]), .bin_count5(bin_count[5]), .bin_count6(bin_count[6]), .bin_count7(bin_count[7]));
+endmodule
+
 // specified for LOG2_OF_DEPTH in range [1,4]
 module boxcar #(
 	parameter WIDTH = 8,
