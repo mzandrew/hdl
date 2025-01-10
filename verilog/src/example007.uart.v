@@ -1,7 +1,7 @@
 // written 2018-08-03 by mza
 // sudo stty -F /dev/ttyUSB1 115200
 // minicom --device=/dev/ttyUSB2 -baudrate 115200
-// last updated 2020-06-01 by mza
+// last updated 2025-01-09 by mza
 
 `define icestick
 `include "lib/uart.v"
@@ -87,8 +87,8 @@ module top (
 	wire [7:0] J2 = { J2_10, J2_9, J2_8, J2_7, J2_4, J2_3, J2_2, J2_1 };
 	wire [7:0] J3 = { J3_10, J3_9, J3_8, J3_7, J3_6, J3_5, J3_4, J3_3 };
 	wire [5:1] LED = { LED5, LED4, LED3, LED2, LED1 };
-	assign { DCDn, DSRn, CTSn } = 0;
-	assign { IR_TX, IR_SD } = 0;
+	assign { DCDn, DSRn, CTSn } = 3'b111;
+	assign IR_TX = IR_RX; assign IR_SD = 1'b1; // IR_SD = shut down
 	mytop mytop_instance (.clock(CLK), .LED(LED), .J1(J1), .J2(J2), .J3(J3), .TX(TX), .RX(RX));
 endmodule // icestick
 
