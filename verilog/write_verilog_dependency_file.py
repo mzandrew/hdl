@@ -60,7 +60,7 @@ def run_file(filename):
 	#print >>depfile, string
 	depfile.write(string + "\n")
 	depfile.close()
-	#touch(depfilename, filename)
+	touch(depfilename, filename)
 
 if __name__ == "__main__":
 	if not os.path.isdir(output_dirname):
