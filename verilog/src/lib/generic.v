@@ -1,8 +1,10 @@
 // written 2019-09-22 by mza
-// last updated 2024-12-12 by mza
+// last updated 2025-02-27 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
+
+`timescale 1ns / 1ps
 
 module histogram8 #(
 	parameter LOG2_OF_MAX_VALUE = 4,
@@ -1229,6 +1231,33 @@ module clock_ODDR_out #(
 //	end else begin
 //		ODDR #(.DDR_CLK_EDGE("OPPOSITE_EDGE")) oddr_clock (.C(clock), .CE(1'b1), .D1(1'b1), .D2(1'b0), .R(1'b0), .S(1'b0), .Q(clock_out));
 	end
+endmodule
+
+//	myoddr oddr1 (.clock(clock127), .out(asic1_clock));
+// for 7-series:
+module myoddr #(
+	POLARITY = 1'b1
+) (
+	input clock,
+	output out
+);
+//	ODDR myodor (.D1(1'b1), .D2(1'b0), .C(clock), .CE(1'b1), .Q(out), .R(1'b0), .S(1'b0));
+//	ODDR myodor (.D1(POLARITY), .D2(~POLARITY), .C(clock), .CE(1'b1), .Q(out), .R(1'b0), .S(1'b0));
+	ODDR #(.INIT(~POLARITY)) myodor (.D1(POLARITY), .D2(~POLARITY), .C(clock), .CE(1'b1), .Q(out), .R(1'b0), .S(1'b0));
+endmodule
+
+module myoddr_tb;
+	localparam CLOCK_PERIOD = 1.0;
+	localparam HALF_CLOCK_PERIOD = CLOCK_PERIOD/2.0;
+	reg clock127 = 0;
+	wire asic1_clock, asic2_clock, asic3_clock, asic4_clock;
+	always begin
+		#HALF_CLOCK_PERIOD; clock127 <= ~clock127;
+	end
+	myoddr #(.POLARITY(1'b1)) oddr1 (.clock(clock127), .out(asic1_clock));
+	myoddr #(.POLARITY(1'b1)) oddr2 (.clock(clock127), .out(asic2_clock));
+	myoddr #(.POLARITY(1'b1)) oddr3 (.clock(clock127), .out(asic3_clock));
+	myoddr #(.POLARITY(1'b0)) oddr4 (.clock(clock127), .out(asic4_clock));
 endmodule
 
 //	ddr mario (.clock(clock), .data0_in(), .data1_in(), .data_out());
