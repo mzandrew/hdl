@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/junktest/a_bunch_of_multipliers_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="a_bunch_of_multipliers_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="17" />
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/i0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i0[7:0]</obj_property>
+      <obj_property name="ObjectShortName">i0[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/i1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i1[7:0]</obj_property>
+      <obj_property name="ObjectShortName">i1[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/i2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i2[7:0]</obj_property>
+      <obj_property name="ObjectShortName">i2[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/i3" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i3[7:0]</obj_property>
+      <obj_property name="ObjectShortName">i3[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o0_0[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o0_0[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o1_0[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o1_0[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o2_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o2_0[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o2_0[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o3_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o3_0[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o3_0[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o0_1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o0_1[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o0_1[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o1_1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o1_1[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o1_1[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o2_1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o2_1[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o2_1[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o3_1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o3_1[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o3_1[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o0_2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o0_2[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o0_2[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o1_2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o1_2[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o1_2[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o2_2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o2_2[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o2_2[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/a_bunch_of_multipliers_tb/o3_2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">o3_2[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o3_2[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+</wave_config>
