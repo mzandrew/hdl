@@ -1,5 +1,5 @@
 // written 2019-09-22 by mza
-// last updated 2025-02-27 by mza
+// last updated 2025-03-05 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
@@ -1491,6 +1491,36 @@ module count_ones #(
 			count_out <= data_in[0];
 		end
 	end
+endmodule
+
+// dsp_multiplier #(.WIDTH(8), .LATENCY(3)) mydm (.clock(clock), .reset(reset), .A(), .B(), .result());
+// non-working module:
+module dsp_multiplier #(
+	parameter WIDTH = 18,
+	parameter WIDTH_A = WIDTH,
+	parameter WIDTH_B = WIDTH,
+	parameter WIDTH_RESULT = WIDTH_A + WIDTH_B,
+	parameter LATENCY = 3
+) (
+	input clock, reset,
+	input [WIDTH_A-1:0] A,
+	input [WIDTH_B-1:0] B,
+	output [WIDTH_RESULT-1:0] result
+);
+	MULT_MACRO #(
+		//.DEVICE("SPARTAN6"), // Target Device: "VIRTEX5", "VIRTEX6", "7SERIES", "SPARTAN6"
+		.DEVICE("7SERIES"), // Target Device: "VIRTEX5", "VIRTEX6", "7SERIES", "SPARTAN6"
+		.LATENCY(LATENCY), // Desired clock cycle latency, 0-4
+		.WIDTH_A(WIDTH_A), // Multiplier A-input bus width, 1-18
+		.WIDTH_B(WIDTH_B) // Multiplier B-input bus width, 1-18
+	) dsp_multiplier_inst (
+		.P(result), // Multiplier output bus, width determined by WIDTH_P parameter
+		.A(A), // Multiplier input A bus, width determined by WIDTH_A parameter
+		.B(B), // Multiplier input B bus, width determined by WIDTH_B parameter
+		.CE(1'b1), // 1-bit active high input clock enable
+		.CLK(clock), // 1-bit positive edge clock input
+		.RST(reset) // 1-bit input active high reset
+	);
 endmodule
 
 `endif

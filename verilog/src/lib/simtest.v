@@ -1,6 +1,8 @@
 // written 2025-02-27 by mza
 // last updated 2025-03-05 by mza
 
+`include "generic.v"
+
 // synthesis of this as top module (WIDTH=8) results in 8 slice LUTs and 1 DSP48A1
 // synthesis of this as top module (WIDTH=18) results in 74 slice LUTs and 4 DSP48A1s
 module quickmath #(
@@ -141,7 +143,7 @@ endmodule
 
 // HDL_ADVISOR wants you to buffer the output...
 module a_bunch_of_multipliers_with_an_extra_register_level_at_the_output_stage #(
-	parameter WIDTH = 99 // 8 up to 19 here => 4 DSP48A1s; 20 up to 37 => 16 DSP48A1s; above that, it uses lots of LUTs and 9 DSP48A1s
+	parameter WIDTH = 99 // 8 up to 19 here => 4 DSP48A1s; 20 up to 37 => 16 DSP48A1s; above that, it uses lots of LUTs but just 9 DSP48A1s
 ) (
 	input clock,
 	input [WIDTH-1:0] i0, i1, i2, i3,
@@ -160,6 +162,19 @@ module a_bunch_of_multipliers_with_an_extra_register_level_at_the_output_stage #
 	end
 endmodule
 
+module a_bunch_of_multipliers_try3 #(
+	parameter WIDTH = 18
+) (
+	input clock, reset,
+	input [WIDTH-1:0] i0, i1, i2, i3,
+	output [2*WIDTH-1:0] o0, o1, o2, o3
+);
+	dsp_multiplier #(.WIDTH(WIDTH), .LATENCY(3)) mydm0 (.clock(clock), .reset(reset), .A(i0), .B(i1), .result(o0));
+	dsp_multiplier #(.WIDTH(WIDTH), .LATENCY(3)) mydm1 (.clock(clock), .reset(reset), .A(i1), .B(i2), .result(o1));
+	dsp_multiplier #(.WIDTH(WIDTH), .LATENCY(3)) mydm2 (.clock(clock), .reset(reset), .A(i2), .B(i3), .result(o2));
+	dsp_multiplier #(.WIDTH(WIDTH), .LATENCY(3)) mydm3 (.clock(clock), .reset(reset), .A(i3), .B(i0), .result(o3));
+endmodule
+
 module a_bunch_of_multipliers_tb #(
 	parameter WIDTH = 18,
 	parameter CLOCK_PERIOD = 1.0,
@@ -169,15 +184,18 @@ module a_bunch_of_multipliers_tb #(
 	always begin
 		#HALF_CLOCK_PERIOD; clock <= ~clock;
 	end
+	reg reset = 1;
 	reg [WIDTH-1:0] i0 = 0, i1 = 0, i2 = 0, i3 = 0;
 	wire [2*WIDTH-1:0] o0_0, o1_0, o2_0, o3_0;
 	wire [2*WIDTH-1:0] o0_1, o1_1, o2_1, o3_1;
 	wire [2*WIDTH-1:0] o0_2, o1_2, o2_2, o3_2;
+	wire [2*WIDTH-1:0] o0_3, o1_3, o2_3, o3_3;
 	a_bunch_of_multipliers                                                   #(.WIDTH(WIDTH)) abom_0 (.clock(clock), .i0(i0), .i1(i1), .i2(i2), .i3(i3), .o0(o0_0), .o1(o1_0), .o2(o2_0), .o3(o3_0));
 	a_bunch_of_multipliers_with_an_extra_register_level_at_the_input_stage   #(.WIDTH(WIDTH)) abom_1 (.clock(clock), .i0(i0), .i1(i1), .i2(i2), .i3(i3), .o0(o0_1), .o1(o1_1), .o2(o2_1), .o3(o3_1));
 	a_bunch_of_multipliers_with_an_extra_register_level_at_the_output_stage  #(.WIDTH(WIDTH)) abom_2 (.clock(clock), .i0(i0), .i1(i1), .i2(i2), .i3(i3), .o0(o0_2), .o1(o1_2), .o2(o2_2), .o3(o3_2));
+	a_bunch_of_multipliers_try3                                              #(.WIDTH(WIDTH)) abom_3 (.clock(clock), .i0(i0), .i1(i1), .i2(i2), .i3(i3), .o0(o0_3), .o1(o1_3), .o2(o2_3), .o3(o3_3), .reset(reset));
 	initial begin
-		#(3*CLOCK_PERIOD);
+		#(4*CLOCK_PERIOD); reset <= 0; #(4*CLOCK_PERIOD);
 		i0 <= 0; i1 <= 1; i2 <= 2; i3 <= 3; #CLOCK_PERIOD;
 		i0 <= i0 + 1; i1 <= i1 + 1; i2 <= i2 + 1; i3 <= i3 + 1; #CLOCK_PERIOD;
 		i0 <= i0 + 1; i1 <= i1 + 1; i2 <= i2 + 1; i3 <= i3 + 1; #CLOCK_PERIOD;
