@@ -1,6 +1,11 @@
 // written 2018-08-22 by mza
 // idea stolen from http://fpgasrus.com/prbs.html
-// last updated 2025-03-03 by mza
+// last updated 2025-03-06 by mza
+
+`ifndef PRBS_LFSR_LIB
+`define PRBS_LFSR_LIB
+
+`timescale 1ns / 1ps
 
 // pseudo-random bitstream (prbs) / linear-feedback shift-register (lfsr)
 // prbs #(.WIDTH(128)) myprbs (.clock(clock), .reset(reset), .word(rand));
@@ -13,7 +18,7 @@ module prbs #(
 ) (
 	input clock,
 	input reset,
-	output reg [WIDTH-1:0] word = 0
+	output reg [WIDTH-1:0] word = INIT
 );
 	always @(posedge clock) begin
 		if (reset) begin
@@ -47,22 +52,24 @@ module prbs_tb #(
 endmodule
 
 module prbs_wide #(
-	parameter WIDTH = 32
+	parameter OUTPUT_WIDTH = 8,
+	parameter PICKOFF_BIT = 31
 ) (
-	input clock,
-	input reset,
-	output [WIDTH-1:0] rand
+	input clock, reset,
+	output [OUTPUT_WIDTH-1:0] rand
 );
-	wire [31:0] word [WIDTH-1:0];
+	wire [31:0] word [OUTPUT_WIDTH-1:0];
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'habcd1234)) lfsr32_0  (.clock(clock), .reset(reset), .word(word[0]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'h4321dcba)) lfsr32_1  (.clock(clock), .reset(reset), .word(word[1]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'h18293056)) lfsr32_2  (.clock(clock), .reset(reset), .word(word[2]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'hfdebcafd)) lfsr32_3  (.clock(clock), .reset(reset), .word(word[3]));
+	if (OUTPUT_WIDTH>4) begin
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'hf0a505af)) lfsr32_4  (.clock(clock), .reset(reset), .word(word[4]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'h2389bade)) lfsr32_5  (.clock(clock), .reset(reset), .word(word[5]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'hb0a85e6d)) lfsr32_6  (.clock(clock), .reset(reset), .word(word[6]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'hdeadbeef)) lfsr32_7  (.clock(clock), .reset(reset), .word(word[7]));
-	if (WIDTH>7) begin
+	end
+	if (OUTPUT_WIDTH>8) begin
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'hcd12ab34)) lfsr32_8  (.clock(clock), .reset(reset), .word(word[8]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'h21dc43ba)) lfsr32_9  (.clock(clock), .reset(reset), .word(word[9]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'h29301856)) lfsr32_10 (.clock(clock), .reset(reset), .word(word[10]));
@@ -72,7 +79,7 @@ module prbs_wide #(
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'ha85eb06d)) lfsr32_14 (.clock(clock), .reset(reset), .word(word[14]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'hadbedeef)) lfsr32_15 (.clock(clock), .reset(reset), .word(word[15]));
 	end
-	if (WIDTH>15) begin
+	if (OUTPUT_WIDTH>16) begin
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'h1234abcd)) lfsr32_16 (.clock(clock), .reset(reset), .word(word[16]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'hdcba4321)) lfsr32_17 (.clock(clock), .reset(reset), .word(word[17]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'h30561829)) lfsr32_18 (.clock(clock), .reset(reset), .word(word[18]));
@@ -82,7 +89,7 @@ module prbs_wide #(
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'h5e6db0a8)) lfsr32_22 (.clock(clock), .reset(reset), .word(word[22]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'hbeefdead)) lfsr32_23 (.clock(clock), .reset(reset), .word(word[23]));
 	end
-	if (WIDTH>23) begin
+	if (OUTPUT_WIDTH>24) begin
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'hab34cd12)) lfsr32_24 (.clock(clock), .reset(reset), .word(word[24]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'h43ba21dc)) lfsr32_25 (.clock(clock), .reset(reset), .word(word[25]));
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'h18562930)) lfsr32_26 (.clock(clock), .reset(reset), .word(word[26]));
@@ -93,24 +100,24 @@ module prbs_wide #(
 	prbs #(.WIDTH(32), .TAPA(28), .TAPB(31), .INIT(32'hdeefadbe)) lfsr32_31 (.clock(clock), .reset(reset), .word(word[31]));
 	end
 	genvar i;
-	for (i=0; i<WIDTH; i=i+1) begin
-		assign rand[i] = word[i][31];
+	for (i=0; i<OUTPUT_WIDTH; i=i+1) begin
+		assign rand[i] = word[i][PICKOFF_BIT];
 	end
 endmodule
 
 module prbs_tb2 #(
 	parameter CLOCK_PERIOD = 1.0,
 	parameter HALF_CLOCK_PERIOD = CLOCK_PERIOD/2.0,
-	parameter WIDTH = 32
+	parameter OUTPUT_WIDTH = 8
 ) ();
 	reg clock = 0, reset = 1'b1;
 	always begin
 		#HALF_CLOCK_PERIOD; clock <= ~clock;
 	end
 	reg [31:0] counter = 0;
-	reg [WIDTH-1:0] start = 0;
-	wire [WIDTH-1:0] rand;
-	prbs_wide #(.WIDTH(WIDTH)) pw (.clock(clock), .reset(reset), .rand(rand));
+	reg [OUTPUT_WIDTH-1:0] start = 0;
+	wire [OUTPUT_WIDTH-1:0] rand;
+	prbs_wide #(.OUTPUT_WIDTH(OUTPUT_WIDTH)) pw (.clock(clock), .reset(reset), .rand(rand));
 	initial begin
 		#(2*CLOCK_PERIOD+HALF_CLOCK_PERIOD); reset <= 0;
 		start <= rand; #CLOCK_PERIOD; $display("initial value is %d", start);
@@ -123,4 +130,6 @@ module prbs_tb2 #(
 		#(17000*CLOCK_PERIOD); $finish;
 	end
 endmodule
+
+`endif
 
