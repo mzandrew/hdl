@@ -1,12 +1,9 @@
 ##-----------------------------------------------------------------------------
-##
 ## (c) Copyright 2010-2011 Xilinx, Inc. All rights reserved.
-##
 ## This file contains confidential and proprietary information
 ## of Xilinx, Inc. and is protected under U.S. and
 ## international copyright and other intellectual property
 ## laws.
-##
 ## DISCLAIMER
 ## This disclaimer is not a license and does not grant any
 ## rights to the materials distributed herewith. Except as
@@ -28,7 +25,6 @@
 ## by a third party) even if such damage or loss was
 ## reasonably foreseeable or Xilinx had been advised of the
 ## possibility of the same.
-##
 ## CRITICAL APPLICATIONS
 ## Xilinx products are not designed or intended to be fail-
 ## safe, or for use in any application requiring fail-safe
@@ -42,15 +38,12 @@
 ## liability of any use of Xilinx products in Critical
 ## Applications, subject only to applicable laws and
 ## regulations governing limitations on product liability.
-##
 ## THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
 ## PART OF THIS FILE AT ALL TIMES.
-##
 ##-----------------------------------------------------------------------------
 ## Project    : Series-7 Integrated Block for PCI Express
 ## File       : xilinx_pcie_7x_ep_x4g2_AC701.xdc
 ## Version    : 3.1
-#
 ###############################################################################
 # User Configuration 
 # Link Width   - x4
@@ -60,8 +53,6 @@
 # Package      - fbg676
 # Speed grade  - -2
 # PCIe Block   - X0Y0
-###############################################################################
-#
 ###############################################################################
 # User Time Names / User Time Groups / Time Specs
 ###############################################################################
@@ -81,37 +72,25 @@ set_property CONFIG_VOLTAGE 3.3 [current_design]
 ###############################################################################
 # Timing Constraints
 ###############################################################################
-#
 create_clock -name sys_clk -period 10 [get_ports sys_clk_p]
-#
-# 
 set_false_path -to [get_pins {ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/S0}]
 set_false_path -to [get_pins {ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/S1}]
-#
-#
 create_generated_clock -name clk_125mhz_x0y0 [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/mmcm_i/CLKOUT0]
 create_generated_clock -name clk_250mhz_x0y0 [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/mmcm_i/CLKOUT1]
 create_generated_clock -name clk_125mhz_mux_x0y0 \ 
                         -source [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/I0] \
                         -divide_by 1 \
                         [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/O]
-#
 create_generated_clock -name clk_250mhz_mux_x0y0 \ 
                         -source [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/I1] \
                         -divide_by 1 -add -master_clock [get_clocks -of [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/I1]] \
                         [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/O]
-#
 set_clock_groups -name pcieclkmux -physically_exclusive -group clk_125mhz_mux_x0y0 -group clk_250mhz_mux_x0y0
-#
-#
 # Timing ignoring the below pins to avoid CDC analysis, but care has been taken in RTL to sync properly to other clock domain.
-#
-#
 ###############################################################################
 # Pinout and Related I/O Constraints
 ###############################################################################
 
-#
 # SYS reset (input) signal.  The sys_reset_n signal should be
 # obtained from the PCI Express interface if possible.  For
 # slot based form factors, a system reset signal is usually
@@ -123,7 +102,6 @@ set_clock_groups -name pcieclkmux -physically_exclusive -group clk_125mhz_mux_x0
 # Some 7 series devices do not have 3.3 V I/Os available.
 # Therefore the appropriate level shift is required to operate
 # with these devices that contain only 1.8 V banks.
-#
 
 set_property IOSTANDARD LVCMOS33 [get_ports sys_rst_n]
 
@@ -131,11 +109,9 @@ set_property PULLUP true [get_ports sys_rst_n]
 
 set_property LOC M20 [get_ports sys_rst_n]
 
-#
 # LED Status Indicators for Example Design.
 # LED 0-2 should be ON if link is up and functioning correctly
 # LED 3 should be blinking if user applicaiton is receiving valid clock
-#
 set_property IOSTANDARD LVCMOS33 [get_ports led_0]
 set_property IOSTANDARD LVCMOS33 [get_ports led_1]
 set_property IOSTANDARD LVCMOS33 [get_ports led_2]
@@ -150,12 +126,10 @@ set_property IOSTANDARD LVCMOS33 [get_ports led_3]
 set_property LOC R26 [get_ports led_3]
 set_false_path -to [get_ports -filter {NAME=~led_*}]
 
-
 ###############################################################################
 # Physical Constraints
 ###############################################################################
-#
-# SYS clock 100 MHz (input) signal. The sys_clk_p and sys_clk_n
+# SYS clock 200 MHz (input) signal. The sys_clk_p and sys_clk_n
 # signals are the PCI Express reference clock. Virtex-7 GT
 # Transceiver architecture requires the use of a dedicated clock
 # resources (FPGA input pins) associated with each GT Transceiver.
@@ -163,13 +137,12 @@ set_false_path -to [get_ports -filter {NAME=~led_*}]
 # instantiated in user's design.
 # Please refer to the Virtex-7 GT Transceiver User Guide
 # (UG) for guidelines regarding clock resource selection.
-#
 
 set_property LOC IBUFDS_GTE2_X0Y2 [get_cells refclk_ibuf]
 
 set_false_path -from [get_ports sys_rst_n]
 
-
 ###############################################################################
 # End
 ###############################################################################
+
