@@ -1,5 +1,5 @@
 // written 2019-09-22 by mza
-// last updated 2025-03-05 by mza
+// last updated 2025-03-11 by mza
 
 `ifndef GENERIC_LIB
 `define GENERIC_LIB
@@ -48,10 +48,10 @@ module histogram8_tb #(
 		clock <= ~clock; #HALF_CLOCK_PERIOD;
 	end
 	reg [NUMBER_OF_BINS-1:0] pre_pulse = 0, pulse = 0;
+	reg pre_clear = 0, clear = 0;
 	always @(posedge clock) begin
 		pulse <= pre_pulse; clear <= pre_clear;
 	end
-	reg pre_clear = 0, clear = 0;
 	initial begin
 		#(4*CLOCK_PERIOD);
 		pre_clear <= 1'b1; #CLOCK_PERIOD; pre_clear <= 1'b0; #CLOCK_PERIOD;
