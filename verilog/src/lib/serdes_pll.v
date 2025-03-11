@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2024-12-11 by mza
+// last updated 2025-03-11 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -562,6 +562,83 @@ module iserdes_tetracontaoctagon_input #(
 endmodule
 
 // --------------------------------------------------------------------------
+
+//	ocyrus_7series_inner #(.DATA_WIDTH(DATA_WIDTH), .DDRSDR(DDRSDR)) o7si (.bit_clock(bit_clock), .word_clock(word_clock), .reset(reset), .input_word(input_word), .output_bit(output_bit));
+module ocyrus_7series_inner #(
+	parameter DATA_WIDTH = 8,
+	parameter DDRSDR = "DDR"
+) (
+	input bit_clock, word_clock, reset,
+	input [DATA_WIDTH-1:0] input_word,
+	output output_bit
+);
+	wire [7:0] word;
+	if (DATA_WIDTH==8) begin
+		assign word = input_word;
+	end else begin
+		assign word = { {8-DATA_WIDTH{1'b0}}, input_word };
+	end
+	// from ug768:
+	OSERDESE2 #(
+		.DATA_RATE_OQ(DDRSDR), // DDR, SDR
+		.DATA_RATE_TQ(DDRSDR), // DDR, BUF, SDR
+		.DATA_WIDTH(DATA_WIDTH), // Parallel data width (2-8,10,14)
+		.INIT_OQ(1'b0), // Initial value of OQ output (1'b0,1'b1)
+		.INIT_TQ(1'b0), // Initial value of TQ output (1'b0,1'b1)
+		.SERDES_MODE("MASTER"), // M*****, S****
+		.SRVAL_OQ(1'b0), // OQ output value when SR is used (1'b0,1'b1)
+		.SRVAL_TQ(1'b0), // TQ output value when SR is used (1'b0,1'b1)
+		.TBYTE_CTL("FALSE"), // Enable tristate byte operation (FALSE, TRUE)
+		.TBYTE_SRC("FALSE"), // Tristate byte source (FALSE, TRUE)
+		.TRISTATE_WIDTH(1) // 3-state converter width (1,4)
+// when set to 4:
+//[DRC AVAL-68] OSERDES_TqDdrTriWidth4: Unexpected programming for o7s_a/o7si/OSERDESE2_instance with DATA_RATE_TQ DDR and TRISTATE_WIDTH 4. With this programming DATE_RATE_OQ DDR should be set with DATA_WIDTH 4 or DATA_RATE_OQ SDR should be set with DATA_WIDTH 2
+//[DRC AVAL-69] OSERDES_DataWidth4Tri1: Unsupported programming for o7s_a/o7si/OSERDESE2_instance. DATA_WIDTH set greater than 4 requires TRISTATE_WIDTH to be set to 1
+	) OSERDESE2_instance (
+		.RST(reset), // 1-bit input: Reset
+		.CLK(bit_clock), // 1-bit input: High speed clock
+		.CLKDIV(word_clock), // 1-bit input: Divided clock
+		.D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]), .D5(word[3]), .D6(word[2]), .D7(word[1]), .D8(word[0]), // D1 - D8: 1-bit (each) input: Parallel data inputs (1-bit each)
+		.OQ(output_bit), // 1-bit output: Data path output
+		.OCE(1'b1), // 1-bit input: Output data clock enable
+		.SHIFTIN1(1'b0), .SHIFTIN2(1'b0), // SHIFTIN1 / SHIFTIN2: 1-bit (each) input: Data input expansion (1-bit each)
+		.T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0), // T1 - T4: 1-bit (each) input: Parallel 3-state inputs
+		.TBYTEIN(1'b0), // 1-bit input: Byte group tristate
+		.TCE(1'b0), // 1-bit input: 3-state clock enable
+		.SHIFTOUT1(), .SHIFTOUT2(), // SHIFTOUT1 / SHIFTOUT2: 1-bit (each) output: Data output expansion (1-bit each)
+		.TBYTEOUT(), // 1-bit output: Byte group tristate
+		.TFB(), // 1-bit output: 3-state control
+		.OFB(), // 1-bit output: Feedback path for data
+		.TQ() // 1-bit output: 3-state control
+	);
+endmodule
+
+//	ocyrus_7series #(.DATA_WIDTH(DATA_WIDTH), .DDRSDR(DDRSDR)) o7s (.bit_clock(bit_clock), .word_clock(word_clock), .reset(reset), .input_word(input_word), .output_bit(output_bit));
+module ocyrus_7series #(
+	parameter DATA_WIDTH = 8,
+	parameter DDRSDR = "DDR",
+	parameter BUFR_DIVIDE = DDRSDR == "DDR" ? DATA_WIDTH / 2 : DATA_WIDTH
+) (
+	input bit_clock,
+	input reset,
+	input [DATA_WIDTH-1:0] input_word,
+	output word_clock,
+	output output_bit
+);
+	// ug471 says CLK and DIVCLK must either:
+	// both come from a single MMCM/PLL
+	// or
+	// CLK must be from a BUFIO and CLKDIV must be from a BUFR
+	BUFR #(.BUFR_DIVIDE(BUFR_DIVIDE), .SIM_DEVICE("7SERIES")) deviate (.I(bit_clock), .O(word_clock), .CLR(reset), .CE(1'b1));
+	wire bit_clock_super;
+	BUFIO sally (.I(bit_clock), .O(bit_clock_super));
+	reg reset_copy1_on_word_clock = 1'b1, reset_copy2_on_word_clock = 1'b1;
+	always @(posedge word_clock) begin
+		reset_copy2_on_word_clock <= reset_copy1_on_word_clock;
+		reset_copy1_on_word_clock <= reset;
+	end
+	ocyrus_7series_inner #(.DATA_WIDTH(DATA_WIDTH), .DDRSDR(DDRSDR)) o7si (.bit_clock(bit_clock_super), .word_clock(word_clock), .reset(reset_copy2_on_word_clock), .input_word(input_word), .output_bit(output_bit));
+endmodule
 
 module ocyrus_single_inner #(
 	parameter BIT_RATIO = 4 // 2, 3, 4
