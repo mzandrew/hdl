@@ -164,7 +164,7 @@ always @(posedge sys_clk) begin
 	tx_word_counter <= tx_word_counter + 1'b1;
 end
 assign { led_3, led_2, led_1, led_0 } = { current_tx_word[3:0] };
-assign { USER_SMA_GPIO_P, USER_SMA_GPIO_N } = current_tx_word[5:4];
+assign { USER_SMA_CLOCK_P, USER_SMA_CLOCK_N } = current_tx_word[5:4];
 	always @(posedge user_clk) begin
 		user_reset_q  <= user_reset;
 		user_lnk_up_q <= user_lnk_up;
