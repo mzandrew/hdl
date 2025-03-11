@@ -135,8 +135,8 @@ module PRBS_LFSR #(
 	wire clock, reset, sysclk_pll_locked;
 	assign reset = 0;
 	MMCM_advanced #(
-		.CLOCK1_PERIOD_NS(5.0), .D(1), .M(5), // Fvco = [600, 1440] MHz
-		.CLKOUT0_DIVIDE(128.0), // 7.8 MHz
+		.CLOCK1_PERIOD_NS(5.0), .D(1), .M(7), // Fvco = [600, 1440] MHz
+		.CLKOUT0_DIVIDE(2.75), // 509 MHz
 		.CLKOUT1_DIVIDE(1), //
 		.CLKOUT2_DIVIDE(1), //
 		.CLKOUT3_DIVIDE(1), //
@@ -148,8 +148,6 @@ module PRBS_LFSR #(
 		.clock0_out_p(clock), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
 		.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
 		.clock4_out(), .clock5_out(), .clock6_out());
-	//OBUF oclk1 (.I(sysclk), .O(USER_SMA_CLOCK_P));
-	//OBUF oclk2 (.I(clock), .O(USER_SMA_CLOCK_N));
 	if (0) begin
 		reg [26:0] counter = 0;
 		always @(posedge clock) begin
@@ -162,7 +160,6 @@ module PRBS_LFSR #(
 	end else if (1) begin
 		wire [OUTPUT_WIDTH-1:0] rand;
 		prbs_wide #(.OUTPUT_WIDTH(OUTPUT_WIDTH)) pw (.clock(clock), .reset(reset), .rand(rand));
-		//prbs_wide #(.OUTPUT_WIDTH(OUTPUT_WIDTH)) pw (.clock(sysclk), .reset(reset), .rand(rand));
 		OBUF blah_7 (.I(rand[7]), .O(USER_SMA_GPIO_P));
 		OBUF blah_6 (.I(rand[6]), .O(USER_SMA_GPIO_N));
 		OBUF blah_5 (.I(rand[5]), .O(USER_SMA_CLOCK_P));

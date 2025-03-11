@@ -44,13 +44,21 @@ set_property IOSTANDARD SSTL15 [get_ports GPIO_SW_C]
 # user_gpio sma connectors (1.5V bank): pdf page 3, 8
 set_property PACKAGE_PIN T8 [get_ports USER_SMA_GPIO_P]
 set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_GPIO_P]
+set_property DRIVE 16 [get_ports USER_SMA_GPIO_P]
+set_property SLEW FAST [get_ports USER_SMA_GPIO_P]
 set_property PACKAGE_PIN T7 [get_ports USER_SMA_GPIO_N]
 set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_GPIO_N]
+set_property DRIVE 16 [get_ports USER_SMA_GPIO_N]
+set_property SLEW FAST [get_ports USER_SMA_GPIO_N]
 # user_clk (vcco_vadj=1.8, 2.5, 3.3, controllable by PMBus addr 102): pdf page 3, 22
 set_property PACKAGE_PIN J23 [get_ports USER_SMA_CLOCK_P]
 set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_CLOCK_P]
+set_property DRIVE 16 [get_ports USER_SMA_CLOCK_P]
+set_property SLEW FAST [get_ports USER_SMA_CLOCK_P]
 set_property PACKAGE_PIN H23 [get_ports USER_SMA_CLOCK_N]
 set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_CLOCK_N]
+set_property DRIVE 16 [get_ports USER_SMA_CLOCK_N]
+set_property SLEW FAST [get_ports USER_SMA_CLOCK_N]
 
 # unsorted:
 set_property PACKAGE_PIN AB22 [get_ports No]
