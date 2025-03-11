@@ -45,7 +45,7 @@
 ## File       : xilinx_pcie_7x_ep_x4g2_AC701.xdc
 ## Version    : 3.1
 ###############################################################################
-# User Configuration 
+# User Configuration
 # Link Width   - x4
 # Link Speed   - gen2
 # Family       - artix7
@@ -77,14 +77,8 @@ set_false_path -to [get_pins {ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_
 set_false_path -to [get_pins {ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/S1}]
 create_generated_clock -name clk_125mhz_x0y0 [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/mmcm_i/CLKOUT0]
 create_generated_clock -name clk_250mhz_x0y0 [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/mmcm_i/CLKOUT1]
-create_generated_clock -name clk_125mhz_mux_x0y0 \ 
-                        -source [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/I0] \
-                        -divide_by 1 \
-                        [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/O]
-create_generated_clock -name clk_250mhz_mux_x0y0 \ 
-                        -source [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/I1] \
-                        -divide_by 1 -add -master_clock [get_clocks -of [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/I1]] \
-                        [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/O]
+create_generated_clock -name clk_125mhz_mux_x0y0 -source [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/I0] -divide_by 1 [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/O]
+create_generated_clock -name clk_250mhz_mux_x0y0 -source [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/I1] -divide_by 1 -add -master_clock [get_clocks -of [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/I1]] [get_pins ac701_pcie_x4_gen2_support_i/pipe_clock_i/pclk_i1_bufgctrl.pclk_i1/O]
 set_clock_groups -name pcieclkmux -physically_exclusive -group clk_125mhz_mux_x0y0 -group clk_250mhz_mux_x0y0
 # Timing ignoring the below pins to avoid CDC analysis, but care has been taken in RTL to sync properly to other clock domain.
 ###############################################################################
