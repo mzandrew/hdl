@@ -62,6 +62,7 @@ module xilinx_pcie_2_1_ep_7x # (
 	parameter C_DATA_WIDTH        = 64, // RX/TX interface data width
 	parameter KEEP_WIDTH          = C_DATA_WIDTH / 8 // TSTRB width
 ) (
+	output USER_SMA_CLOCK_P, USER_SMA_CLOCK_N,
 	output  [3:0]    pci_exp_txp,
 	output  [3:0]    pci_exp_txn,
 	input   [3:0]    pci_exp_rxp,
@@ -154,7 +155,7 @@ module xilinx_pcie_2_1_ep_7x # (
 	IBUF   sys_reset_n_ibuf (.O(sys_rst_n_c), .I(sys_rst_n));
 	IBUFDS_GTE2 refclk_ibuf (.O(sys_clk), .ODIV2(), .I(sys_clk_p), .CEB(1'b0), .IB(sys_clk_n));
 //assign { led_3, led_2, led_1, led_0 } = { user_clk_heartbeat[25], user_lnk_up, ~user_reset, sys_rst_n_c };
-localparam TX_WORD_WIDTH = 4;
+localparam TX_WORD_WIDTH = 6;
 reg [TX_WORD_WIDTH-1:0] current_tx_word = 0;
 localparam TX_WORD_COUNTER_WIDTH = 8;
 reg [TX_WORD_COUNTER_WIDTH-1:0] tx_word_counter = 0;
@@ -163,6 +164,7 @@ always @(posedge sys_clk) begin
 	tx_word_counter <= tx_word_counter + 1'b1;
 end
 assign { led_3, led_2, led_1, led_0 } = { current_tx_word[3:0] };
+assign { USER_SMA_GPIO_P, USER_SMA_GPIO_N } = current_tx_word[5:4];
 	always @(posedge user_clk) begin
 		user_reset_q  <= user_reset;
 		user_lnk_up_q <= user_lnk_up;
