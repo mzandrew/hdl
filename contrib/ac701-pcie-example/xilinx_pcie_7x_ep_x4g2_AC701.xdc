@@ -139,8 +139,12 @@ set_false_path -from [get_ports sys_rst_n]
 # user_clk (vcco_vadj=1.8, 2.5, 3.3, controllable by PMBus addr 102): pdf page 3, 22
 set_property PACKAGE_PIN J23 [get_ports USER_SMA_CLOCK_P]
 set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_CLOCK_P]
+set_property DRIVE 16 [get_ports USER_SMA_CLOCK_P]
+set_property SLEW FAST [get_ports USER_SMA_CLOCK_P]
 set_property PACKAGE_PIN H23 [get_ports USER_SMA_CLOCK_N]
 set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_CLOCK_N]
+set_property DRIVE 16 [get_ports USER_SMA_CLOCK_N]
+set_property SLEW FAST [get_ports USER_SMA_CLOCK_N]
 
 ###############################################################################
 # End
