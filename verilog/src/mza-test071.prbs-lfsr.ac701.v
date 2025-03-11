@@ -5,11 +5,13 @@
 
 // cd /opt/Xilinx/Vivado/2023.2/data/xicom/cable_drivers/lin64/install_script/install_drivers; sudo ./install_drivers
 
+`include "lib/generic.v"
 `include "lib/plldcm.v"
 `include "lib/serdes_pll.v"
 
 module PRBS_LFSR #(
-	parameter OUTPUT_WIDTH = 8,
+	parameter OSERDES_WIDTH = 8,
+	parameter PRBSLFSR_WIDTH = OSERDES_WIDTH + OSERDES_WIDTH,
 	parameter COUNTER_PICKOFF_RESET1 = 14,
 	parameter COUNTER_PICKOFF_RESET2 = COUNTER_PICKOFF_RESET1 + 1,
 	parameter COUNTER_PICKOFF_RESET3 = COUNTER_PICKOFF_RESET2 + 1,
@@ -68,8 +70,8 @@ module PRBS_LFSR #(
 		OBUF blah_p (.I(counter[2]), .O(USER_SMA_GPIO_P));
 		OBUF blah_n (.I(counter[1]), .O(USER_SMA_GPIO_N));
 	end else if (0) begin
-		wire [OUTPUT_WIDTH-1:0] rand;
-		prbs_wide #(.OUTPUT_WIDTH(OUTPUT_WIDTH)) pw (.clock(word_clock), .reset(reset4_copy2_on_word_clock), .rand(rand));
+		wire [PRBSLFSR_WIDTH-1:0] rand;
+		prbs_wide #(.OUTPUT_WIDTH(PRBSLFSR_WIDTH)) pw (.clock(word_clock), .reset(reset4_copy2_on_word_clock), .rand(rand));
 		OBUF blah_7 (.I(rand[7]), .O(USER_SMA_GPIO_P));
 		OBUF blah_6 (.I(rand[6]), .O(USER_SMA_GPIO_N));
 		OBUF blah_5 (.I(rand[5]), .O(USER_SMA_CLOCK_P));
@@ -77,13 +79,15 @@ module PRBS_LFSR #(
 		assign { GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0 } = rand[3:0];
 	end else if (1) begin
 		BUFMRCE #(.CE_TYPE("ASYNC")) mr (.I(raw_bit_clock), .CE(~reset3_copy2_on_raw_bit_clock), .O(bit_clock));
-		wire [OUTPUT_WIDTH-1:0] rand;
-		prbs_wide #(.OUTPUT_WIDTH(OUTPUT_WIDTH)) pw (.clock(word_clock), .reset(reset4_copy2_on_word_clock), .rand(rand));
-		OBUF blah_7 (.I(rand[7]), .O(USER_SMA_GPIO_P));
-		OBUF blah_6 (.I(rand[6]), .O(USER_SMA_GPIO_N));
+		wire [PRBSLFSR_WIDTH-1:0] rand;
+		prbs_wide #(.OUTPUT_WIDTH(PRBSLFSR_WIDTH)) pw (.clock(word_clock), .reset(reset4_copy2_on_word_clock), .rand(rand));
+		wire word_clock_copy;
+		BUFG wcc (.I(word_clock), .O(word_clock_copy));
+		myoddr oddr_p (.clock(word_clock_copy), .out(USER_SMA_GPIO_P));
+		myoddr oddr_n (.clock(word_clock_copy), .out(USER_SMA_GPIO_N));
 		assign { GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0 } = rand[3:0];
-		ocyrus_7series #(.DATA_WIDTH(OUTPUT_WIDTH), .DDRSDR("DDR")) o7s_p (.bit_clock(bit_clock), .word_clock(word_clock), .reset(reset2_copy2_on_raw_bit_clock), .input_word(rand), .output_bit(USER_SMA_CLOCK_P));
-		ocyrus_7series #(.DATA_WIDTH(OUTPUT_WIDTH), .DDRSDR("DDR")) o7s_n (.bit_clock(bit_clock), .word_clock(), .reset(reset2_copy2_on_raw_bit_clock), .input_word(rand), .output_bit(USER_SMA_CLOCK_N));
+		ocyrus_7series #(.DATA_WIDTH(OSERDES_WIDTH), .DDRSDR("DDR")) o7s_p (.bit_clock(bit_clock), .word_clock(word_clock), .reset(reset2_copy2_on_raw_bit_clock), .input_word(rand[7:0]), .output_bit(USER_SMA_CLOCK_P));
+		ocyrus_7series #(.DATA_WIDTH(OSERDES_WIDTH), .DDRSDR("DDR")) o7s_n (.bit_clock(bit_clock), .word_clock(), .reset(reset2_copy2_on_raw_bit_clock), .input_word(rand[15:8]), .output_bit(USER_SMA_CLOCK_N));
 	end else begin
 		wire [31:0] rand32;
 		prbs #(.WIDTH(32), .TAPA(28), .TAPB(31)) lfsr32 (.clock(clock), .reset(reset3), .word(rand32));

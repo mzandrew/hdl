@@ -55,3 +55,13 @@ set_false_path -to [ get_pins reset3_copy1_on_raw_bit_clock_reg/D ];
 set_false_path -to [ get_pins reset4_copy1_on_word_clock_reg/D ];
 set_false_path -to [ get_pins o7s_p/reset_copy1_on_word_clock_reg/D ];
 
+# no_output_delay:
+set_false_path -to [ get_ports GPIO_LED_0 ];
+set_false_path -to [ get_ports GPIO_LED_1 ];
+set_false_path -to [ get_ports GPIO_LED_2 ];
+set_false_path -to [ get_ports GPIO_LED_3 ];
+#user_sma_gpio_p
+#user_sma_gpio_n
+#user_sma_clock_p
+#user_sma_clock_n
+

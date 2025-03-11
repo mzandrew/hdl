@@ -591,6 +591,8 @@ module ocyrus_7series_inner #(
 		.TBYTE_CTL("FALSE"), // Enable tristate byte operation (FALSE, TRUE)
 		.TBYTE_SRC("FALSE"), // Tristate byte source (FALSE, TRUE)
 		.TRISTATE_WIDTH(1) // 3-state converter width (1,4)
+// when set to 1:
+//[DRC AVAL-70] OSERDES_DataRateTqTriWidth: Unexpected programming for o7s_n/o7si/OSERDESE2_instance with TRISTATE_WIDTH. DATA_RATE_TQ set DDR expects TRISTATE_WIDTH to be set 4
 // when set to 4:
 //[DRC AVAL-68] OSERDES_TqDdrTriWidth4: Unexpected programming for o7s_a/o7si/OSERDESE2_instance with DATA_RATE_TQ DDR and TRISTATE_WIDTH 4. With this programming DATE_RATE_OQ DDR should be set with DATA_WIDTH 4 or DATA_RATE_OQ SDR should be set with DATA_WIDTH 2
 //[DRC AVAL-69] OSERDES_DataWidth4Tri1: Unsupported programming for o7s_a/o7si/OSERDESE2_instance. DATA_WIDTH set greater than 4 requires TRISTATE_WIDTH to be set to 1
