@@ -62,13 +62,16 @@ module GTP_TEST #(
 		.clock0_out_p(raw_bit_clock), .clock0_out_n(), .clock1_out_p(word_clock), .clock1_out_n(),
 		.clock2_out_p(drp_clock_raw), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
 		.clock4_out(), .clock5_out(), .clock6_out());
+	wire gt1_txusrclk2_i;
+	wire [15:0] gt1_txdata_i;
 	if (1) begin
 		reg [26:0] counter = 0;
-		always @(posedge word_clock) begin
+		always @(posedge gt1_txusrclk2_i) begin
 			counter <= counter + 1'b1;
 		end
 		assign { GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0 } = counter[26:23];
-		x0y3_sma_exdes mygtp (.Q0_CLK0_GTREFCLK_PAD_N_IN(Q0_CLK0_GTREFCLK_PAD_N_IN), .Q0_CLK0_GTREFCLK_PAD_P_IN(Q0_CLK0_GTREFCLK_PAD_P_IN), .DRPCLK_IN(drp_clock_raw), .TXP_OUT(SMA_MGT_TX_P), .TXN_OUT(SMA_MGT_TX_N));
+		assign gt1_txdata_i = counter[15:0];
+		x0y3_sma_exdes mygtp (.Q0_CLK0_GTREFCLK_PAD_N_IN(Q0_CLK0_GTREFCLK_PAD_N_IN), .Q0_CLK0_GTREFCLK_PAD_P_IN(Q0_CLK0_GTREFCLK_PAD_P_IN), .DRPCLK_IN(drp_clock_raw), .gt1_txdata_i(gt1_txdata_i), .gt1_txusrclk2_i(gt1_txusrclk2_i), .TXP_OUT(SMA_MGT_TX_P), .TXN_OUT(SMA_MGT_TX_N));
 	end
 endmodule
 

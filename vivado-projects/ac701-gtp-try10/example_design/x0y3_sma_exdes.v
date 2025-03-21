@@ -70,6 +70,8 @@ module x0y3_sma_exdes #(
 		input Q0_CLK0_GTREFCLK_PAD_N_IN,
 		input Q0_CLK0_GTREFCLK_PAD_P_IN,
 		input DRPCLK_IN,
+		input [15:0] gt1_txdata_i,
+		output gt1_txusrclk2_i,
 //		input GTTX_RESET_IN,
 //		input GTRX_RESET_IN,
 //		input PLL0_RESET_IN,
@@ -148,8 +150,6 @@ module x0y3_sma_exdes #(
 	//------------------- TX Initialization and Reset Ports --------------------
 	wire            gt1_gttxreset_i;
 	wire            gt1_txuserrdy_i;
-	//---------------- Transmit Ports - FPGA TX Interface Ports ----------------
-	wire    [15:0]  gt1_txdata_i;
 	//------------- Transmit Ports - TX Configurable Driver Ports --------------
 	wire            gt1_gtptxn_i;
 	wire            gt1_gtptxp_i;
@@ -175,17 +175,16 @@ module x0y3_sma_exdes #(
 	wire    [63:0]  tied_to_ground_vec_i;
 	wire            tied_to_vcc_i;
 	wire    [7:0]   tied_to_vcc_vec_i;
-	wire            GTTXRESET_IN;
-	wire            GTRXRESET_IN;
-	wire            PLL0RESET_IN;
-	wire            PLL1RESET_IN;
+//	wire            GTTXRESET_IN;
+//	wire            GTRXRESET_IN;
+//	wire            PLL0RESET_IN;
+//	wire            PLL1RESET_IN;
 	//--------------------------- User Clocks ---------------------------------
 	wire            gt0_txusrclk_i; 
 	wire            gt0_txusrclk2_i; 
 	wire            gt0_rxusrclk_i; 
 	wire            gt0_rxusrclk2_i; 
 	wire            gt1_txusrclk_i; 
-	wire            gt1_txusrclk2_i; 
 	wire            gt1_rxusrclk_i; 
 	wire            gt1_rxusrclk2_i; 
 	//--------------------------- Reference Clocks ----------------------------
@@ -459,16 +458,16 @@ module x0y3_sma_exdes #(
 		.USER_CLK                        (gt0_txusrclk2_i),
 		.SYSTEM_RESET                   (gt0_tx_system_reset_c)
 	);
-	x0y3_sma_GT_FRAME_GEN #(
-		.WORDS_IN_BRAM(EXAMPLE_WORDS_IN_BRAM)
-	) gt1_frame_gen (
-		// User Interface
-		.TX_DATA_OUT                    ({gt1_txdata_float_i,gt1_txdata_i,gt1_txdata_float16_i}),
-		.TXCTRL_OUT                     (),
-		// System Interface
-		.USER_CLK                        (gt1_txusrclk2_i),
-		.SYSTEM_RESET                   (gt1_tx_system_reset_c)
-	);
+//	x0y3_sma_GT_FRAME_GEN #(
+//		.WORDS_IN_BRAM(EXAMPLE_WORDS_IN_BRAM)
+//	) gt1_frame_gen (
+//		// User Interface
+//		.TX_DATA_OUT                    ({gt1_txdata_float_i,gt1_txdata_i,gt1_txdata_float16_i}),
+//		.TXCTRL_OUT                     (),
+//		// System Interface
+//		.USER_CLK                        (gt1_txusrclk2_i),
+//		.SYSTEM_RESET                   (gt1_tx_system_reset_c)
+//	);
 	//***********************************************************************//
 	//------------------------  Frame Checkers  -----------------------------//
 	//***********************************************************************//
