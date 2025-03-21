@@ -19,6 +19,8 @@ module GTP_TEST #(
 	parameter COUNTER_PICKOFF_RESET4 = COUNTER_PICKOFF_RESET3 + 1
 ) (
 	input SYSCLK_P, SYSCLK_N, // 200 MHz
+	input Q0_CLK0_GTREFCLK_PAD_N_IN, Q0_CLK0_GTREFCLK_PAD_P_IN, // 125 MHz
+	output SMA_MGT_TX_P, SMA_MGT_TX_N,
 	output GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0
 );
 	wire sysclk;
@@ -45,11 +47,12 @@ module GTP_TEST #(
 		reset4_copy2_on_word_clock <= reset4_copy1_on_word_clock;
 		reset4_copy1_on_word_clock <= reset4_sysclk;
 	end
+	wire drp_clock_raw;
 	MMCM_advanced #(
 		.CLOCK1_PERIOD_NS(5.0), .D(4), .M(25), // Fvco = [600, 1440] MHz
 		.CLKOUT0_DIVIDE(2), // 625 MHz (DDR yields 1250 MHz)
 		.CLKOUT1_DIVIDE(8), //
-		.CLKOUT2_DIVIDE(1), //
+		.CLKOUT2_DIVIDE(10), // 125 MHz for DRP clock for GTP
 		.CLKOUT3_DIVIDE(1), //
 		.CLKOUT4_DIVIDE(1), //
 		.CLKOUT5_DIVIDE(1), //
@@ -57,7 +60,7 @@ module GTP_TEST #(
 			) mymmcm0 (
 		.clock_in(sysclk), .reset(reset1_sysclk), .locked(sysclk_pll_locked),
 		.clock0_out_p(raw_bit_clock), .clock0_out_n(), .clock1_out_p(word_clock), .clock1_out_n(),
-		.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
+		.clock2_out_p(drp_clock_raw), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
 		.clock4_out(), .clock5_out(), .clock6_out());
 	if (1) begin
 		reg [26:0] counter = 0;
@@ -65,7 +68,7 @@ module GTP_TEST #(
 			counter <= counter + 1'b1;
 		end
 		assign { GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0 } = counter[26:23];
-		x0y3_sma_exdes mygtp (.Q0_CLK0_GTREFCLK_PAD_N_IN(), .Q0_CLK0_GTREFCLK_PAD_P_IN(), .DRP_CLK_IN_P(), .DRP_CLK_IN_N(), .GTTX_RESET_IN(), .GTRX_RESET_IN(), .PLL0_RESET_IN(), .PLL1_RESET_IN(), .TXN_OUT(), .TXP_OUT());
+		x0y3_sma_exdes mygtp (.Q0_CLK0_GTREFCLK_PAD_N_IN(Q0_CLK0_GTREFCLK_PAD_N_IN), .Q0_CLK0_GTREFCLK_PAD_P_IN(Q0_CLK0_GTREFCLK_PAD_P_IN), .DRPCLK_IN(drp_clock_raw), .TXP_OUT(SMA_MGT_TX_P), .TXN_OUT(SMA_MGT_TX_N));
 	end
 endmodule
 
