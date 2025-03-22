@@ -507,18 +507,18 @@ module duty_cycle_nw_tb #(
 	initial begin
 		#WAIT_PERIOD;
 		for (truth=0; truth<=W; truth=truth+STEP) begin
-			for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
-			for (j=truth; j<W; j=j+1) begin waveform[j] <= 1'b0; end;
+			for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end
+			for (j=truth; j<W; j=j+1) begin waveform[j] <= 1'b0; end
 			#WAIT_PERIOD;
-		end;
+		end
 		#WAIT_PERIOD;
 		truth = 13;
-		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
-		for (j=truth; j<W; j=j+1) begin waveform[j] <= 1'b0; end;
+		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end
+		for (j=truth; j<W; j=j+1) begin waveform[j] <= 1'b0; end
 		#WAIT_PERIOD;
 		truth = 0;
-		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
-		for (j=truth; j<W; j=j+1) begin waveform[j] <= 1'b0; end;
+		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end
+		for (j=truth; j<W; j=j+1) begin waveform[j] <= 1'b0; end
 		#WAIT_PERIOD; $finish;
 	end
 	duty_cycle_nw #(.N(N), .ISERDES_WIDTH(1), .RATIO_OF_EXAMINATION_WIDTH_TO_ISERDES_WIDTH(2)) mdc_single_1_2 (.clock(clock), .signal_in(signal), .duty_cycle_perHEXage(duty_cycle_perHEXage_single_1_2), .valid(valid_single_1_2));
@@ -628,18 +628,18 @@ module duty_cycle_tb #(
 	initial begin
 		#WAIT_PERIOD;
 		for (truth=0; truth<=N; truth=truth+STEP) begin
-			for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
-			for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+			for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end
+			for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end
 			#WAIT_PERIOD;
-		end;
+		end
 		#WAIT_PERIOD;
 		truth = 13;
-		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
-		for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end
+		for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end
 		#WAIT_PERIOD;
 		truth = 0;
-		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end;
-		for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end;
+		for (j=0; j<truth; j=j+1) begin waveform[j] <= 1'b1; end
+		for (j=truth; j<N; j=j+1) begin waveform[j] <= 1'b0; end
 		#WAIT_PERIOD; $finish;
 	end
 	duty_cycle #(.N(N)) mdc (.clock(clock), .signal_in(signal), .duty_cycle_perHEXage(duty_cycle_perHEXage), .valid(valid));
