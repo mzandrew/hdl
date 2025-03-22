@@ -1,4 +1,4 @@
-# 2025-03-20 modified from xilinx original by mza
+# 2025-03-21 modified from xilinx original by mza
 # last updated 2025-03-21 by mza
 ################################################################################
 ##   ____  ____
@@ -6,7 +6,7 @@
 ## /___/  \  /    Vendor: Xilinx
 ## \   \   \/     Version : 3.6
 ##  \   \         Application : 7 Series FPGAs Transceivers Wizard
-##  /   /         Filename : x0y3_sma_exdes.xdc
+##  /   /         Filename : gtwizard_0_exdes.xdc
 ## /___/   /\     
 ## \   \  /  \ 
 ##  \___\/\___\
@@ -58,27 +58,33 @@
 
 ################################## Clock Constraints ##########################
 
-####################### GT reference clock constraints #########################
 
+####################### GT reference clock constraints #########################
+ 
 create_clock -period 8.0 [get_ports Q0_CLK0_GTREFCLK_PAD_P_IN]
+
+#create_clock -name drpclk_in_i -period 8.0 [get_ports DRP_CLK_IN_P]
 
 # User Clock Constraints
 
 set_false_path -to [get_pins -filter {REF_PIN_NAME=~*CLR} -of_objects [get_cells -hierarchical -filter {NAME =~ *_txfsmresetdone_r*}]]
 set_false_path -to [get_pins -filter {REF_PIN_NAME=~*D} -of_objects [get_cells -hierarchical -filter {NAME =~ *_txfsmresetdone_r*}]]
-
-# mygtp/x0y3_sma_support_i/x0y3_sma_init_i/inst/gt0_txresetfsm_i/wait_bypass_count_reg[6]/C
-# mygtp/x0y3_sma_support_i/x0y3_sma_init_i/inst/gt0_txresetfsm_i/wait_bypass_count_reg[12]/CE
-
 ################################# RefClk Location constraints #####################
 
 set_property LOC AB13 [get_ports Q0_CLK0_GTREFCLK_PAD_N_IN ] 
 set_property LOC AA13 [get_ports Q0_CLK0_GTREFCLK_PAD_P_IN ]
 
+## LOC constrain for DRP_CLK_P/N 
+ 
+#set_property LOC R3 [get_ports  DRP_CLK_IN_P]
+#set_property LOC P3 [get_ports  DRP_CLK_IN_N]
+ 
+################################# mgt wrapper constraints #####################
+
 ##---------- Set placement for gt0_gtp_wrapper_i/GTPE2_CHANNEL ------
-set_property LOC GTPE2_CHANNEL_X0Y0 [get_cells mygtp/x0y3_sma_support_i/x0y3_sma_init_i/inst/x0y3_sma_i/gt0_x0y3_sma_i/gtpe2_i]
+set_property LOC GTPE2_CHANNEL_X0Y0 [get_cells mygtppair/gtwizard_0_support_i/gtwizard_0_init_i/inst/gtwizard_0_i/gt0_gtwizard_0_i/gtpe2_i]
 ##---------- Set placement for gt1_gtp_wrapper_i/GTPE2_CHANNEL ------
-set_property LOC GTPE2_CHANNEL_X0Y3 [get_cells mygtp/x0y3_sma_support_i/x0y3_sma_init_i/inst/x0y3_sma_i/gt1_x0y3_sma_i/gtpe2_i]
+set_property LOC GTPE2_CHANNEL_X0Y3 [get_cells mygtppair/gtwizard_0_support_i/gtwizard_0_init_i/inst/gtwizard_0_i/gt1_gtwizard_0_i/gtpe2_i]
 
 ##---------- Set ASYNC_REG for flop which have async input ----------
 ##set_property ASYNC_REG TRUE [get_cells -hier -filter {name=~*gt0_frame_gen*system_reset_r_reg}]
