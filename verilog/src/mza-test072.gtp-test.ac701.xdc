@@ -33,6 +33,8 @@ set_property IOSTANDARD LVCMOS33 [get_ports GPIO_LED_3]
 # bank_213 gtp quad:
 set_property PACKAGE_PIN AE7 [get_ports SMA_MGT_TX_P]
 set_property PACKAGE_PIN AF7 [get_ports SMA_MGT_TX_N]
+set_property PACKAGE_PIN AC10 [get_ports SFP_MGT_TX_P]
+set_property PACKAGE_PIN AD10 [get_ports SFP_MGT_TX_N]
 #set_property PACKAGE_PIN AA13 [get_ports SFP_MGT_CLK0_P]
 #set_property PACKAGE_PIN AB13 [get_ports SFP_MGT_CLK0_N]
 #set_property PACKAGE_PIN AA11 [get_ports SFP_MGT_CLK1_P]

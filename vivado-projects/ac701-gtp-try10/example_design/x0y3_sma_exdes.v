@@ -70,14 +70,14 @@ module x0y3_sma_exdes #(
 		input Q0_CLK0_GTREFCLK_PAD_N_IN,
 		input Q0_CLK0_GTREFCLK_PAD_P_IN,
 		input DRPCLK_IN,
-		input [15:0] gt1_txdata,
-		output gt1_txusrclk2,
+		input [15:0] sfp_txdata, sma_txdata,
+		output sfp_txusrclk2, sma_txusrclk2,
 //		input GTTX_RESET_IN,
 //		input GTRX_RESET_IN,
 //		input PLL0_RESET_IN,
 //		input PLL1_RESET_IN,
-		output TXN_OUT,
-		output TXP_OUT
+		output SFP_TX_N, SFP_TX_P,
+		output SMA_TX_N, SMA_TX_P
 	);
 	wire soft_reset_i;
 	wire soft_reset_vio_i;
@@ -118,12 +118,11 @@ module x0y3_sma_exdes #(
 	wire            gt0_gttxreset_i;
 	wire            gt0_txuserrdy_i;
 	//---------------- Transmit Ports - FPGA TX Interface Ports ----------------
-	wire    [15:0]  gt0_txdata_i;
 	//------------- Transmit Ports - TX Configurable Driver Ports --------------
 	wire            gt0_gtptxn_i;
 	wire            gt0_gtptxp_i;
 	//--------- Transmit Ports - TX Fabric Clock Output Control Ports ----------
-	wire            gt0_txoutclk_i;
+//	wire            gt0_txoutclk_i;
 	wire            gt0_txoutclkfabric_i;
 	wire            gt0_txoutclkpcs_i;
 	//----------- Transmit Ports - TX Initialization and Reset Ports -----------
@@ -180,7 +179,6 @@ module x0y3_sma_exdes #(
 //	wire            PLL1RESET_IN;
 	//--------------------------- User Clocks ---------------------------------
 	wire            gt0_txusrclk_i; 
-	wire            gt0_txusrclk2_i; 
 	wire            gt0_rxusrclk_i; 
 	wire            gt0_rxusrclk2_i; 
 	wire            gt1_txusrclk_i; 
@@ -334,9 +332,9 @@ module x0y3_sma_exdes #(
 		.gt1_rx_fsm_reset_done_out      (gt1_rxfsmresetdone_i),
 		.gt1_data_valid_in              (tied_to_ground_i),
 		.gt0_txusrclk_out(gt0_txusrclk_i),
-		.gt0_txusrclk2_out(gt0_txusrclk2_i),
+		.gt0_txusrclk2_out(sfp_txusrclk2),
 		.gt1_txusrclk_out(gt1_txusrclk_i),
-		.gt1_txusrclk2_out(gt1_txusrclk2),
+		.gt1_txusrclk2_out(sma_txusrclk2),
 		//_____________________________________________________________________
 		//GT0  (X0Y0)
 		//-------------------------- Channel - DRP Ports  --------------------------
@@ -360,10 +358,10 @@ module x0y3_sma_exdes #(
 		.gt0_gttxreset_in               (tied_to_ground_i),
 		.gt0_txuserrdy_in               (tied_to_vcc_i),
 		//---------------- Transmit Ports - FPGA TX Interface Ports ----------------
-		.gt0_txdata_in                  (gt0_txdata_i),
+		.gt0_txdata_in                  (sfp_txdata),
 		//------------- Transmit Ports - TX Configurable Driver Ports --------------
-		.gt0_gtptxn_out                 (),
-		.gt0_gtptxp_out                 (),
+		.gt0_gtptxn_out                 (SFP_TX_N),
+		.gt0_gtptxp_out                 (SFP_TX_P),
 		//--------- Transmit Ports - TX Fabric Clock Output Control Ports ----------
 		.gt0_txoutclkfabric_out         (gt0_txoutclkfabric_i),
 		.gt0_txoutclkpcs_out            (gt0_txoutclkpcs_i),
@@ -392,10 +390,10 @@ module x0y3_sma_exdes #(
 		.gt1_gttxreset_in               (tied_to_ground_i),
 		.gt1_txuserrdy_in               (tied_to_vcc_i),
 		//---------------- Transmit Ports - FPGA TX Interface Ports ----------------
-		.gt1_txdata_in                  (gt1_txdata),
+		.gt1_txdata_in                  (sma_txdata),
 		//------------- Transmit Ports - TX Configurable Driver Ports --------------
-		.gt1_gtptxn_out                 (TXN_OUT),
-		.gt1_gtptxp_out                 (TXP_OUT),
+		.gt1_gtptxn_out                 (SMA_TX_N),
+		.gt1_gtptxp_out                 (SMA_TX_P),
 		//--------- Transmit Ports - TX Fabric Clock Output Control Ports ----------
 		.gt1_txoutclkfabric_out         (gt1_txoutclkfabric_i),
 		.gt1_txoutclkpcs_out            (gt1_txoutclkpcs_i),
@@ -418,7 +416,7 @@ module x0y3_sma_exdes #(
 	// are held in reset till the RESETDONE goes high. 
 	// The RESETDONE is registered a couple of times on *USRCLK2 and connected 
 	// to the reset of the modules
-	always @(posedge gt0_txusrclk2_i or negedge gt0_txfsmresetdone_i) begin
+	always @(posedge sfp_txusrclk2 or negedge gt0_txfsmresetdone_i) begin
 		if (!gt0_txfsmresetdone_i) begin
 			gt0_txfsmresetdone_r    <=   `DLY 1'b0;
 			gt0_txfsmresetdone_r2   <=   `DLY 1'b0;
@@ -427,7 +425,7 @@ module x0y3_sma_exdes #(
 			gt0_txfsmresetdone_r2   <=   `DLY gt0_txfsmresetdone_r;
 		end
 	end
-	always @(posedge gt1_txusrclk2 or negedge gt1_txfsmresetdone_i) begin
+	always @(posedge sma_txusrclk2 or negedge gt1_txfsmresetdone_i) begin
 		if (!gt1_txfsmresetdone_i) begin
 			gt1_txfsmresetdone_r    <=   `DLY 1'b0;
 			gt1_txfsmresetdone_r2   <=   `DLY 1'b0;
@@ -447,24 +445,24 @@ module x0y3_sma_exdes #(
 	// You can modify the data transmitted by changing the INIT values of the frame
 	// generator in this file. Pay careful attention to bit order and the spacing
 	// of your control and alignment characters.
-	x0y3_sma_GT_FRAME_GEN #(
-		.WORDS_IN_BRAM(EXAMPLE_WORDS_IN_BRAM)
-	) gt0_frame_gen (
-		// User Interface
-		.TX_DATA_OUT                    ({gt0_txdata_float_i,gt0_txdata_i,gt0_txdata_float16_i}),
-		.TXCTRL_OUT                     (),
-		// System Interface
-		.USER_CLK                        (gt0_txusrclk2_i),
-		.SYSTEM_RESET                   (gt0_tx_system_reset_c)
-	);
+//	x0y3_sma_GT_FRAME_GEN #(
+//		.WORDS_IN_BRAM(EXAMPLE_WORDS_IN_BRAM)
+//	) gt0_frame_gen (
+//		// User Interface
+//		.TX_DATA_OUT                    ({gt0_txdata_float_i,sfp_txdata,gt0_txdata_float16_i}),
+//		.TXCTRL_OUT                     (),
+//		// System Interface
+//		.USER_CLK                        (sfp_txusrclk2),
+//		.SYSTEM_RESET                   (gt0_tx_system_reset_c)
+//	);
 //	x0y3_sma_GT_FRAME_GEN #(
 //		.WORDS_IN_BRAM(EXAMPLE_WORDS_IN_BRAM)
 //	) gt1_frame_gen (
 //		// User Interface
-//		.TX_DATA_OUT                    ({gt1_txdata_float_i,gt1_txdata,gt1_txdata_float16_i}),
+//		.TX_DATA_OUT                    ({gt1_txdata_float_i,sma_txdata,gt1_txdata_float16_i}),
 //		.TXCTRL_OUT                     (),
 //		// System Interface
-//		.USER_CLK                        (gt1_txusrclk2),
+//		.USER_CLK                        (sma_txusrclk2),
 //		.SYSTEM_RESET                   (gt1_tx_system_reset_c)
 //	);
 	//***********************************************************************//

@@ -21,6 +21,7 @@ module GTP_TEST #(
 	input SYSCLK_P, SYSCLK_N, // 200 MHz
 	input Q0_CLK0_GTREFCLK_PAD_N_IN, Q0_CLK0_GTREFCLK_PAD_P_IN, // 125 MHz
 	output SMA_MGT_TX_P, SMA_MGT_TX_N,
+	output SFP_MGT_TX_P, SFP_MGT_TX_N,
 	output GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0
 );
 	wire sysclk;
@@ -53,20 +54,21 @@ module GTP_TEST #(
 		.clock0_out_p(), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
 		.clock2_out_p(drp_clock_raw), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
 		.clock4_out(), .clock5_out(), .clock6_out());
-	wire [15:0] txdata;
+	wire [15:0] sma_txdata, sfp_txdata;
 	if (0) begin
 		reg [26:0] counter = 0;
 		always @(posedge word_clock) begin
 			counter <= counter + 1'b1;
 		end
 		assign { GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0 } = counter[26:23];
-		assign txdata = counter[15:0];
+		assign sma_txdata = counter[15:0];
 	end else if (1) begin
-		wire [GTP_WIDTH-1:0] rand;
-		prbs_wide #(.OUTPUT_WIDTH(GTP_WIDTH)) pw (.clock(word_clock), .reset(reset4_copy2_on_word_clock), .rand(rand));
-		assign txdata = rand;
+		wire [2*GTP_WIDTH-1:0] rand;
+		prbs_wide #(.OUTPUT_WIDTH(2*GTP_WIDTH)) pw (.clock(word_clock), .reset(reset4_copy2_on_word_clock), .rand(rand));
+		assign sfp_txdata = rand[2*GTP_WIDTH-1:GTP_WIDTH];
+		assign sma_txdata = rand[GTP_WIDTH-1:0];
 		assign { GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0 } = rand[3:0];
 	end
-	x0y3_sma_exdes mygtp (.Q0_CLK0_GTREFCLK_PAD_N_IN(Q0_CLK0_GTREFCLK_PAD_N_IN), .Q0_CLK0_GTREFCLK_PAD_P_IN(Q0_CLK0_GTREFCLK_PAD_P_IN), .DRPCLK_IN(drp_clock_raw), .gt1_txdata(txdata), .gt1_txusrclk2(word_clock), .TXP_OUT(SMA_MGT_TX_P), .TXN_OUT(SMA_MGT_TX_N));
+	x0y3_sma_exdes mygtp (.Q0_CLK0_GTREFCLK_PAD_N_IN(Q0_CLK0_GTREFCLK_PAD_N_IN), .Q0_CLK0_GTREFCLK_PAD_P_IN(Q0_CLK0_GTREFCLK_PAD_P_IN), .DRPCLK_IN(drp_clock_raw), .sma_txdata(sma_txdata), .sma_txusrclk2(word_clock), .sfp_txdata(sfp_txdata), .sfp_txusrclk2(), .SMA_TX_P(SMA_MGT_TX_P), .SMA_TX_N(SMA_MGT_TX_N), .SFP_TX_P(SFP_MGT_TX_P), .SFP_TX_N(SFP_MGT_TX_N));
 endmodule
 
