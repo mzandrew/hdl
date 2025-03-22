@@ -2,9 +2,14 @@
 
 // written 2025-03-21 by mza
 // based on mza-test072.gtp-test.ac701.v
-// last updated 2025-03-21 by mza
+// last updated 2025-03-22 by mza
 
 // cd /opt/Xilinx/Vivado/2023.2/data/xicom/cable_drivers/lin64/install_script/install_drivers; sudo ./install_drivers
+
+//when it complains that you didn't save a dcp file, you must do this from the tcl_console:  "synth_ip [get_ips gtwizard_0] -force"
+//mkdir -p ./vivado-projects/ac701-gtp-bidirectional-try11/ac701-gtp-bidirectional-try11.srcs/utils_1/imports/synth_1
+//cp -a ~/ac701-gtp-bidirectional-try11.gen/sources_1/ip/gtwizard_0/gtwizard_0.dcp ac701-gtp-bidirectional-try11/ac701-gtp-bidirectional-try11.srcs/utils_1/imports/synth_1/GTP_BIDIRECTIONAL_TEST.dcp
+// but then it dumps files in ~/ac701-gtp-bidirectional-try11.gen and relies on them and regenerates them automatically if they're removed so you have to manually edit the xci file and get rid of all the "../../../../" in get_directory and OUTPUTDIR
 
 `include "lib/generic.v"
 `include "lib/plldcm.v"
@@ -47,6 +52,7 @@ module GTP_BIDIRECTIONAL_TEST #(
 		reset3_copy2_on_raw_bit_clock <= reset3_copy1_on_raw_bit_clock;
 		reset3_copy1_on_raw_bit_clock <= reset3_sysclk;
 	end
+	wire other_word_clock;
 	always @(posedge other_word_clock) begin
 		reset4_copy2_on_other_word_clock <= reset4_copy1_on_other_word_clock;
 		reset4_copy1_on_other_word_clock <= reset4_sysclk;
@@ -68,7 +74,6 @@ module GTP_BIDIRECTIONAL_TEST #(
 		.clock4_out(), .clock5_out(), .clock6_out());
 	wire [15:0] sma_txdata, sfp_txdata;
 	wire [15:0] sma_rxdata, sfp_rxdata;
-	wire other_word_clock;
 	if (0) begin
 		reg [26:0] counter = 0;
 		always @(posedge word_clock) begin

@@ -4,7 +4,7 @@
     "xci_name": "gtwizard_0",
     "component_reference": "xilinx.com:ip:gtwizard:3.6",
     "ip_revision": "14",
-    "gen_directory": "../../../../ac701-gtp-bidirectional-try11.gen/sources_1/ip/gtwizard_0",
+    "gen_directory": "ac701-gtp-bidirectional-try11.gen/sources_1/ip/gtwizard_0",
     "parameters": {
       "component_parameters": {
         "Component_Name": [ { "value": "gtwizard_0", "resolve_type": "user", "usage": "all" } ],
@@ -1190,7 +1190,7 @@
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "14" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "../../../../ac701-gtp-bidirectional-try11.gen/sources_1/ip/gtwizard_0" } ],
+        "OUTPUTDIR": [ { "value": "ac701-gtp-bidirectional-try11.gen/sources_1/ip/gtwizard_0" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.1" } ],
