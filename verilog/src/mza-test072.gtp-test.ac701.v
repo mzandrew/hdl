@@ -10,6 +10,8 @@
 //mkdir -p ~/build/hdl/vivado-projects/ac701-gtp-try10/ac701-gtp-try10.srcs/utils_1/imports/synth_1
 //cp -a ~/ac701-try9.gen/sources_1/ip/x0y3_sma/x0y3_sma.dcp ~/build/hdl/vivado-projects/ac701-gtp-try10/ac701-gtp-try10.srcs/utils_1/imports/synth_1/GTP_TEST.dcp
 // but then it dumps files in ~/ac701-try9.gen and relies on them and regenerates them automatically if they're removed so you have to manually edit the xci file and get rid of all the "../../../../" in get_directory and OUTPUTDIR
+//cp -a ./ac701-gtp-try10.cache/ip/2023.1/a/c/ac24d87c486f3a68/x0y3_sma.dcp ~/build/hdl/vivado-projects/ac701-gtp-try10/ac701-gtp-try10.srcs/utils_1/imports/synth_1/GTP_TEST.dcp
+//cp -a ./ac701-gtp-try10/ac701-try9.gen/sources_1/ip/x0y3_sma/x0y3_sma.dcp ~/build/hdl/vivado-projects/ac701-gtp-try10/ac701-gtp-try10.srcs/utils_1/imports/synth_1/GTP_TEST.dcp
 
 `include "lib/generic.v"
 `include "lib/plldcm.v"
