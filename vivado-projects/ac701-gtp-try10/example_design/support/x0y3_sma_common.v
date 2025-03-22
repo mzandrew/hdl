@@ -91,12 +91,12 @@ module x0y3_sma_common #
 
 
 //***************************** Parameter Declarations ************************
-    parameter PLL0_FBDIV_IN      = 5;
-    parameter PLL1_FBDIV_IN      = 1;
-    parameter PLL0_FBDIV_45_IN   = 5;
-    parameter PLL1_FBDIV_45_IN   = 4;
-    parameter PLL0_REFCLK_DIV_IN = 1;
-    parameter PLL1_REFCLK_DIV_IN = 1;
+    localparam PLL0_FBDIV_IN      = 5;
+    localparam PLL1_FBDIV_IN      = 1;
+    localparam PLL0_FBDIV_45_IN   = 5;
+    localparam PLL1_FBDIV_45_IN   = 4;
+    localparam PLL0_REFCLK_DIV_IN = 1;
+    localparam PLL1_REFCLK_DIV_IN = 1;
 
     // ground and vcc signals
 wire            tied_to_ground_i;

@@ -66,10 +66,13 @@ create_clock -period 8.0 [get_ports Q0_CLK0_GTREFCLK_PAD_P_IN]
 set_false_path -to [get_pins -filter {REF_PIN_NAME=~*CLR} -of_objects [get_cells -hierarchical -filter {NAME =~ *_txfsmresetdone_r*}]]
 set_false_path -to [get_pins -filter {REF_PIN_NAME=~*D} -of_objects [get_cells -hierarchical -filter {NAME =~ *_txfsmresetdone_r*}]]
 
+# mygtp/x0y3_sma_support_i/x0y3_sma_init_i/inst/gt0_txresetfsm_i/wait_bypass_count_reg[6]/C
+# mygtp/x0y3_sma_support_i/x0y3_sma_init_i/inst/gt0_txresetfsm_i/wait_bypass_count_reg[12]/CE
+
 ################################# RefClk Location constraints #####################
 
-set_property LOC AB13 [get_ports  Q0_CLK0_GTREFCLK_PAD_N_IN ] 
-set_property LOC AA13 [get_ports  Q0_CLK0_GTREFCLK_PAD_P_IN ]
+set_property LOC AB13 [get_ports Q0_CLK0_GTREFCLK_PAD_N_IN ] 
+set_property LOC AA13 [get_ports Q0_CLK0_GTREFCLK_PAD_P_IN ]
 
 ##---------- Set placement for gt0_gtp_wrapper_i/GTPE2_CHANNEL ------
 set_property LOC GTPE2_CHANNEL_X0Y0 [get_cells mygtp/x0y3_sma_support_i/x0y3_sma_init_i/inst/x0y3_sma_i/gt0_x0y3_sma_i/gtpe2_i]
@@ -83,3 +86,4 @@ set_property LOC GTPE2_CHANNEL_X0Y3 [get_cells mygtp/x0y3_sma_support_i/x0y3_sma
 ##set_property ASYNC_REG TRUE [get_cells -hier -filter {name=~*gt1_frame_check*system_reset_r_reg}]
 
 ##---------- Set False Path from one clock to other ----------
+

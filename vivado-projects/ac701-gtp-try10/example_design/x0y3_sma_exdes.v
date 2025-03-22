@@ -70,8 +70,8 @@ module x0y3_sma_exdes #(
 		input Q0_CLK0_GTREFCLK_PAD_N_IN,
 		input Q0_CLK0_GTREFCLK_PAD_P_IN,
 		input DRPCLK_IN,
-		input [15:0] gt1_txdata_i,
-		output gt1_txusrclk2_i,
+		input [15:0] gt1_txdata,
+		output gt1_txusrclk2,
 //		input GTTX_RESET_IN,
 //		input GTRX_RESET_IN,
 //		input PLL0_RESET_IN,
@@ -82,12 +82,12 @@ module x0y3_sma_exdes #(
 	wire soft_reset_i;
 	wire soft_reset_vio_i;
 	//************************** Register Declarations ****************************
-	wire gt_txfsmresetdone_i;
-	wire gt_rxfsmresetdone_i;
-	(* ASYNC_REG = "TRUE" *) reg gt_txfsmresetdone_r;
-	(* ASYNC_REG = "TRUE" *) reg gt_txfsmresetdone_r2;
+//	wire gt_txfsmresetdone_i;
+//	wire gt_rxfsmresetdone_i;
+//	(* ASYNC_REG = "TRUE" *) reg gt_txfsmresetdone_r;
+//	(* ASYNC_REG = "TRUE" *) reg gt_txfsmresetdone_r2;
 	wire gt0_txfsmresetdone_i;
-	wire gt0_rxfsmresetdone_i;
+//	wire gt0_rxfsmresetdone_i;
 	(* ASYNC_REG = "TRUE" *) reg gt0_txfsmresetdone_r;
 	(* ASYNC_REG = "TRUE" *) reg gt0_txfsmresetdone_r2;
 	wire gt1_txfsmresetdone_i;
@@ -154,7 +154,7 @@ module x0y3_sma_exdes #(
 	wire            gt1_gtptxn_i;
 	wire            gt1_gtptxp_i;
 	//--------- Transmit Ports - TX Fabric Clock Output Control Ports ----------
-	wire            gt1_txoutclk_i;
+//	wire            gt1_txoutclk_i;
 	wire            gt1_txoutclkfabric_i;
 	wire            gt1_txoutclkpcs_i;
 	//----------- Transmit Ports - TX Initialization and Reset Ports -----------
@@ -166,7 +166,6 @@ module x0y3_sma_exdes #(
 	wire            gt0_pll0reset_i;
 	//----------------------------- Global Signals -----------------------------
 	wire            drpclk_in_i;
-	wire            DRPCLK_IN;
 	wire            gt0_tx_system_reset_c;
 	wire            gt0_rx_system_reset_c;
 	wire            gt1_tx_system_reset_c;
@@ -329,7 +328,7 @@ module x0y3_sma_exdes #(
 		.q0_clk0_gtrefclk_pad_n_in(Q0_CLK0_GTREFCLK_PAD_N_IN),
 		.q0_clk0_gtrefclk_pad_p_in(Q0_CLK0_GTREFCLK_PAD_P_IN),
 		.gt0_tx_fsm_reset_done_out      (gt0_txfsmresetdone_i),
-		.gt0_rx_fsm_reset_done_out      (gt0_rxfsmresetdone_i),
+		.gt0_rx_fsm_reset_done_out      (),
 		.gt0_data_valid_in              (tied_to_ground_i),
 		.gt1_tx_fsm_reset_done_out      (gt1_txfsmresetdone_i),
 		.gt1_rx_fsm_reset_done_out      (gt1_rxfsmresetdone_i),
@@ -337,7 +336,7 @@ module x0y3_sma_exdes #(
 		.gt0_txusrclk_out(gt0_txusrclk_i),
 		.gt0_txusrclk2_out(gt0_txusrclk2_i),
 		.gt1_txusrclk_out(gt1_txusrclk_i),
-		.gt1_txusrclk2_out(gt1_txusrclk2_i),
+		.gt1_txusrclk2_out(gt1_txusrclk2),
 		//_____________________________________________________________________
 		//GT0  (X0Y0)
 		//-------------------------- Channel - DRP Ports  --------------------------
@@ -393,7 +392,7 @@ module x0y3_sma_exdes #(
 		.gt1_gttxreset_in               (tied_to_ground_i),
 		.gt1_txuserrdy_in               (tied_to_vcc_i),
 		//---------------- Transmit Ports - FPGA TX Interface Ports ----------------
-		.gt1_txdata_in                  (gt1_txdata_i),
+		.gt1_txdata_in                  (gt1_txdata),
 		//------------- Transmit Ports - TX Configurable Driver Ports --------------
 		.gt1_gtptxn_out                 (TXN_OUT),
 		.gt1_gtptxp_out                 (TXP_OUT),
@@ -428,7 +427,7 @@ module x0y3_sma_exdes #(
 			gt0_txfsmresetdone_r2   <=   `DLY gt0_txfsmresetdone_r;
 		end
 	end
-	always @(posedge gt1_txusrclk2_i or negedge gt1_txfsmresetdone_i) begin
+	always @(posedge gt1_txusrclk2 or negedge gt1_txfsmresetdone_i) begin
 		if (!gt1_txfsmresetdone_i) begin
 			gt1_txfsmresetdone_r    <=   `DLY 1'b0;
 			gt1_txfsmresetdone_r2   <=   `DLY 1'b0;
@@ -462,10 +461,10 @@ module x0y3_sma_exdes #(
 //		.WORDS_IN_BRAM(EXAMPLE_WORDS_IN_BRAM)
 //	) gt1_frame_gen (
 //		// User Interface
-//		.TX_DATA_OUT                    ({gt1_txdata_float_i,gt1_txdata_i,gt1_txdata_float16_i}),
+//		.TX_DATA_OUT                    ({gt1_txdata_float_i,gt1_txdata,gt1_txdata_float16_i}),
 //		.TXCTRL_OUT                     (),
 //		// System Interface
-//		.USER_CLK                        (gt1_txusrclk2_i),
+//		.USER_CLK                        (gt1_txusrclk2),
 //		.SYSTEM_RESET                   (gt1_tx_system_reset_c)
 //	);
 	//***********************************************************************//

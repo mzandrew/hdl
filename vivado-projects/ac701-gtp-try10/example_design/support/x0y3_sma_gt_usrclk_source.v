@@ -74,7 +74,7 @@ module x0y3_sma_GT_USRCLK_SOURCE
  
     output          GT1_TXUSRCLK_OUT,
     output          GT1_TXUSRCLK2_OUT,
-    input           GT1_TXOUTCLK_IN,
+//    input           GT1_TXOUTCLK_IN,
     input  wire  Q0_CLK0_GTREFCLK_PAD_N_IN,
     input  wire  Q0_CLK0_GTREFCLK_PAD_P_IN,
     output wire  Q0_CLK0_GTREFCLK_OUT
@@ -92,7 +92,7 @@ module x0y3_sma_GT_USRCLK_SOURCE
  
     wire            gt0_txoutclk_i; 
  
-    wire            gt1_txoutclk_i; 
+//    wire            gt1_txoutclk_i; 
     wire  q0_clk0_gtrefclk /*synthesis syn_noclockbuf=1*/;
 
     wire            gt0_txusrclk_i;
@@ -104,7 +104,7 @@ module x0y3_sma_GT_USRCLK_SOURCE
     assign tied_to_ground_i             = 1'b0;
     assign tied_to_vcc_i                = 1'b1;
     assign gt0_txoutclk_i = GT0_TXOUTCLK_IN;
-    assign gt1_txoutclk_i = GT1_TXOUTCLK_IN;
+//    assign gt1_txoutclk_i = GT1_TXOUTCLK_IN;
      
     assign Q0_CLK0_GTREFCLK_OUT = q0_clk0_gtrefclk;
 

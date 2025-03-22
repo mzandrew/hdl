@@ -59,7 +59,7 @@ set_property PACKAGE_PIN AF7 [get_ports SMA_MGT_TX_N]
 #[Route 35-468] The router encountered 4 pins that are both setup-critical and hold-critical and tried to fix hold violations at the expense of setup slack. Such pins are:
 #set_false_path -to [ get_pins reset2_copy1_on_raw_bit_clock_reg/D ];
 #set_false_path -to [ get_pins reset3_copy1_on_raw_bit_clock_reg/D ];
-#set_false_path -to [ get_pins reset4_copy1_on_word_clock_reg/D ];
+set_false_path -to [ get_pins reset4_copy1_on_word_clock_reg/D ];
 #set_false_path -to [ get_pins o7s_p/reset_copy1_on_word_clock_reg/D ];
 
 # no_output_delay:

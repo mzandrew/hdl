@@ -245,7 +245,7 @@ input           gt1_data_valid_in,
     wire            gt1_gtptxn_i;
     wire            gt1_gtptxp_i;
     //--------- Transmit Ports - TX Fabric Clock Output Control Ports ----------
-    wire            gt1_txoutclk_i;
+//    wire            gt1_txoutclk_i;
     wire            gt1_txoutclkfabric_i;
     wire            gt1_txoutclkpcs_i;
     //----------- Transmit Ports - TX Initialization and Reset Ports -----------
@@ -343,7 +343,7 @@ wire cpll_pd_pll0_q0_clk0_refclk_i;
  
     .GT1_TXUSRCLK_OUT    (gt1_txusrclk_i),
     .GT1_TXUSRCLK2_OUT   (gt1_txusrclk2_i),
-    .GT1_TXOUTCLK_IN     (gt1_txoutclk_i),
+//    .GT1_TXOUTCLK_IN     (gt1_txoutclk_i),
     .Q0_CLK0_GTREFCLK_PAD_N_IN  (q0_clk0_gtrefclk_pad_n_in),
     .Q0_CLK0_GTREFCLK_PAD_P_IN  (q0_clk0_gtrefclk_pad_p_in),
     .Q0_CLK0_GTREFCLK_OUT       (q0_clk0_refclk_i)
@@ -485,7 +485,7 @@ assign  sysclk_in_i = sysclk_in;
         .gt1_gtptxn_out                 (gt1_gtptxn_out), // output wire gt1_gtptxn_out
         .gt1_gtptxp_out                 (gt1_gtptxp_out), // output wire gt1_gtptxp_out
         //--------- Transmit Ports - TX Fabric Clock Output Control Ports ----------
-        .gt1_txoutclk_out               (gt1_txoutclk_i), // output wire gt1_txoutclk_i
+        .gt1_txoutclk_out               (), // output wire gt1_txoutclk_i
         .gt1_txoutclkfabric_out         (gt1_txoutclkfabric_out), // output wire gt1_txoutclkfabric_out
         .gt1_txoutclkpcs_out            (gt1_txoutclkpcs_out), // output wire gt1_txoutclkpcs_out
         //----------- Transmit Ports - TX Initialization and Reset Ports -----------
