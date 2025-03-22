@@ -53,10 +53,10 @@ module GTP_BIDIRECTIONAL_TEST #(
 	end
 	wire drp_clock_raw;
 	MMCM_advanced #(
-		.CLOCK1_PERIOD_NS(5.0), .D(4), .M(25), // Fvco = [600, 1440] MHz
-		.CLKOUT0_DIVIDE(2), // 625 MHz (DDR yields 1250 MHz)
+		.CLOCK1_PERIOD_NS(5.0), .D(1), .M(5), // Fvco = [600, 1440] MHz
+		.CLKOUT0_DIVIDE(2), // 500 MHz (DDR yields 1000 MHz)
 		.CLKOUT1_DIVIDE(8), //
-		.CLKOUT2_DIVIDE(10), // 125 MHz for DRP clock for GTP
+		.CLKOUT2_DIVIDE(8), // 125 MHz for DRP clock for GTP
 		.CLKOUT3_DIVIDE(1), //
 		.CLKOUT4_DIVIDE(1), //
 		.CLKOUT5_DIVIDE(1), //
