@@ -1,12 +1,13 @@
 `timescale 1ns / 1ps
 
 // written 2025-03-04 by mza
-// last updated 2025-03-11 by mza
+// last updated 2025-03-21 by mza
 
 // cd /opt/Xilinx/Vivado/2023.2/data/xicom/cable_drivers/lin64/install_script/install_drivers; sudo ./install_drivers
 
 `include "lib/generic.v"
 `include "lib/plldcm.v"
+`include "lib/prbs.v"
 `include "lib/serdes_pll.v"
 
 module PRBS_LFSR #(
