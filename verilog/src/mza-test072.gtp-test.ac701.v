@@ -2,9 +2,14 @@
 
 // written 2025-03-20 by mza
 // based on mza-test071.prbs-lfsr.ac701.v
-// last updated 2025-03-21 by mza
+// last updated 2025-03-22 by mza
 
 // cd /opt/Xilinx/Vivado/2023.2/data/xicom/cable_drivers/lin64/install_script/install_drivers; sudo ./install_drivers
+
+//when it complains that you didn't save a dcp file, you must do this from the tcl_console:  "synth_ip [get_ips x0y3_sma] -force"
+//mkdir -p ~/build/hdl/vivado-projects/ac701-gtp-try10/ac701-gtp-try10.srcs/utils_1/imports/synth_1
+//cp -a ~/ac701-try9.gen/sources_1/ip/x0y3_sma/x0y3_sma.dcp ~/build/hdl/vivado-projects/ac701-gtp-try10/ac701-gtp-try10.srcs/utils_1/imports/synth_1/GTP_TEST.dcp
+// but then it dumps files in ~/ac701-try9.gen and relies on them and regenerates them automatically if they're removed so you have to manually edit the xci file and get rid of all the "../../../../" in get_directory and OUTPUTDIR
 
 `include "lib/generic.v"
 `include "lib/plldcm.v"

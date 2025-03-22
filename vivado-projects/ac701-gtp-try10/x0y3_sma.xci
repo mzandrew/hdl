@@ -4,7 +4,7 @@
     "xci_name": "x0y3_sma",
     "component_reference": "xilinx.com:ip:gtwizard:3.6",
     "ip_revision": "14",
-    "gen_directory": "../../../../ac701-try9.gen/sources_1/ip/x0y3_sma",
+    "gen_directory": "ac701-try9.gen/sources_1/ip/x0y3_sma",
     "parameters": {
       "component_parameters": {
         "Component_Name": [ { "value": "x0y3_sma", "resolve_type": "user", "usage": "all" } ],
@@ -1190,7 +1190,7 @@
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "14" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "../../../../ac701-try9.gen/sources_1/ip/x0y3_sma" } ],
+        "OUTPUTDIR": [ { "value": "ac701-try9.gen/sources_1/ip/x0y3_sma" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.1" } ],
