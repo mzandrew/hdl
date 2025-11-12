@@ -1523,5 +1523,80 @@ module dsp_multiplier #(
 	);
 endmodule
 
+//	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) A_debounce (.clock(clock), .raw_button_input(pmod[2]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(A));
+//	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) B_debounce (.clock(clock), .raw_button_input(pmod[1]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(B));
+//	quadrature_decode #(.POLARITY(1'b0), .PULSES_PER_REVOLUTION(20)) qd (.clock(clock), .reset(reset), .A(A), .B(B), .increment(i), .decrement(d), .current_value(current_value));
+module quadrature_decode #(
+	parameter POLARITY = 1'b1,
+	parameter PULSES_PER_REVOLUTION = 20,
+	parameter LOG2_OF_PULSES_PER_REVOLUTION = $clog2(PULSES_PER_REVOLUTION),
+	parameter SHIFT_REGISTER_LENGTH = 8
+) (
+	input A, B, clock, reset,
+	output reg increment, decrement,
+	output reg [LOG2_OF_PULSES_PER_REVOLUTION-1:0] current_value
+);
+	reg [SHIFT_REGISTER_LENGTH-1:0] A_shift_register = 0, B_shift_register = 0;
+	always @(posedge clock) begin
+		increment <= 0;
+		decrement <= 0;
+		if (reset) begin
+			current_value <= 0;
+			A_shift_register <= 0;
+			B_shift_register <= 0;
+		end else begin
+			if (B_shift_register[SHIFT_REGISTER_LENGTH-1-:4]=={POLARITY[0],POLARITY[0],~POLARITY[0],~POLARITY[0]}) begin // high-to-low transition
+				if (A_shift_register[SHIFT_REGISTER_LENGTH-3-:2]=={POLARITY[0],POLARITY[0]}) begin
+					current_value <= current_value + 1'b1;
+					increment <= 1'b1;
+				end else begin
+					current_value <= current_value - 1'b1;
+					decrement <= 1'b1;
+				end
+			end
+			A_shift_register <= { A_shift_register[SHIFT_REGISTER_LENGTH-2:0], A };
+			B_shift_register <= { B_shift_register[SHIFT_REGISTER_LENGTH-2:0], B };
+		end
+	end
+endmodule
+
+module quadrature_decode_tb #() ();
+	localparam CLOCK_PERIOD = 1.0;
+	localparam HALF_CLOCK_PERIOD = CLOCK_PERIOD/2.0;
+	reg clock = 0;
+	reg reset = 1;
+	reg A = 0, B = 0;
+	wire [4:0] value;
+	wire i, d;
+	quadrature_decode #(.POLARITY(1'b1), .PULSES_PER_REVOLUTION(20)) qd (.clock(clock), .reset(reset), .A(A), .B(B), .increment(i), .decrement(d), .current_value(value));
+	always begin
+		#HALF_CLOCK_PERIOD; clock <= ~clock;
+	end
+	initial begin
+		#10;
+		reset <= 0;
+		#10;
+		A <= 0; B <= 0;
+		B <= 1; #4; A <= 1; #4; B <= 0; #4; A <= 0; #4;
+		B <= 1; #4; A <= 1; #4; B <= 0; #4; A <= 0; #4;
+		B <= 1; #4; A <= 1; #4; B <= 0; #4; A <= 0; #4;
+		B <= 1; #4; A <= 1; #4; B <= 0; #4; A <= 0; #4;
+		A <= 0; B <= 0;
+		#10;
+		A <= 0; B <= 0;
+		A <= 1; #4; B <= 1; #4; A <= 0; #4; B <= 0; #4;
+		A <= 1; #4; B <= 1; #4; A <= 0; #4; B <= 0; #4;
+		A <= 1; #4; B <= 1; #4; A <= 0; #4; B <= 0; #4;
+		A <= 1; #4; B <= 1; #4; A <= 0; #4; B <= 0; #4;
+		A <= 1; #4; B <= 1; #4; A <= 0; #4; B <= 0; #4;
+		A <= 1; #4; B <= 1; #4; A <= 0; #4; B <= 0; #4;
+		A <= 1; #4; B <= 1; #4; A <= 0; #4; B <= 0; #4;
+		A <= 1; #4; B <= 1; #4; A <= 0; #4; B <= 0; #4;
+		A <= 0; B <= 0;
+		#10;
+		$finish;
+	end
+endmodule
+
 `endif
 
