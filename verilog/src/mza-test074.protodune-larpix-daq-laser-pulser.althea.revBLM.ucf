@@ -96,6 +96,11 @@ net t loc=p51  | iostandard=lvttl | drive = 24 | slew = fast; # T bank2 ?? - dif
 #net "rpi_gpio4_gpclk0" tnm_net = tnm_clock10;
 #timespec "ts_clock10" = period "tnm_clock10" 100.0 ns high 50%; # 10 MHz
 
+# PMOD connector (some nets shared with other things):
+net pmod<1> loc=p111 | iostandard=lvcmos33 | pullup = true; # bank0 TR broadcom spi peripheral rpi_gpio10_spi_mosi
+net pmod<2> loc=p112 | iostandard=lvcmos33 | pullup = true; # bank0 TR broadcom spi peripheral rpi_gpio9_spi_miso
+net pmod<3> loc=p93  | iostandard=lvcmos33 | pullup = true; # bank1 RT broadcom spi peripheral rpi_gpio11_spi_sclk
+
 # hexadecimal rotary encoder:
 #net rot<0> loc=p7  | iostandard=lvttl | pullup; # rot_1 bank0 - differs from althea revB and revBL - conflicts with v when using cascaded serdes
 #net rot<1> loc=p50 | iostandard=lvttl | pullup; # rot_2 bank0 - differs from althea revB and revBL - conflicts with t when using cascaded serdes
