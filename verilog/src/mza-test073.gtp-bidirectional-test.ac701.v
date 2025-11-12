@@ -2,7 +2,7 @@
 
 // written 2025-03-21 by mza
 // based on mza-test072.gtp-test.ac701.v
-// last updated 2025-03-22 by mza
+// last updated 2025-03-24 by mza
 
 // cd /opt/Xilinx/Vivado/2023.2/data/xicom/cable_drivers/lin64/install_script/install_drivers; sudo ./install_drivers
 
@@ -30,6 +30,7 @@ module GTP_BIDIRECTIONAL_TEST #(
 	input SMA_MGT_RX_P, SMA_MGT_RX_N, SFP_MGT_RX_P, SFP_MGT_RX_N,
 	output SMA_MGT_TX_P, SMA_MGT_TX_N, SFP_MGT_TX_P, SFP_MGT_TX_N,
 	output USER_SMA_CLOCK_P, USER_SMA_CLOCK_N,
+	output USER_SMA_GPIO_P, USER_SMA_GPIO_N,
 	output GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0
 );
 	wire sysclk;
@@ -38,13 +39,13 @@ module GTP_BIDIRECTIONAL_TEST #(
 	reg reset1_sysclk = 1'b1, reset2_sysclk = 1'b1, reset3_sysclk = 1'b1, reset4_sysclk = 1'b1;
 	reg reset2_copy1_on_raw_bit_clock = 1'b1, reset3_copy1_on_raw_bit_clock = 1'b1, reset4_copy1_on_other_word_clock = 1'b1;
 	reg reset2_copy2_on_raw_bit_clock = 1'b1, reset3_copy2_on_raw_bit_clock = 1'b1, reset4_copy2_on_other_word_clock = 1'b1;
-	reg [COUNTER_PICKOFF_RESET4:0] counter = 0;
+	reg [COUNTER_PICKOFF_RESET4:0] reset_counter = 0;
 	always @(posedge sysclk) begin
-		counter <= counter + 1'b1;
-		if (counter[COUNTER_PICKOFF_RESET1]) begin reset1_sysclk <= 0; end
-		if (counter[COUNTER_PICKOFF_RESET2]) begin reset2_sysclk <= 0; end
-		if (counter[COUNTER_PICKOFF_RESET3]) begin reset3_sysclk <= 0; end
-		if (counter[COUNTER_PICKOFF_RESET4]) begin reset4_sysclk <= 0; end
+		reset_counter <= reset_counter + 1'b1;
+		if (reset_counter[COUNTER_PICKOFF_RESET1]) begin reset1_sysclk <= 0; end
+		if (reset_counter[COUNTER_PICKOFF_RESET2]) begin reset2_sysclk <= 0; end
+		if (reset_counter[COUNTER_PICKOFF_RESET3]) begin reset3_sysclk <= 0; end
+		if (reset_counter[COUNTER_PICKOFF_RESET4]) begin reset4_sysclk <= 0; end
 	end
 	always @(posedge raw_bit_clock) begin
 		reset2_copy2_on_raw_bit_clock <= reset2_copy1_on_raw_bit_clock;
@@ -74,11 +75,11 @@ module GTP_BIDIRECTIONAL_TEST #(
 		.clock4_out(), .clock5_out(), .clock6_out());
 	wire [15:0] sma_txdata, sfp_txdata;
 	wire [15:0] sma_rxdata, sfp_rxdata;
+	reg [31:0] counter = 0;
+	always @(posedge word_clock) begin
+		counter <= counter + 1'b1;
+	end
 	if (0) begin
-		reg [26:0] counter = 0;
-		always @(posedge word_clock) begin
-			counter <= counter + 1'b1;
-		end
 		assign { GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0 } = counter[26:23];
 		assign sma_txdata = counter[15:0];
 	end else if (0) begin
@@ -98,6 +99,8 @@ module GTP_BIDIRECTIONAL_TEST #(
 		assign sfp_txdata = sma_rxdata;
 		assign sma_txdata = sfp_rxdata;
 	end
+	assign USER_SMA_GPIO_P = counter[23];
+	assign USER_SMA_GPIO_N = counter[31];
 	gtp_pair mygtppair (.Q0_CLK0_GTREFCLK_PAD_N_IN(Q0_CLK0_GTREFCLK_PAD_N_IN), .Q0_CLK0_GTREFCLK_PAD_P_IN(Q0_CLK0_GTREFCLK_PAD_P_IN), .DRPCLK_IN(drp_clock_raw), .word_clock(word_clock), .sma_txdata(sma_txdata), .sfp_txdata(sfp_txdata), .sma_rxdata(sma_rxdata), .sfp_rxdata(sfp_rxdata), .sma_tx_p(SMA_MGT_TX_P), .sma_tx_n(SMA_MGT_TX_N), .sfp_tx_p(SFP_MGT_TX_P), .sfp_tx_n(SFP_MGT_TX_N), .sma_rx_p(SMA_MGT_RX_P), .sma_rx_n(SMA_MGT_RX_N), .sfp_rx_p(SFP_MGT_RX_P), .sfp_rx_n(SFP_MGT_RX_N));
 endmodule
 
