@@ -39,6 +39,7 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	input reset,
 	input [3:1] pmod,
 	output [5:0] coax,
+	input [3:0] rot,
 	output [7:0] led
 );
 	wire clock100, rawclock, clock10, reset10, pll_locked;
@@ -58,6 +59,7 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	reg trigger_laser = 0;
 	reg trigger_larpix_1 = 0;
 	reg trigger_larpix_2 = 0;
+	reg [3:0] buffered_rot = 0;
 	wire A, B;
 	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) A_debounce (.clock(clock10), .raw_button_input(pmod[2]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(A));
 	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) B_debounce (.clock(clock10), .raw_button_input(pmod[1]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(B));
@@ -65,14 +67,16 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	wire [4:0] current_value;
 	quadrature_decode #(.POLARITY(1'b1), .PULSES_PER_REVOLUTION(20)) qd (.clock(clock10), .reset(reset10), .A(A), .B(B), .increment(i), .decrement(d), .current_value(current_value));
 	always @(posedge clock10) begin
+		larpix_counter_2_on  <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_ON  - delay_increment * buffered_rot;
+		larpix_counter_2_off <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_OFF - delay_increment * buffered_rot;
 		if (reset10) begin
+			buffered_rot <= 0;
 			counter <= MAX_COUNT_FOR_LASER_TRIGGER;
 			larpix_counter_1_on  <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON;
 			larpix_counter_1_off <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_OFF;
-			larpix_counter_2_on  <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_ON;
-			larpix_counter_2_off <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_OFF;
 			trigger_counter <= 0;
 		end else begin
+			buffered_rot <= ~rot;
 			if (0<counter) begin
 				counter <= counter - 1'b1;
 				if (counter==larpix_counter_1_on)  begin trigger_larpix_1 <= 1; end
@@ -96,7 +100,8 @@ module protodune_LArPix_DAQ_laser_pulser #(
 		end
 	end
 //	assign led = trigger_counter;
-	assign led = current_value;
+//	assign led = current_value;
+	assign led = { 4'd0, buffered_rot };
 	assign coax[3] = trigger_laser;
 	assign coax[2] = trigger_laser;
 	assign coax[1] = trigger_larpix_1;
