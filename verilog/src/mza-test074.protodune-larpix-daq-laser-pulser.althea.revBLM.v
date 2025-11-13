@@ -1,25 +1,39 @@
 `timescale 1ns / 1ps
 
 // written 2025-11-07 by mza
-// last updated 2025-11-12 by mza
+// last updated 2025-11-13 by mza
 
 `include "lib/generic.v"
 `include "lib/debounce.v"
+`include "lib/plldcm.v"
+`include "lib/reset.v"
 
 module protodune_LArPix_DAQ_laser_pulser #(
 	parameter DESIRED_LASER_FREQUENCY_HZ = 10,
 	parameter DESIRED_DELAY_INCREMENT_US = 100,
-	parameter DESIRED_DELAY_FOR_LARPIX_TRIGGER_1_US = 1000,
-	parameter DESIRED_DELAY_FOR_LARPIX_TRIGGER_2_US = 1000,
+	parameter DESIRED_INITIAL_DELAY_FOR_LARPIX_TRIGGER_1_US = 1000,
+	parameter DESIRED_INITIAL_DELAY_FOR_LARPIX_TRIGGER_2_US = 1000,
+	parameter LASER_PULSE_LENGTH_US = 100,
+	parameter LARPIX_PULSE_LENGTH_NS = 240,
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	parameter OSCILLATOR_FREQUENCY_HZ = 100000000,
+	parameter RAW_OSCILLATOR_FREQUENCY_HZ = 100000000,
+	parameter DIVIDE = 1,
+	parameter OSCILLATOR_FREQUENCY_HZ = RAW_OSCILLATOR_FREQUENCY_HZ / DIVIDE,
 	parameter DELAY_INCREMENT_COUNTS = OSCILLATOR_FREQUENCY_HZ / 1000 * DESIRED_DELAY_INCREMENT_US / 1000,
 	parameter MAX_COUNT_FOR_LASER_TRIGGER = OSCILLATOR_FREQUENCY_HZ / DESIRED_LASER_FREQUENCY_HZ,
 	parameter LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER = $clog2(MAX_COUNT_FOR_LASER_TRIGGER),
-	parameter DELAY_COUNT_FOR_LARPIX_TRIGGER_1 = OSCILLATOR_FREQUENCY_HZ / 1000 * DESIRED_DELAY_FOR_LARPIX_TRIGGER_1_US / 1000,
-	parameter DELAY_COUNT_FOR_LARPIX_TRIGGER_2 = OSCILLATOR_FREQUENCY_HZ / 1000 * DESIRED_DELAY_FOR_LARPIX_TRIGGER_2_US / 1000,
-	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_1 = MAX_COUNT_FOR_LASER_TRIGGER - DELAY_COUNT_FOR_LARPIX_TRIGGER_1,
-	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_2 = INITIAL_COUNT_FOR_LARPIX_TRIGGER_1 - DELAY_COUNT_FOR_LARPIX_TRIGGER_2
+	parameter LASER_PULSE_LENGTH_COUNTS = OSCILLATOR_FREQUENCY_HZ / 1000 * LASER_PULSE_LENGTH_US / 1000,
+	parameter COUNT_FOR_LASER_TRIGGER_ON = MAX_COUNT_FOR_LASER_TRIGGER,
+	parameter COUNT_FOR_LASER_TRIGGER_OFF = MAX_COUNT_FOR_LASER_TRIGGER - LASER_PULSE_LENGTH_COUNTS,
+	parameter DELAY_COUNT_FOR_LARPIX_TRIGGER_1 = OSCILLATOR_FREQUENCY_HZ / 1000 * DESIRED_INITIAL_DELAY_FOR_LARPIX_TRIGGER_1_US / 1000,
+	parameter DELAY_COUNT_FOR_LARPIX_TRIGGER_2 = OSCILLATOR_FREQUENCY_HZ / 1000 * DESIRED_INITIAL_DELAY_FOR_LARPIX_TRIGGER_2_US / 1000,
+	parameter LARPIX_PULSE_LENGTH_COUNTS = OSCILLATOR_FREQUENCY_HZ / 1000 * LARPIX_PULSE_LENGTH_NS / 1000000,
+	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON = MAX_COUNT_FOR_LASER_TRIGGER - DELAY_COUNT_FOR_LARPIX_TRIGGER_1,
+	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_OFF = INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON - LARPIX_PULSE_LENGTH_COUNTS,
+	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_ON = INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON - DELAY_COUNT_FOR_LARPIX_TRIGGER_2,
+	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_OFF = INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_ON - LARPIX_PULSE_LENGTH_COUNTS,
+	parameter SIMULATION = 0,
+	parameter COUNTER100_BIT_PICKOFF = SIMULATION ? 5 : 23
 ) (
 	input clock100_p, clock100_n,
 	input reset,
@@ -27,50 +41,57 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	output [5:0] coax,
 	output [7:0] led
 );
-	wire clock;
-	IBUFGDS clk (.I(clock100_p), .IB(clock100_n), .O(clock));
+	wire clock100, rawclock, clock10, reset10, pll_locked;
+	IBUFGDS clk (.I(clock100_p), .IB(clock100_n), .O(clock100));
+	simplepll_BASE #(.OVERALL_DIVIDE(1), .MULTIPLY(4), .DIVIDE0(4*DIVIDE), .PHASE0(0.0), .PERIOD(10.0)) other (.clockin(clock100), .reset(reset), .clock0out(rawclock), .locked(pll_locked)); // *4 then /4 just to keep the Vco happy
+	BUFG vampire (.I(rawclock), .O(clock10));
+	reset_wait4pll #(.COUNTER_BIT_PICKOFF(COUNTER100_BIT_PICKOFF)) reset_wait4pll (.reset_input(reset), .pll_locked_input(pll_locked), .clock_input(clock10), .reset_output(reset10));
 	reg [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] counter = MAX_COUNT_FOR_LASER_TRIGGER;
-	reg [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_1 = INITIAL_COUNT_FOR_LARPIX_TRIGGER_1;
-	reg [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_2 = INITIAL_COUNT_FOR_LARPIX_TRIGGER_2;
+	wire [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] laser_counter_on  = COUNT_FOR_LASER_TRIGGER_ON;
+	wire [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] laser_counter_off = COUNT_FOR_LASER_TRIGGER_OFF;
+	reg [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_1_on  = INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON;
+	reg [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_1_off = INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_OFF;
+	reg [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_2_on  = INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_ON;
+	reg [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_2_off = INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_OFF;
 	wire [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] delay_increment = DELAY_INCREMENT_COUNTS;
 	reg [7:0] trigger_counter = 0;
 	reg trigger_laser = 0;
 	reg trigger_larpix_1 = 0;
 	reg trigger_larpix_2 = 0;
 	wire A, B;
-	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) A_debounce (.clock(clock), .raw_button_input(pmod[2]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(A));
-	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) B_debounce (.clock(clock), .raw_button_input(pmod[1]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(B));
+	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) A_debounce (.clock(clock10), .raw_button_input(pmod[2]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(A));
+	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) B_debounce (.clock(clock10), .raw_button_input(pmod[1]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(B));
 	wire i, d;
 	wire [4:0] current_value;
-	quadrature_decode #(.POLARITY(1'b0), .PULSES_PER_REVOLUTION(20)) qd (.clock(clock), .reset(reset), .A(A), .B(B), .increment(i), .decrement(d), .current_value(current_value));
-	always @(posedge clock) begin
-		trigger_laser <= 0;
-		trigger_larpix_1 <= 0;
-		trigger_larpix_2 <= 0;
-		if (reset) begin
+	quadrature_decode #(.POLARITY(1'b1), .PULSES_PER_REVOLUTION(20)) qd (.clock(clock10), .reset(reset10), .A(A), .B(B), .increment(i), .decrement(d), .current_value(current_value));
+	always @(posedge clock10) begin
+		if (reset10) begin
 			counter <= MAX_COUNT_FOR_LASER_TRIGGER;
-			larpix_counter_1 <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_1;
-			larpix_counter_2 <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_2;
+			larpix_counter_1_on  <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON;
+			larpix_counter_1_off <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_OFF;
+			larpix_counter_2_on  <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_ON;
+			larpix_counter_2_off <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_OFF;
 			trigger_counter <= 0;
 		end else begin
 			if (0<counter) begin
 				counter <= counter - 1'b1;
-				if (counter==larpix_counter_1) begin
-					trigger_larpix_1 <= 1;
-				end
-				if (counter==larpix_counter_2) begin
-					trigger_larpix_2 <= 1;
-				end
+				if (counter==larpix_counter_1_on)  begin trigger_larpix_1 <= 1; end
+				if (counter==larpix_counter_1_off) begin trigger_larpix_1 <= 0; end
+				if (counter==larpix_counter_2_on)  begin trigger_larpix_2 <= 1; end
+				if (counter==larpix_counter_2_off) begin trigger_larpix_2 <= 0; end
+				if (counter==laser_counter_on)  begin trigger_laser <= 1; end
+				if (counter==laser_counter_off) begin trigger_laser <= 0; end
 			end else begin
 				counter <= MAX_COUNT_FOR_LASER_TRIGGER;
 				trigger_counter <= trigger_counter + 1'b1;
-				trigger_laser <= 1;
 			end
 			if (i) begin
-				larpix_counter_1 <= larpix_counter_1 - delay_increment;
+				larpix_counter_1_on  <= larpix_counter_1_on  - delay_increment;
+				larpix_counter_1_off <= larpix_counter_1_off - delay_increment;
 			end
 			if (d) begin
-				larpix_counter_1 <= larpix_counter_1 + delay_increment;
+				larpix_counter_1_on  <= larpix_counter_1_on  + delay_increment;
+				larpix_counter_1_off <= larpix_counter_1_off + delay_increment;
 			end
 		end
 	end
