@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // written 2025-11-07 by mza
-// last updated 2025-11-13 by mza
+// last updated 2026-01-02 by mza
 
 `include "lib/generic.v"
 `include "lib/debounce.v"
@@ -9,10 +9,10 @@
 `include "lib/reset.v"
 
 module protodune_LArPix_DAQ_laser_pulser #(
-	parameter DESIRED_LASER_FREQUENCY_HZ = 10,
-	parameter DESIRED_DELAY_INCREMENT_US = 100,
-	parameter DESIRED_INITIAL_DELAY_FOR_LARPIX_TRIGGER_1_US = 1000,
-	parameter DESIRED_INITIAL_DELAY_FOR_LARPIX_TRIGGER_2_US = 1000,
+	parameter DESIRED_LASER_FREQUENCY_HZ = 20, // 10 Hz or 20 Hz
+	parameter DESIRED_DELAY_INCREMENT_US = 1,
+	parameter DESIRED_INITIAL_DELAY_FOR_LARPIX_TRIGGER_1_US = 176, // 0.5+175+0.07=175.57 us
+	parameter DESIRED_INITIAL_DELAY_FOR_LARPIX_TRIGGER_2_US = 675, // 500+175+0.07=675.07 us
 	parameter LASER_PULSE_LENGTH_US = 100,
 	parameter LARPIX_PULSE_LENGTH_NS = 240,
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -30,7 +30,8 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	parameter LARPIX_PULSE_LENGTH_COUNTS = OSCILLATOR_FREQUENCY_HZ / 1000 * LARPIX_PULSE_LENGTH_NS / 1000000,
 	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON = MAX_COUNT_FOR_LASER_TRIGGER - DELAY_COUNT_FOR_LARPIX_TRIGGER_1,
 	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_OFF = INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON - LARPIX_PULSE_LENGTH_COUNTS,
-	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_ON = INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON - DELAY_COUNT_FOR_LARPIX_TRIGGER_2,
+	//parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_ON = INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON - DELAY_COUNT_FOR_LARPIX_TRIGGER_2,
+	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_ON = MAX_COUNT_FOR_LASER_TRIGGER - DELAY_COUNT_FOR_LARPIX_TRIGGER_2,
 	parameter INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_OFF = INITIAL_COUNT_FOR_LARPIX_TRIGGER_2_ON - LARPIX_PULSE_LENGTH_COUNTS,
 	parameter SIMULATION = 0,
 	parameter COUNTER100_BIT_PICKOFF = SIMULATION ? 5 : 23
@@ -60,9 +61,10 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	reg trigger_larpix_1 = 0;
 	reg trigger_larpix_2 = 0;
 	reg [3:0] buffered_rot = 0;
-	wire A, B;
+	wire A, B, pushbutton;
 	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) A_debounce (.clock(clock10), .raw_button_input(pmod[2]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(A));
 	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) B_debounce (.clock(clock10), .raw_button_input(pmod[1]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(B));
+	debounce #(.CLOCK_FREQUENCY(OSCILLATOR_FREQUENCY_HZ), .TIMEOUT_IN_MILLISECONDS(10)) PB_debounce (.clock(clock10), .raw_button_input(pmod[3]), .polarity(1'b1), .button_activated_pulse(), .button_deactivated_pulse(), .button_active(pushbutton));
 	wire i, d;
 	wire [4:0] current_value;
 	quadrature_decode #(.POLARITY(1'b1), .PULSES_PER_REVOLUTION(20)) qd (.clock(clock10), .reset(reset10), .A(A), .B(B), .increment(i), .decrement(d), .current_value(current_value));
@@ -97,6 +99,10 @@ module protodune_LArPix_DAQ_laser_pulser #(
 				larpix_counter_1_on  <= larpix_counter_1_on  + delay_increment;
 				larpix_counter_1_off <= larpix_counter_1_off + delay_increment;
 			end
+			if (pushbutton) begin
+				larpix_counter_1_on  <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_ON;
+				larpix_counter_1_off <= INITIAL_COUNT_FOR_LARPIX_TRIGGER_1_OFF;
+			end
 		end
 	end
 //	assign led = trigger_counter;
@@ -104,8 +110,9 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	assign led = { 4'd0, buffered_rot };
 	assign coax[3] = trigger_laser;
 	assign coax[2] = trigger_laser;
-	assign coax[1] = trigger_larpix_1;
-	assign coax[0] = trigger_larpix_2;
+	wire trigger_larpix = trigger_larpix_1 || trigger_larpix_2;
+	assign coax[1] = trigger_larpix;
+	assign coax[0] = trigger_larpix;
 	assign coax[5:4] = 0;
 	initial begin
 		#10;
