@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test074.protodune-larpix-daq-laser-pulser/protodune_LArPix_DAQ_laser_pulser_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="protodune_LArPix_DAQ_laser_pulser_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="15" />
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/clock_p" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock_p</obj_property>
+      <obj_property name="ObjectShortName">clock_p</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/clock_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock_n</obj_property>
+      <obj_property name="ObjectShortName">clock_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/coax" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">coax[5:0]</obj_property>
+      <obj_property name="ObjectShortName">coax[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/tubbs/pll_locked" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pll_locked</obj_property>
+      <obj_property name="ObjectShortName">pll_locked</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/tubbs/reset10" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset10</obj_property>
+      <obj_property name="ObjectShortName">reset10</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/tubbs/clock10" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock10</obj_property>
+      <obj_property name="ObjectShortName">clock10</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/tubbs/trigger_laser" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trigger_laser</obj_property>
+      <obj_property name="ObjectShortName">trigger_laser</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/tubbs/occasional_trigger_larpix_2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">occasional_trigger_larpix_2</obj_property>
+      <obj_property name="ObjectShortName">occasional_trigger_larpix_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/tubbs/short_trigger_laser" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">short_trigger_laser</obj_property>
+      <obj_property name="ObjectShortName">short_trigger_laser</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/tubbs/trigger_larpix_1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trigger_larpix_1</obj_property>
+      <obj_property name="ObjectShortName">trigger_larpix_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/tubbs/trigger_larpix" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trigger_larpix</obj_property>
+      <obj_property name="ObjectShortName">trigger_larpix</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/tubbs/trigger_larpix_2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trigger_larpix_2</obj_property>
+      <obj_property name="ObjectShortName">trigger_larpix_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/protodune_LArPix_DAQ_laser_pulser_tb/tubbs/trigger_larpix_3" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trigger_larpix_3</obj_property>
+      <obj_property name="ObjectShortName">trigger_larpix_3</obj_property>
+   </wvobject>
+</wave_config>
