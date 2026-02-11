@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // written 2025-11-07 by mza
-// last updated 2026-01-22 by mza
+// last updated 2026-02-10 by mza
 
 `include "lib/generic.v"
 `include "lib/debounce.v"
@@ -16,7 +16,7 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	parameter DINKY_LENGTH_NS        = 200, // 200 ns
 	parameter LARPIX_PULSE_LENGTH_NS = 200, // 200 ns
 	parameter DESIRED_DELAY_FOR_SYNC_SIGNAL_NS      =   675000, // 675 us after start of laser signal
-	parameter DESIRED_DELAY_FOR_DINKY_SIGNAL_NS     =      750 + SYNC_LENGTH_NS + DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 750 ns after end of sync
+	parameter DESIRED_DELAY_FOR_DINKY_SIGNAL_NS     =      750 +                  DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 750 ns after beginning of sync
 	parameter DESIRED_DELAY_FOR_LARPIX_TRIGGER_1_NS =   500000 + SYNC_LENGTH_NS + DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 500 us after end of sync
 	parameter DESIRED_DELAY_FOR_LARPIX_TRIGGER_2_NS =  1000000 + SYNC_LENGTH_NS + DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 1000 us after end of sync
 	parameter DESIRED_DELAY_FOR_LARPIX_TRIGGER_3_NS = 25000000 + SYNC_LENGTH_NS + DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 25 ms after end of sync
@@ -116,13 +116,13 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	assign led = trigger_counter;
 //	assign led = current_value;
 //	assign led = { 4'd0, buffered_rot };
-	assign coax[3] = trigger_laser; // leftmost lemo connector
-	assign coax[2] = sync;
-	assign coax[1] = dinky;
 	wire occasional_trigger_larpix_2 = one_hot_A[0] & trigger_larpix_2;
-	assign coax[0] = sync || trigger_larpix_3; // rightmost lemo connector
-	assign coax[4] = sync || trigger_larpix_1 || occasional_trigger_larpix_2; // left sma connector
-	assign coax[5] = one_hot_B[0] & (sync || trigger_larpix_1 || trigger_larpix_2); // right sma connector
+	assign coax[5] = sync; // left sma connector
+	assign coax[4] = trigger_laser; // right sma connector
+	assign coax[3] = dinky; // leftmost lemo connector
+	assign coax[2] = sync || trigger_larpix_3;
+	assign coax[1] = sync || trigger_larpix_1 || occasional_trigger_larpix_2;
+	assign coax[0] = one_hot_B[0] & (sync || trigger_larpix_1 || trigger_larpix_2); // rightmost lemo connector
 	initial begin
 		#10;
 	end
