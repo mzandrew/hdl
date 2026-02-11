@@ -117,8 +117,8 @@ module protodune_LArPix_DAQ_laser_pulser #(
 //	assign led = current_value;
 //	assign led = { 4'd0, buffered_rot };
 	wire occasional_trigger_larpix_2 = one_hot_A[0] & trigger_larpix_2;
-	assign coax[5] = sync; // left sma connector
-	assign coax[4] = trigger_laser; // right sma connector
+	assign coax[5] = sync; // right sma connector
+	assign coax[4] = trigger_laser; // left sma connector
 	assign coax[3] = dinky; // leftmost lemo connector
 	assign coax[2] = sync || trigger_larpix_3;
 	assign coax[1] = sync || trigger_larpix_1 || occasional_trigger_larpix_2;
