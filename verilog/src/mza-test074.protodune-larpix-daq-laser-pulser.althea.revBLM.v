@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // written 2025-11-07 by mza
-// last updated 2026-02-10 by mza
+// last updated 2026-02-18 by mza
 
 `include "lib/generic.v"
 `include "lib/debounce.v"
@@ -19,7 +19,8 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	parameter DESIRED_DELAY_FOR_DINKY_SIGNAL_NS     =      750 +                  DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 750 ns after beginning of sync
 	parameter DESIRED_DELAY_FOR_LARPIX_TRIGGER_1_NS =   500000 + SYNC_LENGTH_NS + DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 500 us after end of sync
 	parameter DESIRED_DELAY_FOR_LARPIX_TRIGGER_2_NS =  1000000 + SYNC_LENGTH_NS + DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 1000 us after end of sync
-	parameter DESIRED_DELAY_FOR_LARPIX_TRIGGER_3_NS = 25000000 + SYNC_LENGTH_NS + DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 25 ms after end of sync
+	parameter DESIRED_DELAY_FOR_LARPIX_TRIGGER_3_NS =  2000000 + SYNC_LENGTH_NS + DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 2000 us after end of sync
+	parameter DESIRED_DELAY_FOR_LARPIX_TRIGGER_4_NS = 25000000 + SYNC_LENGTH_NS + DESIRED_DELAY_FOR_SYNC_SIGNAL_NS, // 25 ms after end of sync
 	parameter OCCASIONALNESS_A = 4,
 	parameter OCCASIONALNESS_B = 3,
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -41,6 +42,8 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	parameter COUNT_FOR_LARPIX_TRIGGER_2_OFF = COUNT_FOR_LARPIX_TRIGGER_2_ON - LARPIX_PULSE_LENGTH_COUNTS,
 	parameter COUNT_FOR_LARPIX_TRIGGER_3_ON = MAX_COUNT_FOR_LASER_TRIGGER - CLOCK_FREQUENCY_HZ / 10000000 * DESIRED_DELAY_FOR_LARPIX_TRIGGER_3_NS / 100,
 	parameter COUNT_FOR_LARPIX_TRIGGER_3_OFF = COUNT_FOR_LARPIX_TRIGGER_3_ON - LARPIX_PULSE_LENGTH_COUNTS,
+	parameter COUNT_FOR_LARPIX_TRIGGER_4_ON = MAX_COUNT_FOR_LASER_TRIGGER - CLOCK_FREQUENCY_HZ / 10000000 * DESIRED_DELAY_FOR_LARPIX_TRIGGER_4_NS / 100,
+	parameter COUNT_FOR_LARPIX_TRIGGER_4_OFF = COUNT_FOR_LARPIX_TRIGGER_4_ON - LARPIX_PULSE_LENGTH_COUNTS,
 	parameter COUNTER100_BIT_PICKOFF = SIMULATION ? 5 : 23
 ) (
 	input clock100_p, clock100_n,
@@ -68,9 +71,11 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	wire [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_2_off = COUNT_FOR_LARPIX_TRIGGER_2_OFF;
 	wire [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_3_on  = COUNT_FOR_LARPIX_TRIGGER_3_ON;
 	wire [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_3_off = COUNT_FOR_LARPIX_TRIGGER_3_OFF;
+	wire [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_4_on  = COUNT_FOR_LARPIX_TRIGGER_4_ON;
+	wire [LOG2_OF_MAX_COUNT_FOR_LASER_TRIGGER:0] larpix_counter_4_off = COUNT_FOR_LARPIX_TRIGGER_4_OFF;
 	reg [7:0] trigger_counter = 0;
 	reg trigger_laser = 0, sync = 0, dinky = 0;
-	reg trigger_larpix_1 = 0, trigger_larpix_2 = 0, trigger_larpix_3 = 0;
+	reg trigger_larpix_1 = 0, trigger_larpix_2 = 0, trigger_larpix_3 = 0, trigger_larpix_4 = 0;
 	reg occasional_larpix_a = 0, occasional_larpix_b = 0;
 //	reg [3:0] buffered_rot = 0;
 //	wire A, B, pushbutton;
@@ -105,6 +110,8 @@ module protodune_LArPix_DAQ_laser_pulser #(
 				if (counter==larpix_counter_2_off) begin trigger_larpix_2 <= 0; end
 				if (counter==larpix_counter_3_on)  begin trigger_larpix_3 <= 1; end
 				if (counter==larpix_counter_3_off) begin trigger_larpix_3 <= 0; end
+				if (counter==larpix_counter_4_on)  begin trigger_larpix_4 <= 1; end
+				if (counter==larpix_counter_4_off) begin trigger_larpix_4 <= 0; end
 			end else begin
 				counter <= MAX_COUNT_FOR_LASER_TRIGGER;
 				trigger_counter <= trigger_counter + 1'b1;
@@ -116,12 +123,12 @@ module protodune_LArPix_DAQ_laser_pulser #(
 	assign led = trigger_counter;
 //	assign led = current_value;
 //	assign led = { 4'd0, buffered_rot };
-	wire occasional_trigger_larpix_2 = one_hot_A[0] & trigger_larpix_2;
+	//wire occasional_trigger_larpix_2 = one_hot_A[0] & trigger_larpix_2;
 	assign coax[5] = sync; // right sma connector
 	assign coax[4] = trigger_laser; // left sma connector
 	assign coax[3] = dinky; // leftmost lemo connector
-	assign coax[2] = sync || trigger_larpix_3;
-	assign coax[1] = sync || trigger_larpix_1 || occasional_trigger_larpix_2;
+	assign coax[2] = sync || trigger_larpix_4;
+	assign coax[1] = one_hot_B[0] & (sync || trigger_larpix_2 || trigger_larpix_3);
 	assign coax[0] = one_hot_B[0] & (sync || trigger_larpix_1 || trigger_larpix_2); // rightmost lemo connector
 	initial begin
 		#10;
