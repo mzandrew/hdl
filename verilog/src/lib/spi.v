@@ -1,5 +1,8 @@
 // written 2020-05-06 by mza
-// last updated 2020-05-07 by mza
+// last updated 2026-02-27 by mza
+
+`ifndef SPI_LIB
+`define SPI_LIB
 
 // from https://en.wikipedia.org/wiki/Serial_Peripheral_Interface#/media/File:SPI_timing_diagram2.svg
 //module spi_peripheral #(
@@ -278,4 +281,231 @@ module SPI_peripheral_command8_address16_data32_tb;
 		clock <= ~clock;
 	end
 endmodule
+
+// following issi datasheet for is66wvs4m8bll-104nli
+module qspi_psram_controller_try1 #(
+	parameter ADDRESS_DEPTH_MEBIWORDS = 4, // 4 Mi addresses
+	parameter ADDRESS_DEPTH = ADDRESS_DEPTH_MEBIWORDS*1024*1024, // 4 Mi addresses
+	parameter LOG2_OF_ADDRESS_DEPTH = $clog2(ADDRESS_DEPTH), // 22 address bits
+	parameter INTERNAL_DATA_WIDTH = 8, // "4M8" memory internally
+	parameter QSPI_ENTER_QPI_MODE_COMMAND = 8'h35, // 8 clocks for this command on mosi only; then device in quad command mode
+	parameter QSPI_WRITE_COMMAND = 8'h38, // 8 clocks for this command on mosi only (or 2 clocks for this command in qpi mode); 6 clocks for the 24 bit address; no wait; then quad data in on every cycle
+	parameter QSPI_READ_COMMAND = 8'heb // 8 clocks for this command on mosi only (or 2 clocks for this command in qpi mode); 6 clocks for the 24 bit address; 6 clocks wait; then quad data out on every cycle
+) (
+	input clock,
+	input reset,
+	input [LOG2_OF_ADDRESS_DEPTH-1:0] address,
+	input [3:0] data_in,
+	input write,
+	output reg ready = 0,
+	output reg [3:0] data_out = 0,
+	output reg valid = 0,
+	output reg qspi_cs = 1'b1,
+	output reg qspi_sclk = 0,
+	inout qspi_mosi, qspi_miso, qspi_sio2, qspi_sio3
+);
+	reg previous_write = 0;
+//	reg should_switch_to_read_mode = 0;
+	reg [3:0] qspi_output_enable = 4'b0001, qspi_potential_data_out = 0;
+	wire [3:0] qspi_data_in;
+	assign qspi_mosi = qspi_output_enable[0] ? qspi_potential_data_out[0] : 1'bz;
+	assign qspi_miso = qspi_output_enable[1] ? qspi_potential_data_out[1] : 1'bz;
+	assign qspi_sio2 = qspi_output_enable[2] ? qspi_potential_data_out[2] : 1'bz;
+	assign qspi_sio3 = qspi_output_enable[3] ? qspi_potential_data_out[3] : 1'bz;
+	assign qspi_data_in = { qspi_sio3, qspi_sio2, qspi_miso, qspi_mosi };
+	reg [7:0] counter = 0;
+	reg [7:0] command = QSPI_ENTER_QPI_MODE_COMMAND;
+	always @(posedge clock) begin
+		previous_write <= write;
+		if (reset) begin
+			data_out <= 0;
+			valid <= 0;
+			ready <= 0;
+			qspi_cs <= 1'b1;
+			qspi_sclk <= 0;
+			qspi_output_enable <= 4'b0001;
+			qspi_potential_data_out <= 0;
+			counter <= 0;
+			command <= QSPI_ENTER_QPI_MODE_COMMAND;
+//			should_switch_to_read_mode <= 0;
+		end else begin
+			if (counter<=64) begin
+				counter <= counter + 1'b1;
+			end
+			if (counter<=3) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=4) begin
+				qspi_sclk <= 0;
+				counter <= 9;
+			// after this clock, the device will be properly out of reset
+			end else if (counter<=9) begin
+				qspi_potential_data_out <= { {4{command[7]}} };
+				qspi_cs <= 0;
+			end else if (counter<=10) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=11) begin
+				qspi_potential_data_out <= { {4{command[6]}} };
+				qspi_sclk <= 0;
+			end else if (counter<=12) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=13) begin
+				qspi_potential_data_out <= { {4{command[5]}} };
+				qspi_sclk <= 0;
+			end else if (counter<=14) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=15) begin
+				qspi_potential_data_out <= { {4{command[4]}} };
+				qspi_sclk <= 0;
+			end else if (counter<=16) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=17) begin
+				qspi_potential_data_out <= { {4{command[3]}} };
+				qspi_sclk <= 0;
+			end else if (counter<=18) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=19) begin
+				qspi_potential_data_out <= { {4{command[2]}} };
+				qspi_sclk <= 0;
+			end else if (counter<=20) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=21) begin
+				qspi_potential_data_out <= { {4{command[1]}} };
+				qspi_sclk <= 0;
+			end else if (counter<=22) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=23) begin
+				qspi_potential_data_out <= { {4{command[0]}} };
+				qspi_sclk <= 0;
+			end else if (counter<=24) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=25) begin
+				qspi_sclk <= 0;
+				qspi_cs <= 1'b1;
+			// after this clock, it should be in QPI mode
+				counter <= 64;
+			end else if (counter<=30) begin
+				qspi_output_enable <= 4'b1111;
+				if (write) begin
+					command <= QSPI_WRITE_COMMAND;
+				end else begin
+					command <= QSPI_READ_COMMAND;
+				end
+			end else if (counter<=31) begin
+				qspi_potential_data_out <= { command[7:4] };
+				qspi_cs <= 0;
+			end else if (counter<=32) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=33) begin
+				qspi_potential_data_out <= { command[3:0] };
+				qspi_sclk <= 0;
+			end else if (counter<=34) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=35) begin
+				qspi_sclk <= 0;
+				counter <= 40;
+			end else if (counter<=40) begin
+				qspi_potential_data_out <= { {2{1'b0}}, address[21:20] };
+			end else if (counter<=41) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=42) begin
+				qspi_potential_data_out <= { address[19:16] };
+				qspi_sclk <= 0;
+			end else if (counter<=43) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=44) begin
+				qspi_potential_data_out <= { address[15:12] };
+				qspi_sclk <= 0;
+			end else if (counter<=45) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=46) begin
+				qspi_potential_data_out <= { address[11:8] };
+				qspi_sclk <= 0;
+			end else if (counter<=47) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=48) begin
+				qspi_potential_data_out <= { address[7:4] };
+				qspi_sclk <= 0;
+			end else if (counter<=49) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=50) begin
+				qspi_potential_data_out <= { address[3:0] };
+				qspi_sclk <= 0;
+			end else if (counter<=51) begin
+				qspi_sclk <= 1'b1;
+			end else if (counter<=52) begin
+				qspi_sclk <= 0;
+			// after this clock, it should be in streaming read/write mode
+				if (~write) begin
+					qspi_output_enable <= 0;
+				end
+				counter <= 64;
+			end else begin
+				qspi_sclk <= ~qspi_sclk;
+				if (previous_write!=write) begin
+					counter <= 30;
+				end
+				if (write) begin
+					qspi_potential_data_out <= { data_in };
+				end else begin
+					data_out <= qspi_data_in;
+				end
+			end
+		end
+	end
+endmodule
+
+module qspi_psram_controller_tb;
+	localparam CLOCK_PERIOD = 4;
+	localparam HALF_CLOCK_PERIOD = CLOCK_PERIOD/2;
+	reg clock = 0, reset = 1, write = 0;
+	reg [21:0] address = 22'h123456;
+	reg [3:0] data_in = 4'hc;
+	wire [3:0] data_out;
+	wire ready, valid;
+	initial begin
+		#(4*CLOCK_PERIOD);
+		reset <= 0;
+		#(2*CLOCK_PERIOD);
+		data_in <= 4'h6;
+		#(50*CLOCK_PERIOD);
+		write <= 1'b1;
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		write <= 0;
+		#(50*CLOCK_PERIOD);
+		write <= 1'b1;
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD); data_in <= data_in + 1'b1; #(2*CLOCK_PERIOD);
+		write <= 0;
+		#(50*CLOCK_PERIOD);
+		$finish;
+	end
+	always begin
+		#HALF_CLOCK_PERIOD;
+		clock <= ~clock;
+	end
+	qspi_psram_controller_try1 t1 (.clock(clock), .reset(reset), .address(address), .data_in(data_in), .data_out(data_out), .write(write), .ready(ready), .valid(valid));
+endmodule
+
+`endif
 

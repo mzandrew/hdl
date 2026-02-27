@@ -3,20 +3,21 @@
 // based on mza-test057.palimpsest.protodune-LBLS-DAQ.althea.revB.v
 // based on mza-test066.palimpsest.protodune-LBLS-DAQ.ampoliros48.revA.v
 // and mza-test035.SCROD_XRM_clock_and_revo_receiver_frame9_and_trigger_generator.v
-// last updated 2024-04-12 by mza
+// last updated 2026-02-26 by mza
 
 `define althea_revBLM
 `include "lib/generic.v"
-`include "lib/RAM8.v"
-`include "lib/fifo.v"
-//`include "lib/RAM.sv" // ise does not and will not support systemverilog
-`include "lib/plldcm.v"
-`include "lib/serdes_pll.v"
-`include "lib/half_duplex_rpi_bus.v"
-`include "lib/sequencer.v"
 `include "lib/reset.v"
-`include "lib/edge_to_pulse.v"
-`include "lib/frequency_counter.v"
+`include "lib/half_duplex_rpi_bus.v"
+`include "lib/RAM8.v"
+`include "lib/spi.v"
+//`include "lib/fifo.v"
+//`include "lib/RAM.sv" // ise does not and will not support systemverilog
+//`include "lib/plldcm.v"
+//`include "lib/serdes_pll.v"
+//`include "lib/sequencer.v"
+//`include "lib/edge_to_pulse.v"
+//`include "lib/frequency_counter.v"
 
 module palimpsest_simple_pollable_memory #(
 	parameter BUS_WIDTH = 16,
