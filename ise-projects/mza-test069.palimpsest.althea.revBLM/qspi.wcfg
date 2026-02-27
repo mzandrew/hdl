@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test069.palimpsest.althea.revBLM/qspi_psram_controller_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="qspi_psram_controller_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="14" />
+   <wvobject fp_name="/qspi_psram_controller_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/address" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">address[21:0]</obj_property>
+      <obj_property name="ObjectShortName">address[21:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/data_in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_in[3:0]</obj_property>
+      <obj_property name="ObjectShortName">data_in[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/data_out" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data_out[3:0]</obj_property>
+      <obj_property name="ObjectShortName">data_out[3:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/t1/write" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">write</obj_property>
+      <obj_property name="ObjectShortName">write</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/t1/ready" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ready</obj_property>
+      <obj_property name="ObjectShortName">ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/t1/valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">valid</obj_property>
+      <obj_property name="ObjectShortName">valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/t1/qspi_sclk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">qspi_sclk</obj_property>
+      <obj_property name="ObjectShortName">qspi_sclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/t1/qspi_cs" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">qspi_cs</obj_property>
+      <obj_property name="ObjectShortName">qspi_cs</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/t1/command" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">command[7:0]</obj_property>
+      <obj_property name="ObjectShortName">command[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/t1/qspi_mosi" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">qspi_mosi</obj_property>
+      <obj_property name="ObjectShortName">qspi_mosi</obj_property>
+   </wvobject>
+   <wvobject fp_name="vbus17" type="vbus" db_ref_id="1">
+      <obj_property name="label">qpi</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/qspi_psram_controller_tb/t1/qspi_sio3" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">qspi_sio3</obj_property>
+         <obj_property name="ObjectShortName">qspi_sio3</obj_property>
+      </wvobject>
+      <wvobject fp_name="/qspi_psram_controller_tb/t1/qspi_sio2" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">qspi_sio2</obj_property>
+         <obj_property name="ObjectShortName">qspi_sio2</obj_property>
+      </wvobject>
+      <wvobject fp_name="/qspi_psram_controller_tb/t1/qspi_miso" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">qspi_miso</obj_property>
+         <obj_property name="ObjectShortName">qspi_miso</obj_property>
+      </wvobject>
+      <wvobject fp_name="/qspi_psram_controller_tb/t1/qspi_mosi" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">qspi_mosi</obj_property>
+         <obj_property name="ObjectShortName">qspi_mosi</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/qspi_psram_controller_tb/t1/counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">counter[7:0]</obj_property>
+      <obj_property name="ObjectShortName">counter[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+</wave_config>
