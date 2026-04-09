@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test070.palimpsest.not-that-sus.althea.revBLM/sus_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="sus_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="41" />
+   <wvobject fp_name="/sus_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/receiver0_data_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">receiver0_data_word[17:0]</obj_property>
+      <obj_property name="ObjectShortName">receiver0_data_word[17:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/receiver1_data_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">receiver1_data_word[17:0]</obj_property>
+      <obj_property name="ObjectShortName">receiver1_data_word[17:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/receiver2_data_word" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">receiver2_data_word[17:0]</obj_property>
+      <obj_property name="ObjectShortName">receiver2_data_word[17:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider890" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap0_0_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap0_0_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap0_0_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap1_0_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap1_0_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap1_0_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap2_0_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap2_0_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap2_0_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider890" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap0_0_1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap0_0_1_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap0_0_1_0[2:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap1_0_1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap1_0_1_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap1_0_1_0[2:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap2_0_1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap2_0_1_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap2_0_1_0[2:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider890" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap0_1_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap0_1_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap0_1_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap1_1_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap1_1_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap1_1_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap2_1_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap2_1_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap2_1_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider890" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap0_2_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap0_2_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap0_2_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap1_2_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap1_2_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap1_2_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/tap2_2_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tap2_2_0_0[2:0]</obj_property>
+      <obj_property name="ObjectShortName">tap2_2_0_0[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider890" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/receiver0_pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">receiver0_pipeline[89:0]</obj_property>
+      <obj_property name="ObjectShortName">receiver0_pipeline[89:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/receiver1_pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">receiver1_pipeline[89:0]</obj_property>
+      <obj_property name="ObjectShortName">receiver1_pipeline[89:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/receiver2_pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">receiver2_pipeline[71:0]</obj_property>
+      <obj_property name="ObjectShortName">receiver2_pipeline[71:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_0_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_0_0_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_0_0_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_0_1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_0_1_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_0_1_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_0_2_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_0_2_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_0_2_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_1_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_1_0_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_1_0_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_1_1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_1_1_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_1_1_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_1_2_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_1_2_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_1_2_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_2_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_2_0_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_2_0_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_2_1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_2_1_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_2_1_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_2_2_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_2_2_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_2_2_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_3_0_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_3_0_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_3_0_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_3_1_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_3_1_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_3_1_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/mysus/grid_3_2_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">grid_3_2_0[8:0]</obj_property>
+      <obj_property name="ObjectShortName">grid_3_2_0[8:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/stim" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">stim</obj_property>
+      <obj_property name="ObjectShortName">stim</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/r0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">r0[43:0,2:0]</obj_property>
+      <obj_property name="ObjectShortName">r0[43:0,2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <wvobject fp_name="/sus_tb/r0[43]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[43,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[43,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[42]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[42,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[42,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[41]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[41,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[41,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[40]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[40,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[40,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[39]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[39,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[39,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[38]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[38,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[38,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[37]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[37,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[37,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[36]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[36,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[36,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[35]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[35,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[35,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[34]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[34,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[34,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[33]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[33,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[33,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[32]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[32,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[32,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[31]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[31,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[31,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[30]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[30,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[30,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[29]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[29,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[29,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[28]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[28,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[28,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[27]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[27,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[27,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[26]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[26,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[26,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[25]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[25,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[25,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[24]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[24,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[24,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[23]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[23,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[23,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[22]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[22,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[22,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[21]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[21,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[21,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[20]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[20,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[20,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[19]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[19,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[19,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[18]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[18,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[18,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[17]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[17,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[17,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[16]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[16,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[16,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[15]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[15,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[15,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[14]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[14,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[14,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[13]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[13,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[13,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[12]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[12,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[12,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[11]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[11,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[11,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[10]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[10,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[10,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[9]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[9,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[9,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[8]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[8,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[8,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[7]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[7,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[7,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[6]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[6,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[6,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[5]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[5,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[5,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[4]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[4,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[4,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[3]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[3,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[3,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[2]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[2,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[2,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[1]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[1,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[1,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sus_tb/r0[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0,2:0]</obj_property>
+         <obj_property name="ObjectShortName">r0[0,2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/r1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">r1[43:0,2:0]</obj_property>
+      <obj_property name="ObjectShortName">r1[43:0,2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sus_tb/r2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">r2[43:0,2:0]</obj_property>
+      <obj_property name="ObjectShortName">r2[43:0,2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+</wave_config>

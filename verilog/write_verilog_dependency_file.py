@@ -23,7 +23,7 @@ def touch(filename, referrent=None):
 def run_file(filename):
 	includes = []
 	#includes.append(filename)
-	match = re.search(src + "/(.*)\.v", filename)
+	match = re.search(src + "/(.*)\\.v", filename)
 	if match:
 		basename = match.group(1)
 	else:

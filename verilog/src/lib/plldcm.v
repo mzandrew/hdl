@@ -1,7 +1,8 @@
 // written 2019-08-14 by mza
-// taken from info in ug382/ug615/ds162
-// last updated 2024-05-29 by mza
+// taken from info in ug382/ug615/ds162, ug768/ug953
+// last updated 2025-03-11 by mza
 
+// pll, dcm, mmcm, etc
 `ifndef PLLDCM_LIB
 `define PLLDCM_LIB
 
@@ -110,6 +111,21 @@ module simplepll_ADV_2DCM #(
 endmodule
 
 //simplepll_ADV #(.OVERALL_DIVIDE(1), .MULTIPLY(10), .DIVIDE(4), .PERIOD(20.0)) mypll (.clockin(clock50), .reset(reset), .clockout(clock), .locked()); // 50->125
+//	simplepll_ADV #(
+//		.PERIOD(PLLPERIOD), .OVERALL_DIVIDE(OVERALL_PLLDIVIDE), .MULTIPLY(PLLMULTIPLY), .DIVIDE(PLLDIVIDE),
+//		.DIVIDE0(WORD_CLOCK_DIVIDE), .DIVIDE1(BIT_CLOCK_DIVIDE),
+//		.DIVIDE2(SAMPLE_CLOCK_DIVIDE), .DIVIDE3(1),
+//		.DIVIDE4(1), .DIVIDE5(1),
+//		.PHASE0(0.0),  .PHASE1(0.0),
+//		.PHASE2(0.0),  .PHASE3(0.0),
+//		.PHASE4(0.0),  .PHASE5(0.0)
+//	) mypll (
+//		.clockin(clock_in),
+//		.reset(reset),
+//		.clock0out(raw_word_clock), .clock1out(bit_clock),
+//		.clock2out(raw_sample_clock), .clock3out(),
+//		.clock4out(), .clock5out(),
+//		.locked(pll_is_locked));
 module simplepll_ADV #(
 	parameter OVERALL_DIVIDE = 1,
 	parameter MULTIPLY = 4,
@@ -233,9 +249,7 @@ module simplepll_BASE #(
 		.CLKOUT5_DIVIDE(DIVIDE5), // Division factor for CLKOUT5 (1 to 128)
 		.CLKOUT5_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT5 (0.01 to 0.99)
 		.CLKOUT5_PHASE(PHASE5), // Phase shift (degrees) for CLKOUT5 (0.0 to 360.0)
-		.COMPENSATION(COMPENSATION), // "SYSTEM_SYNCHRONOUS",
-		// "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL",
-		// "DCM2PLL", "PLL2DCM"
+		.COMPENSATION(COMPENSATION), // "SYSTEM_SYNCHRONOUS", "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", "DCM2PLL", "PLL2DCM"
 		.DIVCLK_DIVIDE(OVERALL_DIVIDE), // Division factor for all clocks (1 to 52)
 		.REF_JITTER(0.100) // Input reference jitter (0.000 to 0.999 UI%)
 	) PLL_BASE_inst (
@@ -330,39 +344,38 @@ module simpledcm_SP #(
 //	wire clockfb_out;
 //	BUFG mybufg (.I(clockfb_out), .O(clockfb_in));
 	DCM_SP #(
-		.CLKDV_DIVIDE(ALT_CLOCKOUT_DIVIDE), // Divide by: 1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5
-		// 7.0,7.5,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0 or 16.0
-		.CLKFX_DIVIDE(DIVIDE), // Can be any integer from 1 to 32
-		.CLKFX_MULTIPLY(MULTIPLY), // Can be any integer from 2 to 32
-		.CLKIN_DIVIDE_BY_2(CLKIN_DIVIDE_BY_2), // TRUE/FALSE to enable CLKIN divide by two feature
 		.CLKIN_PERIOD(PERIOD), // Specify period of input clock
-		.CLKOUT_PHASE_SHIFT("NONE"), // Specify phase shift of NONE, FIXED or VARIABLE
+		.CLKIN_DIVIDE_BY_2(CLKIN_DIVIDE_BY_2), // TRUE/FALSE to enable CLKIN divide by two feature
 		.CLK_FEEDBACK("1X"), // Specify clock feedback of NONE, 1X or 2X
+		.CLKFX_MULTIPLY(MULTIPLY), // Can be any integer from 2 to 32
+		.CLKFX_DIVIDE(DIVIDE), // Can be any integer from 1 to 32
+		.CLKOUT_PHASE_SHIFT("NONE"), // Specify phase shift of NONE, FIXED or VARIABLE
 		.DESKEW_ADJUST("SYSTEM_SYNCHRONOUS"), // SOURCE_SYNCHRONOUS, SYSTEM_SYNCHRONOUS or
 		// an integer from 0 to 15
 		.DLL_FREQUENCY_MODE("LOW"), // HIGH or LOW frequency mode for DLL
 		.DUTY_CYCLE_CORRECTION("TRUE"), // Duty cycle correction, TRUE or FALSE
 		.PHASE_SHIFT(0), // Amount of fixed phase shift from -255 to 255
-		.STARTUP_WAIT("FALSE") // Delay configuration DONE until DCM LOCK, TRUE/FALSE
+		.STARTUP_WAIT("FALSE"), // Delay configuration DONE until DCM LOCK, TRUE/FALSE
+		.CLKDV_DIVIDE(ALT_CLOCKOUT_DIVIDE) // Divide by: 1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0 or 16.0
 	) DCM_SP_inst (
+		.CLKIN(clockin), // Clock input (from IBUFG, BUFG or DCM)
+		.CLKFB(fb), // DCM clock feedback
+		.CLKFX(clockout), // DCM CLK synthesis out (M/D)
+		.CLKFX180(clockout180), // 180 degree CLK synthesis out
 		.CLK0(fb), // 0 degree DCM CLK output
+		.CLK90(), // 90 degree DCM CLK output
 		.CLK180(), // 180 degree DCM CLK output
 		.CLK270(), // 270 degree DCM CLK output
 		.CLK2X(), // 2X DCM CLK output
 		.CLK2X180(), // 2X, 180 degree DCM CLK out
-		.CLK90(), // 90 degree DCM CLK output
-		.CLKDV(alt_clockout), // Divided DCM CLK out (CLKDV_DIVIDE)
-		.CLKFX(clockout), // DCM CLK synthesis out (M/D)
-		.CLKFX180(clockout180), // 180 degree CLK synthesis out
-		.LOCKED(locked), // DCM LOCK status output
 		.PSDONE(), // Dynamic phase adjust done output
 		.STATUS(), // 8-bit DCM status bits output
-		.CLKFB(fb), // DCM clock feedback
-		.CLKIN(clockin), // Clock input (from IBUFG, BUFG or DCM)
 		.PSCLK(1'b0), // Dynamic phase adjust clock input
 		.PSEN(1'b0), // Dynamic phase adjust enable input
 		.PSINCDEC(1'b0), // Dynamic phase adjust increment/decrement
 		.DSSEN(1'b0), // missing constraint in ug615
+		.CLKDV(alt_clockout), // Divided DCM CLK out (CLKDV_DIVIDE)
+		.LOCKED(locked), // DCM LOCK status output
 		.RST(reset) // DCM asynchronous reset input
 	);
 endmodule
@@ -436,12 +449,11 @@ module dcm_pll_pll #(
 ) (
 	input clockin,
 	input reset,
-	output clockintermediate,
+	output clockintermediate, clockintermediate_raw, clockintermediate_raw180,
 	output clock0out, clock1out, clock2out, clock3out, clock4out, clock5out,
 	output clock6out, clock7out, clock8out, clock9out, clock10out, clock11out,
 	output dcm_locked, pll1_locked, pll2_locked
 );
-	wire clockintermediate_raw;
 	BUFG intermediate (.I(clockintermediate_raw), .O(clockintermediate));
 	simpledcm_SP #(
 		.MULTIPLY(DCM_MULTIPLY), .DIVIDE(DCM_DIVIDE), .PERIOD(DCM_PERIOD)
@@ -449,7 +461,7 @@ module dcm_pll_pll #(
 		.clockin(clockin),
 		.reset(reset),
 		.clockout(clockintermediate_raw),
-		.clockout180(),
+		.clockout180(clockintermediate_raw180),
 		.alt_clockout(),
 		.locked(dcm_locked));
 	simplepll_BASE #(
@@ -511,6 +523,215 @@ module clock_select #(
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_0s (.I0(clock[0]), .I1(clock[1]), .S(select[0]), .O(clock_0s));
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_1s (.I0(clock[2]), .I1(clock[3]), .S(select[0]), .O(clock_1s));
 	BUFGMUX #(.CLK_SEL_TYPE("SYNC")) clock_sel_sx (.I0(clock_0s), .I1(clock_1s), .S(select[1]), .O(clock_out));
+endmodule
+
+// 7series:
+
+//MMCM_base #(.M(10.0), .D(1), .CLKOUT0_DIVIDE(1.0), .CLOCK_PERIOD_NS(10.0),
+//	.CLKOUT1_DIVIDE(1), .CLKOUT2_DIVIDE(1), .CLKOUT3_DIVIDE(1),
+//	.CLKOUT4_DIVIDE(1), .CLKOUT5_DIVIDE(1), .CLKOUT6_DIVIDE(1)) (
+//	.clock_in(clock), .reset(reset), .locked(mmcm_locked),
+//	.clock0_out_p(), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
+//	.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
+//	.clock4_out(), .clock5_out(), .clock6_out());
+// never tested
+module MMCM_base #(
+	parameter D = 1, // overall divide [1,106]
+	parameter M = 10.0, // overall multiply [2.0,64.0]
+	parameter CLKOUT0_DIVIDE = 1.0, // this one is fractional [1.0,128.0]
+	parameter CLKOUT1_DIVIDE = 1, // [1,128]
+	parameter CLKOUT2_DIVIDE = 1,
+	parameter CLKOUT3_DIVIDE = 1,
+	parameter CLKOUT4_DIVIDE = 1,
+	parameter CLKOUT5_DIVIDE = 1,
+	parameter CLKOUT6_DIVIDE = 1,
+	parameter CLOCK_PERIOD_NS = 10.0
+) (
+	input clock_in, // input=[10,800]MHz; PFD=[10,450]MHz; VCO=[600,1200]MHz; OUT=[4.69,800]MHz for a "-1" grade zynq-7020
+	input reset,
+	output locked,
+	output clock0_out_p, clock0_out_n,
+	output clock1_out_p, clock1_out_n,
+	output clock2_out_p, clock2_out_n,
+	output clock3_out_p, clock3_out_n,
+	output clock4_out,
+	output clock5_out,
+	output clock6_out
+);
+	wire clkfb;
+	// MMCME2_BASE: Base Mixed Mode Clock Manager 7 Series Xilinx HDL Language Template, version 2018.3
+	MMCME2_BASE #(
+		.STARTUP_WAIT("FALSE"), // Delays DONE until MMCM is locked (FALSE, TRUE)
+		.BANDWIDTH("OPTIMIZED"), // Jitter programming (OPTIMIZED, HIGH, LOW)
+		.REF_JITTER1(0.1), // Reference input jitter in UI (0.000-0.999).
+		.DIVCLK_DIVIDE(D), // Master division value (1-106)
+		.CLKFBOUT_MULT_F(M), // Multiply value for all CLKOUT (2.000-64.000).
+		.CLKFBOUT_PHASE(0.0), // Phase offset in degrees of CLKFB (-360.000-360.000).
+		.CLKIN1_PERIOD(CLOCK_PERIOD_NS), // Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
+		.CLKOUT0_DIVIDE_F(CLKOUT0_DIVIDE), // Divide amount for CLKOUT0 (1.000-128.000).
+		// CLKOUT0_DIVIDE - CLKOUT6_DIVIDE: Divide amount for each CLKOUT (1-128)
+		.CLKOUT1_DIVIDE(CLKOUT1_DIVIDE),
+		.CLKOUT2_DIVIDE(CLKOUT2_DIVIDE),
+		.CLKOUT3_DIVIDE(CLKOUT3_DIVIDE),
+		.CLKOUT4_DIVIDE(CLKOUT4_DIVIDE),
+		.CLKOUT5_DIVIDE(CLKOUT5_DIVIDE),
+		.CLKOUT6_DIVIDE(CLKOUT6_DIVIDE),
+		// CLKOUT0_DUTY_CYCLE - CLKOUT6_DUTY_CYCLE: Duty cycle for each CLKOUT (0.01-0.99).
+		.CLKOUT0_DUTY_CYCLE(0.5),
+		.CLKOUT1_DUTY_CYCLE(0.5),
+		.CLKOUT2_DUTY_CYCLE(0.5),
+		.CLKOUT3_DUTY_CYCLE(0.5),
+		.CLKOUT4_DUTY_CYCLE(0.5),
+		.CLKOUT5_DUTY_CYCLE(0.5),
+		.CLKOUT6_DUTY_CYCLE(0.5),
+		// CLKOUT0_PHASE - CLKOUT6_PHASE: Phase offset for each CLKOUT (-360.000-360.000).
+		.CLKOUT0_PHASE(0.0),
+		.CLKOUT1_PHASE(0.0),
+		.CLKOUT2_PHASE(0.0),
+		.CLKOUT3_PHASE(0.0),
+		.CLKOUT4_PHASE(0.0),
+		.CLKOUT5_PHASE(0.0),
+		.CLKOUT6_PHASE(0.0),
+		.CLKOUT4_CASCADE("FALSE") // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
+	) MMCME2_BASE_inst (
+		 .CLKOUT0(clock0_out_p), // 1-bit output: CLKOUT0
+		.CLKOUT0B(clock0_out_n), // 1-bit output: Inverted CLKOUT0
+		 .CLKOUT1(clock1_out_p), // 1-bit output: CLKOUT1
+		.CLKOUT1B(clock1_out_n), // 1-bit output: Inverted CLKOUT1
+		 .CLKOUT2(clock2_out_p), // 1-bit output: CLKOUT2
+		.CLKOUT2B(clock2_out_n), // 1-bit output: Inverted CLKOUT2
+		 .CLKOUT3(clock3_out_p), // 1-bit output: CLKOUT3
+		.CLKOUT3B(clock3_out_n), // 1-bit output: Inverted CLKOUT3
+		 .CLKOUT4(clock4_out), // 1-bit output: CLKOUT4
+		 .CLKOUT5(clock5_out), // 1-bit output: CLKOUT5
+		 .CLKOUT6(clock6_out), // 1-bit output: CLKOUT6
+		.CLKFBOUT(clkfb), // 1-bit output: Feedback clock
+		.CLKFBOUTB(), // 1-bit output: Inverted CLKFBOUT
+		.CLKFBIN(clkfb), // 1-bit input: Feedback clock
+		.LOCKED(locked), // 1-bit output: LOCK
+		.CLKIN1(clock_in), // 1-bit input: Clock
+		.PWRDWN(1'b0), // 1-bit input: Power-down
+		.RST(reset) // 1-bit input: Reset
+	);
+endmodule
+
+// used in test062 (pynq/alpha) and test071 (ac701/prbs)
+(* keep_hierarchy = "yes" *)
+module MMCM_advanced #(
+	parameter D = 1, // overall divide [1,106]
+	parameter M = 10.0, // overall multiply [2.0,64.0]
+	parameter CLKOUT0_DIVIDE = 1.0, // this one is fractional [1.0,128.0]
+	parameter CLKOUT1_DIVIDE = 1, // [1,128]
+	parameter CLKOUT2_DIVIDE = 1,
+	parameter CLKOUT3_DIVIDE = 1,
+	parameter CLKOUT4_DIVIDE = 1,
+	parameter CLKOUT5_DIVIDE = 1,
+	parameter CLKOUT6_DIVIDE = 1,
+	parameter CLOCK1_PERIOD_NS = 10.0,
+	parameter CLOCK2_PERIOD_NS = 10.0
+) (
+	input clock_in, // input=[10,800]MHz; PFD=[10,450]MHz; VCO=[600,1200]MHz; OUT=[4.69,800]MHz for a "-1" grade zynq-7020
+	input reset,
+	output locked,
+	output clock0_out_p, clock0_out_n,
+	output clock1_out_p, clock1_out_n,
+	output clock2_out_p, clock2_out_n,
+	output clock3_out_p, clock3_out_n,
+	output clock4_out,
+	output clock5_out,
+	output clock6_out
+);
+	wire clkfb;
+	wire [15:0] drp_DO, drp_DI;
+	wire [6:0] drp_DADDR;
+	wire drp_DCLK, drp_DEN, drp_DWE, drp_DRDY;
+	assign drp_DCLK = 0;
+	assign drp_DEN = 0;
+	assign drp_DWE = 0;
+	assign drp_DADDR = 0;
+	assign drp_DI = 0;
+	wire clk_fb;
+	// MMCME2_ADV: Advanced Mixed Mode Clock Manager 7 Series
+	// modified from Xilinx HDL Language Template, version 2023.2 (ug953)
+	MMCME2_ADV #(
+		.BANDWIDTH("OPTIMIZED"), // Jitter programming (OPTIMIZED, HIGH, LOW)
+		.DIVCLK_DIVIDE(D), // Master division value (1-106)
+		.CLKFBOUT_MULT_F(M), // Multiply value for all CLKOUT (2.000-64.000).
+		.CLKFBOUT_PHASE(0.0), // Phase offset in degrees of CLKFB (-360.000-360.000).
+		.CLKIN1_PERIOD(CLOCK1_PERIOD_NS), // CLKIN_PERIOD: Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
+		.CLKIN2_PERIOD(CLOCK2_PERIOD_NS),
+		.CLKOUT0_DIVIDE_F(CLKOUT0_DIVIDE), // Divide amount for CLKOUT0 (1.000-128.000).
+		.CLKOUT1_DIVIDE(CLKOUT1_DIVIDE), // CLKOUT0_DIVIDE - CLKOUT6_DIVIDE: Divide amount for CLKOUT (1-128)
+		.CLKOUT2_DIVIDE(CLKOUT2_DIVIDE),
+		.CLKOUT3_DIVIDE(CLKOUT3_DIVIDE),
+		.CLKOUT4_DIVIDE(CLKOUT4_DIVIDE),
+		.CLKOUT5_DIVIDE(CLKOUT5_DIVIDE),
+		.CLKOUT6_DIVIDE(CLKOUT6_DIVIDE),
+		.CLKOUT0_DUTY_CYCLE(0.5), // CLKOUT0_DUTY_CYCLE - CLKOUT6_DUTY_CYCLE: Duty cycle for CLKOUT outputs (0.01-0.99).
+		.CLKOUT1_DUTY_CYCLE(0.5),
+		.CLKOUT2_DUTY_CYCLE(0.5),
+		.CLKOUT3_DUTY_CYCLE(0.5),
+		.CLKOUT4_DUTY_CYCLE(0.5),
+		.CLKOUT5_DUTY_CYCLE(0.5),
+		.CLKOUT6_DUTY_CYCLE(0.5),
+		.CLKOUT0_PHASE(0.0), // CLKOUT0_PHASE - CLKOUT6_PHASE: Phase offset for CLKOUT outputs (-360.000-360.000).
+		.CLKOUT1_PHASE(0.0),
+		.CLKOUT2_PHASE(0.0),
+		.CLKOUT3_PHASE(0.0),
+		.CLKOUT4_PHASE(0.0),
+		.CLKOUT5_PHASE(0.0),
+		.CLKOUT6_PHASE(0.0),
+		.CLKOUT4_CASCADE("FALSE"), // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
+		.COMPENSATION("ZHOLD"), // ZHOLD, BUF_IN, EXTERNAL, INTERNAL
+		.REF_JITTER1(0.1), // REF_JITTER: Reference input jitter in UI (0.000-0.999).
+		.REF_JITTER2(0.1),
+		.STARTUP_WAIT("FALSE"), // Delays DONE until MMCM is locked (FALSE, TRUE)
+		.SS_EN("FALSE"), // Enables spread spectrum (FALSE, TRUE)
+		.SS_MODE("CENTER_HIGH"), // CENTER_HIGH, CENTER_LOW, DOWN_HIGH, DOWN_LOW
+		.SS_MOD_PERIOD(10000), // Spread spectrum modulation period (ns) (VALUES)
+		.CLKFBOUT_USE_FINE_PS("FALSE"), // USE_FINE_PS: Fine phase shift enable (TRUE/FALSE)
+		.CLKOUT0_USE_FINE_PS("FALSE"),
+		.CLKOUT1_USE_FINE_PS("FALSE"),
+		.CLKOUT2_USE_FINE_PS("FALSE"),
+		.CLKOUT3_USE_FINE_PS("FALSE"),
+		.CLKOUT4_USE_FINE_PS("FALSE"),
+		.CLKOUT5_USE_FINE_PS("FALSE"),
+		.CLKOUT6_USE_FINE_PS("FALSE")
+	) MMCME2_ADV_inst (
+		.RST(reset), // 1-bit input: Reset
+		.DADDR(drp_DADDR), // 7-bit input: DRP address
+		.DCLK(drp_DCLK), // 1-bit input: DRP clock
+		.DEN(drp_DEN), // 1-bit input: DRP enable
+		.DI(drp_DI), // 16-bit input: DRP data
+		.DWE(drp_DWE), // 1-bit input: DRP write enable
+		.CLKIN1(clock_in), // 1-bit input: Primary clock
+		.CLKIN2(1'b0), // 1-bit input: Secondary clock
+		.CLKFBIN(clk_fb), // 1-bit input: Feedback clock
+		.CLKFBOUT(clk_fb), // 1-bit output: Feedback clock
+		 .CLKOUT0(clock0_out_p), // 1-bit output: CLKOUT0
+		.CLKOUT0B(clock0_out_n), // 1-bit output: Inverted CLKOUT0
+		 .CLKOUT1(clock1_out_p), // 1-bit output: CLKOUT1
+		.CLKOUT1B(clock1_out_n), // 1-bit output: Inverted CLKOUT1
+		 .CLKOUT2(clock2_out_p), // 1-bit output: CLKOUT2
+		.CLKOUT2B(clock2_out_n), // 1-bit output: Inverted CLKOUT2
+		 .CLKOUT3(clock3_out_p), // 1-bit output: CLKOUT3
+		.CLKOUT3B(clock3_out_n), // 1-bit output: Inverted CLKOUT3
+		 .CLKOUT4(clock4_out), // 1-bit output: CLKOUT4
+		 .CLKOUT5(clock5_out), // 1-bit output: CLKOUT5
+		 .CLKOUT6(clock6_out), // 1-bit output: CLKOUT6
+		.LOCKED(locked), // 1-bit output: LOCK
+		.PSCLK(1'b0), // 1-bit input: Phase shift clock
+		.PSEN(1'b0), // 1-bit input: Phase shift enable
+		.PSINCDEC(1'b0), // 1-bit input: Phase shift increment/decrement
+		.CLKINSEL(1'b1), // 1-bit input: Clock select, 1=CLKIN1 0=CLKIN2
+		.PWRDWN(1'b0), // 1-bit input: Power-down
+		.PSDONE(), // 1-bit output: Phase shift done
+		.CLKFBOUTB(), // 1-bit output: Inverted CLKFBOUT
+		.CLKFBSTOPPED(), // 1-bit output: Feedback clock stopped
+		.CLKINSTOPPED(), // 1-bit output: Input clock stopped
+		.DO(drp_DO), // 16-bit output: DRP data
+		.DRDY(drp_DRDY) // 1-bit output: DRP ready
+	);
 endmodule
 
 `endif

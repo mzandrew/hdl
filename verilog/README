@@ -20,3 +20,6 @@ verilog operator precedence; use () to override:
 ||
 ?:
 
+how to pad data by the approprate amount:
+assign data_in_32 = { {32-DATA_WIDTH_A{1'b0}}, data_in };
+

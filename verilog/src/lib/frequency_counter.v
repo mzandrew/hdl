@@ -2,7 +2,7 @@
 // based on mza-test014.duration-timer.uart.v
 // and mza-test022.frequency-counter.uart.v
 // updated 2020-05-30 by mza
-// last updated 2024-06-02 by mza
+// last updated 2024-11-13 by mza
 
 `ifndef FREQUENCY_COUNTER_LIB
 `define FREQUENCY_COUNTER_LIB
@@ -11,6 +11,9 @@
 `include "generic.v"
 
 module frequency_counter #(
+	parameter TRIGGER_STREAM_PICKOFF = 2,
+	parameter VALID_PIPELINE_PICKOFF = 2,
+	parameter WIDTH_OF_RESULT = 32,
 	parameter FREQUENCY_OF_REFERENCE_CLOCK = 10000000,
 	parameter LOG2_OF_DIVIDE_RATIO = 24, // 27 is good
 	parameter MAXIMUM_EXPECTED_FREQUENCY = 250000000,
@@ -21,41 +24,39 @@ module frequency_counter #(
 ) (
 	input reference_clock,
 	input unknown_clock,
-	output [31:0] frequency_of_unknown_clock,
+	output reg [WIDTH_OF_RESULT-1:0] frequency_of_unknown_clock,
 	output reg valid = 0
 );
 	localparam MSB_OF_COUNTERS = LOG2_OF_DIVIDE_RATIO + 8; // 35
 	localparam MSB_OF_ACCUMULATOR = LOG2_OF_MAXIMUM_EXPECTED_FREQUENCY + LOG2_OF_FREQUENCY_OF_REFERENCE_CLOCK_IN_N_HZ + 3; // ~63
 	localparam MSB_OF_RESULT = MSB_OF_ACCUMULATOR - LOG2_OF_DIVIDE_RATIO; // ~35
 	reg [MSB_OF_ACCUMULATOR:0] accumulator = 0;
-	reg [MSB_OF_ACCUMULATOR:0] previous_accumulator = 0;
 	reg [LOG2_OF_DIVIDE_RATIO:0] reference_clock_counter = 0;
 	wire trigger_active = reference_clock_counter[LOG2_OF_DIVIDE_RATIO];
 	reg valid__unknown = 0;
-	reg [4:0] valid__pipeline_reference = 0;
+	reg [VALID_PIPELINE_PICKOFF+1:0] valid__pipeline_reference = 0;
 	always @(posedge reference_clock) begin
 		reference_clock_counter <= reference_clock_counter + 1'b1;
 		valid <= 0;
-		if (valid__pipeline_reference[3:2]==2'b01) begin
+		if (valid__pipeline_reference[VALID_PIPELINE_PICKOFF+1:VALID_PIPELINE_PICKOFF]==2'b01) begin
 			valid <= 1;
 		end
-		valid__pipeline_reference <= { valid__pipeline_reference[2:0], valid__unknown };
+		valid__pipeline_reference <= { valid__pipeline_reference[VALID_PIPELINE_PICKOFF:0], valid__unknown };
 	end
-	reg [3:0] trigger_stream = 0;
+	reg [TRIGGER_STREAM_PICKOFF+1:0] trigger_stream = 0;
 	always @(posedge unknown_clock) begin
-		trigger_stream <= { trigger_stream[2:0], trigger_active };
+		trigger_stream <= { trigger_stream[TRIGGER_STREAM_PICKOFF:0], trigger_active };
 	end
 	always @(posedge unknown_clock) begin
-		if (trigger_stream[2]) begin
+		if (trigger_stream[TRIGGER_STREAM_PICKOFF]) begin
 			valid__unknown <= 0;
 			accumulator <= accumulator + FREQUENCY_OF_REFERENCE_CLOCK_IN_N_HZ;
-		end else if (trigger_stream[3:2]==2'b10) begin
-			previous_accumulator <= accumulator;
+		end else if (trigger_stream[TRIGGER_STREAM_PICKOFF+1:TRIGGER_STREAM_PICKOFF]==2'b10) begin
+			frequency_of_unknown_clock <= accumulator[MSB_OF_ACCUMULATOR:LOG2_OF_DIVIDE_RATIO];
 			accumulator <= 0;
 			valid__unknown <= 1;
 		end
 	end
-	assign frequency_of_unknown_clock = previous_accumulator[MSB_OF_ACCUMULATOR:LOG2_OF_DIVIDE_RATIO];
 endmodule
 
 `ifndef SYNTHESIS

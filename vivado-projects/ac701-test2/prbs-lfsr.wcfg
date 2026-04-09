@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="prbs_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="prbs_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="992.025 ns"></ZoomStartTime>
+      <ZoomEndTime time="1,001.596 ns"></ZoomEndTime>
+      <Cursor1Time time="1,000.000 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="139"></NameColumnWidth>
+      <ValueColumnWidth column_width="89"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="9" />
+   <wvobject type="logic" fp_name="/prbs_tb/clock">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/prbs_tb/reset">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/prbs_tb/rand8">
+      <obj_property name="ElementShortName">rand8[7:0]</obj_property>
+      <obj_property name="ObjectShortName">rand8[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/prbs_tb/rand10">
+      <obj_property name="ElementShortName">rand10[9:0]</obj_property>
+      <obj_property name="ObjectShortName">rand10[9:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/prbs_tb/rand12">
+      <obj_property name="ElementShortName">rand12[11:0]</obj_property>
+      <obj_property name="ObjectShortName">rand12[11:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/prbs_tb/rand16">
+      <obj_property name="ElementShortName">rand16[15:0]</obj_property>
+      <obj_property name="ObjectShortName">rand16[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/prbs_tb/rand21">
+      <obj_property name="ElementShortName">rand21[20:0]</obj_property>
+      <obj_property name="ObjectShortName">rand21[20:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/prbs_tb/rand24">
+      <obj_property name="ElementShortName">rand24[23:0]</obj_property>
+      <obj_property name="ObjectShortName">rand24[23:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/prbs_tb/rand32">
+      <obj_property name="ElementShortName">rand32[31:0]</obj_property>
+      <obj_property name="ObjectShortName">rand32[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+</wave_config>

@@ -3,7 +3,7 @@
 // written 2022-11-16 by mza
 // ~/tools/Xilinx/Vivado/2020.2/data/xicom/cable_drivers/lin64/install_script/install_drivers$ sudo ./install_drivers
 // updated throughout 2024 by mza and makiko
-// last updated 2024-09-06 by mza
+// last updated 2025-03-11 by mza
 
 // circuitpython to scan i2c bus:
 // import board; i2c = board.I2C(); i2c.try_lock(); i2c.scan()
@@ -12,6 +12,7 @@
 `include "lib/debounce.v"
 `include "lib/alpha.v"
 `include "lib/fifo.v"
+`include "lib/plldcm.v"
 
 module icyrus7series10bit (
 	input half_bit_clock_p, half_bit_clock_n,
@@ -104,210 +105,6 @@ module icyrus7series10bit (
 		.OFB(1'b0), // 1-bit input: Data feedback from OSERDESE2
 		.RST(reset), // 1-bit input: Active high asynchronous reset
 		.SHIFTIN1(shiftout1), .SHIFTIN2(shiftout2) // SHIFTIN1, SHIFTIN2: 1-bit (each) input: Data width expansion input ports; all others connect to GND
-	);
-endmodule
-
-//MMCM #(.M(10.0), .D(1), .CLKOUT0_DIVIDE(1.0), .CLOCK_PERIOD_NS(10.0),
-//	.CLKOUT1_DIVIDE(1), .CLKOUT2_DIVIDE(1), .CLKOUT3_DIVIDE(1),
-//	.CLKOUT4_DIVIDE(1), .CLKOUT5_DIVIDE(1), .CLKOUT6_DIVIDE(1)) (
-//	.clock_in(clock), .reset(reset), .locked(mmcm_locked),
-//	.clock0_out_p(), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
-//	.clock2_out_p(), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
-//	.clock4_out(), .clock5_out(), .clock6_out());
-module MMCM #(
-	parameter D = 1, // overall divide [1,106]
-	parameter M = 10.0, // overall multiply [2.0,64.0]
-	parameter CLKOUT0_DIVIDE = 1.0, // this one is fractional [1.0,128.0]
-	parameter CLKOUT1_DIVIDE = 1, // [1,128]
-	parameter CLKOUT2_DIVIDE = 1,
-	parameter CLKOUT3_DIVIDE = 1,
-	parameter CLKOUT4_DIVIDE = 1,
-	parameter CLKOUT5_DIVIDE = 1,
-	parameter CLKOUT6_DIVIDE = 1,
-	parameter CLOCK_PERIOD_NS = 10.0
-) (
-	input clock_in, // input=[10,800]MHz; PFD=[10,450]MHz; VCO=[600,1200]MHz; OUT=[4.69,800]MHz for a "-1" grade zynq-7020
-	input reset,
-	output locked,
-	output clock0_out_p, clock0_out_n,
-	output clock1_out_p, clock1_out_n,
-	output clock2_out_p, clock2_out_n,
-	output clock3_out_p, clock3_out_n,
-	output clock4_out,
-	output clock5_out,
-	output clock6_out
-);
-	wire clkfb;
-	// MMCME2_BASE: Base Mixed Mode Clock Manager 7 Series Xilinx HDL Language Template, version 2018.3
-	MMCME2_BASE #(
-		.STARTUP_WAIT("FALSE"), // Delays DONE until MMCM is locked (FALSE, TRUE)
-		.BANDWIDTH("OPTIMIZED"), // Jitter programming (OPTIMIZED, HIGH, LOW)
-		.REF_JITTER1(0.1), // Reference input jitter in UI (0.000-0.999).
-		.DIVCLK_DIVIDE(D), // Master division value (1-106)
-		.CLKFBOUT_MULT_F(M), // Multiply value for all CLKOUT (2.000-64.000).
-		.CLKFBOUT_PHASE(0.0), // Phase offset in degrees of CLKFB (-360.000-360.000).
-		.CLKIN1_PERIOD(CLOCK_PERIOD_NS), // Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
-		.CLKOUT0_DIVIDE_F(CLKOUT0_DIVIDE), // Divide amount for CLKOUT0 (1.000-128.000).
-		// CLKOUT0_DIVIDE - CLKOUT6_DIVIDE: Divide amount for each CLKOUT (1-128)
-		.CLKOUT1_DIVIDE(CLKOUT1_DIVIDE),
-		.CLKOUT2_DIVIDE(CLKOUT2_DIVIDE),
-		.CLKOUT3_DIVIDE(CLKOUT3_DIVIDE),
-		.CLKOUT4_DIVIDE(CLKOUT4_DIVIDE),
-		.CLKOUT5_DIVIDE(CLKOUT5_DIVIDE),
-		.CLKOUT6_DIVIDE(CLKOUT6_DIVIDE),
-		// CLKOUT0_DUTY_CYCLE - CLKOUT6_DUTY_CYCLE: Duty cycle for each CLKOUT (0.01-0.99).
-		.CLKOUT0_DUTY_CYCLE(0.5),
-		.CLKOUT1_DUTY_CYCLE(0.5),
-		.CLKOUT2_DUTY_CYCLE(0.5),
-		.CLKOUT3_DUTY_CYCLE(0.5),
-		.CLKOUT4_DUTY_CYCLE(0.5),
-		.CLKOUT5_DUTY_CYCLE(0.5),
-		.CLKOUT6_DUTY_CYCLE(0.5),
-		// CLKOUT0_PHASE - CLKOUT6_PHASE: Phase offset for each CLKOUT (-360.000-360.000).
-		.CLKOUT0_PHASE(0.0),
-		.CLKOUT1_PHASE(0.0),
-		.CLKOUT2_PHASE(0.0),
-		.CLKOUT3_PHASE(0.0),
-		.CLKOUT4_PHASE(0.0),
-		.CLKOUT5_PHASE(0.0),
-		.CLKOUT6_PHASE(0.0),
-		.CLKOUT4_CASCADE("FALSE") // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
-	) MMCME2_BASE_inst (
-		 .CLKOUT0(clock0_out_p), // 1-bit output: CLKOUT0
-		.CLKOUT0B(clock0_out_n), // 1-bit output: Inverted CLKOUT0
-		 .CLKOUT1(clock1_out_p), // 1-bit output: CLKOUT1
-		.CLKOUT1B(clock1_out_n), // 1-bit output: Inverted CLKOUT1
-		 .CLKOUT2(clock2_out_p), // 1-bit output: CLKOUT2
-		.CLKOUT2B(clock2_out_n), // 1-bit output: Inverted CLKOUT2
-		 .CLKOUT3(clock3_out_p), // 1-bit output: CLKOUT3
-		.CLKOUT3B(clock3_out_n), // 1-bit output: Inverted CLKOUT3
-		 .CLKOUT4(clock4_out), // 1-bit output: CLKOUT4
-		 .CLKOUT5(clock5_out), // 1-bit output: CLKOUT5
-		 .CLKOUT6(clock6_out), // 1-bit output: CLKOUT6
-		.CLKFBOUT(clkfb), // 1-bit output: Feedback clock
-		.CLKFBOUTB(), // 1-bit output: Inverted CLKFBOUT
-		.CLKFBIN(clkfb), // 1-bit input: Feedback clock
-		.LOCKED(locked), // 1-bit output: LOCK
-		.CLKIN1(clock_in), // 1-bit input: Clock
-		.PWRDWN(1'b0), // 1-bit input: Power-down
-		.RST(reset) // 1-bit input: Reset
-	);
-endmodule
-
-module MMCM_advanced #(
-	parameter D = 1, // overall divide [1,106]
-	parameter M = 10.0, // overall multiply [2.0,64.0]
-	parameter CLKOUT0_DIVIDE = 1.0, // this one is fractional [1.0,128.0]
-	parameter CLKOUT1_DIVIDE = 1, // [1,128]
-	parameter CLKOUT2_DIVIDE = 1,
-	parameter CLKOUT3_DIVIDE = 1,
-	parameter CLKOUT4_DIVIDE = 1,
-	parameter CLKOUT5_DIVIDE = 1,
-	parameter CLKOUT6_DIVIDE = 1,
-	parameter CLOCK1_PERIOD_NS = 10.0,
-	parameter CLOCK2_PERIOD_NS = 10.0
-) (
-	input clock1_in, // input=[10,800]MHz; PFD=[10,450]MHz; VCO=[600,1200]MHz; OUT=[4.69,800]MHz for a "-1" grade zynq-7020
-	input reset,
-	output locked,
-	output clock0_out_p, clock0_out_n,
-	output clock1_out_p, clock1_out_n,
-	output clock2_out_p, clock2_out_n,
-	output clock3_out_p, clock3_out_n,
-	output clock4_out,
-	output clock5_out,
-	output clock6_out
-);
-	wire clkfb;
-	wire [15:0] drp_DO, drp_DI;
-	wire [6:0] drp_DADDR;
-	wire drp_DCLK, drp_DEN, drp_DWE, drp_DRDY;
-	assign drp_DCLK = 0;
-	assign drp_DEN = 0;
-	assign drp_DWE = 0;
-	assign drp_DADDR = 0;
-	assign drp_DI = 0;
-	wire clk_fb;
-	// MMCME2_ADV: Advanced Mixed Mode Clock Manager 7 Series
-	// modified from Xilinx HDL Language Template, version 2023.2 (ug953)
-	MMCME2_ADV #(
-		.BANDWIDTH("OPTIMIZED"), // Jitter programming (OPTIMIZED, HIGH, LOW)
-		.DIVCLK_DIVIDE(D), // Master division value (1-106)
-		.CLKFBOUT_MULT_F(M), // Multiply value for all CLKOUT (2.000-64.000).
-		.CLKFBOUT_PHASE(0.0), // Phase offset in degrees of CLKFB (-360.000-360.000).
-		.CLKIN1_PERIOD(CLOCK1_PERIOD_NS), // CLKIN_PERIOD: Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
-		.CLKIN2_PERIOD(CLOCK2_PERIOD_NS),
-		.CLKOUT0_DIVIDE_F(CLKOUT0_DIVIDE), // Divide amount for CLKOUT0 (1.000-128.000).
-		.CLKOUT1_DIVIDE(CLKOUT1_DIVIDE), // CLKOUT0_DIVIDE - CLKOUT6_DIVIDE: Divide amount for CLKOUT (1-128)
-		.CLKOUT2_DIVIDE(CLKOUT2_DIVIDE),
-		.CLKOUT3_DIVIDE(CLKOUT3_DIVIDE),
-		.CLKOUT4_DIVIDE(CLKOUT4_DIVIDE),
-		.CLKOUT5_DIVIDE(CLKOUT5_DIVIDE),
-		.CLKOUT6_DIVIDE(CLKOUT6_DIVIDE),
-		.CLKOUT0_DUTY_CYCLE(0.5), // CLKOUT0_DUTY_CYCLE - CLKOUT6_DUTY_CYCLE: Duty cycle for CLKOUT outputs (0.01-0.99).
-		.CLKOUT1_DUTY_CYCLE(0.5),
-		.CLKOUT2_DUTY_CYCLE(0.5),
-		.CLKOUT3_DUTY_CYCLE(0.5),
-		.CLKOUT4_DUTY_CYCLE(0.5),
-		.CLKOUT5_DUTY_CYCLE(0.5),
-		.CLKOUT6_DUTY_CYCLE(0.5),
-		.CLKOUT0_PHASE(0.0), // CLKOUT0_PHASE - CLKOUT6_PHASE: Phase offset for CLKOUT outputs (-360.000-360.000).
-		.CLKOUT1_PHASE(0.0),
-		.CLKOUT2_PHASE(0.0),
-		.CLKOUT3_PHASE(0.0),
-		.CLKOUT4_PHASE(0.0),
-		.CLKOUT5_PHASE(0.0),
-		.CLKOUT6_PHASE(0.0),
-		.CLKOUT4_CASCADE("FALSE"), // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
-		.COMPENSATION("ZHOLD"), // ZHOLD, BUF_IN, EXTERNAL, INTERNAL
-		.REF_JITTER1(0.1), // REF_JITTER: Reference input jitter in UI (0.000-0.999).
-		.REF_JITTER2(0.1),
-		.STARTUP_WAIT("FALSE"), // Delays DONE until MMCM is locked (FALSE, TRUE)
-		.SS_EN("FALSE"), // Enables spread spectrum (FALSE, TRUE)
-		.SS_MODE("CENTER_HIGH"), // CENTER_HIGH, CENTER_LOW, DOWN_HIGH, DOWN_LOW
-		.SS_MOD_PERIOD(10000), // Spread spectrum modulation period (ns) (VALUES)
-		.CLKFBOUT_USE_FINE_PS("FALSE"), // USE_FINE_PS: Fine phase shift enable (TRUE/FALSE)
-		.CLKOUT0_USE_FINE_PS("FALSE"),
-		.CLKOUT1_USE_FINE_PS("FALSE"),
-		.CLKOUT2_USE_FINE_PS("FALSE"),
-		.CLKOUT3_USE_FINE_PS("FALSE"),
-		.CLKOUT4_USE_FINE_PS("FALSE"),
-		.CLKOUT5_USE_FINE_PS("FALSE"),
-		.CLKOUT6_USE_FINE_PS("FALSE")
-	) MMCME2_ADV_inst (
-		 .CLKOUT0(clock0_out_p), // 1-bit output: CLKOUT0
-		.CLKOUT0B(clock0_out_n), // 1-bit output: Inverted CLKOUT0
-		 .CLKOUT1(clock1_out_p), // 1-bit output: CLKOUT1
-		.CLKOUT1B(clock1_out_n), // 1-bit output: Inverted CLKOUT1
-		 .CLKOUT2(clock2_out_p), // 1-bit output: CLKOUT2
-		.CLKOUT2B(clock2_out_n), // 1-bit output: Inverted CLKOUT2
-		 .CLKOUT3(clock3_out_p), // 1-bit output: CLKOUT3
-		.CLKOUT3B(clock3_out_n), // 1-bit output: Inverted CLKOUT3
-		 .CLKOUT4(clock4_out), // 1-bit output: CLKOUT4
-		 .CLKOUT5(clock5_out), // 1-bit output: CLKOUT5
-		 .CLKOUT6(clock6_out), // 1-bit output: CLKOUT6
-		.PSCLK(1'b0), // 1-bit input: Phase shift clock
-		.PSEN(1'b0), // 1-bit input: Phase shift enable
-		.PSINCDEC(1'b0), // 1-bit input: Phase shift increment/decrement
-		.PSDONE(), // 1-bit output: Phase shift done
-		.CLKFBIN(clk_fb), // 1-bit input: Feedback clock
-		.CLKFBOUT(clk_fb), // 1-bit output: Feedback clock
-		.CLKFBOUTB(), // 1-bit output: Inverted CLKFBOUT
-		.CLKFBSTOPPED(), // 1-bit output: Feedback clock stopped
-		.CLKINSTOPPED(), // 1-bit output: Input clock stopped
-		.LOCKED(locked), // 1-bit output: LOCK
-		.CLKIN1(clock1_in), // 1-bit input: Primary clock
-		.CLKIN2(1'b0), // 1-bit input: Secondary clock
-		.CLKINSEL(1'b1), // 1-bit input: Clock select, 1=CLKIN1 0=CLKIN2
-		.PWRDWN(1'b0), // 1-bit input: Power-down
-		.RST(reset), // 1-bit input: Reset
-		.DO(drp_DO), // 16-bit output: DRP data
-		.DRDY(drp_DRDY), // 1-bit output: DRP ready
-		.DADDR(drp_DADDR), // 7-bit input: DRP address
-		.DCLK(drp_DCLK), // 1-bit input: DRP clock
-		.DEN(drp_DEN), // 1-bit input: DRP enable
-		.DI(drp_DI), // 16-bit input: DRP data
-		.DWE(drp_DWE) // 1-bit input: DRP write enable
 	);
 endmodule
 
@@ -524,7 +321,7 @@ module testALPHA #(
 			.CLKOUT5_DIVIDE(1), // 1024
 			.CLKOUT6_DIVIDE(1)  // 1024
 				) mymmcm0 (
-			.clock1_in(clock), .reset(reset), .locked(sysclk_pll_locked),
+			.clock_in(clock), .reset(reset), .locked(sysclk_pll_locked),
 			.clock0_out_p(c0), .clock0_out_n(), .clock1_out_p(c1), .clock1_out_n(),
 			.clock2_out_p(c2), .clock2_out_n(), .clock3_out_p(c3), .clock3_out_n(),
 			.clock4_out(c4), .clock5_out(), .clock6_out());
@@ -538,7 +335,7 @@ module testALPHA #(
 			.CLKOUT5_DIVIDE(1), // 1024
 			.CLKOUT6_DIVIDE(1)  // 1024
 				) mymmcm1 (
-			.clock1_in(clock), .reset(reset), .locked(mmcm_locked1),
+			.clock_in(clock), .reset(reset), .locked(mmcm_locked1),
 			.clock0_out_p(c5), .clock0_out_n(), .clock1_out_p(c6), .clock1_out_n(),
 			.clock2_out_p(c7), .clock2_out_n(), .clock3_out_p(c8), .clock3_out_n(),
 			.clock4_out(c9), .clock5_out(), .clock6_out());
@@ -574,7 +371,7 @@ module testALPHA #(
 			.CLKOUT5_DIVIDE(1), // 1024
 			.CLKOUT6_DIVIDE(1)  // 1024
 				) mymmcm0 (
-			.clock1_in(clock), .reset(reset), .locked(sysclk_pll_locked),
+			.clock_in(clock), .reset(reset), .locked(sysclk_pll_locked),
 			.clock0_out_p(c0), .clock0_out_n(), .clock1_out_p(c1), .clock1_out_n(),
 			.clock2_out_p(c2), .clock2_out_n(), .clock3_out_p(c3), .clock3_out_n(),
 			.clock4_out(c4), .clock5_out(), .clock6_out());

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test074.protodune-larpix-daq-laser-pulser/quadrature_decode_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="quadrature_decode_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="13" />
+   <wvobject fp_name="/quadrature_decode_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/A" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">A</obj_property>
+      <obj_property name="ObjectShortName">A</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/B" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">B</obj_property>
+      <obj_property name="ObjectShortName">B</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/CLOCK_PERIOD" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">CLOCK_PERIOD</obj_property>
+      <obj_property name="ObjectShortName">CLOCK_PERIOD</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/HALF_CLOCK_PERIOD" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">HALF_CLOCK_PERIOD</obj_property>
+      <obj_property name="ObjectShortName">HALF_CLOCK_PERIOD</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/qd/A_shift_register" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">A_shift_register[4:0]</obj_property>
+      <obj_property name="ObjectShortName">A_shift_register[4:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/qd/B_shift_register" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">B_shift_register[4:0]</obj_property>
+      <obj_property name="ObjectShortName">B_shift_register[4:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/qd/POLARITY" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">POLARITY</obj_property>
+      <obj_property name="ObjectShortName">POLARITY</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/value" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">value[4:0]</obj_property>
+      <obj_property name="ObjectShortName">value[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/qd/current_value" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">current_value[4:0]</obj_property>
+      <obj_property name="ObjectShortName">current_value[4:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/i" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">i</obj_property>
+      <obj_property name="ObjectShortName">i</obj_property>
+   </wvobject>
+   <wvobject fp_name="/quadrature_decode_tb/d" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">d</obj_property>
+      <obj_property name="ObjectShortName">d</obj_property>
+   </wvobject>
+</wave_config>

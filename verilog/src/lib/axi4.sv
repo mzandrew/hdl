@@ -1,9 +1,9 @@
 // written 2021-02-12 by mza
 // based off axi4lite.v
-// last updated 2021-02-24 by mza
+// last updated 2025-02-26 by mza
 
-`include "lib/generic.v"
-`include "lib/DebugInfoWarningError.sv"
+`include "generic.v"
+`include "DebugInfoWarningError.sv"
 import DebugInfoWarningError::*;
 
 // notes:
@@ -791,7 +791,7 @@ module pollable_memory__axi4_peripheral #(
 			axi.bvalid <= 0;
 			modified_copy.araddr <= 0;
 			modified_copy.arlen <= 0;
-			modified_copy.arburst <= 0;
+			modified_copy.arburst <= axi::FIXED; // [VRFC 10-2649] an enum variable may only be assigned the same enum typed variable or one of its values
 		end else begin
 			// write
 			case (pw_state)

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test070.palimpsest.not-that-sus.althea.revBLM/i2s_controller_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="i2s_controller_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="18" />
+   <wvobject fp_name="divider40" type="divider">
+      <obj_property name="label">controller</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/sample_clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sample_clock</obj_property>
+      <obj_property name="ObjectShortName">sample_clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/word_clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">word_clock</obj_property>
+      <obj_property name="ObjectShortName">word_clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/device_bclk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">device_bclk</obj_property>
+      <obj_property name="ObjectShortName">device_bclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/device_word_strobe" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">device_word_strobe</obj_property>
+      <obj_property name="ObjectShortName">device_word_strobe</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/l/ws_pipeline" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ws_pipeline[1:0]</obj_property>
+      <obj_property name="ObjectShortName">ws_pipeline[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider38" type="divider">
+      <obj_property name="label">left</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/left" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">left[17:0]</obj_property>
+      <obj_property name="ObjectShortName">left[17:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/l/sample" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">sample[17:0]</obj_property>
+      <obj_property name="ObjectShortName">sample[17:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/l/extended_sample" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">extended_sample[31:0]</obj_property>
+      <obj_property name="ObjectShortName">extended_sample[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/l/counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">counter[4:0]</obj_property>
+      <obj_property name="ObjectShortName">counter[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider41" type="divider">
+      <obj_property name="label">right</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/right" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">right[17:0]</obj_property>
+      <obj_property name="ObjectShortName">right[17:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/r/sample" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">sample[17:0]</obj_property>
+      <obj_property name="ObjectShortName">sample[17:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/r/extended_sample" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">extended_sample[31:0]</obj_property>
+      <obj_property name="ObjectShortName">extended_sample[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/r/counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">counter[4:0]</obj_property>
+      <obj_property name="ObjectShortName">counter[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider39" type="divider">
+      <obj_property name="label">both</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2s_controller_tb/device_data_out" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">device_data_out</obj_property>
+      <obj_property name="ObjectShortName">device_data_out</obj_property>
+   </wvobject>
+</wave_config>

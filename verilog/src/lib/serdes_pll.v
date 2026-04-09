@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // written 2018-09-17 by mza
-// last updated 2024-06-05 by mza
+// last updated 2025-03-11 by mza
 
 // the following message:
 //Place:1073 - Placer was unable to create RPM[OLOGIC_SHIFT_RPMS] for the
@@ -24,92 +24,97 @@
 `ifndef SERDES_PLL_LIB
 `define SERDES_PLL_LIB
 
-module iserdes_single4 #(
-	parameter WIDTH = 4
+// --------------------------------------------------------------------------
+
+module iserdes_single_inner #(
+	parameter BIT_RATIO = 4 // 2, 3, 4
 ) (
-	input sample_clock,
-	input data_in,
-	input reset,
-	output word_clock,
-	output [WIDTH-1:0] word_out
+	input reset, bit_clock, bit_strobe, word_clock, data_in,
+	output [BIT_RATIO-1:0] word_out
 );
-	wire fast_clock;
-	wire ioce;
-	wire raw_word_clock;
-	BUFIO2 #(.DIVIDE(WIDTH), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")) buffy (.I(sample_clock), .DIVCLK(raw_word_clock), .IOCLK(fast_clock), .SERDESSTROBE(ioce));
-	BUFG fabbuf (.I(raw_word_clock), .O(word_clock));
+	wire [3:0] word;
+	if (BIT_RATIO==4) begin
+		assign word_out = word;
+	end else if (BIT_RATIO==3) begin
+		assign word_out = word[3:1];
+	end else if (BIT_RATIO==2) begin
+		assign word_out = word[3:2];
+	//end else begin
+		//assert
+	end
+	// want first bit in to be the MSB of output word (Q1 contains first bit)
 	ISERDES2 #(
 		.BITSLIP_ENABLE("FALSE"), // Enable Bitslip Functionality (TRUE/FALSE)
 		.DATA_RATE("SDR"), // Data-rate ("SDR" or "DDR")
-		.DATA_WIDTH(WIDTH), // Parallel data width selection (2-8)
+		.DATA_WIDTH(BIT_RATIO), // Parallel data width selection (2-8)
 		.INTERFACE_TYPE("RETIMED"),// "NETWORKING", "NETWORKING_PIPELINED" or "RETIMED"
 		.SERDES_MODE("NONE") // "NONE", "M*****" or "S****"
-	) ISERDES2_inst (
+	) ISERDES2_inst_0 (
 		.CFB0(), // 1-bit output: Clock feed-through route output
 		.CFB1(), // 1-bit output: Clock feed-through route output
 		.DFB(), // 1-bit output: Feed-through clock output
 		.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
 		.INCDEC(), // 1-bit output: Phase detector output
 		// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-		.Q4(word_out[3]), // see ug381 page 80
-		.Q3(word_out[2]),
-		.Q2(word_out[1]),
-		.Q1(word_out[0]),
+		.Q4(word[0]), // see ug381 page 80
+		.Q3(word[1]),
+		.Q2(word[2]),
+		.Q1(word[3]),
 		.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
 		.VALID(), // 1-bit output: Output status of the phase detector
 		.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
 		.CE0(1'b1), // 1-bit input: Clock enable input
-		.CLK0(fast_clock), // 1-bit input: I/O clock network input
+		.CLK0(bit_clock), // 1-bit input: I/O clock network input
 		.CLK1(1'b0), // 1-bit input: Secondary I/O clock network input
 		.CLKDIV(word_clock), // 1-bit input: FPGA logic domain clock input
 		.D(data_in), // 1-bit input: Input data
-		.IOCE(ioce), // 1-bit input: Data strobe input
+		.IOCE(bit_strobe), // 1-bit input: Data strobe input
 		.RST(reset), // 1-bit input: Asynchronous reset input
 		.SHIFTIN(1'b0) // 1-bit input: Cascade input signal for primary/secondary I/O
 	);
-//	wire pll_is_locked;
-//	wire buffered_pll_is_locked_and_strobe_is_aligned;
-//	BUFPLL #(
-//		.DIVIDE(WIDTH) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
-//		) rx_bufpll_inst (
-//		.PLLIN(sample_clock), // PLL Clock input
-//		.GCLK(raw_fabric_clock), // Global Clock input
-//		.LOCKED(pll_is_locked), // Clock0 locked input
-//		.IOCLK(fast_clock), // Output PLL Clock
-//		.LOCK(buffered_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
-//		.SERDESSTROBE(ioce) // Output SERDES strobe
-//		);
 endmodule
 
-module iserdes_single8_inner #(
-	parameter BIT_RATIO = 8,
-	parameter PINTYPE = "p"
+module iserdes_single3_inner #(
+	parameter BIT_RATIO = 3
 ) (
-	//input sample_clock_in,
-	//input pll_is_locked,
-	input reset,
-	input bit_clock,
-	input bit_strobe,
-	input word_clock,
-	input data_in,
+	input reset, bit_clock, bit_strobe, word_clock, data_in,
 	output [BIT_RATIO-1:0] word_out
 );
-//	wire bit_clock;
-//	wire ioce;
-//	wire raw_word_clock;
-	//BUFIO2 #(.DIVIDE(BIT_RATIO), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")) buffy (.I(sample_clock), .DIVCLK(raw_word_clock), .IOCLK(bit_clock), .SERDESSTROBE(ioce));
-//	wire buffered_pll_is_locked_and_strobe_is_aligned;
-//	BUFPLL #(
-//		.DIVIDE(BIT_RATIO) // PLLIN divide-by value to produce SERDESSTROBE (1 to 8); default 1
-//	) rx_bufpll_inst (
-//		.PLLIN(sample_clock), // PLL Clock input
-//		.GCLK(raw_word_clock), // Global Clock input
-//		.LOCKED(pll_is_locked), // Clock0 locked input
-//		.IOCLK(bit_clock), // Output PLL Clock
-//		.LOCK(buffered_pll_is_locked_and_strobe_is_aligned), // BUFPLL Clock and strobe locked
-//		.SERDESSTROBE(ioce) // Output SERDES strobe
-//	);
-//	BUFG fabbuf (.I(raw_word_clock), .O(word_clock));
+	iserdes_single_inner #(.BIT_RATIO(BIT_RATIO)) ISERDES2_inst (.bit_clock(bit_clock), .bit_strobe(bit_strobe), .word_clock(word_clock), .reset(reset), .data_in(data_in), .word_out(word_out));
+endmodule
+
+//iserdes_single4_inner #(.BIT_RATIO(BIT_RATIO)) hs_data_iserdes (.bit_clock(hs_bit_clk), .bit_strobe(hs_bit_strobe), .word_clock(hs_word_clock), .reset(hs_word_reset), .data_in(hs_data), .word_out(hs_data_word));
+module iserdes_single4_inner #(
+	parameter BIT_RATIO = 4
+) (
+	input reset, bit_clock, bit_strobe, word_clock, data_in,
+	output [BIT_RATIO-1:0] word_out
+);
+	iserdes_single_inner #(.BIT_RATIO(BIT_RATIO)) ISERDES2_inst (.bit_clock(bit_clock), .bit_strobe(bit_strobe), .word_clock(word_clock), .reset(reset), .data_in(data_in), .word_out(word_out));
+endmodule
+
+module iserdes_single_cascaded_inner #(
+	parameter BIT_RATIO = 8, // 5, 6, 7, 8
+	parameter PINTYPE = "p"
+) (
+	input reset, bit_clock, bit_strobe, word_clock, data_in,
+	output [BIT_RATIO-1:0] word_out
+);
+	wire [7:0] word;
+	if (BIT_RATIO==8) begin
+		assign word_out = word;
+	end else if (BIT_RATIO==7) begin
+		assign word_out[6:4] = word[7:5];
+		assign word_out[3:0] = word[3:0];
+	end else if (BIT_RATIO==6) begin
+		assign word_out[5:4] = word[7:6];
+		assign word_out[3:0] = word[3:0];
+	end else if (BIT_RATIO==5) begin
+		assign word_out[4] = word[7];
+		assign word_out[3:0] = word[3:0];
+	//end else begin
+		//assert
+	end
 	wire cascade;
 	// want first bit in to be the MSB of output word (Q1 contains first bit; secondary iserdes outputs first nybble)
 	if (PINTYPE=="p") begin
@@ -126,10 +131,10 @@ module iserdes_single8_inner #(
 			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
 			.INCDEC(), // 1-bit output: Phase detector output
 			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(word_out[0]), // see ug381 page 80
-			.Q3(word_out[1]),
-			.Q2(word_out[2]),
-			.Q1(word_out[3]),
+			.Q4(word[0]), // see ug381 page 80
+			.Q3(word[1]),
+			.Q2(word[2]),
+			.Q1(word[3]),
 			.SHIFTOUT(cascade), // 1-bit output: Cascade output signal for primary/secondary I/O
 			.VALID(), // 1-bit output: Output status of the phase detector
 			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
@@ -155,10 +160,10 @@ module iserdes_single8_inner #(
 			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
 			.INCDEC(), // 1-bit output: Phase detector output
 			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(word_out[4]), // see ug381 page 80
-			.Q3(word_out[5]),
-			.Q2(word_out[6]),
-			.Q1(word_out[7]),
+			.Q4(word[4]), // see ug381 page 80
+			.Q3(word[5]),
+			.Q2(word[6]),
+			.Q1(word[7]),
 			.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
 			.VALID(), // 1-bit output: Output status of the phase detector
 			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
@@ -185,10 +190,10 @@ module iserdes_single8_inner #(
 			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
 			.INCDEC(), // 1-bit output: Phase detector output
 			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(word_out[0]), // see ug381 page 80
-			.Q3(word_out[1]),
-			.Q2(word_out[2]),
-			.Q1(word_out[3]),
+			.Q4(word[0]), // see ug381 page 80
+			.Q3(word[1]),
+			.Q2(word[2]),
+			.Q1(word[3]),
 			.SHIFTOUT(cascade), // 1-bit output: Cascade output signal for primary/secondary I/O
 			.VALID(), // 1-bit output: Output status of the phase detector
 			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
@@ -214,10 +219,10 @@ module iserdes_single8_inner #(
 			.FABRICOUT(), // 1-bit output: Unsynchrnonized data output
 			.INCDEC(), // 1-bit output: Phase detector output
 			// Q1 - Q4: 1-bit (each) output: Registered outputs to FPGA logic
-			.Q4(word_out[4]), // see ug381 page 80
-			.Q3(word_out[5]),
-			.Q2(word_out[6]),
-			.Q1(word_out[7]),
+			.Q4(word[4]), // see ug381 page 80
+			.Q3(word[5]),
+			.Q2(word[6]),
+			.Q1(word[7]),
 			.SHIFTOUT(), // 1-bit output: Cascade output signal for primary/secondary I/O
 			.VALID(), // 1-bit output: Output status of the phase detector
 			.BITSLIP(1'b0), // 1-bit input: Bitslip enable input
@@ -233,6 +238,39 @@ module iserdes_single8_inner #(
 	end
 endmodule
 
+module iserdes_single6_inner #(
+	parameter BIT_RATIO = 6,
+	parameter PINTYPE = "p"
+) (
+	input reset, bit_clock, bit_strobe, word_clock, data_in,
+	output [BIT_RATIO-1:0] word_out
+);
+	iserdes_single_cascaded_inner #(.BIT_RATIO(BIT_RATIO), .PINTYPE("p")) ISERDES2_inst (.bit_clock(bit_clock), .bit_strobe(bit_strobe), .word_clock(word_clock), .reset(reset), .data_in(data_in), .word_out(word_out));
+endmodule
+
+module iserdes_single8_inner #(
+	parameter BIT_RATIO = 8,
+	parameter PINTYPE = "p"
+) (
+	input reset, bit_clock, bit_strobe, word_clock, data_in,
+	output [BIT_RATIO-1:0] word_out
+);
+	iserdes_single_cascaded_inner #(.BIT_RATIO(BIT_RATIO), .PINTYPE("p")) ISERDES2_inst (.bit_clock(bit_clock), .bit_strobe(bit_strobe), .word_clock(word_clock), .reset(reset), .data_in(data_in), .word_out(word_out));
+endmodule
+
+module iserdes_single4 #(
+	parameter WIDTH = 4
+) (
+	input sample_clock, data_in, reset,
+	output word_clock,
+	output [WIDTH-1:0] word_out
+);
+	wire bit_clock, ioce, raw_word_clock;
+	BUFIO2 #(.DIVIDE(WIDTH), .USE_DOUBLER("FALSE"), .I_INVERT("FALSE"), .DIVIDE_BYPASS("FALSE")) buffy (.I(sample_clock), .DIVCLK(raw_word_clock), .IOCLK(bit_clock), .SERDESSTROBE(ioce));
+	BUFG fabbuf (.I(raw_word_clock), .O(word_clock));
+	iserdes_single4_inner #(.BIT_RATIO(WIDTH)) ISERDES2_inst (.bit_clock(bit_clock), .bit_strobe(ioce), .word_clock(word_clock), .reset(reset), .data_in(data_in), .word_out(word_out));
+endmodule
+
 module iserdes_single8 #(
 	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
@@ -244,12 +282,9 @@ module iserdes_single8 #(
 	parameter MULTIPLY = 40,
 	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
-	input clock_in,
-	input reset,
-	input data_in,
-	output word_clock_out,
+	input clock_in, reset, data_in,
 	output [BIT_DEPTH-1:0] word_out,
-	output locked
+	output word_clock_out, locked
 );
 	wire bit_clock;
 	wire bit_strobe;
@@ -259,6 +294,8 @@ module iserdes_single8 #(
 		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
 	);
 endmodule
+
+// --------------------------------------------------------------------------
 
 module iserdes_dodecahedron_input #(
 	parameter SCOPE = "BUFPLL", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
@@ -270,12 +307,10 @@ module iserdes_dodecahedron_input #(
 	parameter DIVIDE = 2, // 400 MHz
 	parameter EXTRA_DIVIDE = 1
 ) (
-	input clock_in,
-	output word_clock_out,
-	input reset,
-	output [BIT_DEPTH-1:0] word_out_1, word_out_2, word_out_3, word_out_4, word_out_5, word_out_6, word_out_7, word_out_8, word_out_9, word_out_10, word_out_11, word_out_12,
+	input clock_in, reset,
 	input [12:1] bit_in,
-	output locked
+	output [BIT_DEPTH-1:0] word_out_1, word_out_2, word_out_3, word_out_4, word_out_5, word_out_6, word_out_7, word_out_8, word_out_9, word_out_10, word_out_11, word_out_12,
+	output word_clock_out, locked
 );
 	wire bit_clockA, bit_clockB;
 	wire bit_strobeA, bit_strobeB;
@@ -368,16 +403,13 @@ module iserdes_icositetrahedron_input #(
 	parameter DIVIDE = 2, // 400 MHz
 	parameter EXTRA_DIVIDE = 1
 ) (
-	input clock_in,
-	output word_clock_out,
-	input reset,
+	input clock_in, reset,
+	input [12:1] bit_in_a, bit_in_b,
 	output [BIT_DEPTH-1:0] word_out_1a, word_out_2a, word_out_3a, word_out_4a, word_out_5a, word_out_6a, word_out_7a, word_out_8a, word_out_9a, word_out_10a, word_out_11a, word_out_12a,
 	                       word_out_1b, word_out_2b, word_out_3b, word_out_4b, word_out_5b, word_out_6b, word_out_7b, word_out_8b, word_out_9b, word_out_10b, word_out_11b, word_out_12b,
-	input [12:1] bit_in_a, bit_in_b,
-	output locked
+	output word_clock_out, locked
 );
-	wire bit_clock;
-	wire bit_strobe;
+	wire bit_clock, bit_strobe;
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_1a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[1]),  .word_out(word_out_1a));
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_2a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[2]),  .word_out(word_out_2a));
 	iserdes_single8_inner #(.BIT_RATIO(BIT_DEPTH)) is8i_3a  (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .data_in(bit_in_a[3]),  .word_out(word_out_3a));
@@ -420,15 +452,13 @@ module iserdes_tetracontaoctagon_input #(
 	parameter DIVIDE = 2, // 400 MHz
 	parameter EXTRA_DIVIDE = 1
 ) (
-	input clock_in,
-	output word_clock_out,
-	input reset,
+	input clock_in, reset,
+	input [12:1] bit_in_a, bit_in_b, bit_in_c, bit_in_d,
 	output [BIT_DEPTH-1:0] word_out_1a, word_out_2a, word_out_3a, word_out_4a, word_out_5a, word_out_6a, word_out_7a, word_out_8a, word_out_9a, word_out_10a, word_out_11a, word_out_12a,
 	                       word_out_1b, word_out_2b, word_out_3b, word_out_4b, word_out_5b, word_out_6b, word_out_7b, word_out_8b, word_out_9b, word_out_10b, word_out_11b, word_out_12b,
 	                       word_out_1c, word_out_2c, word_out_3c, word_out_4c, word_out_5c, word_out_6c, word_out_7c, word_out_8c, word_out_9c, word_out_10c, word_out_11c, word_out_12c,
 	                       word_out_1d, word_out_2d, word_out_3d, word_out_4d, word_out_5d, word_out_6d, word_out_7d, word_out_8d, word_out_9d, word_out_10d, word_out_11d, word_out_12d,
-	input [12:1] bit_in_a, bit_in_b, bit_in_c, bit_in_d,
-	output locked
+	output word_clock_out, locked
 );
 	wire bit_clockAB, bit_clockCD;
 	wire bit_strobeAB, bit_strobeCD;
@@ -531,18 +561,151 @@ module iserdes_tetracontaoctagon_input #(
 	assign locked = pll_is_locked && strobe_is_alignedAB && strobe_is_alignedCD;
 endmodule
 
-//	ocyrus_single8_inner #(.BIT_RATIO(8)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
-module ocyrus_single8_inner #(
-	parameter PINTYPE = "p", // "p" (primary) or "n" (secondary)
-	parameter BIT_RATIO=8 // how many fast_clock cycles per word_clock
+// --------------------------------------------------------------------------
+
+//	ocyrus_7series_inner #(.DATA_WIDTH(DATA_WIDTH), .DDRSDR(DDRSDR)) o7si (.bit_clock(bit_clock), .word_clock(word_clock), .reset(reset), .input_word(input_word), .output_bit(output_bit));
+module ocyrus_7series_inner #(
+	parameter DATA_WIDTH = 8,
+	parameter DDRSDR = "DDR"
 ) (
-	input word_clock,
+	input bit_clock, word_clock, reset,
+	input [DATA_WIDTH-1:0] input_word,
+	output output_bit
+);
+	wire [7:0] word;
+	if (DATA_WIDTH==8) begin
+		assign word = input_word;
+	end else begin
+		assign word = { {8-DATA_WIDTH{1'b0}}, input_word };
+	end
+	// from ug768:
+	OSERDESE2 #(
+		.DATA_RATE_OQ(DDRSDR), // DDR, SDR
+		.DATA_RATE_TQ(DDRSDR), // DDR, BUF, SDR
+		.DATA_WIDTH(DATA_WIDTH), // Parallel data width (2-8,10,14)
+		.INIT_OQ(1'b0), // Initial value of OQ output (1'b0,1'b1)
+		.INIT_TQ(1'b0), // Initial value of TQ output (1'b0,1'b1)
+		.SERDES_MODE("MASTER"), // M*****, S****
+		.SRVAL_OQ(1'b0), // OQ output value when SR is used (1'b0,1'b1)
+		.SRVAL_TQ(1'b0), // TQ output value when SR is used (1'b0,1'b1)
+		.TBYTE_CTL("FALSE"), // Enable tristate byte operation (FALSE, TRUE)
+		.TBYTE_SRC("FALSE"), // Tristate byte source (FALSE, TRUE)
+		.TRISTATE_WIDTH(1) // 3-state converter width (1,4)
+// when set to 1:
+//[DRC AVAL-70] OSERDES_DataRateTqTriWidth: Unexpected programming for o7s_n/o7si/OSERDESE2_instance with TRISTATE_WIDTH. DATA_RATE_TQ set DDR expects TRISTATE_WIDTH to be set 4
+// when set to 4:
+//[DRC AVAL-68] OSERDES_TqDdrTriWidth4: Unexpected programming for o7s_a/o7si/OSERDESE2_instance with DATA_RATE_TQ DDR and TRISTATE_WIDTH 4. With this programming DATE_RATE_OQ DDR should be set with DATA_WIDTH 4 or DATA_RATE_OQ SDR should be set with DATA_WIDTH 2
+//[DRC AVAL-69] OSERDES_DataWidth4Tri1: Unsupported programming for o7s_a/o7si/OSERDESE2_instance. DATA_WIDTH set greater than 4 requires TRISTATE_WIDTH to be set to 1
+	) OSERDESE2_instance (
+		.RST(reset), // 1-bit input: Reset
+		.CLK(bit_clock), // 1-bit input: High speed clock
+		.CLKDIV(word_clock), // 1-bit input: Divided clock
+		.D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]), .D5(word[3]), .D6(word[2]), .D7(word[1]), .D8(word[0]), // D1 - D8: 1-bit (each) input: Parallel data inputs (1-bit each)
+		.OQ(output_bit), // 1-bit output: Data path output
+		.OCE(1'b1), // 1-bit input: Output data clock enable
+		.SHIFTIN1(1'b0), .SHIFTIN2(1'b0), // SHIFTIN1 / SHIFTIN2: 1-bit (each) input: Data input expansion (1-bit each)
+		.T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0), // T1 - T4: 1-bit (each) input: Parallel 3-state inputs
+		.TBYTEIN(1'b0), // 1-bit input: Byte group tristate
+		.TCE(1'b0), // 1-bit input: 3-state clock enable
+		.SHIFTOUT1(), .SHIFTOUT2(), // SHIFTOUT1 / SHIFTOUT2: 1-bit (each) output: Data output expansion (1-bit each)
+		.TBYTEOUT(), // 1-bit output: Byte group tristate
+		.TFB(), // 1-bit output: 3-state control
+		.OFB(), // 1-bit output: Feedback path for data
+		.TQ() // 1-bit output: 3-state control
+	);
+endmodule
+
+//	ocyrus_7series #(.DATA_WIDTH(DATA_WIDTH), .DDRSDR(DDRSDR)) o7s (.bit_clock(bit_clock), .word_clock(word_clock), .reset(reset), .input_word(input_word), .output_bit(output_bit));
+module ocyrus_7series #(
+	parameter DATA_WIDTH = 8,
+	parameter DDRSDR = "DDR",
+	parameter BUFR_DIVIDE = DDRSDR == "DDR" ? DATA_WIDTH / 2 : DATA_WIDTH
+) (
 	input bit_clock,
-	input bit_strobe,
 	input reset,
+	input [DATA_WIDTH-1:0] input_word,
+	output word_clock,
+	output output_bit
+);
+	// ug471 says CLK and DIVCLK must either:
+	// both come from a single MMCM/PLL
+	// or
+	// CLK must be from a BUFIO and CLKDIV must be from a BUFR
+	BUFR #(.BUFR_DIVIDE(BUFR_DIVIDE), .SIM_DEVICE("7SERIES")) deviate (.I(bit_clock), .O(word_clock), .CLR(reset), .CE(1'b1));
+	wire bit_clock_super;
+	BUFIO sally (.I(bit_clock), .O(bit_clock_super));
+	reg reset_copy1_on_word_clock = 1'b1, reset_copy2_on_word_clock = 1'b1;
+	always @(posedge word_clock) begin
+		reset_copy2_on_word_clock <= reset_copy1_on_word_clock;
+		reset_copy1_on_word_clock <= reset;
+	end
+	ocyrus_7series_inner #(.DATA_WIDTH(DATA_WIDTH), .DDRSDR(DDRSDR)) o7si (.bit_clock(bit_clock_super), .word_clock(word_clock), .reset(reset_copy2_on_word_clock), .input_word(input_word), .output_bit(output_bit));
+endmodule
+
+module ocyrus_single_inner #(
+	parameter BIT_RATIO = 4 // 2, 3, 4
+) (
+	input word_clock, bit_clock, bit_strobe, reset,
 	input [BIT_RATIO-1:0] word_in,
 	output bit_out
 );
+	wire [3:0] word;
+	if (BIT_RATIO==4) begin
+		assign word = word_in;
+	end else if (BIT_RATIO==3) begin
+		assign word = word_in[3:1];
+	end else if (BIT_RATIO==2) begin
+		assign word = word_in[3:2];
+	//end else begin
+		//assert
+	end
+	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
+	// want MSB of word to come out first (D1 comes out first)
+	OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
+	           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
+	         osirus_D
+	         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
+	         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
+	         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
+	         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
+	         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(), .SHIFTOUT4(),
+	         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
+endmodule
+
+//	ocyrus_single4_inner #(.BIT_RATIO(4)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
+module ocyrus_single4_inner #(
+	parameter BIT_RATIO = 4 // how many fast_clock cycles per word_clock
+) (
+	input word_clock, bit_clock, bit_strobe, reset,
+	input [BIT_RATIO-1:0] word_in,
+	output bit_out
+);
+	ocyrus_single_inner #(.BIT_RATIO(BIT_RATIO)) OSERDES2_inst (.word_clock(word_clock), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(bit_out));
+endmodule
+
+module ocyrus_single_cascaded_inner #(
+	parameter BIT_RATIO = 8, // 5, 6, 7, 8
+	parameter PINTYPE = "p" // "p" (primary) or "n" (secondary)
+) (
+	input word_clock, bit_clock, bit_strobe, reset,
+	input [BIT_RATIO-1:0] word_in,
+	output bit_out
+);
+	wire [7:0] word;
+	if (BIT_RATIO==8) begin
+		assign word      = word_in;
+	end else if (BIT_RATIO==7) begin
+		assign word[6:4] = word_in[7:5];
+		assign word[3:0] = word_in[3:0];
+	end else if (BIT_RATIO==6) begin
+		assign word[5:4] = word_in[7:6];
+		assign word[3:0] = word_in[3:0];
+	end else if (BIT_RATIO==5) begin
+		assign word[4]   = word_in[7];
+		assign word[3:0] = word_in[3:0];
+	//end else begin
+		//assert
+	end
 	wire cascade_do2, cascade_to2, cascade_di2, cascade_ti2;
 	// with some help from https://vjordan.info/log/fpga/high-speed-serial-bus-generation-using-spartan-6.html and/or XAPP1064 source code
 	// want MSB of word to come out first (D1 comes out first; secondary oserdes goes first)
@@ -551,16 +714,16 @@ module ocyrus_single8_inner #(
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
 		         osirus_primary_D
 		         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
+		         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-		         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2), 
-		         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
+		         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2),
+		         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(),
 		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
 		         osirus_secondary_D
 		         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
+		         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
 		         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
 		         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
@@ -570,21 +733,45 @@ module ocyrus_single8_inner #(
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("MASTER"))
 		         osirus_primary_D
 		         (.OQ(), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[3]), .D2(word_in[2]), .D3(word_in[1]), .D4(word_in[0]),
+		         .D1(word[3]), .D2(word[2]), .D3(word[1]), .D4(word[0]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
-		         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2), 
-		         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(), 
+		         .SHIFTIN1(1'b1), .SHIFTIN2(1'b1), .SHIFTIN3(cascade_do2), .SHIFTIN4(cascade_to2),
+		         .SHIFTOUT1(cascade_di2), .SHIFTOUT2(cascade_ti2), .SHIFTOUT3(), .SHIFTOUT4(),
 		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 		OSERDES2 #(.DATA_RATE_OQ("SDR"), .DATA_RATE_OT("SDR"), .DATA_WIDTH(BIT_RATIO),
 		           .OUTPUT_MODE("SINGLE_ENDED"), .SERDES_MODE("SLAVE"))
 		         osirus_secondary_D
 		         (.OQ(bit_out), .TQ(), .CLK0(bit_clock), .CLK1(1'b0), .CLKDIV(word_clock),
-		         .D1(word_in[7]), .D2(word_in[6]), .D3(word_in[5]), .D4(word_in[4]),
+		         .D1(word[7]), .D2(word[6]), .D3(word[5]), .D4(word[4]),
 		         .IOCE(bit_strobe), .OCE(1'b1), .RST(reset), .TRAIN(1'b0),
 		         .SHIFTIN1(cascade_di2), .SHIFTIN2(cascade_ti2), .SHIFTIN3(1'b1), .SHIFTIN4(1'b1),
 		         .SHIFTOUT1(), .SHIFTOUT2(), .SHIFTOUT3(cascade_do2), .SHIFTOUT4(cascade_to2),
 		         .TCE(1'b1), .T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0));
 	end
+endmodule
+
+//	ocyrus_single6_inner #(.BIT_RATIO(6)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
+module ocyrus_single6_inner #(
+	parameter BIT_RATIO = 6, // how many fast_clock cycles per word_clock
+	parameter PINTYPE = "p" // "p" (primary) or "n" (secondary)
+) (
+	input word_clock, bit_clock, bit_strobe, reset,
+	input [BIT_RATIO-1:0] word_in,
+	output bit_out
+);
+	ocyrus_single_cascaded_inner #(.BIT_RATIO(BIT_RATIO), .PINTYPE(PINTYPE)) OSERDES2_inst (.word_clock(word_clock), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(bit_out));
+endmodule
+
+//	ocyrus_single8_inner #(.BIT_RATIO(8)) mylei (.word_clock(), .bit_clock(), .bit_strobe(), .reset(), .word_in(), .bit_out());
+module ocyrus_single8_inner #(
+	parameter PINTYPE = "p", // "p" (primary) or "n" (secondary)
+	parameter BIT_RATIO=8 // how many fast_clock cycles per word_clock
+) (
+	input word_clock, bit_clock, bit_strobe, reset,
+	input [BIT_RATIO-1:0] word_in,
+	output bit_out
+);
+	ocyrus_single_cascaded_inner #(.BIT_RATIO(BIT_RATIO), .PINTYPE(PINTYPE)) OSERDES2_inst (.word_clock(word_clock), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(bit_out));
 endmodule
 
 module ocyrus_single8 #(
@@ -599,21 +786,20 @@ module ocyrus_single8 #(
 	parameter MULTIPLY = 40,
 	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
-	input clock_in,
-	output word_clock_out,
-	input reset,
+	input clock_in, reset,
 	input [BIT_DEPTH-1:0] word_in,
 	output D_out,
-	output locked
+	output word_clock_out, locked
 );
-	wire bit_clock;
-	wire bit_strobe;
+	wire bit_clock, bit_strobe;
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE)) mylei (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word_in), .bit_out(D_out));
 	oserdes_pll #(.BIT_DEPTH(BIT_DEPTH), .CLKIN_PERIOD(PERIOD), .PLLD(DIVIDE), .PLLX(MULTIPLY), .SCOPE(SCOPE), .MODE(MODE), .CLK_FEEDBACK(CLK_FEEDBACK), .PHASE(PHASE)) difficult_pll_TR (
 		.reset(reset), .clock_in(clock_in), .word_clock_out(word_clock_out),
 		.serializer_clock_out(bit_clock), .serializer_strobe_out(bit_strobe), .locked(locked)
 	);
 endmodule
+
+// --------------------------------------------------------------------------
 
 module ocyrus_double8 #(
 	parameter SCOPE = "BUFIO2", // can be "BUFIO2" (525 MHz max), "BUFPLL" (1050 MHz max) or "GLOBAL" (400 MHz max) for speed grade 3
@@ -627,14 +813,10 @@ module ocyrus_double8 #(
 	parameter MULTIPLY = 40,
 	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
-	input clock_in,
-	output word_clock_out,
-	input reset,
+	input clock_in, reset,
 	input [BIT_DEPTH-1:0] word0_in, word1_in,
 	output D0_out, D1_out,
-	output bit_clock,
-	output bit_strobe,
-	output locked
+	output bit_clock, bit_strobe, word_clock_out, locked
 );
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
@@ -658,15 +840,11 @@ module ocyrus_quad8 #(
 	parameter MULTIPLY = 40,
 	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
-	input clock_in,
-	output word_clock_out,
-	input reset,
+	input clock_in, reset,
 	input [BIT_DEPTH-1:0] word0_in, word1_in, word2_in, word3_in,
-	output D0_out, D1_out, D2_out, D3_out,
-	output locked
+	output D0_out, D1_out, D2_out, D3_out, word_clock_out, locked
 );
-	wire bit_clock;
-	wire bit_strobe;
+	wire bit_clock, bit_strobe;
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
@@ -692,15 +870,11 @@ module ocyrus_hex8 #(
 	parameter DIVIDE = 2,
 	parameter MULTIPLY = 40
 ) (
-	input clock_in,
-	output word_clock_out,
-	input reset,
+	input clock_in, reset,
 	input [BIT_DEPTH-1:0] word0_in, word1_in, word2_in, word3_in, word4_in, word5_in,
-	output D0_out, D1_out, D2_out, D3_out, D4_out, D5_out,
-	output locked
+	output D0_out, D1_out, D2_out, D3_out, D4_out, D5_out, word_clock_out, locked
 );
-	wire bit_clock;
-	wire bit_strobe;
+	wire bit_clock, bit_strobe;
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE0)) mylei0 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word0_in), .bit_out(D0_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE1)) mylei1 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word1_in), .bit_out(D1_out));
 	ocyrus_single8_inner #(.BIT_RATIO(BIT_DEPTH), .PINTYPE(PINTYPE2)) mylei2 (.word_clock(word_clock_out), .bit_clock(bit_clock), .bit_strobe(bit_strobe), .reset(reset), .word_in(word2_in), .bit_out(D2_out));
@@ -744,22 +918,17 @@ module ocyrus_hex8_split_4_2 #(
 	parameter PHASE45 = 0.0,
 	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
-	input clock_in,
-	input reset,
+	input clock_in, reset,
+	input iserdes_bit_input,
 	input [BIT_DEPTH-1:0] word0_in, word1_in, word2_in, word3_in, word4_in, word5_in,
 	input [1:0] word_clock45_sel,
-	input iserdes_bit_input,
 	output [7:0] iserdes_word_out,
-	output word_clock0123_out,
-	output word_clock45_out,
-	output D0_out, D1_out, D2_out, D3_out, D4_out, D5_out,
-	output locked
+	output D0_out, D1_out, D2_out, D3_out, D4_out, D5_out, word_clock0123_out, word_clock45_out, locked
 );
 	wire bit_clock0123, bit_clock45;
 	wire bit_strobe0123, bit_strobe45;
 	wire pll_is_locked; // Locked output from PLL
-	wire reset_clock0123;
-	wire reset_clock45;
+	wire reset_clock0123, reset_clock45;
 	reset_wait4pll reset0123_wait4pll (.reset_input(reset), .pll_locked_input(locked), .clock_input(word_clock0123_out), .reset_output(reset_clock0123));
 	reset_wait4pll reset45_wait4pll (.reset_input(reset), .pll_locked_input(locked), .clock_input(word_clock45_out), .reset_output(reset_clock45));
 //	reset3_wait4plls #(.CLOCK1_BIT_PICKOFF(20), .CLOCK2_BIT_PICKOFF(20), .CLOCK3_BIT_PICKOFF(20)) r3 (.reset_input(reset), .pll_locked1_input(1'b1), .pll_locked2_input(pll_is_locked),  .pll_locked3_input(pll_is_locked), .clock1_input(clock_in), .clock2_input(word_clock0123_out), .clock3_input(word_clock45_out), .reset1_output(), .reset2_output(reset_clock0123), .reset3_output(reset_clock45));
@@ -842,37 +1011,18 @@ module ocyrus_gyrobicupola8_split_12_6_6 #(
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	parameter PINTYPE_A00 = "p",
-	parameter PINTYPE_A01 = "p",
-	parameter PINTYPE_A02 = "p",
-	parameter PINTYPE_A03 = "p",
-	parameter PINTYPE_A04 = "p",
-	parameter PINTYPE_A05 = "p",
-	parameter PINTYPE_A06 = "p",
-	parameter PINTYPE_A07 = "p",
-	parameter PINTYPE_A08 = "p",
-	parameter PINTYPE_A09 = "p",
-	parameter PINTYPE_A10 = "p",
-	parameter PINTYPE_A11 = "p",
-	parameter PINTYPE_B0 = "p",
-	parameter PINTYPE_B1 = "p",
-	parameter PINTYPE_B2 = "p",
-	parameter PINTYPE_B3 = "p",
-	parameter PINTYPE_B4 = "p",
-	parameter PINTYPE_B5 = "p",
-	parameter PINTYPE_C0 = "p",
-	parameter PINTYPE_C1 = "p",
-	parameter PINTYPE_C2 = "p",
-	parameter PINTYPE_C3 = "p",
-	parameter PINTYPE_C4 = "p",
-	parameter PINTYPE_C5 = "p",
+	parameter PINTYPE_A00 = "p", PINTYPE_A01 = "p", PINTYPE_A02 = "p", PINTYPE_A03 = "p",
+	parameter PINTYPE_A04 = "p", PINTYPE_A05 = "p", PINTYPE_A06 = "p", PINTYPE_A07 = "p",
+	parameter PINTYPE_A08 = "p", PINTYPE_A09 = "p", PINTYPE_A10 = "p", PINTYPE_A11 = "p",
+	parameter PINTYPE_B0  = "p", PINTYPE_B1  = "p", PINTYPE_B2  = "p", PINTYPE_B3  = "p",
+	parameter PINTYPE_B4  = "p", PINTYPE_B5  = "p", PINTYPE_C0  = "p", PINTYPE_C1  = "p",
+	parameter PINTYPE_C2  = "p", PINTYPE_C3  = "p", PINTYPE_C4  = "p", PINTYPE_C5  = "p",
 	parameter PERIOD = 20.0,
 	parameter MULTIPLY = 40,
 	parameter DIVIDE = 2,
 	parameter EXTRA_DIVIDE = 1
 ) (
-	input clock_in,
-	input reset,
+	input clock_in, reset,
 	input [BIT_DEPTH-1:0]
 		word_A00_in, word_A01_in, word_A02_in, word_A03_in, word_A04_in, word_A05_in,
 		word_A06_in, word_A07_in, word_A08_in, word_A09_in, word_A10_in, word_A11_in,
@@ -1002,37 +1152,17 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2 #(
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	parameter PINTYPE_A00 = "p",
-	parameter PINTYPE_A01 = "p",
-	parameter PINTYPE_A02 = "p",
-	parameter PINTYPE_A03 = "p",
-	parameter PINTYPE_A04 = "p",
-	parameter PINTYPE_A05 = "p",
-	parameter PINTYPE_A06 = "p",
-	parameter SPECIAL_A06 = "A",
+	parameter PINTYPE_A00 = "p", PINTYPE_A01 = "p", PINTYPE_A02 = "p", PINTYPE_A03 = "p",
+	parameter PINTYPE_A04 = "p", PINTYPE_A05 = "p",
+	parameter PINTYPE_A06 = "p", SPECIAL_A06 = "A",
 	parameter PINTYPE_A07 = "p",
-	parameter PINTYPE_A08 = "p",
-	parameter PINTYPE_A09 = "p",
-	parameter PINTYPE_A10 = "p",
-	parameter PINTYPE_A11 = "p",
-	parameter PINTYPE_B0 = "p",
-	parameter PINTYPE_B1 = "p",
-	parameter PINTYPE_B2 = "p",
-	parameter PINTYPE_B3 = "p",
-	parameter PINTYPE_B4 = "p",
-	parameter PINTYPE_B5 = "p",
-	parameter PINTYPE_C0 = "p",
-	parameter PINTYPE_C1 = "p",
-	parameter PINTYPE_C2 = "p",
-	parameter PINTYPE_C3 = "p",
-	parameter PINTYPE_C4 = "p",
-	parameter PINTYPE_C5 = "p",
-	parameter PINTYPE_D0 = "p",
-	parameter PINTYPE_D1 = "p",
-	parameter PINTYPE_D2 = "p",
-	parameter PINTYPE_D3 = "p",
-	parameter PINTYPE_E0 = "p",
-	parameter PINTYPE_E1 = "p",
+	parameter PINTYPE_A08 = "p", PINTYPE_A09 = "p", PINTYPE_A10 = "p", PINTYPE_A11 = "p",
+	parameter PINTYPE_B0  = "p", PINTYPE_B1  = "p", PINTYPE_B2  = "p", PINTYPE_B3  = "p",
+	parameter PINTYPE_B4  = "p", PINTYPE_B5  = "p",
+	parameter PINTYPE_C0  = "p", PINTYPE_C1  = "p", PINTYPE_C2  = "p", PINTYPE_C3  = "p",
+	parameter PINTYPE_C4  = "p", PINTYPE_C5  = "p",
+	parameter PINTYPE_D0  = "p", PINTYPE_D1  = "p", PINTYPE_D2  = "p", PINTYPE_D3  = "p",
+	parameter PINTYPE_E0  = "p", PINTYPE_E1  = "p",
 	parameter PERIOD = 20.0,
 	parameter MULTIPLY = 40,
 	parameter DIVIDE = 2,
@@ -1184,37 +1314,17 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_D0input #(
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	parameter PINTYPE_A00 = "p",
-	parameter PINTYPE_A01 = "p",
-	parameter PINTYPE_A02 = "p",
-	parameter PINTYPE_A03 = "p",
-	parameter PINTYPE_A04 = "p",
-	parameter PINTYPE_A05 = "p",
-	parameter PINTYPE_A06 = "p",
-	parameter SPECIAL_A06 = "A",
+	parameter PINTYPE_A00 = "p", PINTYPE_A01 = "p", PINTYPE_A02 = "p", PINTYPE_A03 = "p",
+	parameter PINTYPE_A04 = "p", PINTYPE_A05 = "p",
+	parameter PINTYPE_A06 = "p", SPECIAL_A06 = "A",
 	parameter PINTYPE_A07 = "p",
-	parameter PINTYPE_A08 = "p",
-	parameter PINTYPE_A09 = "p",
-	parameter PINTYPE_A10 = "p",
-	parameter PINTYPE_A11 = "p",
-	parameter PINTYPE_B0 = "p",
-	parameter PINTYPE_B1 = "p",
-	parameter PINTYPE_B2 = "p",
-	parameter PINTYPE_B3 = "p",
-	parameter PINTYPE_B4 = "p",
-	parameter PINTYPE_B5 = "p",
-	parameter PINTYPE_C0 = "p",
-	parameter PINTYPE_C1 = "p",
-	parameter PINTYPE_C2 = "p",
-	parameter PINTYPE_C3 = "p",
-	parameter PINTYPE_C4 = "p",
-	parameter PINTYPE_C5 = "p",
-	parameter PINTYPE_D0 = "p",
-	parameter PINTYPE_D1 = "p",
-	parameter PINTYPE_D2 = "p",
-	parameter PINTYPE_D3 = "p",
-	parameter PINTYPE_E0 = "p",
-	parameter PINTYPE_E1 = "p",
+	parameter PINTYPE_A08 = "p", PINTYPE_A09 = "p", PINTYPE_A10 = "p", PINTYPE_A11 = "p",
+	parameter PINTYPE_B0  = "p", PINTYPE_B1  = "p", PINTYPE_B2  = "p", PINTYPE_B3  = "p",
+	parameter PINTYPE_B4  = "p", PINTYPE_B5  = "p",
+	parameter PINTYPE_C0  = "p", PINTYPE_C1  = "p", PINTYPE_C2  = "p", PINTYPE_C3  = "p",
+	parameter PINTYPE_C4  = "p", PINTYPE_C5  = "p",
+	parameter PINTYPE_D0  = "p", PINTYPE_D1  = "p", PINTYPE_D2  = "p", PINTYPE_D3  = "p",
+	parameter PINTYPE_E0  = "p", PINTYPE_E1  = "p",
 	parameter PERIOD = 20.0,
 	parameter MULTIPLY = 40,
 	parameter DIVIDE = 2,
@@ -1371,38 +1481,18 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_BCinput #(
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	parameter PINTYPE_A00 = "p",
-	parameter PINTYPE_A01 = "p",
-	parameter PINTYPE_A02 = "p",
-	parameter PINTYPE_A03 = "p",
-	parameter PINTYPE_A04 = "p",
-	parameter PINTYPE_A05 = "p",
-	parameter PINTYPE_A06 = "p",
-	parameter SPECIAL_A06 = "A",
+	parameter PINTYPE_A00 = "p", PINTYPE_A01 = "p", PINTYPE_A02 = "p", PINTYPE_A03 = "p",
+	parameter PINTYPE_A04 = "p", PINTYPE_A05 = "p",
+	parameter PINTYPE_A06 = "p", SPECIAL_A06 = "A",
 	parameter PINTYPE_A07 = "p",
-	parameter PINTYPE_A08 = "p",
-	parameter PINTYPE_A09 = "p",
-	parameter PINTYPE_A10 = "p",
-	parameter PINTYPE_A11 = "p",
-	parameter SPECIAL_A11 = "A",
-	parameter PINTYPE_B0 = "p",
-	parameter PINTYPE_B1 = "p",
-	parameter PINTYPE_B2 = "p",
-	parameter PINTYPE_B3 = "p",
-	parameter PINTYPE_B4 = "p",
-	parameter PINTYPE_B5 = "p",
-	parameter PINTYPE_C0 = "p",
-	parameter PINTYPE_C1 = "p",
-	parameter PINTYPE_C2 = "p",
-	parameter PINTYPE_C3 = "p",
-	parameter PINTYPE_C4 = "p",
-	parameter PINTYPE_C5 = "p",
-	parameter PINTYPE_D0 = "p",
-	parameter PINTYPE_D1 = "p",
-	parameter PINTYPE_D2 = "p",
-	parameter PINTYPE_D3 = "p",
-	parameter PINTYPE_E0 = "p",
-	parameter PINTYPE_E1 = "p",
+	parameter PINTYPE_A08 = "p", PINTYPE_A09 = "p", PINTYPE_A10 = "p",
+	parameter PINTYPE_A11 = "p", SPECIAL_A11 = "A",
+	parameter PINTYPE_B0  = "p", PINTYPE_B1  = "p", PINTYPE_B2  = "p", PINTYPE_B3  = "p",
+	parameter PINTYPE_B4  = "p", PINTYPE_B5  = "p",
+	parameter PINTYPE_C0  = "p", PINTYPE_C1  = "p", PINTYPE_C2  = "p", PINTYPE_C3  = "p",
+	parameter PINTYPE_C4  = "p", PINTYPE_C5  = "p",
+	parameter PINTYPE_D0  = "p", PINTYPE_D1  = "p", PINTYPE_D2  = "p", PINTYPE_D3  = "p",
+	parameter PINTYPE_E0  = "p", PINTYPE_E1  = "p",
 	parameter PERIOD = 20.0,
 	parameter MULTIPLY = 40,
 	parameter DIVIDE = 2,
@@ -1574,40 +1664,19 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_BCEinput #(
 	parameter BIT_WIDTH=1, // how many bits come out in parallel
 	parameter BIT_DEPTH=8, // how many fast_clock cycles per word_clock (same as previous definition of WIDTH parameter)
 	parameter MODE = "WORD_CLOCK_IN", // can be "WORD_CLOCK_IN" or "BIT_CLOCK_IN"
-	parameter PINTYPE_A00 = "p",
-	parameter SPECIAL_A00 = "A", // A=bank3/N-Z (except for T which is B/bank2/M-G); when rotated, T is C/bank2/A-F
-	parameter PINTYPE_A01 = "p",
-	parameter PINTYPE_A02 = "p",
-	parameter PINTYPE_A03 = "p",
-	parameter PINTYPE_A04 = "p",
-	parameter PINTYPE_A05 = "p",
-	parameter SPECIAL_A05 = "A",
-	parameter PINTYPE_A06 = "p",
-	parameter SPECIAL_A06 = "A",
+	parameter PINTYPE_A00 = "p", SPECIAL_A00 = "A", // A=bank3/N-Z (except for T which is B/bank2/M-G); when rotated, T is C/bank2/A-F
+	parameter PINTYPE_A01 = "p", PINTYPE_A02 = "p", PINTYPE_A03 = "p", PINTYPE_A04 = "p",
+	parameter PINTYPE_A05 = "p", SPECIAL_A05 = "A",
+	parameter PINTYPE_A06 = "p", SPECIAL_A06 = "A",
 	parameter PINTYPE_A07 = "p",
-	parameter PINTYPE_A08 = "p",
-	parameter PINTYPE_A09 = "p",
-	parameter PINTYPE_A10 = "p",
-	parameter PINTYPE_A11 = "p",
-	parameter SPECIAL_A11 = "A",
-	parameter PINTYPE_B0 = "p",
-	parameter PINTYPE_B1 = "p",
-	parameter PINTYPE_B2 = "p",
-	parameter PINTYPE_B3 = "p",
-	parameter PINTYPE_B4 = "p",
-	parameter PINTYPE_B5 = "p",
-	parameter PINTYPE_C0 = "p",
-	parameter PINTYPE_C1 = "p",
-	parameter PINTYPE_C2 = "p",
-	parameter PINTYPE_C3 = "p",
-	parameter PINTYPE_C4 = "p",
-	parameter PINTYPE_C5 = "p",
-	parameter PINTYPE_D0 = "p",
-	parameter PINTYPE_D1 = "p",
-	parameter PINTYPE_D2 = "p",
-	parameter PINTYPE_D3 = "p",
-	parameter PINTYPE_E0 = "p",
-	parameter PINTYPE_E1 = "p",
+	parameter PINTYPE_A08 = "p", PINTYPE_A09 = "p", PINTYPE_A10 = "p",
+	parameter PINTYPE_A11 = "p", SPECIAL_A11 = "A",
+	parameter PINTYPE_B0  = "p", PINTYPE_B1  = "p", PINTYPE_B2  = "p", PINTYPE_B3  = "p",
+	parameter PINTYPE_B4  = "p", PINTYPE_B5  = "p",
+	parameter PINTYPE_C0  = "p", PINTYPE_C1  = "p", PINTYPE_C2  = "p", PINTYPE_C3  = "p",
+	parameter PINTYPE_C4  = "p", PINTYPE_C5  = "p",
+	parameter PINTYPE_D0  = "p", PINTYPE_D1  = "p", PINTYPE_D2  = "p", PINTYPE_D3  = "p",
+	parameter PINTYPE_E0  = "p", PINTYPE_E1  = "p",
 	parameter PERIOD = 20.0,
 	parameter MULTIPLY = 40,
 	parameter DIVIDE = 2,
@@ -1790,6 +1859,8 @@ module ocyrus_triacontahedron8_split_12_6_6_4_2_BCEinput #(
 	assign locked = pll_is_locked;
 endmodule
 
+// --------------------------------------------------------------------------
+
 // 156.25 / 8.0 * 61.875 / 2.375 = 508.840461 for scrod revA3 on-board oscillator
 // 156.25 / 5 * 32 = 1000 for scrod revA3 on-board oscillator
 // 50.0 / 2 * 40 = 1000 for althea on-board oscillator
@@ -1807,8 +1878,7 @@ module simpll #(
 //	parameter COMPENSATION = CLK_FEEDBACK=="CLKFBOUT" ? "INTERNAL" : "EXTERNAL"
 	//parameter COMPENSATION = "SOURCE_SYNCHRONOUS"
 ) (
-	input clock_in,
-	input reset,
+	input clock_in, reset,
 //	input clock_nx_fb, // bit clock feedback input
 	output pll_is_locked,
 	output clock_1x, // word clock output, phase shifted by PHASE
@@ -1910,8 +1980,8 @@ module oserdes_pll #(
 	parameter EXTRA_DIVIDE = 1,
 	parameter CLK_FEEDBACK = "CLKFBOUT"
 ) (
-	input clock_in, input reset, output word_clock_out,
-	output serializer_clock_out, output serializer_strobe_out, output locked
+	input clock_in, reset,
+	output word_clock_out, serializer_clock_out, serializer_strobe_out, locked
 );
 	wire clock_1x, clock_nx;
 	wire pll_is_locked; // Locked output from PLL
@@ -1993,6 +2063,8 @@ module oserdes_pll #(
 	assign locked = pll_is_locked & buffered_pll_is_locked_and_strobe_is_aligned;
 	BUFG bufg_tx (.I(clock_1x), .O(word_clock_out));
 endmodule
+
+// --------------------------------------------------------------------------
 
 //	odelay_fixed #(.AMOUNT()) beckham (.bit_in(), .bit_out());
 // ug381 says should limit fixed odelays to 3/4 of a bit period
@@ -2109,6 +2181,8 @@ module idelay #(
 	);
 endmodule
 
+// --------------------------------------------------------------------------
+
 // for the trivial case of RATIO=1, the start and finish signals may not work
 module oserdes_gearbox #(
 	parameter RATIO = 2,
@@ -2116,24 +2190,25 @@ module oserdes_gearbox #(
 	parameter BIT_DEPTH = 8
 ) (
 	input word_clock, reset,
-	output reg start = 0,
-	output reg finish = 0,
+//	output reg start = 0,
+//	output reg finish = 0,
 	input [BIT_DEPTH*RATIO-1:0] input_longword,
 	output [BIT_DEPTH-1:0] output_shortword
 );
 	reg [LOG2_OF_RATIO-1:0] select = 0;
+	wire [LOG2_OF_RATIO-1:0] ratio_minus_one = RATIO - 1'b1;
 	always @(posedge word_clock) begin
-		start <= 0;
-		finish <= 0;
+//		start <= 0;
+//		finish <= 0;
 		if (reset) begin
 			select <= 0;
 		end else begin
 			select <= select - 1'b1;
 			if (select==1) begin
-				finish <= 1'b1;
+//				finish <= 1'b1;
 			end else if (select==0) begin
-				select <= RATIO - 1'b1;
-				start <= 1'b1;
+				select <= ratio_minus_one;
+//				start <= 1'b1;
 			end
 		end
 	end
@@ -2147,7 +2222,7 @@ module oserdes_gearbox_tb ();
 	reg reset = 1;
 	reg [23:0] longword = 0;
 	wire [7:0] shortword;
-	wire start, finish;
+//	wire start, finish;
 	always begin
 		#HALF_PERIOD_OF_CLOCK;
 		word_clock <= ~word_clock;
@@ -2157,8 +2232,11 @@ module oserdes_gearbox_tb ();
 		#WAIT_A_WHILE;
 		reset <= 0;
 	end
-	oserdes_gearbox #(.RATIO(3)) osgb (.word_clock(word_clock), .reset(reset), .input_longword(longword), .output_shortword(shortword), .start(start), .finish(finish));
+	oserdes_gearbox #(.RATIO(3)) osgb (.word_clock(word_clock), .reset(reset), .input_longword(longword), .output_shortword(shortword));
+	//, .start(start), .finish(finish)
 endmodule
+
+// --------------------------------------------------------------------------
 
 module iserdes_gearbox #(
 	parameter RATIO = 2,
@@ -2172,6 +2250,7 @@ module iserdes_gearbox #(
 	output reg [BIT_DEPTH*RATIO-1:0] output_longword = 0
 );
 	reg [LOG2_OF_RATIO-1:0] select = 0;
+	wire [LOG2_OF_RATIO-1:0] ratio_minus_one = RATIO - 1'b1;
 	reg [BIT_DEPTH*RATIO-1:0] longword = 0;
 	reg valid_on_next_cycle = 0;
 	always @(posedge word_clock) begin
@@ -2184,9 +2263,9 @@ module iserdes_gearbox #(
 		end else begin
 			select <= select - 1'b1;
 			if (sync) begin
-				select <= RATIO - 1'b1;
+				select <= ratio_minus_one;
 			end else if (select==0) begin
-				select <= RATIO - 1'b1;
+				select <= ratio_minus_one;
 				valid_on_next_cycle <= 1'b1;
 			end
 			if (valid_on_next_cycle) begin
@@ -2239,6 +2318,8 @@ module iserdes_gearbox_tb ();
 	end
 	iserdes_gearbox #(.RATIO(3)) isgb (.word_clock(word_clock), .reset(reset), .input_shortword(shortword), .output_longword(longword), .sync(sync), .valid(valid));
 endmodule
+
+// --------------------------------------------------------------------------
 
 `endif
 

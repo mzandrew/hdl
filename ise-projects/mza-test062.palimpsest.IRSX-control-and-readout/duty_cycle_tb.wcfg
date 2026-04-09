@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/mza/build/hdl/ise-projects/mza-test062.palimpsest.IRSX-control-and-readout/duty_cycle_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="duty_cycle_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="12" />
+   <wvobject fp_name="/duty_cycle_tb/clock" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clock</obj_property>
+      <obj_property name="ObjectShortName">clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/signal" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">signal</obj_property>
+      <obj_property name="ObjectShortName">signal</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/waveform" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">waveform[63:0]</obj_property>
+      <obj_property name="ObjectShortName">waveform[63:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">counter[5:0]</obj_property>
+      <obj_property name="ObjectShortName">counter[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/mdc/always_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">always_counter[5:0]</obj_property>
+      <obj_property name="ObjectShortName">always_counter[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/mdc/active_counter" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">active_counter[5:0]</obj_property>
+      <obj_property name="ObjectShortName">active_counter[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/mdc/numerator" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">numerator[13:0]</obj_property>
+      <obj_property name="ObjectShortName">numerator[13:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/mdc/denominator" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">denominator[5:0]</obj_property>
+      <obj_property name="ObjectShortName">denominator[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/mdc/accumulator" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">accumulator[5:0]</obj_property>
+      <obj_property name="ObjectShortName">accumulator[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/mdc/valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">valid</obj_property>
+      <obj_property name="ObjectShortName">valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/truth" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">truth[31:0]</obj_property>
+      <obj_property name="ObjectShortName">truth[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/duty_cycle_tb/duty_cycle_perHEXage" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">duty_cycle_perHEXage[5:0]</obj_property>
+      <obj_property name="ObjectShortName">duty_cycle_perHEXage[5:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+</wave_config>
+
