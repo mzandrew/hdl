@@ -1,5 +1,5 @@
 // written 2020-05-06 by mza
-// last updated 2026-02-27 by mza
+// last updated 2026-03-02 by mza
 
 `ifndef SPI_LIB
 `define SPI_LIB
@@ -437,6 +437,8 @@ module qspi_psram_controller_try1 #(
 			// after this clock, it should be in streaming read/write mode
 				if (~write) begin
 					qspi_output_enable <= 0;
+				end else begin
+					qspi_output_enable <= 4'b1111;
 				end
 				counter <= 64;
 			end else begin
