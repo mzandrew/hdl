@@ -13,6 +13,9 @@ set_property INTERNAL_VREF 0.9 [get_iobanks 13]
 create_clock -period 5.000 -name sysclk_p -waveform {0.000 2.500} -add [get_ports SYSCLK_P]
 
 set_property CLOCK_DEDICATED_ROUTE ANY_CMT_COLUMN [get_nets mymmcm0/clock0_out_p];
+#set_property CLOCK_DEDICATED_ROUTE ANY_CMT_COLUMN [get_nets mymmcm0/clock1_out_p];
+set_property CLOCK_DEDICATED_ROUTE ANY_CMT_COLUMN [get_nets bit_clock1];
+#set_property CLOCK_DEDICATED_ROUTE ANY_CMT_COLUMN [get_nets bit_clock2];
 
 # 200 MHz sysclk: pdf page 3, 8
 set_property PACKAGE_PIN R3 [get_ports SYSCLK_P]
@@ -36,8 +39,8 @@ set_property PACKAGE_PIN T8 [get_ports USER_SMA_GPIO_P]
 set_property PACKAGE_PIN T7 [get_ports USER_SMA_GPIO_N]
 set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_GPIO_P]
 set_property IOSTANDARD LVCMOS25 [get_ports USER_SMA_GPIO_N]
-set_property DRIVE 24 [get_ports USER_SMA_GPIO_P]
-set_property DRIVE 24 [get_ports USER_SMA_GPIO_N]
+set_property DRIVE 16 [get_ports USER_SMA_GPIO_P]
+set_property DRIVE 16 [get_ports USER_SMA_GPIO_N]
 set_property SLEW FAST [get_ports USER_SMA_GPIO_P]
 set_property SLEW FAST [get_ports USER_SMA_GPIO_N]
 
@@ -46,10 +49,6 @@ set_property PACKAGE_PIN J23 [get_ports USER_SMA_CLOCK_P]
 set_property PACKAGE_PIN H23 [get_ports USER_SMA_CLOCK_N]
 set_property IOSTANDARD LVDS_25 [get_ports USER_SMA_CLOCK_P]
 set_property IOSTANDARD LVDS_25 [get_ports USER_SMA_CLOCK_N]
-set_property DRIVE 24 [get_ports USER_SMA_CLOCK_P]
-set_property DRIVE 24 [get_ports USER_SMA_CLOCK_N]
-set_property SLEW FAST [get_ports USER_SMA_CLOCK_P]
-set_property SLEW FAST [get_ports USER_SMA_CLOCK_N]
 
 # bank_213 gtp quad:
 set_property PACKAGE_PIN AE7 [get_ports SMA_MGT_TX_P]
@@ -87,7 +86,8 @@ set_property PACKAGE_PIN AD12 [get_ports SFP_MGT_RX_N]
 set_false_path -to [ get_pins reset2_copy1_on_raw_bit_clock_reg/D ];
 set_false_path -to [ get_pins reset3_copy1_on_raw_bit_clock_reg/D ];
 set_false_path -to [ get_pins reset4_copy1_on_other_word_clock_reg/D ];
-set_false_path -to [ get_pins o7s/reset_copy1_on_word_clock_reg/D ];
+set_false_path -to [ get_pins o7s_primary/reset_copy1_on_word_clock_reg/D ];
+set_false_path -to [ get_pins o7s_secondary/reset_copy1_on_word_clock_reg/D ];
 
 # no_output_delay:
 set_false_path -to [ get_ports GPIO_LED_0 ];

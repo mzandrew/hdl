@@ -35,7 +35,7 @@ module GTP_BIDIRECTIONAL_TEST #(
 );
 	wire sysclk;
 	IBUFDS iclk (.I(SYSCLK_P), .IB(SYSCLK_N), .O(sysclk));
-	wire raw_bit_clock, bit_clock, word_clock, sysclk_pll_locked;
+	wire raw_bit_clock1, raw_bit_clock2, bit_clock1, bit_clock2, word_clock, sysclk_pll_locked;
 	reg reset1_sysclk = 1'b1, reset2_sysclk = 1'b1, reset3_sysclk = 1'b1, reset4_sysclk = 1'b1;
 	reg reset2_copy1_on_raw_bit_clock = 1'b1, reset3_copy1_on_raw_bit_clock = 1'b1, reset4_copy1_on_other_word_clock = 1'b1;
 	reg reset2_copy2_on_raw_bit_clock = 1'b1, reset3_copy2_on_raw_bit_clock = 1'b1, reset4_copy2_on_other_word_clock = 1'b1;
@@ -47,7 +47,7 @@ module GTP_BIDIRECTIONAL_TEST #(
 		if (reset_counter[COUNTER_PICKOFF_RESET3]) begin reset3_sysclk <= 0; end
 		if (reset_counter[COUNTER_PICKOFF_RESET4]) begin reset4_sysclk <= 0; end
 	end
-	always @(posedge raw_bit_clock) begin
+	always @(posedge raw_bit_clock1) begin
 		reset2_copy2_on_raw_bit_clock <= reset2_copy1_on_raw_bit_clock;
 		reset2_copy1_on_raw_bit_clock <= reset2_sysclk;
 		reset3_copy2_on_raw_bit_clock <= reset3_copy1_on_raw_bit_clock;
@@ -62,7 +62,7 @@ module GTP_BIDIRECTIONAL_TEST #(
 	MMCM_advanced #(
 		.CLOCK1_PERIOD_NS(5.0), .D(1), .M(5), // Fvco = [600, 1440] MHz
 		.CLKOUT0_DIVIDE(2), // 500 MHz (DDR yields 1000 MHz)
-		.CLKOUT1_DIVIDE(8), //
+		.CLKOUT1_DIVIDE(2), //
 		.CLKOUT2_DIVIDE(8), // 125 MHz for DRP clock for GTP
 		.CLKOUT3_DIVIDE(1), //
 		.CLKOUT4_DIVIDE(1), //
@@ -70,7 +70,7 @@ module GTP_BIDIRECTIONAL_TEST #(
 		.CLKOUT6_DIVIDE(1)  //
 			) mymmcm0 (
 		.clock_in(sysclk), .reset(reset1_sysclk), .locked(sysclk_pll_locked),
-		.clock0_out_p(raw_bit_clock), .clock0_out_n(), .clock1_out_p(), .clock1_out_n(),
+		.clock0_out_p(raw_bit_clock1), .clock0_out_n(), .clock1_out_p(raw_bit_clock2), .clock1_out_n(),
 		.clock2_out_p(drp_clock_raw), .clock2_out_n(), .clock3_out_p(), .clock3_out_n(),
 		.clock4_out(), .clock5_out(), .clock6_out());
 	wire [15:0] sma_txdata, sfp_txdata;
@@ -89,18 +89,20 @@ module GTP_BIDIRECTIONAL_TEST #(
 		assign sma_txdata = rand[GTP_WIDTH-1:0];
 		assign { GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0 } = rand[3:0];
 	end else if (1) begin
-		BUFMRCE #(.CE_TYPE("ASYNC")) mr (.I(raw_bit_clock), .CE(~reset3_copy2_on_raw_bit_clock), .O(bit_clock));
+		BUFMRCE #(.CE_TYPE("ASYNC")) mr1 (.I(raw_bit_clock1), .CE(~reset3_copy2_on_raw_bit_clock), .O(bit_clock1));
+		//BUFMRCE #(.CE_TYPE("ASYNC")) mr2 (.I(raw_bit_clock2), .CE(~reset3_copy2_on_raw_bit_clock), .O(bit_clock2));
 		wire [PRBSLFSR_WIDTH-1:0] rand;
 		prbs_wide #(.OUTPUT_WIDTH(PRBSLFSR_WIDTH)) pw (.clock(other_word_clock), .reset(reset4_copy2_on_other_word_clock), .rand(rand));
 		assign { GPIO_LED_3, GPIO_LED_2, GPIO_LED_1, GPIO_LED_0 } = rand[3:0];
 		wire bit;
-		ocyrus_7series #(.DATA_WIDTH(OSERDES_WIDTH), .DDRSDR("DDR")) o7s (.bit_clock(bit_clock), .word_clock(other_word_clock), .reset(reset2_copy2_on_raw_bit_clock), .input_word(rand[7:0]), .output_bit(bit));
+		ocyrus_7series #(.DATA_WIDTH(OSERDES_WIDTH), .DDRSDR("DDR")) o7s_primary (.bit_clock(bit_clock1), .word_clock(other_word_clock), .reset(reset2_copy2_on_raw_bit_clock), .input_word(rand[7:0]), .output_bit(bit));
 		OBUFDS olebuffy (.I(bit), .O(USER_SMA_CLOCK_P), .OB(USER_SMA_CLOCK_N));
 		assign sfp_txdata = sma_rxdata;
 		assign sma_txdata = sfp_rxdata;
+		//ocyrus_7series #(.DATA_WIDTH(OSERDES_WIDTH), .DDRSDR("DDR")) o7s_secondary (.bit_clock(bit_clock2), .word_clock(), .reset(reset2_copy2_on_raw_bit_clock), .input_word(rand[7:0]), .output_bit(USER_SMA_GPIO_P));
+		assign USER_SMA_GPIO_P = counter[23];
+		assign USER_SMA_GPIO_N = counter[23];
 	end
-	assign USER_SMA_GPIO_P = counter[23];
-	assign USER_SMA_GPIO_N = counter[31];
 	gtp_pair mygtppair (.Q0_CLK0_GTREFCLK_PAD_N_IN(Q0_CLK0_GTREFCLK_PAD_N_IN), .Q0_CLK0_GTREFCLK_PAD_P_IN(Q0_CLK0_GTREFCLK_PAD_P_IN), .DRPCLK_IN(drp_clock_raw), .word_clock(word_clock), .sma_txdata(sma_txdata), .sfp_txdata(sfp_txdata), .sma_rxdata(sma_rxdata), .sfp_rxdata(sfp_rxdata), .sma_tx_p(SMA_MGT_TX_P), .sma_tx_n(SMA_MGT_TX_N), .sfp_tx_p(SFP_MGT_TX_P), .sfp_tx_n(SFP_MGT_TX_N), .sma_rx_p(SMA_MGT_RX_P), .sma_rx_n(SMA_MGT_RX_N), .sfp_rx_p(SFP_MGT_RX_P), .sfp_rx_n(SFP_MGT_RX_N));
 endmodule
 
